@@ -19,20 +19,24 @@ A backup utility that combines the best aspects of full and incremental backups.
 options:
   -h, --help            show this help message and exit
   -u USER_FOLDER, --user-folder USER_FOLDER
-                        The directory to be backed up. The contents of this folder and all subfolders will be backed
-                        up recursively.
+                        The directory to be backed up. The contents of this folder and
+                        all subfolders will be backed up recursively.
   -b BACKUP_FOLDER, --backup-folder BACKUP_FOLDER
-                        The destination of the backed up files. This folder will contain a set of folders labeled by
-                        year, and each year's folder will contain all of that year's backups.
+                        The destination of the backed up files. This folder will contain
+                        a set of folders labeled by year, and each year's folder will
+                        contain all of that year's backups.
   -e EXCLUDE, --exclude EXCLUDE
-                        The path of a text file containing a list of files and folders to exclude from backups. Each
-                        line in the file should contain one exclusion. Wildcard characters like * and ? are allowed.
-  -l LOG, --log LOG     Where to log the activity of this program. A file of the same name will be written to the
-                        backup folder. The default is backup.log in the user's home folder.
+                        The path of a text file containing a list of files and folders
+                        to exclude from backups. Each line in the file should contain
+                        one exclusion. Wildcard characters like * and ? are allowed.
+  -l LOG, --log LOG     Where to log the activity of this program. A file of the same
+                        name will be written to the backup folder. The default is
+                        backup.log in the user's home folder.
 
-Every time Vintage Backup runs, a new folder is created at the backup location that contains copies of all of the files
-in the directory being backed up. If a file in the directory being backed up is unchanged since the last back up, a
-hard link to the same file in the previous backup is created. This way, unchanged files do not take up more storage
-space in the backup location, allowing for possible years of daily backups, all while having each folder in the backup
-location contain a full backup.
+Every time Vintage Backup runs, a new folder is created at the backup location that
+contains copies of all of the files in the directory being backed up. If a file in the
+directory being backed up is unchanged since the last back up, a hard link to the same
+file in the previous backup is created. This way, unchanged files do not take up more
+storage space in the backup location, allowing for possible years of daily backups, all
+while having each folder in the backup location contain a full backup.
 ```
