@@ -5,17 +5,12 @@ import platform
 import argparse
 import sys
 import logging
-import tempfile
 import glob
 from collections import Counter
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 logger.setLevel(logging.INFO)
-
-
-def log_failure(user_entry: str, backup_entry: str, error: Exception) -> None:
-    logger.warning(f"Could not backup {user_entry} to {backup_entry} ({error})")
 
 
 def byte_units(size: float, prefixes: list[str] | None = None) -> str:
@@ -29,6 +24,9 @@ def byte_units(size: float, prefixes: list[str] | None = None) -> str:
 
 
 def file_has_changed(user_file: str, backup_file: str) -> bool:
+    if not os.path.lexists(backup_file):
+        return True
+
     user_file_mod_time = os.lstat(user_file).st_mtime
     backup_file_mod_time = os.lstat(backup_file).st_mtime
     return user_file_mod_time != backup_file_mod_time
@@ -65,7 +63,10 @@ def create_exclusion_list(exclude_file: str, user_data_location: str) -> list[st
     return exclusions
 
 
-def filter_excluded_paths(base_dir: str, exclusions: list[str], current_dir: str, name_list: list[str]) -> set[str]:
+def filter_excluded_paths(base_dir: str,
+                          exclusions: list[str],
+                          current_dir: str,
+                          name_list: list[str]) -> list[str]:
     def norm(path):
         return os.path.normcase(os.path.normpath(path))
 
@@ -73,7 +74,7 @@ def filter_excluded_paths(base_dir: str, exclusions: list[str], current_dir: str
     exclusion_set = set(norm(os.path.join(base_dir, path)) for path in exclusions)
     current_set = set(norm(os.path.join(current_dir, name)) for name in name_list)
     allowed_set = current_set - exclusion_set
-    return set(original_names[os.path.basename(path)] for path in allowed_set)
+    return [original_names[os.path.basename(path)] for path in allowed_set]
 
 
 def create_new_backup(user_data_location: str, backup_location: str, exclude_file: str) -> None:
@@ -95,96 +96,55 @@ def create_new_backup(user_data_location: str, backup_location: str, exclude_fil
     last_backup_path = find_previous_backup(backup_location)
     if not last_backup_path:
         logger.info("No previous backups. Copying everything ...")
-        os.makedirs(new_backup_path)
     else:
         logger.info(f"Previous backup : {os.path.abspath(last_backup_path)}")
-
-        logger.info("Linking new backup to previous backup ...")
-        for last_backup_dir_path, last_backup_dirs, last_backup_files in os.walk(last_backup_path):
-            good_dirs = filter_excluded_paths(last_backup_path, exclusions, last_backup_dir_path, last_backup_dirs)
-            last_backup_dirs[:] = list(good_dirs)
-            good_files = filter_excluded_paths(last_backup_path, exclusions, last_backup_dir_path, last_backup_files)
-            last_backup_files[:] = list(good_files)
-            new_backup_dir = os.path.join(new_backup_path,
-                                          os.path.relpath(last_backup_dir_path, last_backup_path))
-            os.makedirs(new_backup_dir)
-            for last_bak_file_name in last_backup_files:
-                backup_source = os.path.join(last_backup_dir_path, last_bak_file_name)
-                backup_destination = os.path.join(new_backup_dir, last_bak_file_name)
-                os.link(backup_source, backup_destination)
-
-        logger.info("Updating new backup with user's data ...")
 
     action_counter: Counter[str] = Counter()
 
     for current_user_path, user_dir_names, user_file_names in os.walk(user_data_location):
-        user_files = filter_excluded_paths(user_data_location, exclusions, current_user_path, user_file_names)
-        user_file_names[:] = list(user_files)
-        user_dirs = filter_excluded_paths(user_data_location, exclusions, current_user_path, user_dir_names)
-        user_dir_names[:] = list(user_dirs)
+        user_file_names[:] = filter_excluded_paths(user_data_location,
+                                                   exclusions,
+                                                   current_user_path,
+                                                   user_file_names)
+        user_dir_names[:] = filter_excluded_paths(user_data_location,
+                                                  exclusions,
+                                                  current_user_path,
+                                                  user_dir_names)
 
         relative_path = os.path.relpath(current_user_path, user_data_location)
-        backup_directory = os.path.join(new_backup_path, relative_path)
-        backup_entries = list(os.scandir(backup_directory))
-        backup_dirs = set(entry.name for entry in backup_entries if entry.is_dir())
-        backup_files = set(entry.name for entry in backup_entries if not entry.is_dir())
+        new_backup_directory = os.path.join(new_backup_path, relative_path)
+        os.makedirs(new_backup_directory)
 
-        # Delete files in backup that are not in the user's directory
-        backup_files_to_delete = backup_files - user_files
-        for file_to_delete in backup_files_to_delete:
-            os.remove(os.path.join(backup_directory, file_to_delete))
-            action_counter["Deleted files"] += 1
+        for user_file_name in user_file_names:
+            new_backup_file_name = os.path.join(new_backup_directory, user_file_name)
+            user_full_file_name = os.path.join(current_user_path, user_file_name)
 
-        # Delete directories in backup that are not in the user's directory
-        backup_directories_to_delete = backup_dirs - user_dirs
-        for directory in backup_directories_to_delete:
-            shutil.rmtree(os.path.join(backup_directory, directory))
-            action_counter["Deleted folders"] += 1
-
-        # Copy newly created files
-        new_files = user_files - backup_files
-        for new_file in new_files:
-            new_file_source = os.path.join(current_user_path, new_file)
-            new_file_destination = os.path.join(backup_directory, new_file)
             try:
-                shutil.copy2(new_file_source, new_file_destination)
-                action_counter["Copied files"] += 1
-            except Exception as e:
-                log_failure(new_file_source, new_file_destination, e)
-                action_counter["Failed copies"] += 1
-
-        # Create new subdirectories
-        new_subdirectories = user_dirs - backup_dirs
-        for new_subdirectory in new_subdirectories:
-            new_backup_subdirectory = os.path.join(backup_directory, new_subdirectory)
-            os.mkdir(new_backup_subdirectory)
-            action_counter["New folders"] += 1
-            # The new subdirectory will be populated later in the os.walk
-
-        # Update files if user's files are newer
-        common_files = user_files & backup_files
-        for common_file in common_files:
-            user_file = os.path.join(current_user_path, common_file)
-            backup_file = os.path.join(backup_directory, common_file)
-            if file_has_changed(user_file, backup_file):
-                try:
-                    with tempfile.TemporaryDirectory(dir=backup_directory) as temp_dir:
-                        temp_copy_location = os.path.join(temp_dir, common_file)
-                        shutil.copy2(user_file, temp_copy_location)
-                        os.remove(backup_file)
-                        shutil.move(temp_copy_location, backup_file)
-                    action_counter["Updated files"] += 1
-                except Exception as e:
-                    log_failure(user_file, backup_file, e)
-                    action_counter["Failed updates"] += 1
+                if last_backup_path:
+                    previous_backup_file_name = os.path.join(last_backup_path,
+                                                             relative_path,
+                                                             user_file_name)
+                    if file_has_changed(user_full_file_name, previous_backup_file_name):
+                        action = "copy"
+                        shutil.copy2(user_full_file_name, new_backup_file_name)
+                    else:
+                        action = "link"
+                        os.link(previous_backup_file_name, new_backup_file_name)
+                else:
+                    action = "copy"
+                    shutil.copy2(user_full_file_name, new_backup_file_name)
+            except Exception as error:
+                source = previous_backup_file_name if action == "link" else user_full_file_name
+                logger.error(f"Could not {action} {source} to {new_backup_file_name} ({error})")
+                action_counter[f"failed {action}"] += 1
             else:
-                action_counter["Unchanged files"] += 1
+                action_counter[f"{action} file"] += 1
 
     logger.info("")
     name_column_size = max(len(name) for name in action_counter.keys())
     count_column_size = len(str(max(action_counter.values())))
     for action, count in action_counter.items():
-        logger.info(f"{action:<{name_column_size}} : {count:>{count_column_size}}")
+        logger.info(f"{action.capitalize():<{name_column_size}} : {count:>{count_column_size}}")
 
 
 def is_valid_folder(path: str, label: str | None = None) -> bool:
