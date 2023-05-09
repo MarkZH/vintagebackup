@@ -136,9 +136,11 @@ def create_new_backup(user_data_location: str, backup_location: str, exclude_fil
             except Exception as error:
                 source = previous_backup_file_name if action == "link" else user_full_file_name
                 logger.error(f"Could not {action} {source} to {new_backup_file_name} ({error})")
-                action_counter[f"failed {action}"] += 1
+                plural = {"link": "links", "copy": "copies"}
+                action_counter[f"failed {plural[action]}"] += 1
             else:
-                action_counter[f"{action} file"] += 1
+                past_tense = {"link": "linked", "copy": "copied"}
+                action_counter[f"{past_tense[action]} files"] += 1
 
     logger.info("")
     name_column_size = max(len(name) for name in action_counter.keys())
