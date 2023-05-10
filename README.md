@@ -3,6 +3,12 @@
 Vintage Backup is a backup utility that uses hard links to unchanged (vintage) files to create full backups with the storage savings of incremental backups.
 It is written in Python and requires Python 3.11 or later to be installed to run.
 
+Why "Vintage" Backup?
+When something old is still of good quality--whether cars, wines, books, or art--they are brought forward into the present instead of being replaced with something new.
+These are vintage items.
+When a backup of a file is still good--the original file hasn't changed since the last backup--it is brought forward to the newest backup instead of being replaced with a new copy.
+These are vintage files.
+
 The program can be run from the command line or automatically with tools like Linux cron or Windows Task Scheduler.
 To start the program, use the following command: `python vintagebackup.py -u "C:\Users\Anon Y Mous" -b "E:\backups"`
 This will backup the Windows home directory to an external storage mounted as drive E.
