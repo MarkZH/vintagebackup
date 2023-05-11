@@ -24,15 +24,6 @@ def byte_units(size: float, prefixes: list[str] | None = None) -> str:
         return f"{size:.1f} {prefixes[0]}B"
 
 
-def file_has_changed(user_file: str, backup_file: str) -> bool:
-    if not os.path.lexists(backup_file):
-        return True
-
-    user_file_mod_time = os.lstat(user_file).st_mtime
-    backup_file_mod_time = os.lstat(backup_file).st_mtime
-    return user_file_mod_time != backup_file_mod_time
-
-
 def last_directory(dir_name: str) -> str:
     return sorted(d.path for d in os.scandir(dir_name) if d.is_dir())[-1]
 
@@ -99,6 +90,7 @@ def create_new_backup(user_data_location: str, backup_location: str, exclude_fil
         logger.info("No previous backups. Copying everything ...")
     else:
         logger.info(f"Previous backup : {os.path.abspath(last_backup_path)}")
+    logger.info("")
 
     action_counter: Counter[str] = Counter()
 
@@ -116,32 +108,35 @@ def create_new_backup(user_data_location: str, backup_location: str, exclude_fil
         new_backup_directory = os.path.join(new_backup_path, relative_path)
         os.makedirs(new_backup_directory)
 
-        for user_file_name in user_file_names:
-            new_backup_file_name = os.path.join(new_backup_directory, user_file_name)
-            user_full_file_name = os.path.join(current_user_path, user_file_name)
+        if last_backup_path:
+            previous_backup_directory = os.path.join(last_backup_path, relative_path)
+            matching, mismatching, errors = filecmp.cmpfiles(current_user_path,
+                                                             previous_backup_directory,
+                                                             user_file_names)
+        else:
+            matching = []
+            mismatching = user_file_names
+            errors = []
 
+        for file_name in matching:
+            previous_backup = os.path.join(previous_backup_directory, file_name)
+            new_backup = os.path.join(new_backup_directory, file_name)
             try:
-                if last_backup_path:
-                    previous_backup_file_name = os.path.join(last_backup_path,
-                                                             relative_path,
-                                                             user_file_name)
-                    if file_has_changed(user_full_file_name, previous_backup_file_name):
-                        action = "copy"
-                        shutil.copy2(user_full_file_name, new_backup_file_name)
-                    else:
-                        action = "link"
-                        os.link(previous_backup_file_name, new_backup_file_name)
-                else:
-                    action = "copy"
-                    shutil.copy2(user_full_file_name, new_backup_file_name)
+                os.link(previous_backup, new_backup)
+                action_counter["linked file"] += 1
             except Exception as error:
-                source = previous_backup_file_name if action == "link" else user_full_file_name
-                logger.error(f"Could not {action} {source} to {new_backup_file_name} ({error})")
-                plural = {"link": "links", "copy": "copies"}
-                action_counter[f"failed {plural[action]}"] += 1
-            else:
-                past_tense = {"link": "linked", "copy": "copied"}
-                action_counter[f"{past_tense[action]} files"] += 1
+                logger.error(f"Could not link {previous_backup} to {new_backup} ({error})")
+                action_counter["failed link"] += 1
+
+        for file_name in mismatching + errors:
+            new_backup_file = os.path.join(new_backup_directory, file_name)
+            user_file = os.path.join(current_user_path, file_name)
+            try:
+                shutil.copy2(user_file, new_backup_file)
+                action_counter["copied file"] += 1
+            except Exception as error:
+                logger.error(f"Could not copy {user_file} to {new_backup_file} ({error})")
+                action_counter["failed copy"] += 1
 
     total_files = sum(count for action, count in action_counter.items()
                       if not action.startswith("failed"))
@@ -173,60 +168,6 @@ def set_log_location(logger: logging.Logger, log_file_path: str, backup_path: st
         logger.addHandler(backup_log_file)
 
 
-def verify_last_backup(user_data_location: str, backup_location: str, exclude_file: str) -> None:
-    matches_found = 0
-    mismatches_found = 0
-    missing_files = 0
-
-    last_backup_directory = find_previous_backup(backup_location)
-    if not last_backup_directory:
-        raise RuntimeError(f"Could not find previous backup in {backup_location}")
-
-    logger.info("")
-    logger.info(f"Verifying previous backup: {last_backup_directory}")
-    exclusions = create_exclusion_list(exclude_file, user_data_location)
-    for user_directory, user_directory_names, user_file_names in os.walk(user_data_location):
-        user_file_names[:] = filter_excluded_paths(user_data_location,
-                                                   exclusions,
-                                                   user_directory,
-                                                   user_file_names)
-        user_directory_names[:] = filter_excluded_paths(user_data_location,
-                                                        exclusions,
-                                                        user_directory,
-                                                        user_directory_names)
-
-        relative_path = os.path.relpath(user_directory, user_data_location)
-        backup_path = os.path.join(last_backup_directory, relative_path)
-
-        matches, mismatches, errors = filecmp.cmpfiles(user_directory, backup_path, user_file_names)
-        matches_found += len(matches)
-        mismatches_found += len(mismatches)
-        missing_files += len(errors)
-
-        for name in mismatches:
-            user_file_path = os.path.join(user_directory, name)
-            backup_file_path = os.path.join(backup_path, name)
-            os.utime(backup_file_path)
-            logger.warning(f"Files do not match: {user_file_path} / {backup_file_path}")
-
-        for name in errors:
-            backup_file_path = os.path.join(backup_path, name)
-            logger.warning(f"Could not verify file: {backup_file_path}")
-
-    logger.info("")
-    logger.info(f"Found {matches_found} matching files.")
-
-    def plural(count: int, text: str) -> str:
-        return f"{count} {text}{'' if count == 1 else 's'}"
-
-    if mismatches_found:
-        logger.warning(f"Found {plural(mismatches_found, 'backup file')} different from the"
-                       " user's. Will copy anew in the next backup.")
-    if missing_files:
-        logger.warning(f"Did not find {plural(missing_files, 'files')} in backup. There were"
-                       " probably errors during the original backup run.")
-
-
 if __name__ == "__main__":
     user_input = argparse.ArgumentParser(prog="vintagebackup.py",
                                          description="""
@@ -254,13 +195,6 @@ The path of a text file containing a list of files and folders
 to exclude from backups. Each line in the file should contain
 one exclusion. Wildcard characters like * and ? are allowed.""")
 
-    user_input.add_argument("-v", "--verify", action="store_true", help="""
-Verify the integrity of the just completed backup by comparing
-the contents of the backed up files with the contents of the
-files in the user folder. Backup files that don't match will
-by marked for copying by changing their access and modification
-times.""")
-
     default_log_file_name = os.path.join(os.path.expanduser("~"), "backup.log")
     user_input.add_argument("-l", "--log", default=default_log_file_name, help="""
 Where to log the activity of this program. A file of the same
@@ -284,13 +218,9 @@ in the user's home folder.""")
     start = datetime.datetime.now()
 
     try:
-        action = "backup"
         create_new_backup(args.user_folder, args.backup_folder, args.exclude)
-        if args.verify:
-            action = "verification"
-            verify_last_backup(args.user_folder, args.backup_folder, args.exclude)
     except Exception:
-        logger.exception(f"An error prevented the {action} from completing.")
+        logger.exception(f"An error prevented the backup from completing.")
     finally:
         finish = datetime.datetime.now()
         logger.info("")
