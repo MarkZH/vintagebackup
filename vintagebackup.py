@@ -227,8 +227,10 @@ in the user's home folder.""")
         logger.info(f"Time taken = {finish - start}")
 
         backup_storage = shutil.disk_usage(args.backup_folder)
+        percent_used = round(100*backup_storage.used/backup_storage.total)
+        percent_free = round(100*backup_storage.free/backup_storage.total)
         logger.info("")
         logger.info("Backup storage space: "
                     f"Total = {byte_units(backup_storage.total)}  "
-                    f"Used = {byte_units(backup_storage.used)}  "
-                    f"Free = {byte_units(backup_storage.free)}")
+                    f"Used = {byte_units(backup_storage.used)} ({percent_used}%)  "
+                    f"Free = {byte_units(backup_storage.free)} ({percent_free}%)")
