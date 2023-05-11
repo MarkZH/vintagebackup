@@ -228,8 +228,6 @@ def verify_last_backup(user_data_location: str, backup_location: str, exclude_fi
 
 
 if __name__ == "__main__":
-    default_log_file_name = os.path.join(os.path.expanduser("~"), "backup.log")
-
     user_input = argparse.ArgumentParser(prog="vintagebackup.py",
                                          description="""
 A backup utility that combines the best aspects of full and incremental backups.""",
@@ -263,8 +261,8 @@ files in the user folder. Backup files that don't match will
 by marked for copying by changing their access and modification
 times.""")
 
-    user_input.add_argument("-l", "--log", default=default_log_file_name,
-                            help="""
+    default_log_file_name = os.path.join(os.path.expanduser("~"), "backup.log")
+    user_input.add_argument("-l", "--log", default=default_log_file_name, help="""
 Where to log the activity of this program. A file of the same
 name will be written to the backup folder. The default is backup.log
 in the user's home folder.""")
