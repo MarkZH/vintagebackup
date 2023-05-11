@@ -168,60 +168,6 @@ def set_log_location(logger: logging.Logger, log_file_path: str, backup_path: st
         logger.addHandler(backup_log_file)
 
 
-def verify_last_backup(user_data_location: str, backup_location: str, exclude_file: str) -> None:
-    matches_found = 0
-    mismatches_found = 0
-    missing_files = 0
-
-    last_backup_directory = find_previous_backup(backup_location)
-    if not last_backup_directory:
-        raise RuntimeError(f"Could not find previous backup in {backup_location}")
-
-    logger.info("")
-    logger.info(f"Verifying previous backup: {last_backup_directory}")
-    exclusions = create_exclusion_list(exclude_file, user_data_location)
-    for user_directory, user_directory_names, user_file_names in os.walk(user_data_location):
-        user_file_names[:] = filter_excluded_paths(user_data_location,
-                                                   exclusions,
-                                                   user_directory,
-                                                   user_file_names)
-        user_directory_names[:] = filter_excluded_paths(user_data_location,
-                                                        exclusions,
-                                                        user_directory,
-                                                        user_directory_names)
-
-        relative_path = os.path.relpath(user_directory, user_data_location)
-        backup_path = os.path.join(last_backup_directory, relative_path)
-
-        matches, mismatches, errors = filecmp.cmpfiles(user_directory, backup_path, user_file_names)
-        matches_found += len(matches)
-        mismatches_found += len(mismatches)
-        missing_files += len(errors)
-
-        for name in mismatches:
-            user_file_path = os.path.join(user_directory, name)
-            backup_file_path = os.path.join(backup_path, name)
-            os.utime(backup_file_path)
-            logger.warning(f"Files do not match: {user_file_path} / {backup_file_path}")
-
-        for name in errors:
-            backup_file_path = os.path.join(backup_path, name)
-            logger.warning(f"Could not verify file: {backup_file_path}")
-
-    logger.info("")
-    logger.info(f"Found {matches_found} matching files.")
-
-    def plural(count: int, text: str) -> str:
-        return f"{count} {text}{'' if count == 1 else 's'}"
-
-    if mismatches_found:
-        logger.warning(f"Found {plural(mismatches_found, 'backup file')} different from the"
-                       " user's. Will copy anew in the next backup.")
-    if missing_files:
-        logger.warning(f"Did not find {plural(missing_files, 'files')} in backup. There were"
-                       " probably errors during the original backup run.")
-
-
 if __name__ == "__main__":
     user_input = argparse.ArgumentParser(prog="vintagebackup.py",
                                          description="""
@@ -249,12 +195,6 @@ The path of a text file containing a list of files and folders
 to exclude from backups. Each line in the file should contain
 one exclusion. Wildcard characters like * and ? are allowed.""")
 
-    user_input.add_argument("-v", "--verify", action="store_true", help="""
-Verify the integrity of the just completed backup by comparing
-the contents of the backed up files with the contents of the
-files in the user folder. Names of backup files that don't match
-will be printed to the terminal screen and logged.""")
-
     default_log_file_name = os.path.join(os.path.expanduser("~"), "backup.log")
     user_input.add_argument("-l", "--log", default=default_log_file_name, help="""
 Where to log the activity of this program. A file of the same
@@ -278,13 +218,9 @@ in the user's home folder.""")
     start = datetime.datetime.now()
 
     try:
-        action = "backup"
         create_new_backup(args.user_folder, args.backup_folder, args.exclude)
-        if args.verify:
-            action = "verification"
-            verify_last_backup(args.user_folder, args.backup_folder, args.exclude)
     except Exception:
-        logger.exception(f"An error prevented the {action} from completing.")
+        logger.exception(f"An error prevented the backup from completing.")
     finally:
         finish = datetime.datetime.now()
         logger.info("")
