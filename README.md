@@ -36,11 +36,6 @@ options:
                         The path of a text file containing a list of files and folders
                         to exclude from backups. Each line in the file should contain
                         one exclusion. Wildcard characters like * and ? are allowed.
-  -v, --verify          Verify the integrity of the just completed backup by comparing
-                        the contents of the backed up files with the contents of the
-                        files in the user folder. Backup files that don't match will by
-                        marked for copying by changing their access and modification
-                        times.
   -l LOG, --log LOG     Where to log the activity of this program. A file of the same
                         name will be written to the backup folder. The default is
                         backup.log in the user's home folder.
