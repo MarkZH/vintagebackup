@@ -7,6 +7,7 @@ import sys
 import logging
 import glob
 import filecmp
+import tempfile
 from collections import Counter
 
 logger = logging.getLogger(__name__)
@@ -28,12 +29,15 @@ def last_directory(dir_name: str) -> str:
     return sorted(d.path for d in os.scandir(dir_name) if d.is_dir())[-1]
 
 
-def find_previous_backup(backup_location: str) -> str | None:
+def find_previous_backup(backup_location: str) -> str:
     try:
         last_year_dir = last_directory(backup_location)
         return last_directory(last_year_dir)
     except IndexError:
-        return None
+        with tempfile.TemporaryDirectory() as tempdir:
+            # Return a directory that definately does
+            # not exist once this function returns.
+            return tempdir
 
 
 def create_exclusion_list(exclude_file: str, user_data_location: str) -> list[str]:
@@ -113,7 +117,7 @@ def create_new_backup(user_data_location: str, backup_location: str, exclude_fil
     logger.info(f"Backup location : {os.path.abspath(new_backup_path)}")
 
     last_backup_path = find_previous_backup(backup_location)
-    if not last_backup_path:
+    if not os.path.isdir(last_backup_path):
         logger.info("No previous backups. Copying everything ...")
     else:
         logger.info(f"Previous backup : {os.path.abspath(last_backup_path)}")
@@ -135,15 +139,10 @@ def create_new_backup(user_data_location: str, backup_location: str, exclude_fil
         new_backup_directory = os.path.join(new_backup_path, relative_path)
         os.makedirs(new_backup_directory)
 
-        if last_backup_path:
-            previous_backup_directory = os.path.join(last_backup_path, relative_path)
-            matching, mismatching, errors = filecmp.cmpfiles(current_user_path,
-                                                             previous_backup_directory,
-                                                             user_file_names)
-        else:
-            matching = []
-            mismatching = user_file_names
-            errors = []
+        previous_backup_directory = os.path.join(last_backup_path, relative_path)
+        matching, mismatching, errors = filecmp.cmpfiles(current_user_path,
+                                                         previous_backup_directory,
+                                                         user_file_names)
 
         for file_name in matching:
             previous_backup = os.path.join(previous_backup_directory, file_name)
