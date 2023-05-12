@@ -195,11 +195,11 @@ The path of a text file containing a list of files and folders
 to exclude from backups. Each line in the file should contain
 one exclusion. Wildcard characters like * and ? are allowed.""")
 
-    default_log_file_name = os.path.join(os.path.expanduser("~"), "backup.log")
-    user_input.add_argument("-l", "--log", default=default_log_file_name, help="""
+    default_log_file_name = os.path.join(os.path.expanduser("~"), "vintagebackup.log")
+    user_input.add_argument("-l", "--log", default=default_log_file_name, help=f"""
 Where to log the activity of this program. A file of the same
-name will be written to the backup folder. The default is backup.log
-in the user's home folder.""")
+name will be written to the backup folder. The default is
+{os.path.basename(default_log_file_name)} in the user's home folder.""")
 
     args = user_input.parse_args(args=None if sys.argv[1:] else ["--help"])
 
