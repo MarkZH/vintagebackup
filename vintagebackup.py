@@ -59,7 +59,7 @@ def filter_excluded_paths(base_dir: str,
                           exclusions: list[str],
                           current_dir: str,
                           name_list: list[str]) -> list[str]:
-    def norm(path):
+    def norm(path: str) -> str:
         return os.path.normcase(os.path.normpath(path))
 
     original_names = {os.path.normcase(name): name for name in name_list}
