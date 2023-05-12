@@ -79,7 +79,7 @@ def record_user_location(user_location: str, backup_location: str) -> None:
         user_record.write(user_location + "\n")
 
 
-def confirm_user_location_matches_backup_location(user_data_location: str, backup_location: str) -> None:
+def confirm_user_location_is_unchanged(user_data_location: str, backup_location: str) -> None:
     user_folder_record = get_user_location_record(backup_location)
     try:
         with open(user_folder_record) as user_record:
@@ -104,7 +104,7 @@ def create_new_backup(user_data_location: str, backup_location: str, exclude_fil
     logger.info("=====================")
     logger.info("")
 
-    confirm_user_location_matches_backup_location(user_data_location, backup_location)
+    confirm_user_location_is_unchanged(user_data_location, backup_location)
     record_user_location(user_data_location, backup_location)
 
     exclusions = create_exclusion_list(exclude_file, user_data_location)
