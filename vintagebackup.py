@@ -69,6 +69,29 @@ def filter_excluded_paths(base_dir: str,
     return [original_names[os.path.basename(path)] for path in allowed_set]
 
 
+def get_user_location_record(backup_location: str) -> str:
+    return os.path.join(backup_location, "vintagebackup.source.txt")
+
+
+def record_user_location(user_location: str, backup_location: str) -> None:
+    user_folder_record = get_user_location_record(backup_location)
+    with open(user_folder_record, "w") as user_record:
+        user_record.write(user_location + "\n")
+
+
+def confirm_user_location_matches_backup_location(user_data_location: str, backup_location: str) -> None:
+    user_folder_record = get_user_location_record(backup_location)
+    try:
+        with open(user_folder_record) as user_record:
+            recorded_user_folder = user_record.read().rstrip("\n")
+        if not os.path.samefile(recorded_user_folder, user_data_location):
+            raise RuntimeError("Previous backup stored a different user folder."
+                               f" Previously: {recorded_user_folder}; Now: {user_data_location}")
+    except FileNotFoundError:
+        # This is probably the first backup, hence no user folder record.
+        pass
+
+
 def create_new_backup(user_data_location: str, backup_location: str, exclude_file: str) -> None:
     now = datetime.datetime.now()
     backup_date = now.strftime("%Y-%m-%d %H-%M-%S")
@@ -80,6 +103,10 @@ def create_new_backup(user_data_location: str, backup_location: str, exclude_fil
     logger.info(" Starting new backup")
     logger.info("=====================")
     logger.info("")
+
+    confirm_user_location_matches_backup_location(user_data_location, backup_location)
+    record_user_location(user_data_location, backup_location)
+
     exclusions = create_exclusion_list(exclude_file, user_data_location)
     logger.info("")
     logger.info(f"User's data     : {os.path.abspath(user_data_location)}")
@@ -219,8 +246,10 @@ name will be written to the backup folder. The default is
 
     try:
         create_new_backup(args.user_folder, args.backup_folder, args.exclude)
-    except Exception:
-        logger.exception(f"An error prevented the backup from completing.")
+        exit_code = 0
+    except Exception as error:
+        logger.error(f"An error prevented the backup from completing: {error}")
+        exit_code = 1
     finally:
         finish = datetime.datetime.now()
         logger.info("")
@@ -234,3 +263,4 @@ name will be written to the backup folder. The default is
                     f"Total = {byte_units(backup_storage.total)}  "
                     f"Used = {byte_units(backup_storage.used)} ({percent_used}%)  "
                     f"Free = {byte_units(backup_storage.free)} ({percent_free}%)")
+        sys.exit(exit_code)
