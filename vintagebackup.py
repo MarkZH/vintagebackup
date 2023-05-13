@@ -96,7 +96,10 @@ def confirm_user_location_is_unchanged(user_data_location: str, backup_location:
         pass
 
 
-def create_new_backup(user_data_location: str, backup_location: str, exclude_file: str) -> None:
+def create_new_backup(user_data_location: str,
+                      backup_location: str,
+                      exclude_file: str,
+                      examine_whole_file: bool) -> None:
     now = datetime.datetime.now()
     backup_date = now.strftime("%Y-%m-%d %H-%M-%S")
     os_name = f"{platform.system()} {platform.release()}".strip()
@@ -142,7 +145,8 @@ def create_new_backup(user_data_location: str, backup_location: str, exclude_fil
         previous_backup_directory = os.path.join(last_backup_path, relative_path)
         matching, mismatching, errors = filecmp.cmpfiles(current_user_path,
                                                          previous_backup_directory,
-                                                         user_file_names)
+                                                         user_file_names,
+                                                         shallow=not examine_whole_file)
 
         for file_name in matching:
             previous_backup = os.path.join(previous_backup_directory, file_name)
@@ -221,6 +225,13 @@ The path of a text file containing a list of files and folders
 to exclude from backups. Each line in the file should contain
 one exclusion. Wildcard characters like * and ? are allowed.""")
 
+    user_input.add_argument("-w", "--whole-file", action="store_true", help="""
+Examine the entire contents of a file to determine if it has
+changed and needs to be copied to the new backup. Without this
+option, only the file's size, type, and modification date are
+checked for differences. Using this option will make backups
+take considerably longer.""")
+
     default_log_file_name = os.path.join(os.path.expanduser("~"), "vintagebackup.log")
     user_input.add_argument("-l", "--log", default=default_log_file_name, help=f"""
 Where to log the activity of this program. A file of the same
@@ -244,7 +255,7 @@ name will be written to the backup folder. The default is
     start = datetime.datetime.now()
 
     try:
-        create_new_backup(args.user_folder, args.backup_folder, args.exclude)
+        create_new_backup(args.user_folder, args.backup_folder, args.exclude, args.whole_file)
         exit_code = 0
     except Exception as error:
         logger.error(f"An error prevented the backup from completing: {error}")

@@ -18,7 +18,7 @@ This can result in years of daily backups fitting on a single external drive wit
 
 Running `python vintagebackup.py -h` displays the help message with more options:
 ```
-usage: vintagebackup.py [-h] [-u USER_FOLDER] [-b BACKUP_FOLDER] [-e EXCLUDE] [-v]
+usage: vintagebackup.py [-h] [-u USER_FOLDER] [-b BACKUP_FOLDER] [-e EXCLUDE] [-w]
                         [-l LOG]
 
 A backup utility that combines the best aspects of full and incremental backups.
@@ -36,6 +36,11 @@ options:
                         The path of a text file containing a list of files and folders
                         to exclude from backups. Each line in the file should contain
                         one exclusion. Wildcard characters like * and ? are allowed.
+  -w, --whole-file      Examine the entire contents of a file to determine if it has
+                        changed and needs to be copied to the new backup. Without this
+                        option, only the file's size, type, and modification date are
+                        checked for differences. Using this option will make backups
+                        take considerably longer.
   -l LOG, --log LOG     Where to log the activity of this program. A file of the same
                         name will be written to the backup folder. The default is
                         vintagebackup.log in the user's home folder.
