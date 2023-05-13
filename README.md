@@ -19,7 +19,7 @@ This can result in years of daily backups fitting on a single external drive wit
 Running `python vintagebackup.py -h` displays the help message with more options:
 ```
 usage: vintagebackup.py [-h] [-u USER_FOLDER] [-b BACKUP_FOLDER] [-e EXCLUDE] [-w]
-                        [-l LOG]
+                        [-r RECOVER] [-l LOG]
 
 A backup utility that combines the best aspects of full and incremental backups.
 
@@ -41,6 +41,12 @@ options:
                         option, only the file's size, type, and modification date are
                         checked for differences. Using this option will make backups
                         take considerably longer.
+  -r RECOVER, --recover RECOVER
+                        Recover a file from the backup. The user will be able to pick
+                        which version of the file to recover by choosing from dates
+                        where the backup has a new copy the file due to the file being
+                        modified. This option requires the -u option to specify which
+                        backup location to search.
   -l LOG, --log LOG     Where to log the activity of this program. A file of the same
                         name will be written to the backup folder. The default is
                         vintagebackup.log in the user's home folder.

@@ -201,6 +201,48 @@ def setup_log_file(logger: logging.Logger, log_file_path: str) -> None:
     logger.addHandler(log_file)
 
 
+def recover_file(recovery_file_name: str, backup_location: str) -> None:
+    with open(get_user_location_record(backup_location)) as location_file:
+        user_data_location = location_file.readline().rstrip("\n")
+    recovery_path = os.path.abspath(recovery_file_name)
+    recovery_relative_path = os.path.relpath(recovery_path, user_data_location)
+    if recovery_relative_path.startswith(".."):
+        raise CommandLineError(f"{recovery_path} is not contained in the backup set "
+                               f"{backup_location}, which contains {user_data_location}.")
+
+    unique_backups = {}
+    for path in sorted(glob.glob(os.path.join(backup_location, "*", "*", recovery_relative_path))):
+        inode = os.stat(path).st_ino
+        if inode not in unique_backups:
+            unique_backups[inode] = path[:-len(recovery_relative_path)]
+
+    number_column_size = len(unique_backups)
+    for choice, backup_copy in enumerate(unique_backups.values(), 1):
+        print(f"{choice:>{number_column_size}}: {os.path.relpath(backup_copy, backup_location)}")
+
+    while True:
+        try:
+            user_choice = int(input("Version to recover (Ctrl-C to quit): "))
+            if user_choice < 1:
+                continue
+            chosen_file = os.path.join(backup_location,
+                                       unique_backups[user_choice - 1],
+                                       recovery_relative_path)
+            break
+        except (ValueError, IndexError):
+            pass
+
+    recovered_path = recovery_path
+    unique_id = 0
+    while os.path.lexists(recovered_path):
+        unique_id += 1
+        root, ext = os.path.splitext(recovery_path)
+        recovered_path = f"{root}.{unique_id}{ext}"
+
+    logger.info(f"Copying {chosen_file} to {recovered_path}")
+    shutil.copy2(chosen_file, recovered_path)
+
+
 if __name__ == "__main__":
     user_input = argparse.ArgumentParser(prog="vintagebackup.py",
                                          description="""
@@ -235,6 +277,13 @@ option, only the file's size, type, and modification date are
 checked for differences. Using this option will make backups
 take considerably longer.""")
 
+    user_input.add_argument("-r", "--recover", help="""
+Recover a file from the backup. The user will be able to pick
+which version of the file to recover by choosing from dates
+where the backup has a new copy the file due to the file being
+modified. This option requires the -u option to specify which
+backup location to search.""")
+
     default_log_file_name = os.path.join(os.path.expanduser("~"), "vintagebackup.log")
     user_input.add_argument("-l", "--log", default=default_log_file_name, help=f"""
 Where to log the activity of this program. A file of the same
@@ -249,7 +298,10 @@ name will be written to the backup folder. The default is
 
     exit_code = 1
     try:
-        create_new_backup(args.user_folder, args.backup_folder, args.exclude, args.whole_file)
+        if args.recover:
+            recover_file(args.recover, args.backup_folder)
+        else:
+            create_new_backup(args.user_folder, args.backup_folder, args.exclude, args.whole_file)
         exit_code = 0
     except CommandLineError as error:
         logger.error(error)
