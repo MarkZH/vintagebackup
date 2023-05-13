@@ -38,7 +38,7 @@ options:
                         one exclusion. Wildcard characters like * and ? are allowed.
   -l LOG, --log LOG     Where to log the activity of this program. A file of the same
                         name will be written to the backup folder. The default is
-                        backup.log in the user's home folder.
+                        vintagebackup.log in the user's home folder.
 
 Every time Vintage Backup runs, a new folder is created at the backup location that
 contains copies of all of the files in the directory being backed up. If a file in the
