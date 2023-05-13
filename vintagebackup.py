@@ -15,6 +15,10 @@ logger.addHandler(logging.StreamHandler(sys.stdout))
 logger.setLevel(logging.INFO)
 
 
+class CommandLineError(ValueError):
+    pass
+
+
 def byte_units(size: float, prefixes: list[str] | None = None) -> str:
     if prefixes is None:
         prefixes = ["", "k", "M", "G", "T"]
@@ -100,6 +104,18 @@ def create_new_backup(user_data_location: str,
                       backup_location: str,
                       exclude_file: str,
                       examine_whole_file: bool) -> None:
+    if not os.path.isdir(user_data_location or ""):
+        raise CommandLineError("The user folder does not exist: "
+                               f"{user_data_location or 'None given'}")
+
+    if not backup_location:
+        raise CommandLineError("No backup destination was given.")
+
+    if exclude_file is not None and not os.path.isfile(exclude_file):
+        raise CommandLineError(f"Exclude file not found: {exclude_file}")
+
+    os.makedirs(backup_location, exist_ok=True)
+
     now = datetime.datetime.now()
     backup_date = now.strftime("%Y-%m-%d %H-%M-%S")
     os_name = f"{platform.system()} {platform.release()}".strip()
@@ -155,7 +171,7 @@ def create_new_backup(user_data_location: str,
                 os.link(previous_backup, new_backup, follow_symlinks=False)
                 action_counter["linked file"] += 1
             except Exception as error:
-                logger.error(f"Could not link {previous_backup} to {new_backup} ({error})")
+                logger.warning(f"Could not link {previous_backup} to {new_backup} ({error})")
                 action_counter["failed link"] += 1
 
         for file_name in mismatching + errors:
@@ -165,7 +181,7 @@ def create_new_backup(user_data_location: str,
                 shutil.copy2(user_file, new_backup_file, follow_symlinks=False)
                 action_counter["copied file"] += 1
             except Exception as error:
-                logger.error(f"Could not copy {user_file} to {new_backup_file} ({error})")
+                logger.warning(f"Could not copy {user_file} to {new_backup_file} ({error})")
                 action_counter["failed copy"] += 1
 
     total_files = sum(count for action, count in action_counter.items()
@@ -178,24 +194,11 @@ def create_new_backup(user_data_location: str,
         logger.info(f"{action.capitalize():<{name_column_size}} : {count:>{count_column_size}}")
 
 
-def is_valid_folder(path: str, label: str | None = None) -> bool:
-    is_valid = bool(path) and os.path.isdir(path)
-    if not is_valid and label:
-        logger.error(f"The {label} folder does not exist: {path or 'None given'}")
-    return is_valid
-
-
-def set_log_location(logger: logging.Logger, log_file_path: str, backup_path: str) -> None:
+def setup_log_file(logger: logging.Logger, log_file_path: str) -> None:
     log_file = logging.FileHandler(log_file_path)
     log_file_format = logging.Formatter(fmt="%(asctime)s %(levelname)s    %(message)s")
     log_file.setFormatter(log_file_format)
     logger.addHandler(log_file)
-
-    if is_valid_folder(backup_path):
-        backup_log_file_name = os.path.join(backup_path, os.path.basename(log_file_path))
-        backup_log_file = logging.FileHandler(backup_log_file_name)
-        backup_log_file.setFormatter(log_file_format)
-        logger.addHandler(backup_log_file)
 
 
 if __name__ == "__main__":
@@ -240,26 +243,19 @@ name will be written to the backup folder. The default is
 
     args = user_input.parse_args(args=None if sys.argv[1:] else ["--help"])
 
-    set_log_location(logger, args.log, args.backup_folder)
-
-    if not (is_valid_folder(args.user_folder, "user")
-            and is_valid_folder(args.backup_folder, "backup")):
-        user_input.print_usage()
-        sys.exit(1)
-
-    if args.exclude is not None and not os.path.isfile(args.exclude):
-        logger.error(f"Exclude file not found: {args.exclude}")
-        user_input.print_usage()
-        sys.exit(1)
+    setup_log_file(logger, args.log)
 
     start = datetime.datetime.now()
 
+    exit_code = 1
     try:
         create_new_backup(args.user_folder, args.backup_folder, args.exclude, args.whole_file)
         exit_code = 0
+    except CommandLineError as error:
+        logger.error(error)
+        user_input.print_usage()
     except Exception as error:
         logger.error(f"An error prevented the backup from completing: {error}")
-        exit_code = 1
     finally:
         finish = datetime.datetime.now()
         logger.info("")
