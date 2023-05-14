@@ -202,8 +202,12 @@ def setup_log_file(logger: logging.Logger, log_file_path: str) -> None:
 
 
 def recover_file(recovery_file_name: str, backup_location: str) -> None:
-    with open(get_user_location_record(backup_location)) as location_file:
-        user_data_location = location_file.readline().rstrip("\n")
+    try:
+        with open(get_user_location_record(backup_location)) as location_file:
+            user_data_location = location_file.readline().rstrip("\n")
+    except FileNotFoundError:
+        raise CommandLineError(f"No backups found at {backup_location}")
+
     recovery_path = os.path.abspath(recovery_file_name)
     recovery_relative_path = os.path.relpath(recovery_path, user_data_location)
     if recovery_relative_path.startswith(".."):
@@ -243,6 +247,26 @@ def recover_file(recovery_file_name: str, backup_location: str) -> None:
     shutil.copy2(chosen_file, recovered_path)
 
 
+def delete_last_backup(backup_location: str) -> None:
+    last_backup_directory = find_previous_backup(backup_location)
+    logger.info(f"Deleting failed backup: {last_backup_directory}")
+    shutil.rmtree(last_backup_directory)
+
+
+def print_backup_storage_stats(backup_location: str) -> None:
+    try:
+        backup_storage = shutil.disk_usage(backup_location)
+        percent_used = round(100*backup_storage.used/backup_storage.total)
+        percent_free = round(100*backup_storage.free/backup_storage.total)
+        logger.info("")
+        logger.info("Backup storage space: "
+                    f"Total = {byte_units(backup_storage.total)}  "
+                    f"Used = {byte_units(backup_storage.used)} ({percent_used}%)  "
+                    f"Free = {byte_units(backup_storage.free)} ({percent_free}%)")
+    except Exception:
+        pass
+
+
 if __name__ == "__main__":
     user_input = argparse.ArgumentParser(prog="vintagebackup.py",
                                          description="""
@@ -277,6 +301,15 @@ option, only the file's size, type, and modification date are
 checked for differences. Using this option will make backups
 take considerably longer.""")
 
+    user_input.add_argument("--delete-on-error", action="store_true", help="""
+If an error causes a backup to fail to complete, delete that
+backup. If this option does not appear, then the incomplete
+backup is left in place. Users may want to use this option
+so that files that were not part of the failed backup do not
+get copied anew during the next backup. NOTE: Individual files
+not being copied or linked (e.g., for lack of permission) are
+not errors, and will only be noted in the log.""")
+
     user_input.add_argument("-r", "--recover", help="""
 Recover a file from the backup. The user will be able to pick
 which version of the file to recover by choosing from dates
@@ -299,26 +332,22 @@ name will be written to the backup folder. The default is
     exit_code = 1
     try:
         if args.recover:
+            action = "recovery"
             recover_file(args.recover, args.backup_folder)
         else:
+            action = "backup"
             create_new_backup(args.user_folder, args.backup_folder, args.exclude, args.whole_file)
         exit_code = 0
     except CommandLineError as error:
         logger.error(error)
         user_input.print_usage()
     except Exception as error:
-        logger.error(f"An error prevented the backup from completing: {error}")
+        logger.error(f"An error prevented the {action} from completing: {error}")
+        if args.delete_on_error:
+            delete_last_backup(args.backup_folder)
     finally:
         finish = datetime.datetime.now()
         logger.info("")
         logger.info(f"Time taken = {finish - start}")
-
-        backup_storage = shutil.disk_usage(args.backup_folder)
-        percent_used = round(100*backup_storage.used/backup_storage.total)
-        percent_free = round(100*backup_storage.free/backup_storage.total)
-        logger.info("")
-        logger.info("Backup storage space: "
-                    f"Total = {byte_units(backup_storage.total)}  "
-                    f"Used = {byte_units(backup_storage.used)} ({percent_used}%)  "
-                    f"Free = {byte_units(backup_storage.free)} ({percent_free}%)")
+        print_backup_storage_stats(args.backup_folder)
         sys.exit(exit_code)

@@ -19,7 +19,7 @@ This can result in years of daily backups fitting on a single external drive wit
 Running `python vintagebackup.py -h` displays the help message with more options:
 ```
 usage: vintagebackup.py [-h] [-u USER_FOLDER] [-b BACKUP_FOLDER] [-e EXCLUDE] [-w]
-                        [-r RECOVER] [-l LOG]
+                        [--delete-on-error] [-r RECOVER] [-l LOG]
 
 A backup utility that combines the best aspects of full and incremental backups.
 
@@ -41,6 +41,13 @@ options:
                         option, only the file's size, type, and modification date are
                         checked for differences. Using this option will make backups
                         take considerably longer.
+  --delete-on-error     If an error causes a backup to fail to complete, delete that
+                        backup. If this option does not appear, then the incomplete
+                        backup is left in place. Users may want to use this option so
+                        that files that were not part of the failed backup do not get
+                        copied anew during the next backup. NOTE: Individual files not
+                        being copied or linked (e.g., for lack of permission) are not
+                        errors, and will only be noted in the log.
   -r RECOVER, --recover RECOVER
                         Recover a file from the backup. The user will be able to pick
                         which version of the file to recover by choosing from dates
