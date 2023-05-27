@@ -39,7 +39,7 @@ def find_previous_backup(backup_location: str) -> str:
         return last_directory(last_year_dir)
     except IndexError:
         with tempfile.TemporaryDirectory() as tempdir:
-            # Return a directory that definately does
+            # Return a directory that definitely does
             # not exist once this function returns.
             return tempdir
 
