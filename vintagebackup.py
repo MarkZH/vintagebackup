@@ -100,6 +100,20 @@ def confirm_user_location_is_unchanged(user_data_location: str, backup_location:
         pass
 
 
+def backup_location_inside_user_location(backup_location: str, user_data_location: str) -> bool:
+    def canonical_path(path: str) -> str:
+        return os.path.normcase(os.path.normpath(os.path.abspath(path)))
+
+    try:
+        user_canon = canonical_path(user_data_location)
+        backup_canon = canonical_path(backup_location)
+        commonality = os.path.commonpath([backup_canon, user_canon])
+        return os.path.samefile(commonality, user_canon)
+    except ValueError:
+        # backup_location and user_data_location are on different drives
+        return False
+
+
 def create_new_backup(user_data_location: str,
                       backup_location: str,
                       exclude_file: str,
@@ -110,6 +124,11 @@ def create_new_backup(user_data_location: str,
 
     if not backup_location:
         raise CommandLineError("No backup destination was given.")
+
+    if backup_location_inside_user_location(backup_location, user_data_location):
+        raise CommandLineError("Backup destination cannot be inside user's folder:\n"
+                               f"User data      : {user_data_location}\n"
+                               f"Backup location: {backup_location}")
 
     if exclude_file is not None and not os.path.isfile(exclude_file):
         raise CommandLineError(f"Exclude file not found: {exclude_file}")
