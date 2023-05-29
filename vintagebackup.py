@@ -333,6 +333,7 @@ name will be written to the backup folder. The default is
     try:
         if args.recover:
             action = "recovery"
+            args.delete_on_error = False
             recover_file(args.recover, args.backup_folder)
         else:
             action = "backup"
