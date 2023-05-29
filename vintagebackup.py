@@ -267,6 +267,13 @@ def print_backup_storage_stats(backup_location: str) -> None:
         pass
 
 
+def print_time_and_space_usage(start: datetime.datetime) -> None:
+    finish = datetime.datetime.now()
+    logger.info("")
+    logger.info(f"Time taken = {finish - start}")
+    print_backup_storage_stats(args.backup_folder)
+
+
 if __name__ == "__main__":
     user_input = argparse.ArgumentParser(prog="vintagebackup.py",
                                          description="""
@@ -339,6 +346,7 @@ name will be written to the backup folder. The default is
             action = "backup"
             create_new_backup(args.user_folder, args.backup_folder, args.exclude, args.whole_file)
         exit_code = 0
+        print_time_and_space_usage(start)
     except CommandLineError as error:
         logger.error(error)
         user_input.print_usage()
@@ -346,9 +354,6 @@ name will be written to the backup folder. The default is
         logger.error(f"An error prevented the {action} from completing: {error}")
         if args.delete_on_error:
             delete_last_backup(args.backup_folder)
+        print_time_and_space_usage(start)
     finally:
-        finish = datetime.datetime.now()
-        logger.info("")
-        logger.info(f"Time taken = {finish - start}")
-        print_backup_storage_stats(args.backup_folder)
         sys.exit(exit_code)
