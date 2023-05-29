@@ -349,6 +349,7 @@ name will be written to the backup folder. The default is
         print_time_and_space_usage(start)
     except CommandLineError as error:
         logger.error(error)
+        logger.info("")
         user_input.print_usage()
     except Exception as error:
         logger.error(f"An error prevented the {action} from completing: {error}")
