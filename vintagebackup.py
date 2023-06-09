@@ -188,20 +188,20 @@ def create_new_backup(user_data_location: str,
             new_backup = os.path.join(new_backup_directory, file_name)
             try:
                 os.link(previous_backup, new_backup, follow_symlinks=False)
-                action_counter["linked file"] += 1
+                action_counter["linked files"] += 1
             except Exception as error:
                 logger.warning(f"Could not link {previous_backup} to {new_backup} ({error})")
-                action_counter["failed link"] += 1
+                action_counter["failed links"] += 1
 
         for file_name in mismatching + errors:
             new_backup_file = os.path.join(new_backup_directory, file_name)
             user_file = os.path.join(current_user_path, file_name)
             try:
                 shutil.copy2(user_file, new_backup_file, follow_symlinks=False)
-                action_counter["copied file"] += 1
+                action_counter["copied files"] += 1
             except Exception as error:
                 logger.warning(f"Could not copy {user_file} to {new_backup_file} ({error})")
-                action_counter["failed copy"] += 1
+                action_counter["failed copies"] += 1
 
     total_files = sum(count for action, count in action_counter.items()
                       if not action.startswith("failed"))
