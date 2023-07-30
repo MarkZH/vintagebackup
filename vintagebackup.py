@@ -166,7 +166,12 @@ def create_new_backup(user_data_location: str,
 
     action_counter: Counter[str] = Counter()
 
+    max_folder_time = datetime.timedelta()
+    max_folder = ""
+    max_file_time = datetime.timedelta()
+    max_file = ""
     for current_user_path, user_dir_names, user_file_names in os.walk(user_data_location):
+        folder_start = datetime.datetime.now()
         user_file_names[:] = filter_excluded_paths(user_data_location,
                                                    exclusions,
                                                    current_user_path,
@@ -187,6 +192,7 @@ def create_new_backup(user_data_location: str,
                                                          shallow=not examine_whole_file)
 
         for file_name in matching:
+            link_file_start = datetime.datetime.now()
             previous_backup = os.path.join(previous_backup_directory, file_name)
             new_backup = os.path.join(new_backup_directory, file_name)
             try:
@@ -196,8 +202,15 @@ def create_new_backup(user_data_location: str,
             except Exception as error:
                 logger.warning(f"Could not link {previous_backup} to {new_backup} ({error})")
                 action_counter["failed links"] += 1
+            link_file_end = datetime.datetime.now()
+            link_file_time = link_file_end - link_file_start
+            if link_file_time > max_file_time:
+                user_file = os.path.join(current_user_path, file_name)
+                max_file = f"Link: {user_file}"
+                max_file_time = link_file_time
 
         for file_name in mismatching + errors:
+            copy_file_start = datetime.datetime.now()
             new_backup_file = os.path.join(new_backup_directory, file_name)
             user_file = os.path.join(current_user_path, file_name)
             try:
@@ -207,6 +220,17 @@ def create_new_backup(user_data_location: str,
             except Exception as error:
                 logger.warning(f"Could not copy {user_file} to {new_backup_file} ({error})")
                 action_counter["failed copies"] += 1
+            copy_file_end = datetime.datetime.now()
+            copy_file_time = copy_file_end - copy_file_start
+            if copy_file_time > max_file_time:
+                max_file = f"Copy: {user_file}"
+                max_file_time = copy_file_time
+
+        folder_end = datetime.datetime.now()
+        folder_time = folder_end - folder_start
+        if folder_time > max_folder_time:
+            max_folder = current_user_path
+            max_folder_time = folder_time
 
     total_files = sum(count for action, count in action_counter.items()
                       if not action.startswith("failed"))
@@ -216,6 +240,10 @@ def create_new_backup(user_data_location: str,
     logger.info("")
     for action, count in action_counter.items():
         logger.info(f"{action.capitalize():<{name_column_size}} : {count:>{count_column_size}}")
+
+    logger.info("")
+    logger.info(f"Maximum time for folder: {max_folder} ({max_folder_time.total_seconds()} seconds)")
+    logger.info(f"Maximum time for file: {max_file} ({max_file_time.total_seconds()} seconds)")
 
 
 def setup_log_file(logger: logging.Logger, log_file_path: str) -> None:
