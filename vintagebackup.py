@@ -192,6 +192,7 @@ def create_new_backup(user_data_location: str,
             try:
                 os.link(previous_backup, new_backup, follow_symlinks=False)
                 action_counter["linked files"] += 1
+                logger.debug(f"Linked {previous_backup} to {new_backup}")
             except Exception as error:
                 logger.warning(f"Could not link {previous_backup} to {new_backup} ({error})")
                 action_counter["failed links"] += 1
@@ -202,6 +203,7 @@ def create_new_backup(user_data_location: str,
             try:
                 shutil.copy2(user_file, new_backup_file, follow_symlinks=False)
                 action_counter["copied files"] += 1
+                logger.debug(f"Copied {user_file} to {new_backup_file}")
             except Exception as error:
                 logger.warning(f"Could not copy {user_file} to {new_backup_file} ({error})")
                 action_counter["failed copies"] += 1
@@ -346,6 +348,9 @@ where the backup has a new copy the file due to the file being
 modified. This option requires the -u option to specify which
 backup location to search.""")
 
+    user_input.add_argument("--debug", action="store_true", help="""
+Log information on all action of a backup.""")
+
     default_log_file_name = os.path.join(os.path.expanduser("~"), "vintagebackup.log")
     user_input.add_argument("-l", "--log", default=default_log_file_name, help=f"""
 Where to log the activity of this program. A file of the same
@@ -355,6 +360,9 @@ name will be written to the backup folder. The default is
     args = user_input.parse_args(args=None if sys.argv[1:] else ["--help"])
 
     setup_log_file(logger, args.log)
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
+    logger.debug(args)
 
     start = datetime.datetime.now()
 
