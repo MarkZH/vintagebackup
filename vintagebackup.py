@@ -159,6 +159,9 @@ def create_new_backup(user_data_location: str,
         logger.info("No previous backups. Copying everything ...")
     else:
         logger.info(f"Previous backup : {os.path.abspath(last_backup_path)}")
+
+    logger.info("")
+    logger.info(f"Deep file inspection = {examine_whole_file}")
     logger.info("")
 
     action_counter: Counter[str] = Counter()
