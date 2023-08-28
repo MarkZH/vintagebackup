@@ -24,7 +24,7 @@ usage: vintagebackup.py [-h] [-u USER_FOLDER] [-b BACKUP_FOLDER] [-e EXCLUDE] [-
 A backup utility that combines the best aspects of full and incremental backups.
 
 options:
-  -h, --help            show this help message and exit
+  -h, --help            Show this help message and exit.
   -u USER_FOLDER, --user-folder USER_FOLDER
                         The directory to be backed up. The contents of this folder and
                         all subfolders will be backed up recursively.

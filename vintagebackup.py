@@ -345,6 +345,7 @@ def print_time_and_space_usage(program_time: Timer) -> None:
 
 if __name__ == "__main__":
     user_input = argparse.ArgumentParser(prog="vintagebackup.py",
+                                         add_help=False,
                                          description="""
 A backup utility that combines the best aspects of full and incremental backups.""",
                                          epilog="""
@@ -355,6 +356,9 @@ back up, a hard link to the same file in the previous backup is created.
 This way, unchanged files do not take up more storage space in the backup
 location, allowing for possible years of daily backups, all while having
 each folder in the backup location contain a full backup.""")
+    
+    user_input.add_argument("-h", "--help", action="store_true", help="""
+Show this help message and exit.""")
 
     user_input.add_argument("-u", "--user-folder", help="""
 The directory to be backed up. The contents of this
@@ -403,6 +407,9 @@ name will be written to the backup folder. The default is
 {os.path.basename(default_log_file_name)} in the user's home folder.""")
 
     args = user_input.parse_args(args=None if sys.argv[1:] else ["--help"])
+    if args.help:
+        user_input.print_help()
+        sys.exit(0)
 
     setup_log_file(logger, args.log)
     if args.debug:
