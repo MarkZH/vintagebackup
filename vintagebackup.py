@@ -1,3 +1,4 @@
+from __future__ import annotations
 import os
 import shutil
 import datetime
@@ -8,6 +9,7 @@ import logging
 import glob
 import filecmp
 import tempfile
+import time
 from collections import Counter
 
 logger = logging.getLogger(__name__)
@@ -17,6 +19,31 @@ logger.setLevel(logging.INFO)
 
 class CommandLineError(ValueError):
     pass
+
+
+class Timer:
+    def __init__(self, name: str):
+        self.real_time_name = name
+        self.proc_time_name = name
+
+        self.real_time_start = datetime.datetime.now(datetime.timezone.utc)
+        self.proc_time_start = time.process_time()
+
+        self.real_time = datetime.timedelta(seconds=0)
+        self.proc_time = datetime.timedelta(seconds=0)
+
+    def stop(self) -> None:
+        self.real_time = datetime.datetime.now(datetime.timezone.utc) - self.real_time_start
+        self.proc_time = datetime.timedelta(seconds=time.process_time() - self.proc_time_start)
+
+    def update_max_times(self, other: Timer) -> None:
+        if other.real_time > self.real_time:
+            self.real_time = other.real_time
+            self.real_time_name = other.real_time_name
+
+        if other.proc_time > self.proc_time:
+            self.proc_time = other.proc_time
+            self.proc_time_name = other.proc_time_name
 
 
 def byte_units(size: float, prefixes: list[str] | None = None) -> str:
@@ -166,12 +193,10 @@ def create_new_backup(user_data_location: str,
 
     action_counter: Counter[str] = Counter()
 
-    max_folder_time = datetime.timedelta()
-    max_folder = ""
-    max_file_time = datetime.timedelta()
-    max_file = ""
+    max_time_folder = Timer("")
+    max_time_file = Timer("")
     for current_user_path, user_dir_names, user_file_names in os.walk(user_data_location):
-        folder_start = datetime.datetime.now()
+        folder_timer = Timer(current_user_path)
         user_file_names[:] = filter_excluded_paths(user_data_location,
                                                    exclusions,
                                                    current_user_path,
@@ -192,7 +217,7 @@ def create_new_backup(user_data_location: str,
                                                          shallow=not examine_whole_file)
 
         for file_name in matching:
-            link_file_start = datetime.datetime.now()
+            link_file_timer = Timer(f"Link: {os.path.join(current_user_path, file_name)}")
             previous_backup = os.path.join(previous_backup_directory, file_name)
             new_backup = os.path.join(new_backup_directory, file_name)
             try:
@@ -202,17 +227,13 @@ def create_new_backup(user_data_location: str,
             except Exception as error:
                 logger.warning(f"Could not link {previous_backup} to {new_backup} ({error})")
                 action_counter["failed links"] += 1
-            link_file_end = datetime.datetime.now()
-            link_file_time = link_file_end - link_file_start
-            if link_file_time > max_file_time:
-                user_file = os.path.join(current_user_path, file_name)
-                max_file = f"Link: {user_file}"
-                max_file_time = link_file_time
+            link_file_timer.stop()
+            max_time_file.update_max_times(link_file_timer)
 
         for file_name in mismatching + errors:
-            copy_file_start = datetime.datetime.now()
             new_backup_file = os.path.join(new_backup_directory, file_name)
             user_file = os.path.join(current_user_path, file_name)
+            copy_file_timer = Timer(f"Copy: {user_file}")
             try:
                 shutil.copy2(user_file, new_backup_file, follow_symlinks=False)
                 action_counter["copied files"] += 1
@@ -220,17 +241,11 @@ def create_new_backup(user_data_location: str,
             except Exception as error:
                 logger.warning(f"Could not copy {user_file} to {new_backup_file} ({error})")
                 action_counter["failed copies"] += 1
-            copy_file_end = datetime.datetime.now()
-            copy_file_time = copy_file_end - copy_file_start
-            if copy_file_time > max_file_time:
-                max_file = f"Copy: {user_file}"
-                max_file_time = copy_file_time
+            copy_file_timer.stop()
+            max_time_file.update_max_times(copy_file_timer)
 
-        folder_end = datetime.datetime.now()
-        folder_time = folder_end - folder_start
-        if folder_time > max_folder_time:
-            max_folder = current_user_path
-            max_folder_time = folder_time
+        folder_timer.stop()
+        max_time_folder.update_max_times(folder_timer)
 
     total_files = sum(count for action, count in action_counter.items()
                       if not action.startswith("failed"))
@@ -242,8 +257,9 @@ def create_new_backup(user_data_location: str,
         logger.info(f"{action.capitalize():<{name_column_size}} : {count:>{count_column_size}}")
 
     logger.info("")
-    logger.info(f"Maximum time for folder: {max_folder} ({max_folder_time.total_seconds()} seconds)")
-    logger.info(f"Maximum time for file: {max_file} ({max_file_time.total_seconds()} seconds)")
+    for name, timer in {"folder": max_time_folder, "file": max_time_file}.items():
+        logger.info(f"Maximum real time for {name}   : {timer.real_time} ({timer.real_time_name})")
+        logger.info(f"Maximum process time for {name}: {timer.proc_time} ({timer.proc_time_name})")
 
 
 def setup_log_file(logger: logging.Logger, log_file_path: str) -> None:
@@ -319,10 +335,11 @@ def print_backup_storage_stats(backup_location: str) -> None:
         pass
 
 
-def print_time_and_space_usage(start: datetime.datetime) -> None:
-    finish = datetime.datetime.now()
+def print_time_and_space_usage(program_time: Timer) -> None:
+    program_time.stop()
     logger.info("")
-    logger.info(f"Time taken = {finish - start}")
+    logger.info(f"Real time taken    = {program_time.real_time}")
+    logger.info(f"Process time taken = {program_time.proc_time}")
     print_backup_storage_stats(args.backup_folder)
 
 
@@ -392,7 +409,7 @@ name will be written to the backup folder. The default is
         logger.setLevel(logging.DEBUG)
     logger.debug(args)
 
-    start = datetime.datetime.now()
+    program_time = Timer("")
 
     exit_code = 1
     try:
@@ -404,7 +421,7 @@ name will be written to the backup folder. The default is
             action = "backup"
             create_new_backup(args.user_folder, args.backup_folder, args.exclude, args.whole_file)
         exit_code = 0
-        print_time_and_space_usage(start)
+        print_time_and_space_usage(program_time)
     except CommandLineError as error:
         logger.error(error)
         logger.info("")
@@ -413,6 +430,6 @@ name will be written to the backup folder. The default is
         logger.error(f"An error prevented the {action} from completing: {error}")
         if args.delete_on_error:
             delete_last_backup(args.backup_folder)
-        print_time_and_space_usage(start)
+        print_time_and_space_usage(program_time)
     finally:
         sys.exit(exit_code)
