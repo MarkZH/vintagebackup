@@ -24,7 +24,7 @@ def byte_units(size: float, prefixes: list[str] | None = None) -> str:
         prefixes = ["", "k", "M", "G"]
 
     if size >= 1000 and len(prefixes) > 1:
-        return byte_units(size/1000, prefixes[1:])
+        return byte_units(size / 1000, prefixes[1:])
     else:
         return f"{size:.1f} {prefixes[0]}B"
 
@@ -308,8 +308,8 @@ def delete_last_backup(backup_location: str) -> None:
 def print_backup_storage_stats(backup_location: str) -> None:
     try:
         backup_storage = shutil.disk_usage(backup_location)
-        percent_used = round(100*backup_storage.used/backup_storage.total)
-        percent_free = round(100*backup_storage.free/backup_storage.total)
+        percent_used = round(100 * backup_storage.used / backup_storage.total)
+        percent_free = round(100 * backup_storage.free / backup_storage.total)
         logger.info("")
         logger.info("Backup storage space: "
                     f"Total = {byte_units(backup_storage.total)}  "
