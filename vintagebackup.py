@@ -30,10 +30,10 @@ class Timer:
     def stop(self) -> None:
         self.duration = datetime.datetime.now(datetime.timezone.utc) - self.start
 
-    def update_max_times(self, other: Timer) -> None:
-        if other.duration > self.duration:
-            self.duration = other.duration
-            self.name = other.name
+
+
+def greater_duration(a: Timer, b: Timer) -> Timer:
+    return a if a.duration > b.duration else b
 
 
 def byte_units(size: float, prefixes: list[str] | None = None) -> str:
@@ -199,7 +199,7 @@ def create_new_backup(user_data_location: str,
                                                   current_user_path,
                                                   user_dir_names)
         exclude_timer.stop()
-        max_time_exclude.update_max_times(exclude_timer)
+        max_time_exclude = greater_duration(max_time_exclude, exclude_timer)
 
         relative_path = os.path.relpath(current_user_path, user_data_location)
         new_backup_directory = os.path.join(new_backup_path, relative_path)
@@ -213,7 +213,7 @@ def create_new_backup(user_data_location: str,
                                                          shallow=not examine_whole_file)
 
         scanning_timer.stop()
-        max_time_scan.update_max_times(scanning_timer)
+        max_time_scan = greater_duration(max_time_scan, scanning_timer)
 
         for file_name in matching:
             link_file_timer = Timer(f"Link: {os.path.join(current_user_path, file_name)}")
@@ -227,7 +227,7 @@ def create_new_backup(user_data_location: str,
                 logger.warning(f"Could not link {previous_backup} to {new_backup} ({error})")
                 action_counter["failed links"] += 1
             link_file_timer.stop()
-            max_time_file.update_max_times(link_file_timer)
+            max_time_file = greater_duration(max_time_file, link_file_timer)
 
         for file_name in mismatching + errors:
             new_backup_file = os.path.join(new_backup_directory, file_name)
@@ -241,10 +241,10 @@ def create_new_backup(user_data_location: str,
                 logger.warning(f"Could not copy {user_file} to {new_backup_file} ({error})")
                 action_counter["failed copies"] += 1
             copy_file_timer.stop()
-            max_time_file.update_max_times(copy_file_timer)
+            max_time_file = greater_duration(max_time_file, copy_file_timer)
 
         folder_timer.stop()
-        max_time_folder.update_max_times(folder_timer)
+        max_time_folder = greater_duration(max_time_folder, folder_timer)
 
     total_files = sum(count for action, count in action_counter.items()
                       if not action.startswith("failed"))
