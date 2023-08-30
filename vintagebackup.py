@@ -211,7 +211,7 @@ def create_new_backup(user_data_location: str,
                                                          previous_backup_directory,
                                                          user_file_names,
                                                          shallow=not examine_whole_file)
-        
+
         scanning_timer.stop()
         max_time_scan.update_max_times(scanning_timer)
 
@@ -356,7 +356,7 @@ back up, a hard link to the same file in the previous backup is created.
 This way, unchanged files do not take up more storage space in the backup
 location, allowing for possible years of daily backups, all while having
 each folder in the backup location contain a full backup.""")
-    
+
     user_input.add_argument("-h", "--help", action="store_true", help="""
 Show this help message and exit.""")
 
