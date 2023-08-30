@@ -24,12 +24,11 @@ class CommandLineError(ValueError):
 class Timer:
     def __init__(self, name: str):
         self.name = name
-        self.start = datetime.datetime.now(datetime.timezone.utc)
+        self.start = time.perf_counter()
         self.duration = datetime.timedelta(seconds=0)
 
     def stop(self) -> None:
-        self.duration = datetime.datetime.now(datetime.timezone.utc) - self.start
-
+        self.duration = datetime.timedelta(seconds=time.perf_counter() - self.start)
 
 
 def greater_duration(a: Timer, b: Timer) -> Timer:
@@ -339,7 +338,7 @@ def print_backup_storage_stats(backup_location: str) -> None:
 def print_time_and_space_usage(program_time: Timer) -> None:
     program_time.stop()
     logger.info("")
-    logger.info(f"Time taken    = {program_time.duration}")
+    logger.info(f"Time taken = {program_time.duration}")
     print_backup_storage_stats(args.backup_folder)
 
 
