@@ -23,27 +23,17 @@ class CommandLineError(ValueError):
 
 class Timer:
     def __init__(self, name: str):
-        self.real_time_name = name
-        self.proc_time_name = name
-
-        self.real_time_start = datetime.datetime.now(datetime.timezone.utc)
-        self.proc_time_start = time.process_time()
-
-        self.real_time = datetime.timedelta(seconds=0)
-        self.proc_time = datetime.timedelta(seconds=0)
+        self.name = name
+        self.start = datetime.datetime.now(datetime.timezone.utc)
+        self.duration = datetime.timedelta(seconds=0)
 
     def stop(self) -> None:
-        self.real_time = datetime.datetime.now(datetime.timezone.utc) - self.real_time_start
-        self.proc_time = datetime.timedelta(seconds=time.process_time() - self.proc_time_start)
+        self.duration = datetime.datetime.now(datetime.timezone.utc) - self.start
 
     def update_max_times(self, other: Timer) -> None:
-        if other.real_time > self.real_time:
-            self.real_time = other.real_time
-            self.real_time_name = other.real_time_name
-
-        if other.proc_time > self.proc_time:
-            self.proc_time = other.proc_time
-            self.proc_time_name = other.proc_time_name
+        if other.duration > self.duration:
+            self.duration = other.duration
+            self.name = other.name
 
 
 def byte_units(size: float, prefixes: list[str] | None = None) -> str:
@@ -195,8 +185,11 @@ def create_new_backup(user_data_location: str,
 
     max_time_folder = Timer("")
     max_time_file = Timer("")
+    max_time_scan = Timer("")
+    max_time_exclude = Timer("")
     for current_user_path, user_dir_names, user_file_names in os.walk(user_data_location):
         folder_timer = Timer(current_user_path)
+        exclude_timer = Timer(current_user_path)
         user_file_names[:] = filter_excluded_paths(user_data_location,
                                                    exclusions,
                                                    current_user_path,
@@ -205,16 +198,22 @@ def create_new_backup(user_data_location: str,
                                                   exclusions,
                                                   current_user_path,
                                                   user_dir_names)
+        exclude_timer.stop()
+        max_time_exclude.update_max_times(exclude_timer)
 
         relative_path = os.path.relpath(current_user_path, user_data_location)
         new_backup_directory = os.path.join(new_backup_path, relative_path)
         os.makedirs(new_backup_directory)
 
+        scanning_timer = Timer(current_user_path)
         previous_backup_directory = os.path.join(last_backup_path, relative_path)
         matching, mismatching, errors = filecmp.cmpfiles(current_user_path,
                                                          previous_backup_directory,
                                                          user_file_names,
                                                          shallow=not examine_whole_file)
+        
+        scanning_timer.stop()
+        max_time_scan.update_max_times(scanning_timer)
 
         for file_name in matching:
             link_file_timer = Timer(f"Link: {os.path.join(current_user_path, file_name)}")
@@ -257,9 +256,11 @@ def create_new_backup(user_data_location: str,
         logger.info(f"{action.capitalize():<{name_column_size}} : {count:>{count_column_size}}")
 
     logger.info("")
-    for name, timer in {"folder": max_time_folder, "file": max_time_file}.items():
-        logger.info(f"Maximum real time for {name}   : {timer.real_time} ({timer.real_time_name})")
-        logger.info(f"Maximum process time for {name}: {timer.proc_time} ({timer.proc_time_name})")
+    for name, timer in {"exclude": max_time_exclude,
+                        "scan": max_time_scan,
+                        "folder": max_time_folder,
+                        "file": max_time_file}.items():
+        logger.info(f"Maximum time for {name}: {timer.duration} ({timer.name})")
 
 
 def setup_log_file(logger: logging.Logger, log_file_path: str) -> None:
@@ -338,8 +339,7 @@ def print_backup_storage_stats(backup_location: str) -> None:
 def print_time_and_space_usage(program_time: Timer) -> None:
     program_time.stop()
     logger.info("")
-    logger.info(f"Real time taken    = {program_time.real_time}")
-    logger.info(f"Process time taken = {program_time.proc_time}")
+    logger.info(f"Time taken    = {program_time.duration}")
     print_backup_storage_stats(args.backup_folder)
 
 
