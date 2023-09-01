@@ -20,20 +20,6 @@ class CommandLineError(ValueError):
     pass
 
 
-class Timer:
-    def __init__(self, name: str):
-        self.name = name
-        self.start = time.perf_counter()
-        self.duration = datetime.timedelta(seconds=0)
-
-    def stop(self) -> None:
-        self.duration = datetime.timedelta(seconds=time.perf_counter() - self.start)
-
-
-def greater_duration(a: Timer, b: Timer) -> Timer:
-    return a if a.duration > b.duration else b
-
-
 def byte_units(size: float, prefixes: list[str] | None = None) -> str:
     if prefixes is None:
         prefixes = ["", "k", "M", "G"]
@@ -181,13 +167,7 @@ def create_new_backup(user_data_location: str,
 
     action_counter: Counter[str] = Counter()
 
-    max_time_folder = Timer("")
-    max_time_file = Timer("")
-    max_time_scan = Timer("")
-    max_time_exclude = Timer("")
     for current_user_path, user_dir_names, user_file_names in os.walk(user_data_location):
-        folder_timer = Timer(current_user_path)
-        exclude_timer = Timer(current_user_path)
         user_file_names[:] = filter_excluded_paths(user_data_location,
                                                    exclusions,
                                                    current_user_path,
@@ -196,25 +176,18 @@ def create_new_backup(user_data_location: str,
                                                   exclusions,
                                                   current_user_path,
                                                   user_dir_names)
-        exclude_timer.stop()
-        max_time_exclude = greater_duration(max_time_exclude, exclude_timer)
 
         relative_path = os.path.relpath(current_user_path, user_data_location)
         new_backup_directory = os.path.join(new_backup_path, relative_path)
         os.makedirs(new_backup_directory)
 
-        scanning_timer = Timer(current_user_path)
         previous_backup_directory = os.path.join(last_backup_path, relative_path)
         matching, mismatching, errors = filecmp.cmpfiles(current_user_path,
                                                          previous_backup_directory,
                                                          user_file_names,
                                                          shallow=not examine_whole_file)
 
-        scanning_timer.stop()
-        max_time_scan = greater_duration(max_time_scan, scanning_timer)
-
         for file_name in matching:
-            link_file_timer = Timer(f"Link: {os.path.join(current_user_path, file_name)}")
             previous_backup = os.path.join(previous_backup_directory, file_name)
             new_backup = os.path.join(new_backup_directory, file_name)
             try:
@@ -224,13 +197,10 @@ def create_new_backup(user_data_location: str,
             except Exception as error:
                 logger.warning(f"Could not link {previous_backup} to {new_backup} ({error})")
                 action_counter["failed links"] += 1
-            link_file_timer.stop()
-            max_time_file = greater_duration(max_time_file, link_file_timer)
 
         for file_name in mismatching + errors:
             new_backup_file = os.path.join(new_backup_directory, file_name)
             user_file = os.path.join(current_user_path, file_name)
-            copy_file_timer = Timer(f"Copy: {user_file}")
             try:
                 shutil.copy2(user_file, new_backup_file, follow_symlinks=False)
                 action_counter["copied files"] += 1
@@ -238,11 +208,6 @@ def create_new_backup(user_data_location: str,
             except Exception as error:
                 logger.warning(f"Could not copy {user_file} to {new_backup_file} ({error})")
                 action_counter["failed copies"] += 1
-            copy_file_timer.stop()
-            max_time_file = greater_duration(max_time_file, copy_file_timer)
-
-        folder_timer.stop()
-        max_time_folder = greater_duration(max_time_folder, folder_timer)
 
     total_files = sum(count for action, count in action_counter.items()
                       if not action.startswith("failed"))
@@ -252,13 +217,6 @@ def create_new_backup(user_data_location: str,
     logger.info("")
     for action, count in action_counter.items():
         logger.info(f"{action.capitalize():<{name_column_size}} : {count:>{count_column_size}}")
-
-    logger.info("")
-    for name, timer in {"exclude": max_time_exclude,
-                        "scan": max_time_scan,
-                        "folder": max_time_folder,
-                        "file": max_time_file}.items():
-        logger.info(f"Maximum time for {name}: {timer.duration} ({timer.name})")
 
 
 def setup_log_file(logger: logging.Logger, log_file_path: str) -> None:
@@ -334,10 +292,10 @@ def print_backup_storage_stats(backup_location: str) -> None:
         pass
 
 
-def print_time_and_space_usage(program_time: Timer) -> None:
-    program_time.stop()
+def print_time_and_space_usage(start_time: float) -> None:
+    program_time = datetime.timedelta(seconds=int(time.perf_counter() - start_time))
     logger.info("")
-    logger.info(f"Time taken = {program_time.duration}")
+    logger.info(f"Time taken = {program_time}")
     print_backup_storage_stats(args.backup_folder)
 
 
@@ -414,7 +372,7 @@ name will be written to the backup folder. The default is
         logger.setLevel(logging.DEBUG)
     logger.debug(args)
 
-    program_time = Timer("")
+    program_start_time = time.perf_counter()
 
     exit_code = 1
     try:
@@ -426,7 +384,7 @@ name will be written to the backup folder. The default is
             action = "backup"
             create_new_backup(args.user_folder, args.backup_folder, args.exclude, args.whole_file)
         exit_code = 0
-        print_time_and_space_usage(program_time)
+        print_time_and_space_usage(program_start_time)
     except CommandLineError as error:
         logger.error(error)
         logger.info("")
@@ -435,6 +393,6 @@ name will be written to the backup folder. The default is
         logger.error(f"An error prevented the {action} from completing: {error}")
         if args.delete_on_error:
             delete_last_backup(args.backup_folder)
-        print_time_and_space_usage(program_time)
+        print_time_and_space_usage(program_start_time)
     finally:
         sys.exit(exit_code)
