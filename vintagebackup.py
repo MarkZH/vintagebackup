@@ -9,6 +9,7 @@ import glob
 import filecmp
 import tempfile
 import time
+import stat
 from collections import Counter
 
 logger = logging.getLogger(__name__)
@@ -115,6 +116,35 @@ def backup_location_inside_user_location(backup_location: str, user_data_locatio
         return False
 
 
+def get_stat_info(directory, file_name) -> tuple[int, int, int]:
+    stats = os.stat(os.path.join(directory, file_name), follow_symlinks=False)
+    return (stats.st_size, stat.S_IFMT(stats.st_mode), stats.st_mtime_ns)
+
+
+def compare_to_backup(user_directory: str,
+                      backup_directory: str,
+                      file_names: list[str],
+                      examine_whole_file: bool) -> tuple[list[str], list[str], list[str]]:
+    if examine_whole_file:
+        return filecmp.cmpfiles(user_directory, backup_directory, file_names, shallow=False)
+    else:
+        matches: list[str] = []
+        mismatches: list[str] = []
+        errors: list[str] = []
+        for file_name in file_names:
+            try:
+                user_file_stats = get_stat_info(user_directory, file_name)
+                backup_file_stats = get_stat_info(backup_directory, file_name)
+                if user_file_stats == backup_file_stats:
+                    matches.append(file_name)
+                else:
+                    mismatches.append(file_name)
+            except Exception:
+                errors.append(file_name)
+
+        return matches, mismatches, errors
+
+
 def create_new_backup(user_data_location: str,
                       backup_location: str,
                       exclude_file: str,
@@ -182,10 +212,10 @@ def create_new_backup(user_data_location: str,
         os.makedirs(new_backup_directory)
 
         previous_backup_directory = os.path.join(last_backup_path, relative_path)
-        matching, mismatching, errors = filecmp.cmpfiles(current_user_path,
-                                                         previous_backup_directory,
-                                                         user_file_names,
-                                                         shallow=not examine_whole_file)
+        matching, mismatching, errors = compare_to_backup(current_user_path,
+                                                          previous_backup_directory,
+                                                          user_file_names,
+                                                          examine_whole_file)
 
         for file_name in matching:
             previous_backup = os.path.join(previous_backup_directory, file_name)
