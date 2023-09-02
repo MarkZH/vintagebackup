@@ -8,7 +8,6 @@ import logging
 import glob
 import filecmp
 import tempfile
-import time
 import stat
 from collections import Counter
 
@@ -322,13 +321,6 @@ def print_backup_storage_stats(backup_location: str) -> None:
         pass
 
 
-def print_time_and_space_usage(start_time: float) -> None:
-    program_time = datetime.timedelta(seconds=int(time.perf_counter() - start_time))
-    logger.info("")
-    logger.info(f"Time taken = {program_time}")
-    print_backup_storage_stats(args.backup_folder)
-
-
 if __name__ == "__main__":
     user_input = argparse.ArgumentParser(prog="vintagebackup.py",
                                          add_help=False,
@@ -402,8 +394,6 @@ name will be written to the backup folder. The default is
         logger.setLevel(logging.DEBUG)
     logger.debug(args)
 
-    program_start_time = time.perf_counter()
-
     exit_code = 1
     try:
         if args.recover:
@@ -414,7 +404,7 @@ name will be written to the backup folder. The default is
             action = "backup"
             create_new_backup(args.user_folder, args.backup_folder, args.exclude, args.whole_file)
         exit_code = 0
-        print_time_and_space_usage(program_start_time)
+        print_backup_storage_stats(args.backup_folder)
     except CommandLineError as error:
         logger.error(error)
         logger.info("")
@@ -423,6 +413,6 @@ name will be written to the backup folder. The default is
         logger.error(f"An error prevented the {action} from completing: {error}")
         if args.delete_on_error:
             delete_last_backup(args.backup_folder)
-        print_time_and_space_usage(program_start_time)
+        print_backup_storage_stats(args.backup_folder)
     finally:
         sys.exit(exit_code)
