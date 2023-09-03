@@ -283,7 +283,7 @@ def recover_file(recovery_file_name: str, backup_location: str) -> None:
         if inode not in unique_backups:
             unique_backups[inode] = path[:-len(recovery_relative_path)]
 
-    number_column_size = len(unique_backups)
+    number_column_size = len(str(len(unique_backups)))
     for choice, backup_copy in enumerate(unique_backups.values(), 1):
         print(f"{choice:>{number_column_size}}: {os.path.relpath(backup_copy, backup_location)}")
 
