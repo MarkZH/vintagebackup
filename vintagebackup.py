@@ -252,7 +252,6 @@ def create_new_backup(user_data_location: str,
     action_counter["Backed up files"] = total_files
     name_column_size = max(len(name) for name in action_counter.keys())
     count_column_size = len(str(max(action_counter.values())))
-    logger.info("")
     for action, count in action_counter.items():
         logger.info(f"{action.capitalize():<{name_column_size}} : {count:>{count_column_size}}")
 
