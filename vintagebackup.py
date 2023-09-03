@@ -381,7 +381,7 @@ not errors, and will only be noted in the log.""")
 Recover a file from the backup. The user will be able to pick
 which version of the file to recover by choosing from dates
 where the backup has a new copy the file due to the file being
-modified. This option requires the -u option to specify which
+modified. This option requires the -b option to specify which
 backup location to search.""")
 
     user_input.add_argument("--debug", action="store_true", help="""
