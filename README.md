@@ -10,9 +10,14 @@ When a backup of a file is still good--the original file hasn't changed since th
 These are vintage files.
 
 The program can be run from the command line or automatically with tools like Linux cron or Windows Task Scheduler.
-To start the program, use the following command: `python vintagebackup.py -u "C:\Users\Anon Y Mous" -b "E:\backups"`
-This will backup the Windows home directory to an external storage mounted as drive E.
-Every time this program is run with the same options, a new dated backup folder will be created.
+To start the program to back up, for example, Alice's Windows home directory to an external drive connected as drive E, the following command could be used:
+```
+python vintagebackup.py -u "C:\Users\Alice" -b "E:\backups"
+```
+Every time this program is run with the same options, a new dated backup folder will be created. For example:
+```
+E:\backups\2023\2023-09-02 17-25-33 (Windows 10)
+```
 Unchanged files will be linked to earlier backups so they don't take up more space, while new or changed files will be copied to the backup.
 This can result in years of daily backups fitting on a single external drive with every backup folder containing every backed up file, making restoring these files as easy as drag-and-drop.
 
