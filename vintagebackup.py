@@ -144,6 +144,17 @@ def compare_to_backup(user_directory: str,
         return matches, mismatches, errors
 
 
+def create_hard_link(previous_backup: str, new_backup: str) -> bool:
+    try:
+        os.link(previous_backup, new_backup, follow_symlinks=False)
+        return True
+    except Exception as error:
+        logger.debug(f"Could not create hard link due to error: {error}")
+        logger.debug(f"Previous backed up file: {previous_backup}")
+        logger.debug(f"Attempted link         : {new_backup}")
+        return False
+
+
 def create_new_backup(user_data_location: str,
                       backup_location: str,
                       exclude_file: str,
@@ -219,13 +230,11 @@ def create_new_backup(user_data_location: str,
         for file_name in matching:
             previous_backup = os.path.join(previous_backup_directory, file_name)
             new_backup = os.path.join(new_backup_directory, file_name)
-            try:
-                os.link(previous_backup, new_backup, follow_symlinks=False)
+            if create_hard_link(previous_backup, new_backup):
                 action_counter["linked files"] += 1
                 logger.debug(f"Linked {previous_backup} to {new_backup}")
-            except Exception as error:
-                logger.warning(f"Could not link {previous_backup} to {new_backup} ({error})")
-                action_counter["failed links"] += 1
+            else:
+                errors.append(file_name)
 
         for file_name in mismatching + errors:
             new_backup_file = os.path.join(new_backup_directory, file_name)
