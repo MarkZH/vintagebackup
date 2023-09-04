@@ -34,15 +34,18 @@ def last_directory(dir_name: str) -> str:
     return sorted(d.path for d in os.scandir(dir_name) if d.is_dir())[-1]
 
 
+dummy_backup_folder = tempfile.TemporaryDirectory()
+"""A stand-in folder in case there are no previous backups.
+This folder should always be empty, but in any case,
+its contents should never be read by this program."""
+
+
 def find_previous_backup(backup_location: str) -> str:
     try:
         last_year_dir = last_directory(backup_location)
         return last_directory(last_year_dir)
     except IndexError:
-        with tempfile.TemporaryDirectory() as tempdir:
-            # Return a directory that definitely does
-            # not exist once this function returns.
-            return tempdir
+        return dummy_backup_folder.name
 
 
 def create_exclusion_list(exclude_file: str, user_data_location: str) -> list[str]:
@@ -124,7 +127,9 @@ def compare_to_backup(user_directory: str,
                       backup_directory: str,
                       file_names: list[str],
                       examine_whole_file: bool) -> tuple[list[str], list[str], list[str]]:
-    if examine_whole_file:
+    if backup_directory == dummy_backup_folder.name:
+        return [], [], file_names
+    elif examine_whole_file:
         return filecmp.cmpfiles(user_directory, backup_directory, file_names, shallow=False)
     else:
         matches: list[str] = []
@@ -196,7 +201,7 @@ def create_new_backup(user_data_location: str,
     logger.info(f"Backup location : {os.path.abspath(new_backup_path)}")
 
     last_backup_path = find_previous_backup(backup_location)
-    if not os.path.isdir(last_backup_path):
+    if last_backup_path == dummy_backup_folder.name:
         logger.info("No previous backups. Copying everything ...")
     else:
         logger.info(f"Previous backup : {os.path.abspath(last_backup_path)}")
@@ -392,18 +397,19 @@ Where to log the activity of this program. A file of the same
 name will be written to the backup folder. The default is
 {os.path.basename(default_log_file_name)} in the user's home folder.""")
 
-    args = user_input.parse_args(args=None if sys.argv[1:] else ["--help"])
-    if args.help:
-        user_input.print_help()
-        sys.exit(0)
-
-    setup_log_file(logger, args.log)
-    if args.debug:
-        logger.setLevel(logging.DEBUG)
-    logger.debug(args)
-
-    exit_code = 1
     try:
+        args = user_input.parse_args(args=None if sys.argv[1:] else ["--help"])
+        if args.help:
+            user_input.print_help()
+            sys.exit(0)
+
+        setup_log_file(logger, args.log)
+        if args.debug:
+            logger.setLevel(logging.DEBUG)
+        logger.debug(args)
+
+        exit_code = 1
+
         if args.recover:
             action = "recovery"
             args.delete_on_error = False
@@ -423,4 +429,5 @@ name will be written to the backup folder. The default is
             delete_last_backup(args.backup_folder)
         print_backup_storage_stats(args.backup_folder)
     finally:
+        dummy_backup_folder.cleanup()
         sys.exit(exit_code)
