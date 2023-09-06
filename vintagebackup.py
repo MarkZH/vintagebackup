@@ -9,6 +9,7 @@ import glob
 import filecmp
 import tempfile
 import stat
+import itertools
 from collections import Counter
 
 logger = logging.getLogger(__name__)
@@ -241,7 +242,7 @@ def create_new_backup(user_data_location: str,
             else:
                 errors.append(file_name)
 
-        for file_name in mismatching + errors:
+        for file_name in itertools.chain(mismatching, errors):
             new_backup_file = os.path.join(new_backup_directory, file_name)
             user_file = os.path.join(current_user_path, file_name)
             try:
