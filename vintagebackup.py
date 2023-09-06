@@ -7,7 +7,6 @@ import sys
 import logging
 import glob
 import filecmp
-import tempfile
 import stat
 import itertools
 from collections import Counter
@@ -35,18 +34,12 @@ def last_directory(dir_name: str) -> str:
     return sorted(d.path for d in os.scandir(dir_name) if d.is_dir())[-1]
 
 
-dummy_backup_folder = tempfile.TemporaryDirectory()
-"""A stand-in folder in case there are no previous backups.
-This folder should always be empty, but in any case,
-its contents should never be read by this program."""
-
-
-def find_previous_backup(backup_location: str) -> str:
+def find_previous_backup(backup_location: str) -> str | None:
     try:
         last_year_dir = last_directory(backup_location)
         return last_directory(last_year_dir)
     except IndexError:
-        return dummy_backup_folder.name
+        return None
 
 
 def create_exclusion_list(exclude_file: str, user_data_location: str) -> list[str]:
@@ -125,10 +118,10 @@ def get_stat_info(directory, file_name) -> tuple[int, int, int]:
 
 
 def compare_to_backup(user_directory: str,
-                      backup_directory: str,
+                      backup_directory: str | None,
                       file_names: list[str],
                       examine_whole_file: bool) -> tuple[list[str], list[str], list[str]]:
-    if backup_directory == dummy_backup_folder.name:
+    if backup_directory is None:
         return [], [], file_names
     elif examine_whole_file:
         return filecmp.cmpfiles(user_directory, backup_directory, file_names, shallow=False)
@@ -202,7 +195,7 @@ def create_new_backup(user_data_location: str,
     logger.info(f"Backup location : {os.path.abspath(new_backup_path)}")
 
     last_backup_path = find_previous_backup(backup_location)
-    if last_backup_path == dummy_backup_folder.name:
+    if last_backup_path is None:
         logger.info("No previous backups. Copying everything ...")
     else:
         logger.info(f"Previous backup : {os.path.abspath(last_backup_path)}")
@@ -227,13 +220,18 @@ def create_new_backup(user_data_location: str,
         new_backup_directory = os.path.join(new_backup_path, relative_path)
         os.makedirs(new_backup_directory)
 
-        previous_backup_directory = os.path.join(last_backup_path, relative_path)
+        if last_backup_path is None:
+            previous_backup_directory = None
+        else:
+            previous_backup_directory = os.path.join(last_backup_path, relative_path)
+
         matching, mismatching, errors = compare_to_backup(current_user_path,
                                                           previous_backup_directory,
                                                           user_file_names,
                                                           examine_whole_file)
 
         for file_name in matching:
+            assert previous_backup_directory is not None
             previous_backup = os.path.join(previous_backup_directory, file_name)
             new_backup = os.path.join(new_backup_directory, file_name)
             if create_hard_link(previous_backup, new_backup):
@@ -317,8 +315,11 @@ def recover_file(recovery_file_name: str, backup_location: str) -> None:
 
 def delete_last_backup(backup_location: str) -> None:
     last_backup_directory = find_previous_backup(backup_location)
-    logger.info(f"Deleting failed backup: {last_backup_directory}")
-    shutil.rmtree(last_backup_directory)
+    if last_backup_directory is None:
+        logger.info("No previous backup to delete")
+    else:
+        logger.info(f"Deleting failed backup: {last_backup_directory}")
+        shutil.rmtree(last_backup_directory)
 
 
 def print_backup_storage_stats(backup_location: str) -> None:
@@ -430,5 +431,4 @@ name will be written to the backup folder. The default is
             delete_last_backup(args.backup_folder)
         print_backup_storage_stats(args.backup_folder)
     finally:
-        dummy_backup_folder.cleanup()
         sys.exit(exit_code)
