@@ -262,7 +262,7 @@ def create_new_backup(user_data_location: str,
 
 
 def setup_log_file(logger: logging.Logger, log_file_path: str) -> None:
-    log_file = logging.FileHandler(log_file_path)
+    log_file = logging.FileHandler(log_file_path, encoding="utf8")
     log_file_format = logging.Formatter(fmt="%(asctime)s %(levelname)s    %(message)s")
     log_file.setFormatter(log_file_format)
     logger.addHandler(log_file)
