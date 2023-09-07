@@ -47,6 +47,7 @@ def create_exclusion_list(exclude_file: str, user_data_location: str) -> list[st
         return []
 
     logger.info(f"Reading exclude file: {exclude_file}")
+    logger.info("")
     exclusions: list[str] = []
     with open(exclude_file) as exclude_list:
         for line in exclude_list:
@@ -190,7 +191,6 @@ def create_new_backup(user_data_location: str,
     record_user_location(user_data_location, backup_location)
 
     exclusions = create_exclusion_list(exclude_file, user_data_location)
-    logger.info("")
     logger.info(f"User's data     : {os.path.abspath(user_data_location)}")
     logger.info(f"Backup location : {os.path.abspath(new_backup_path)}")
 
