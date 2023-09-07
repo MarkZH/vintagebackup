@@ -21,7 +21,7 @@ class CommandLineError(ValueError):
 
 
 def byte_units(size: float, prefixes: list[str] | None = None) -> str:
-    if prefixes is None:
+    if not prefixes:
         prefixes = ["", "k", "M", "G"]
 
     if size >= 1000 and len(prefixes) > 1:
@@ -122,7 +122,7 @@ def compare_to_backup(user_directory: str,
                       backup_directory: str | None,
                       file_names: list[str],
                       examine_whole_file: bool) -> tuple[list[str], list[str], list[str]]:
-    if backup_directory is None:
+    if not backup_directory:
         return [], [], file_names
     elif examine_whole_file:
         return filecmp.cmpfiles(user_directory, backup_directory, file_names, shallow=False)
@@ -171,7 +171,7 @@ def create_new_backup(user_data_location: str,
                                f"User data      : {user_data_location}\n"
                                f"Backup location: {backup_location}")
 
-    if exclude_file is not None and not os.path.isfile(exclude_file):
+    if exclude_file and not os.path.isfile(exclude_file):
         raise CommandLineError(f"Exclude file not found: {exclude_file}")
 
     os.makedirs(backup_location, exist_ok=True)
@@ -195,10 +195,10 @@ def create_new_backup(user_data_location: str,
     logger.info(f"Backup location : {os.path.abspath(new_backup_path)}")
 
     last_backup_path = find_previous_backup(backup_location)
-    if last_backup_path is None:
-        logger.info("No previous backups. Copying everything ...")
-    else:
+    if last_backup_path:
         logger.info(f"Previous backup : {os.path.abspath(last_backup_path)}")
+    else:
+        logger.info("No previous backups. Copying everything ...")
 
     logger.info("")
     logger.info(f"Deep file inspection = {examine_whole_file}")
@@ -220,10 +220,8 @@ def create_new_backup(user_data_location: str,
         new_backup_directory = os.path.join(new_backup_path, relative_path)
         os.makedirs(new_backup_directory)
 
-        if last_backup_path is None:
-            previous_backup_directory = None
-        else:
-            previous_backup_directory = os.path.join(last_backup_path, relative_path)
+        previous_backup_directory = (os.path.join(last_backup_path, relative_path)
+                                     if last_backup_path else None)
 
         matching, mismatching, errors = compare_to_backup(current_user_path,
                                                           previous_backup_directory,
@@ -231,7 +229,7 @@ def create_new_backup(user_data_location: str,
                                                           examine_whole_file)
 
         for file_name in matching:
-            assert previous_backup_directory is not None
+            assert previous_backup_directory
             previous_backup = os.path.join(previous_backup_directory, file_name)
             new_backup = os.path.join(new_backup_directory, file_name)
             if create_hard_link(previous_backup, new_backup):
@@ -315,11 +313,11 @@ def recover_file(recovery_file_name: str, backup_location: str) -> None:
 
 def delete_last_backup(backup_location: str) -> None:
     last_backup_directory = find_previous_backup(backup_location)
-    if last_backup_directory is None:
-        logger.info("No previous backup to delete")
-    else:
+    if last_backup_directory:
         logger.info(f"Deleting failed backup: {last_backup_directory}")
         shutil.rmtree(last_backup_directory)
+    else:
+        logger.info("No previous backup to delete")
 
 
 def print_backup_storage_stats(backup_location: str) -> None:
