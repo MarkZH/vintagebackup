@@ -42,7 +42,7 @@ def find_previous_backup(backup_location: str) -> str | None:
         return None
 
 
-def create_exclusion_list(exclude_file: str, user_data_location: str) -> list[str]:
+def create_exclusion_list(exclude_file: str | None, user_data_location: str) -> list[str]:
     if not exclude_file:
         return []
 
@@ -157,7 +157,7 @@ def create_hard_link(previous_backup: str, new_backup: str) -> bool:
 
 def create_new_backup(user_data_location: str,
                       backup_location: str,
-                      exclude_file: str,
+                      exclude_file: str | None,
                       examine_whole_file: bool) -> None:
     if not os.path.isdir(user_data_location or ""):
         raise CommandLineError("The user folder does not exist: "
