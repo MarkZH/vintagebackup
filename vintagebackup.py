@@ -363,7 +363,9 @@ folder will contain all of that year's backups.""")
     user_input.add_argument("-e", "--exclude", help="""
 The path of a text file containing a list of files and folders
 to exclude from backups. Each line in the file should contain
-one exclusion. Wildcard characters like * and ? are allowed.""")
+one exclusion. Wildcard characters like * and ? are allowed.
+The path should either be an absolute path or one relative to
+the directory being backed up (from the -u option).""")
 
     user_input.add_argument("-w", "--whole-file", action="store_true", help="""
 Examine the entire contents of a file to determine if it has
