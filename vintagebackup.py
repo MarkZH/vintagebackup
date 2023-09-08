@@ -399,18 +399,17 @@ Where to log the activity of this program. A file of the same
 name will be written to the backup folder. The default is
 {os.path.basename(default_log_file_name)} in the user's home folder.""")
 
+    args = user_input.parse_args(args=None if sys.argv[1:] else ["--help"])
+    if args.help:
+        user_input.print_help()
+        sys.exit(0)
+        
     try:
-        args = user_input.parse_args(args=None if sys.argv[1:] else ["--help"])
-        if args.help:
-            user_input.print_help()
-            sys.exit(0)
-
+        exit_code = 1
         setup_log_file(logger, args.log)
         if args.debug:
             logger.setLevel(logging.DEBUG)
         logger.debug(args)
-
-        exit_code = 1
 
         if args.recover:
             action = "recovery"
@@ -419,8 +418,8 @@ name will be written to the backup folder. The default is
         else:
             action = "backup"
             create_new_backup(args.user_folder, args.backup_folder, args.exclude, args.whole_file)
-        exit_code = 0
         print_backup_storage_stats(args.backup_folder)
+        exit_code = 0
     except CommandLineError as error:
         logger.error(error)
         logger.info("")
