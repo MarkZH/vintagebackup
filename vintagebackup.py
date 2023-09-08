@@ -413,10 +413,11 @@ name will be written to the backup folder. The default is
 
         if args.recover:
             action = "recovery"
-            args.delete_on_error = False
+            delete_last_backup_on_error = False
             recover_file(args.recover, args.backup_folder)
         else:
             action = "backup"
+            delete_last_backup_on_error = args.delete_on_error
             create_new_backup(args.user_folder, args.backup_folder, args.exclude, args.whole_file)
         print_backup_storage_stats(args.backup_folder)
         exit_code = 0
@@ -426,7 +427,7 @@ name will be written to the backup folder. The default is
         user_input.print_usage()
     except Exception as error:
         logger.error(f"An error prevented the {action} from completing: {error}")
-        if args.delete_on_error:
+        if delete_last_backup_on_error:
             delete_last_backup(args.backup_folder)
         print_backup_storage_stats(args.backup_folder)
     finally:
