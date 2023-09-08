@@ -403,7 +403,7 @@ name will be written to the backup folder. The default is
     if args.help:
         user_input.print_help()
         sys.exit(0)
-        
+
     try:
         exit_code = 1
         setup_log_file(logger, args.log)
