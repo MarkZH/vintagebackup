@@ -163,6 +163,8 @@ def create_inclusion_list(include_file_name: str | None,
             for line in include_file:
                 path_entry = os.path.join(user_directory, line.strip())
                 for path in glob.glob(path_entry):
+                    if not path_contained_inside(path, user_directory):
+                        logger.warning(f"Skipping include path outside of backup directory: {path}")
                     if os.path.isdir(path):
                         for entry in os.walk(path):
                             yield entry
