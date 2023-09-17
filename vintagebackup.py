@@ -158,20 +158,22 @@ def create_hard_link(previous_backup: str, new_backup: str) -> bool:
 
 def create_inclusion_list(include_file_name: str | None,
                           user_directory: str) -> Iterator[tuple[str, list[str], list[str]]]:
-    if include_file_name:
-        with open(include_file_name) as include_file:
-            for line in include_file:
-                path_entry = os.path.join(user_directory, line.strip())
-                for path in glob.glob(path_entry):
-                    if not path_contained_inside(path, user_directory):
-                        logger.warning(f"Skipping include path outside of backup directory: {path}")
-                    if os.path.isdir(path):
-                        for entry in os.walk(path):
-                            yield entry
-                    elif os.path.isfile(path):
-                        yield os.path.dirname(path), [], [os.path.basename(path)]
-                    else:
-                        logger.info(f"Skipping non-existant include line: {path}")
+    if not include_file_name:
+        return
+
+    with open(include_file_name) as include_file:
+        for line in include_file:
+            path_entry = os.path.join(user_directory, line.strip())
+            for path in glob.glob(path_entry):
+                if not path_contained_inside(path, user_directory):
+                    logger.warning(f"Skipping include path outside of backup directory: {path}")
+                if os.path.isdir(path):
+                    for entry in os.walk(path):
+                        yield entry
+                elif os.path.isfile(path):
+                    yield os.path.dirname(path), [], [os.path.basename(path)]
+                else:
+                    logger.info(f"Skipping non-existant include line: {path}")
 
 
 def backup_directory(user_data_location: str,
