@@ -172,6 +172,8 @@ def include_walk(include_file_name: str | None,
             for path in path_entries:
                 if not path_contained_inside(path, user_directory):
                     logger.warning(f"Skipping include path outside of backup directory: {path}")
+                    continue
+
                 if os.path.isdir(path):
                     for entry in os.walk(path):
                         yield entry
