@@ -161,6 +161,8 @@ def create_inclusion_list(include_file_name: str | None,
     if not include_file_name:
         return
 
+    logger.info(f"Reading include file: {include_file_name}")
+    logger.info("")
     with open(include_file_name) as include_file:
         for line in include_file:
             path_entry = os.path.join(user_directory, line.strip())
