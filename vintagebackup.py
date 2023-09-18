@@ -156,8 +156,8 @@ def create_hard_link(previous_backup: str, new_backup: str) -> bool:
         return False
 
 
-def create_inclusion_list(include_file_name: str | None,
-                          user_directory: str) -> Iterator[tuple[str, list[str], list[str]]]:
+def include_walk(include_file_name: str | None,
+                 user_directory: str) -> Iterator[tuple[str, list[str], list[str]]]:
     if not include_file_name:
         return
 
@@ -295,8 +295,7 @@ def create_new_backup(user_data_location: str,
                          action_counter,
                          False)
 
-    for include_path, _, include_file_list in create_inclusion_list(include_file,
-                                                                    user_data_location):
+    for include_path, _, include_file_list in include_walk(include_file, user_data_location):
         backup_directory(user_data_location,
                          new_backup_path,
                          last_backup_path,
