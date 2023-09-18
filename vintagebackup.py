@@ -186,7 +186,8 @@ def backup_directory(user_data_location: str,
                      user_file_names: list[str],
                      exclusions: list[str],
                      examine_whole_file: bool,
-                     action_counter: Counter[str]):
+                     action_counter: Counter[str],
+                     is_include_backup: bool):
     user_file_names[:] = filter_excluded_paths(user_data_location,
                                                exclusions,
                                                current_user_path,
@@ -198,7 +199,7 @@ def backup_directory(user_data_location: str,
 
     relative_path = os.path.relpath(current_user_path, user_data_location)
     new_backup_directory = os.path.join(new_backup_path, relative_path)
-    os.makedirs(new_backup_directory)
+    os.makedirs(new_backup_directory, exist_ok=is_include_backup)
 
     previous_backup_directory = (os.path.join(last_backup_path, relative_path)
                                  if last_backup_path else None)
@@ -291,7 +292,8 @@ def create_new_backup(user_data_location: str,
                          user_file_names,
                          exclusions,
                          examine_whole_file,
-                         action_counter)
+                         action_counter,
+                         False)
 
     for include_path, _, include_file_list in create_inclusion_list(include_file,
                                                                     user_data_location):
@@ -303,7 +305,8 @@ def create_new_backup(user_data_location: str,
                          include_file_list,
                          [],
                          examine_whole_file,
-                         action_counter)
+                         action_counter,
+                         True)
 
     total_files = sum(count for action, count in action_counter.items()
                       if not action.startswith("failed"))
