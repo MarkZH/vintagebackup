@@ -41,6 +41,15 @@ options:
                         The path of a text file containing a list of files and folders
                         to exclude from backups. Each line in the file should contain
                         one exclusion. Wildcard characters like * and ? are allowed.
+  -i INCLUDE, --include INCLUDE
+                        The path of a text file containing a list of files and folders
+                        to include in the backups. The entries in this text file
+                        override the exclusions from the --exclude argument. Each line
+                        should contain one file or directory to include. Wildcard
+                        characters like * and ? are allowed. The paths should either
+                        be absolute paths or paths relative to the directory being
+                        backed up (from the -u option). Included paths must be
+                        contained within the directory being backed up.
   -w, --whole-file      Examine the entire contents of a file to determine if it has
                         changed and needs to be copied to the new backup. Without this
                         option, only the file's size, type, and modification date are
