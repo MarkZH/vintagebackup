@@ -165,8 +165,13 @@ def include_walk(include_file_name: str | None,
     logger.info("")
     with open(include_file_name) as include_file:
         for line in include_file:
-            path_entry = os.path.join(user_directory, line.strip())
-            for path in glob.glob(path_entry):
+            line = line.rstrip("\n")
+            path_entries = glob.glob(os.path.join(user_directory, line))
+            if not path_entries:
+                logger.info(f"No files or directories found for include line: {line}")
+                continue
+
+            for path in path_entries:
                 if not path_contained_inside(path, user_directory):
                     logger.warning(f"Skipping include path outside of backup directory: {path}")
                 if os.path.isdir(path):
