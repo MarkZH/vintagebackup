@@ -48,7 +48,6 @@ def create_exclusion_list(exclude_file: str | None, user_data_location: str) -> 
         return []
 
     logger.info(f"Reading exclude file: {exclude_file}")
-    logger.info("")
     exclusions: list[str] = []
     with open(exclude_file) as exclude_list:
         for line in exclude_list:
@@ -162,7 +161,6 @@ def include_walk(include_file_name: str | None,
         return
 
     logger.info(f"Reading include file: {include_file_name}")
-    logger.info("")
     with open(include_file_name) as include_file:
         for line in include_file:
             line = line.rstrip("\n")
@@ -274,6 +272,7 @@ def create_new_backup(user_data_location: str,
 
     exclusions = create_exclusion_list(exclude_file, user_data_location)
     include_walker = include_walk(include_file, user_data_location)
+    logger.info("")
     logger.info(f"User's data     : {os.path.abspath(user_data_location)}")
     logger.info(f"Backup location : {os.path.abspath(new_backup_path)}")
 
@@ -389,7 +388,6 @@ def print_backup_storage_stats(backup_location: str) -> None:
         backup_storage = shutil.disk_usage(backup_location)
         percent_used = round(100 * backup_storage.used / backup_storage.total)
         percent_free = round(100 * backup_storage.free / backup_storage.total)
-        logger.info("")
         logger.info("Backup storage space: "
                     f"Total = {byte_units(backup_storage.total)}  "
                     f"Used = {byte_units(backup_storage.used)} ({percent_used}%)  "
@@ -497,6 +495,7 @@ name will be written to the backup folder. The default is
                               args.exclude,
                               args.include,
                               args.whole_file)
+        logger.info("")
         print_backup_storage_stats(args.backup_folder)
         exit_code = 0
     except CommandLineError as error:
