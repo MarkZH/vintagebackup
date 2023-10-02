@@ -175,8 +175,7 @@ def include_walk(include_file_name: str | None,
                     continue
 
                 if os.path.isdir(path):
-                    for entry in os.walk(path):
-                        yield entry
+                    yield from os.walk(path)
                 elif os.path.isfile(path):
                     yield os.path.dirname(path), [], [os.path.basename(path)]
                 else:
