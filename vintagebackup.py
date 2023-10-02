@@ -113,7 +113,7 @@ def backup_location_inside_user_location(backup_location: str, user_data_locatio
         return False
 
 
-def get_stat_info(directory, file_name) -> tuple[int, int, int]:
+def get_stat_info(directory: str, file_name: str) -> tuple[int, int, int]:
     stats = os.stat(os.path.join(directory, file_name), follow_symlinks=False)
     return (stats.st_size, stat.S_IFMT(stats.st_mode), stats.st_mtime_ns)
 
