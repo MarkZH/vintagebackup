@@ -158,7 +158,8 @@ def create_hard_link(previous_backup: str, new_backup: str) -> bool:
 def create_new_backup(user_data_location: str,
                       backup_location: str,
                       exclude_file: str | None,
-                      examine_whole_file: bool) -> None:
+                      examine_whole_file: bool,
+                      force_copy: bool) -> None:
     if not os.path.isdir(user_data_location or ""):
         raise CommandLineError("The user folder does not exist: "
                                f"{user_data_location or 'None given'}")
@@ -194,7 +195,7 @@ def create_new_backup(user_data_location: str,
     logger.info(f"User's data     : {os.path.abspath(user_data_location)}")
     logger.info(f"Backup location : {os.path.abspath(new_backup_path)}")
 
-    last_backup_path = find_previous_backup(backup_location)
+    last_backup_path = None if force_copy else find_previous_backup(backup_location)
     if last_backup_path:
         logger.info(f"Previous backup : {os.path.abspath(last_backup_path)}")
     else:
@@ -389,6 +390,12 @@ which version of the file to recover by choosing from dates
 where the backup has a new copy the file due to the file being
 modified. This option requires the -b option to specify which
 backup location to search.""")
+    
+    user_input.add_argument("--force-copy", action="store_true", help="""
+Copy all files instead of linking to files previous backups. The
+new backup will contain new copies of all of the user's files,
+so the backup location will require much more space than a normal
+backup.""")
 
     user_input.add_argument("--debug", action="store_true", help="""
 Log information on all action of a backup.""")
@@ -418,7 +425,7 @@ name will be written to the backup folder. The default is
         else:
             action = "backup"
             delete_last_backup_on_error = args.delete_on_error
-            create_new_backup(args.user_folder, args.backup_folder, args.exclude, args.whole_file)
+            create_new_backup(args.user_folder, args.backup_folder, args.exclude, args.whole_file, args.force_copy)
         print_backup_storage_stats(args.backup_folder)
         exit_code = 0
     except CommandLineError as error:
