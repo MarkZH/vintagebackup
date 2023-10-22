@@ -260,6 +260,9 @@ def create_new_backup(user_data_location: str,
 
     if exclude_file and not os.path.isfile(exclude_file):
         raise CommandLineError(f"Exclude file not found: {exclude_file}")
+    
+    if include_file and not os.path.isfile(include_file):
+        raise CommandLineError(f"Include file not found: {include_file}")
 
     os.makedirs(backup_location, exist_ok=True)
 
