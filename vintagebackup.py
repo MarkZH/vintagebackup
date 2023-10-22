@@ -259,7 +259,7 @@ def create_new_backup(user_data_location: str,
 
     if exclude_file and not os.path.isfile(exclude_file):
         raise CommandLineError(f"Exclude file not found: {exclude_file}")
-    
+
     if include_file and not os.path.isfile(include_file):
         raise CommandLineError(f"Include file not found: {include_file}")
 
@@ -473,7 +473,7 @@ which version of the file to recover by choosing from dates
 where the backup has a new copy the file due to the file being
 modified. This option requires the -b option to specify which
 backup location to search.""")
-    
+
     user_input.add_argument("--force-copy", action="store_true", help="""
 Copy all files instead of linking to files previous backups. The
 new backup will contain new copies of all of the user's files,
