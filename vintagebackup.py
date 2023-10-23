@@ -54,8 +54,7 @@ def create_exclusion_list(exclude_file: str | None, user_data_location: str) -> 
             line = line.rstrip("\n")
             path_list = glob.glob(os.path.join(user_data_location, line))
             if path_list:
-                for path in path_list:
-                    exclusions.append(os.path.relpath(path, user_data_location))
+                exclusions.extend(os.path.relpath(path, user_data_location) for path in path_list)
             else:
                 logger.info(f"Ignoring exclude line: {line}")
 
