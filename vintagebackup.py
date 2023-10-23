@@ -10,6 +10,7 @@ import filecmp
 import stat
 import itertools
 from collections import Counter
+from typing import Iterator
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler(sys.stdout))
@@ -47,7 +48,6 @@ def create_exclusion_list(exclude_file: str | None, user_data_location: str) -> 
         return []
 
     logger.info(f"Reading exclude file: {exclude_file}")
-    logger.info("")
     exclusions: list[str] = []
     with open(exclude_file) as exclude_list:
         for line in exclude_list:
@@ -99,17 +99,17 @@ def confirm_user_location_is_unchanged(user_data_location: str, backup_location:
         pass
 
 
-def backup_location_inside_user_location(backup_location: str, user_data_location: str) -> bool:
+def path_contained_inside(query_path: str, containing_path: str) -> bool:
     def canonical_path(path: str) -> str:
         return os.path.normcase(os.path.normpath(os.path.abspath(path)))
 
     try:
-        user_canon = canonical_path(user_data_location)
-        backup_canon = canonical_path(backup_location)
-        commonality = os.path.commonpath([backup_canon, user_canon])
-        return os.path.samefile(commonality, user_canon)
+        container_canon = canonical_path(containing_path)
+        query_canon = canonical_path(query_path)
+        commonality = os.path.commonpath([query_canon, container_canon])
+        return os.path.samefile(commonality, container_canon)
     except ValueError:
-        # backup_location and user_data_location are on different drives
+        # query_path and possible_container are on different drives
         return False
 
 
@@ -155,9 +155,94 @@ def create_hard_link(previous_backup: str, new_backup: str) -> bool:
         return False
 
 
+def include_walk(include_file_name: str | None,
+                 user_directory: str) -> Iterator[tuple[str, list[str], list[str]]]:
+    if not include_file_name:
+        return
+
+    with open(include_file_name) as include_file:
+        for line in include_file:
+            line = line.rstrip("\n")
+            path_entries = glob.glob(os.path.join(user_directory, line))
+            if not path_entries:
+                logger.info(f"No files or directories found for include line: {line}")
+                continue
+
+            for path in path_entries:
+                if not path_contained_inside(path, user_directory):
+                    logger.warning(f"Skipping include path outside of backup directory: {path}")
+                    continue
+
+                if os.path.isdir(path):
+                    yield from os.walk(path)
+                elif os.path.isfile(path):
+                    yield os.path.dirname(path), [], [os.path.basename(path)]
+                else:
+                    logger.info(f"Skipping non-existant include line: {path}")
+
+
+def backup_directory(user_data_location: str,
+                     new_backup_path: str,
+                     last_backup_path: str | None,
+                     current_user_path: str,
+                     user_dir_names: list[str],
+                     user_file_names: list[str],
+                     exclusions: list[str],
+                     examine_whole_file: bool,
+                     action_counter: Counter[str],
+                     is_include_backup: bool):
+    user_file_names[:] = filter_excluded_paths(user_data_location,
+                                               exclusions,
+                                               current_user_path,
+                                               user_file_names)
+    user_dir_names[:] = filter_excluded_paths(user_data_location,
+                                              exclusions,
+                                              current_user_path,
+                                              user_dir_names)
+
+    relative_path = os.path.relpath(current_user_path, user_data_location)
+    new_backup_directory = os.path.join(new_backup_path, relative_path)
+    os.makedirs(new_backup_directory, exist_ok=is_include_backup)
+
+    previous_backup_directory = (os.path.join(last_backup_path, relative_path)
+                                 if last_backup_path else None)
+
+    matching, mismatching, errors = compare_to_backup(current_user_path,
+                                                      previous_backup_directory,
+                                                      user_file_names,
+                                                      examine_whole_file)
+
+    for file_name in matching:
+        assert previous_backup_directory
+        previous_backup = os.path.join(previous_backup_directory, file_name)
+        new_backup = os.path.join(new_backup_directory, file_name)
+        if os.path.lexists(new_backup):
+            logger.debug("Skipping include file that is already backed up: "
+                         + os.path.join(current_user_path, file_name))
+            continue
+
+        if create_hard_link(previous_backup, new_backup):
+            action_counter["linked files"] += 1
+            logger.debug(f"Linked {previous_backup} to {new_backup}")
+        else:
+            errors.append(file_name)
+
+    for file_name in itertools.chain(mismatching, errors):
+        new_backup_file = os.path.join(new_backup_directory, file_name)
+        user_file = os.path.join(current_user_path, file_name)
+        try:
+            shutil.copy2(user_file, new_backup_file, follow_symlinks=False)
+            action_counter["copied files"] += 1
+            logger.debug(f"Copied {user_file} to {new_backup_file}")
+        except Exception as error:
+            logger.warning(f"Could not copy {user_file} to {new_backup_file} ({error})")
+            action_counter["failed copies"] += 1
+
+
 def create_new_backup(user_data_location: str,
                       backup_location: str,
                       exclude_file: str | None,
+                      include_file: str | None,
                       examine_whole_file: bool,
                       force_copy: bool) -> None:
     if not os.path.isdir(user_data_location or ""):
@@ -167,13 +252,16 @@ def create_new_backup(user_data_location: str,
     if not backup_location:
         raise CommandLineError("No backup destination was given.")
 
-    if backup_location_inside_user_location(backup_location, user_data_location):
+    if path_contained_inside(backup_location, user_data_location):
         raise CommandLineError("Backup destination cannot be inside user's folder:\n"
                                f"User data      : {user_data_location}\n"
                                f"Backup location: {backup_location}")
 
     if exclude_file and not os.path.isfile(exclude_file):
         raise CommandLineError(f"Exclude file not found: {exclude_file}")
+
+    if include_file and not os.path.isfile(include_file):
+        raise CommandLineError(f"Include file not found: {include_file}")
 
     os.makedirs(backup_location, exist_ok=True)
 
@@ -192,6 +280,11 @@ def create_new_backup(user_data_location: str,
     record_user_location(user_data_location, backup_location)
 
     exclusions = create_exclusion_list(exclude_file, user_data_location)
+
+    if include_file:
+        logger.info(f"Reading include file: {include_file}")
+
+    logger.info("")
     logger.info(f"User's data     : {os.path.abspath(user_data_location)}")
     logger.info(f"Backup location : {os.path.abspath(new_backup_path)}")
 
@@ -208,47 +301,28 @@ def create_new_backup(user_data_location: str,
     action_counter: Counter[str] = Counter()
 
     for current_user_path, user_dir_names, user_file_names in os.walk(user_data_location):
-        user_file_names[:] = filter_excluded_paths(user_data_location,
-                                                   exclusions,
-                                                   current_user_path,
-                                                   user_file_names)
-        user_dir_names[:] = filter_excluded_paths(user_data_location,
-                                                  exclusions,
-                                                  current_user_path,
-                                                  user_dir_names)
+        backup_directory(user_data_location,
+                         new_backup_path,
+                         last_backup_path,
+                         current_user_path,
+                         user_dir_names,
+                         user_file_names,
+                         exclusions,
+                         examine_whole_file,
+                         action_counter,
+                         False)
 
-        relative_path = os.path.relpath(current_user_path, user_data_location)
-        new_backup_directory = os.path.join(new_backup_path, relative_path)
-        os.makedirs(new_backup_directory)
-
-        previous_backup_directory = (os.path.join(last_backup_path, relative_path)
-                                     if last_backup_path else None)
-
-        matching, mismatching, errors = compare_to_backup(current_user_path,
-                                                          previous_backup_directory,
-                                                          user_file_names,
-                                                          examine_whole_file)
-
-        for file_name in matching:
-            assert previous_backup_directory
-            previous_backup = os.path.join(previous_backup_directory, file_name)
-            new_backup = os.path.join(new_backup_directory, file_name)
-            if create_hard_link(previous_backup, new_backup):
-                action_counter["linked files"] += 1
-                logger.debug(f"Linked {previous_backup} to {new_backup}")
-            else:
-                errors.append(file_name)
-
-        for file_name in itertools.chain(mismatching, errors):
-            new_backup_file = os.path.join(new_backup_directory, file_name)
-            user_file = os.path.join(current_user_path, file_name)
-            try:
-                shutil.copy2(user_file, new_backup_file, follow_symlinks=False)
-                action_counter["copied files"] += 1
-                logger.debug(f"Copied {user_file} to {new_backup_file}")
-            except Exception as error:
-                logger.warning(f"Could not copy {user_file} to {new_backup_file} ({error})")
-                action_counter["failed copies"] += 1
+    for include_path, _, include_file_list in include_walk(include_file, user_data_location):
+        backup_directory(user_data_location,
+                         new_backup_path,
+                         last_backup_path,
+                         include_path,
+                         [],
+                         include_file_list,
+                         [],
+                         examine_whole_file,
+                         action_counter,
+                         True)
 
     total_files = sum(count for action, count in action_counter.items()
                       if not action.startswith("failed"))
@@ -326,7 +400,6 @@ def print_backup_storage_stats(backup_location: str) -> None:
         backup_storage = shutil.disk_usage(backup_location)
         percent_used = round(100 * backup_storage.used / backup_storage.total)
         percent_free = round(100 * backup_storage.free / backup_storage.total)
-        logger.info("")
         logger.info("Backup storage space: "
                     f"Total = {byte_units(backup_storage.total)}  "
                     f"Used = {byte_units(backup_storage.used)} ({percent_used}%)  "
@@ -368,6 +441,16 @@ one exclusion. Wildcard characters like * and ? are allowed.
 The path should either be an absolute path or one relative to
 the directory being backed up (from the -u option).""")
 
+    user_input.add_argument("-i", "--include", help="""
+The path of a text file containing a list of files and folders
+to include in the backups. The entries in this text file
+override the exclusions from the --exclude argument. Each line
+should contain one file or directory to include. Wildcard
+characters like * and ? are allowed. The paths should either
+be absolute paths or paths relative to the directory being backed
+up (from the -u option). Included paths must be contained within
+the directory being backed up.""")
+
     user_input.add_argument("-w", "--whole-file", action="store_true", help="""
 Examine the entire contents of a file to determine if it has
 changed and needs to be copied to the new backup. Without this
@@ -390,7 +473,7 @@ which version of the file to recover by choosing from dates
 where the backup has a new copy the file due to the file being
 modified. This option requires the -b option to specify which
 backup location to search.""")
-    
+
     user_input.add_argument("--force-copy", action="store_true", help="""
 Copy all files instead of linking to files previous backups. The
 new backup will contain new copies of all of the user's files,
@@ -425,7 +508,13 @@ name will be written to the backup folder. The default is
         else:
             action = "backup"
             delete_last_backup_on_error = args.delete_on_error
-            create_new_backup(args.user_folder, args.backup_folder, args.exclude, args.whole_file, args.force_copy)
+            create_new_backup(args.user_folder,
+                              args.backup_folder,
+                              args.exclude,
+                              args.include,
+                              args.whole_file,
+                              args.force_copy)
+        logger.info("")
         print_backup_storage_stats(args.backup_folder)
         exit_code = 0
     except CommandLineError as error:
