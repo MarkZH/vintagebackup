@@ -133,8 +133,12 @@ def compare_to_backup(user_directory: str,
         matches: list[str] = []
         mismatches: list[str] = []
         errors: list[str] = []
-        with os.scandir(backup_directory) as scan:
-            backup_files = {entry.name: entry.stat(follow_symlinks=False) for entry in scan}
+        try:
+            with os.scandir(backup_directory) as scan:
+                backup_files = {entry.name: entry.stat(follow_symlinks=False) for entry in scan}
+        except OSError:
+            backup_files = {}
+
         for file_name in file_names:
             try:
                 user_file_stats = get_stat_info(user_directory, file_name)
@@ -526,8 +530,9 @@ name will be written to the backup folder. The default is
         logger.error(error)
         logger.info("")
         user_input.print_usage()
-    except Exception as error:
-        logger.error(f"An error prevented the {action} from completing: {error}")
+    except Exception:
+        logger.error(f"An error prevented the {action} from completing.")
+        logger.exception("Error:")
         if delete_last_backup_on_error:
             delete_last_backup(args.backup_folder)
         print_backup_storage_stats(args.backup_folder)
