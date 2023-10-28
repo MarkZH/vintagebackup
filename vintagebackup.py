@@ -112,9 +112,13 @@ def path_contained_inside(query_path: str, containing_path: str) -> bool:
         return False
 
 
+def shallow_stats(stats: os.stat_result) -> tuple[int, int, int]:
+    return (stats.st_size, stat.S_IFMT(stats.st_mode), stats.st_mtime_ns)
+
+
 def get_stat_info(directory: str, file_name: str) -> tuple[int, int, int]:
     stats = os.stat(os.path.join(directory, file_name), follow_symlinks=False)
-    return (stats.st_size, stat.S_IFMT(stats.st_mode), stats.st_mtime_ns)
+    return shallow_stats(stats)
 
 
 def compare_to_backup(user_directory: str,
@@ -129,10 +133,12 @@ def compare_to_backup(user_directory: str,
         matches: list[str] = []
         mismatches: list[str] = []
         errors: list[str] = []
+        with os.scandir(backup_directory) as scan:
+            backup_files = {entry.name: entry.stat(follow_symlinks=False) for entry in scan}
         for file_name in file_names:
             try:
                 user_file_stats = get_stat_info(user_directory, file_name)
-                backup_file_stats = get_stat_info(backup_directory, file_name)
+                backup_file_stats = shallow_stats(backup_files[file_name])
                 if user_file_stats == backup_file_stats:
                     matches.append(file_name)
                 else:
