@@ -172,6 +172,7 @@ def include_walk(include_file_name: str | None,
     if not include_file_name:
         return
 
+    logger.info(f"Reading include file: {include_file_name}")
     with open(include_file_name) as include_file:
         for line in include_file:
             line = line.rstrip("\n")
@@ -293,12 +294,6 @@ def create_new_backup(user_data_location: str,
     confirm_user_location_is_unchanged(user_data_location, backup_location)
     record_user_location(user_data_location, backup_location)
 
-    exclusions = create_exclusion_list(exclude_file, user_data_location)
-
-    if include_file:
-        logger.info(f"Reading include file: {include_file}")
-
-    logger.info("")
     logger.info(f"User's data     : {os.path.abspath(user_data_location)}")
     logger.info(f"Backup location : {os.path.abspath(new_backup_path)}")
 
@@ -310,10 +305,9 @@ def create_new_backup(user_data_location: str,
 
     logger.info("")
     logger.info(f"Deep file inspection = {examine_whole_file}")
-    logger.info("")
 
     action_counter: Counter[str] = Counter()
-
+    exclusions = create_exclusion_list(exclude_file, user_data_location)
     for current_user_path, user_dir_names, user_file_names in os.walk(user_data_location):
         backup_directory(user_data_location,
                          new_backup_path,
@@ -338,6 +332,7 @@ def create_new_backup(user_data_location: str,
                          action_counter,
                          True)
 
+    logger.info("")
     total_files = sum(count for action, count in action_counter.items()
                       if not action.startswith("failed"))
     action_counter["Backed up files"] = total_files
