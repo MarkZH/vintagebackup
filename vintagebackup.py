@@ -504,8 +504,11 @@ name will be written to the backup folder. The default is
         user_input.print_help()
         sys.exit(0)
 
+    exit_code = 1
+    delete_last_backup_on_error = False
+    action = ""
+
     try:
-        exit_code = 1
         setup_log_file(logger, args.log)
         if args.debug:
             logger.setLevel(logging.DEBUG)
@@ -513,7 +516,6 @@ name will be written to the backup folder. The default is
 
         if args.recover:
             action = "recovery"
-            delete_last_backup_on_error = False
             recover_file(args.recover, args.backup_folder)
         else:
             action = "backup"
@@ -532,7 +534,10 @@ name will be written to the backup folder. The default is
         logger.info("")
         user_input.print_usage()
     except Exception:
-        logger.error(f"An error prevented the {action} from completing.")
+        if action:
+            logger.error(f"An error prevented the {action} from completing.")
+        else:
+            logger.error("An error occurred before any action could take place.")
         logger.exception("Error:")
         if delete_last_backup_on_error:
             delete_last_backup(args.backup_folder)
