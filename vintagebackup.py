@@ -185,9 +185,9 @@ def include_walk(include_file_name: str | None,
                     logger.warning(f"Skipping include path outside of backup directory: {path}")
                     continue
 
-                if os.path.isdir(path):
+                if not os.path.islink(path) and os.path.isdir(path):
                     yield from os.walk(path)
-                elif os.path.isfile(path):
+                elif os.path.lexists(path):
                     yield os.path.dirname(path), [], [os.path.basename(path)]
                 else:
                     logger.info(f"Skipping non-existant include line: {path}")
