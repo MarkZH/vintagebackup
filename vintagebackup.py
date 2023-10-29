@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 logger.setLevel(logging.INFO)
 
+new_backup_directory_created = False
+
 
 class CommandLineError(ValueError):
     pass
@@ -213,6 +215,8 @@ def backup_directory(user_data_location: str,
     relative_path = os.path.relpath(current_user_path, user_data_location)
     new_backup_directory = os.path.join(new_backup_path, relative_path)
     os.makedirs(new_backup_directory, exist_ok=is_include_backup)
+    global new_backup_directory_created
+    new_backup_directory_created = True
 
     previous_backup_directory = (os.path.join(last_backup_path, relative_path)
                                  if last_backup_path else None)
@@ -539,7 +543,7 @@ name will be written to the backup folder. The default is
         else:
             logger.error("An error occurred before any action could take place.")
         logger.exception("Error:")
-        if delete_last_backup_on_error:
+        if delete_last_backup_on_error and new_backup_directory_created:
             delete_last_backup(args.backup_folder)
         print_backup_storage_stats(args.backup_folder)
     finally:
