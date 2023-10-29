@@ -32,7 +32,8 @@ def byte_units(size: float, prefixes: list[str] | None = None) -> str:
 
 
 def last_directory(dir_name: str) -> str:
-    return sorted(d.path for d in os.scandir(dir_name) if d.is_dir())[-1]
+    with os.scandir(dir_name) as scan:
+        return sorted(d.path for d in scan if d.is_dir())[-1]
 
 
 def find_previous_backup(backup_location: str) -> str | None:
