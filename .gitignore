@@ -4,3 +4,5 @@
 *.sln
 .vscode/*
 *.bat
+*.txt
+temp_*
