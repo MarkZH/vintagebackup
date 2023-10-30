@@ -133,15 +133,15 @@ def compare_to_backup(user_directory: str,
     elif examine_whole_file:
         return filecmp.cmpfiles(user_directory, backup_directory, file_names, shallow=False)
     else:
-        matches: list[str] = []
-        mismatches: list[str] = []
-        errors: list[str] = []
         try:
             with os.scandir(backup_directory) as scan:
                 backup_files = {entry.name: entry.stat(follow_symlinks=False) for entry in scan}
         except OSError:
             return [], [], file_names
 
+        matches: list[str] = []
+        mismatches: list[str] = []
+        errors: list[str] = []
         for file_name in file_names:
             try:
                 user_file_stats = get_stat_info(user_directory, file_name)
