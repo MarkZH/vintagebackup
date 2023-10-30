@@ -254,13 +254,13 @@ def backup_directory(user_data_location: str,
             action_counter["failed copies"] += 1
 
 
-def create_new_backup(user_data_location: str,
-                      backup_location: str,
+def create_new_backup(user_data_location: str | None,
+                      backup_location: str | None,
                       exclude_file: str | None,
                       include_file: str | None,
                       examine_whole_file: bool,
                       force_copy: bool) -> None:
-    if not os.path.isdir(user_data_location or ""):
+    if not user_data_location or not os.path.isdir(user_data_location):
         raise CommandLineError("The user folder does not exist: "
                                f"{user_data_location or 'None given'}")
 
