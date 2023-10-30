@@ -140,7 +140,7 @@ def compare_to_backup(user_directory: str,
             with os.scandir(backup_directory) as scan:
                 backup_files = {entry.name: entry.stat(follow_symlinks=False) for entry in scan}
         except OSError:
-            backup_files = {}
+            return [], [], file_names
 
         for file_name in file_names:
             try:
