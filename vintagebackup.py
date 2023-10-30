@@ -172,7 +172,7 @@ def include_walk(include_file_name: str | None,
     if not include_file_name:
         return
 
-    logger.info(f"Reading include file: {include_file_name}")
+    logger.info(f"Backing up locations from include file: {include_file_name} ...")
     with open(include_file_name) as include_file:
         for line in include_file:
             line = line.rstrip("\n")
@@ -308,6 +308,7 @@ def create_new_backup(user_data_location: str,
 
     action_counter: Counter[str] = Counter()
     exclusions = create_exclusion_list(exclude_file, user_data_location)
+    logger.info("Running backup ...")
     for current_user_path, user_dir_names, user_file_names in os.walk(user_data_location):
         backup_directory(user_data_location,
                          new_backup_path,
