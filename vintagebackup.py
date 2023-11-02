@@ -349,7 +349,11 @@ def recover_path(recovery_path: Path, backup_location: Path) -> None:
     number_column_size = len(str(len(backup_choices)))
     for choice, backup_copy in enumerate(backup_choices, 1):
         backup_date = backup_copy.relative_to(backup_location).parts[1]
-        print(f"{choice:>{number_column_size}}: {backup_date}")
+        path_type = ("File" if backup_copy.is_file()
+                     else "Symlink" if backup_copy.is_symlink()
+                     else "Folder" if backup_copy.is_dir()
+                     else "?")
+        print(f"{choice:>{number_column_size}}: {backup_date} ({path_type})")
 
     while True:
         try:
