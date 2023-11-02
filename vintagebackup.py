@@ -5,12 +5,12 @@ import platform
 import argparse
 import sys
 import logging
-import glob
 import filecmp
 import stat
 import itertools
 from collections import Counter
 from typing import Iterator
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler(sys.stdout))
@@ -33,12 +33,12 @@ def byte_units(size: float, prefixes: list[str] | None = None) -> str:
         return f"{size:.1f} {prefixes[0]}B"
 
 
-def last_directory(dir_name: str) -> str:
-    with os.scandir(dir_name) as scan:
-        return sorted(d.path for d in scan if d.is_dir())[-1]
+def last_directory(containing_directory: Path) -> Path:
+    with os.scandir(containing_directory) as scan:
+        return Path(sorted(d.path for d in scan if d.is_dir())[-1])
 
 
-def find_previous_backup(backup_location: str) -> str | None:
+def find_previous_backup(backup_location: Path) -> Path | None:
     try:
         last_year_dir = last_directory(backup_location)
         return last_directory(last_year_dir)
@@ -46,49 +46,58 @@ def find_previous_backup(backup_location: str) -> str | None:
         return None
 
 
-def create_exclusion_list(exclude_file: str | None, user_data_location: str) -> list[str]:
-    if not exclude_file:
-        return []
+def glob_file(glob_file_path: Path | None,
+              category: str,
+              user_data_location: Path) -> Iterator[tuple[int, str, Iterator[Path]]]:
+    if not glob_file_path:
+        return
 
-    logger.info(f"Reading exclude file: {exclude_file}")
-    exclusions: list[str] = []
-    with open(exclude_file) as exclude_list:
-        for line in exclude_list:
+    logger.info(f"Reading {category} file: {glob_file_path}")
+    with open(glob_file_path) as glob_file:
+        for line_number, line in enumerate(glob_file, 1):
             line = line.rstrip("\n")
-            path_list = glob.glob(os.path.join(user_data_location, line))
-            if path_list:
-                exclusions.extend(os.path.relpath(path, user_data_location) for path in path_list)
+            glob_path = Path(line)
+            if glob_path.is_absolute():
+                try:
+                    pattern = str(glob_path.relative_to(user_data_location))
+                except ValueError:
+                    logger.info(f"Ignoring {category} line #{line_number} outside of user folder:"
+                                f" {glob_path}")
+                    continue
             else:
-                logger.info(f"Ignoring exclude line: {line}")
+                pattern = str(glob_path)
 
+            yield line_number, line, user_data_location.glob(pattern)
+
+
+def create_exclusion_list(exclude_file: Path | None, user_data_location: Path) -> set[Path]:
+    exclusions: set[Path] = set()
+    for line_number, line, exclusion_set in glob_file(exclude_file, "exclude", user_data_location):
+        original_count = len(exclusions)
+        exclusions.update(exclusion_set)
+        if len(exclusions) == original_count:
+            logger.info(f"Nothing found for exclude line #{line_number}: {line}")
     return exclusions
 
 
-def filter_excluded_paths(base_dir: str,
-                          exclusions: list[str],
-                          current_dir: str,
+def filter_excluded_paths(exclusions: set[Path],
+                          current_dir: Path,
                           name_list: list[str]) -> list[str]:
-    def norm(path: str) -> str:
-        return os.path.normcase(os.path.normpath(path))
-
-    original_names = {os.path.normcase(name): name for name in name_list}
-    exclusion_set = set(norm(os.path.join(base_dir, path)) for path in exclusions)
-    current_set = set(norm(os.path.join(current_dir, name)) for name in name_list)
-    allowed_set = current_set - exclusion_set
-    return [original_names[os.path.basename(path)] for path in allowed_set]
+    current_set = set(current_dir / name for name in name_list)
+    return [path.name for path in current_set - exclusions]
 
 
-def get_user_location_record(backup_location: str) -> str:
-    return os.path.join(backup_location, "vintagebackup.source.txt")
+def get_user_location_record(backup_location: Path) -> Path:
+    return backup_location / "vintagebackup.source.txt"
 
 
-def record_user_location(user_location: str, backup_location: str) -> None:
+def record_user_location(user_location: Path, backup_location: Path) -> None:
     user_folder_record = get_user_location_record(backup_location)
     with open(user_folder_record, "w") as user_record:
-        user_record.write(user_location + "\n")
+        user_record.write(str(user_location) + "\n")
 
 
-def confirm_user_location_is_unchanged(user_data_location: str, backup_location: str) -> None:
+def confirm_user_location_is_unchanged(user_data_location: Path, backup_location: Path) -> None:
     user_folder_record = get_user_location_record(backup_location)
     try:
         with open(user_folder_record) as user_record:
@@ -101,31 +110,17 @@ def confirm_user_location_is_unchanged(user_data_location: str, backup_location:
         pass
 
 
-def path_contained_inside(query_path: str, containing_path: str) -> bool:
-    def canonical_path(path: str) -> str:
-        return os.path.normcase(os.path.normpath(os.path.abspath(path)))
-
-    try:
-        container_canon = canonical_path(containing_path)
-        query_canon = canonical_path(query_path)
-        commonality = os.path.commonpath([query_canon, container_canon])
-        return os.path.samefile(commonality, container_canon)
-    except ValueError:
-        # query_path and possible_container are on different drives
-        return False
-
-
 def shallow_stats(stats: os.stat_result) -> tuple[int, int, int]:
     return (stats.st_size, stat.S_IFMT(stats.st_mode), stats.st_mtime_ns)
 
 
-def get_stat_info(directory: str, file_name: str) -> tuple[int, int, int]:
-    stats = os.stat(os.path.join(directory, file_name), follow_symlinks=False)
+def get_stat_info(path: Path) -> tuple[int, int, int]:
+    stats = os.stat(path, follow_symlinks=False)
     return shallow_stats(stats)
 
 
-def compare_to_backup(user_directory: str,
-                      backup_directory: str | None,
+def compare_to_backup(user_directory: Path,
+                      backup_directory: Path | None,
                       file_names: list[str],
                       examine_whole_file: bool) -> tuple[list[str], list[str], list[str]]:
     if not backup_directory:
@@ -144,7 +139,7 @@ def compare_to_backup(user_directory: str,
         errors: list[str] = []
         for file_name in file_names:
             try:
-                user_file_stats = get_stat_info(user_directory, file_name)
+                user_file_stats = get_stat_info(user_directory / file_name)
                 backup_file_stats = shallow_stats(backup_files[file_name])
                 if user_file_stats == backup_file_stats:
                     matches.append(file_name)
@@ -156,7 +151,7 @@ def compare_to_backup(user_directory: str,
         return matches, mismatches, errors
 
 
-def create_hard_link(previous_backup: str, new_backup: str) -> bool:
+def create_hard_link(previous_backup: Path, new_backup: Path) -> bool:
     try:
         os.link(previous_backup, new_backup, follow_symlinks=False)
         return True
@@ -167,60 +162,44 @@ def create_hard_link(previous_backup: str, new_backup: str) -> bool:
         return False
 
 
-def include_walk(include_file_name: str | None,
-                 user_directory: str) -> Iterator[tuple[str, list[str], list[str]]]:
-    if not include_file_name:
-        return
-
-    logger.info(f"Backing up locations from include file: {include_file_name} ...")
-    with open(include_file_name) as include_file:
-        for line in include_file:
-            line = line.rstrip("\n")
-            path_entries = glob.glob(os.path.join(user_directory, line))
-            if not path_entries:
-                logger.info(f"No files or directories found for include line: {line}")
-                continue
-
-            for path in path_entries:
-                if not path_contained_inside(path, user_directory):
-                    logger.warning(f"Skipping include path outside of backup directory: {path}")
-                    continue
-
-                if not os.path.islink(path) and os.path.isdir(path):
-                    yield from os.walk(path)
-                elif os.path.lexists(path):
-                    yield os.path.dirname(path), [], [os.path.basename(path)]
-                else:
-                    logger.info(f"Skipping non-existant include line: {path}")
+def include_walk(include_file_name: Path | None,
+                 user_directory: Path) -> Iterator[tuple[str, list[str], list[str]]]:
+    for line_number, line, inclusions in glob_file(include_file_name, "include", user_directory):
+        found_paths = False
+        for path in inclusions:
+            found_paths = True
+            if not os.path.islink(path) and os.path.isdir(path):
+                yield from os.walk(path)
+            else:
+                yield str(path.parent), [], [path.name]
+        if not found_paths:
+            logger.info(f"Nothing found for include line #{line_number}: {line}")
 
 
-def backup_directory(user_data_location: str,
-                     new_backup_path: str,
-                     last_backup_path: str | None,
-                     current_user_path: str,
+def backup_directory(user_data_location: Path,
+                     new_backup_path: Path,
+                     last_backup_path: Path | None,
+                     current_user_path: Path,
                      user_dir_names: list[str],
                      user_file_names: list[str],
-                     exclusions: list[str],
+                     exclusions: set[Path],
                      examine_whole_file: bool,
                      action_counter: Counter[str],
                      is_include_backup: bool):
-    user_file_names[:] = filter_excluded_paths(user_data_location,
-                                               exclusions,
+    user_file_names[:] = filter_excluded_paths(exclusions,
                                                current_user_path,
                                                user_file_names)
-    user_dir_names[:] = filter_excluded_paths(user_data_location,
-                                              exclusions,
+    user_dir_names[:] = filter_excluded_paths(exclusions,
                                               current_user_path,
                                               user_dir_names)
 
-    relative_path = os.path.relpath(current_user_path, user_data_location)
-    new_backup_directory = os.path.join(new_backup_path, relative_path)
+    relative_path = current_user_path.relative_to(user_data_location)
+    new_backup_directory = new_backup_path / relative_path
     os.makedirs(new_backup_directory, exist_ok=is_include_backup)
     global new_backup_directory_created
     new_backup_directory_created = True
 
-    previous_backup_directory = (os.path.join(last_backup_path, relative_path)
-                                 if last_backup_path else None)
+    previous_backup_directory = last_backup_path / relative_path if last_backup_path else None
 
     matching, mismatching, errors = compare_to_backup(current_user_path,
                                                       previous_backup_directory,
@@ -229,11 +208,10 @@ def backup_directory(user_data_location: str,
 
     for file_name in matching:
         assert previous_backup_directory
-        previous_backup = os.path.join(previous_backup_directory, file_name)
-        new_backup = os.path.join(new_backup_directory, file_name)
+        previous_backup = previous_backup_directory / file_name
+        new_backup = new_backup_directory / file_name
         if os.path.lexists(new_backup):
-            logger.debug("Skipping include file that is already backed up: "
-                         + os.path.join(current_user_path, file_name))
+            logger.debug(f"Skipping backed up include file: {current_user_path / file_name}")
             continue
 
         if create_hard_link(previous_backup, new_backup):
@@ -243,8 +221,8 @@ def backup_directory(user_data_location: str,
             errors.append(file_name)
 
     for file_name in itertools.chain(mismatching, errors):
-        new_backup_file = os.path.join(new_backup_directory, file_name)
-        user_file = os.path.join(current_user_path, file_name)
+        new_backup_file = new_backup_directory / file_name
+        user_file = current_user_path / file_name
         try:
             shutil.copy2(user_file, new_backup_file, follow_symlinks=False)
             action_counter["copied files"] += 1
@@ -254,23 +232,22 @@ def backup_directory(user_data_location: str,
             action_counter["failed copies"] += 1
 
 
-def create_new_backup(user_data_location: str | None,
-                      backup_location: str | None,
-                      exclude_file: str | None,
-                      include_file: str | None,
+def create_new_backup(user_data_location: Path,
+                      backup_location: Path,
+                      exclude_file: Path | None,
+                      include_file: Path | None,
                       examine_whole_file: bool,
                       force_copy: bool) -> None:
-    if not user_data_location or not os.path.isdir(user_data_location):
-        raise CommandLineError("The user folder does not exist: "
-                               f"{user_data_location or 'None given'}")
+    if not os.path.isdir(user_data_location):
+        raise CommandLineError(f"The user folder path is not a folder: {user_data_location}")
 
     if not backup_location:
         raise CommandLineError("No backup destination was given.")
 
-    if path_contained_inside(backup_location, user_data_location):
-        raise CommandLineError("Backup destination cannot be inside user's folder:\n"
-                               f"User data      : {user_data_location}\n"
-                               f"Backup location: {backup_location}")
+    if backup_location.is_relative_to(user_data_location):
+        raise CommandLineError("Backup destination cannot be inside user's folder:"
+                               f" User data: {user_data_location}"
+                               f"; Backup location: {backup_location}")
 
     if exclude_file and not os.path.isfile(exclude_file):
         raise CommandLineError(f"Exclude file not found: {exclude_file}")
@@ -283,7 +260,7 @@ def create_new_backup(user_data_location: str | None,
     now = datetime.datetime.now()
     backup_date = now.strftime("%Y-%m-%d %H-%M-%S")
     os_name = f"{platform.system()} {platform.release()}".strip()
-    new_backup_path = os.path.join(backup_location, str(now.year), f"{backup_date} ({os_name})")
+    new_backup_path = backup_location / str(now.year) / f"{backup_date} ({os_name})"
 
     logger.info("")
     logger.info("=====================")
@@ -294,12 +271,12 @@ def create_new_backup(user_data_location: str | None,
     confirm_user_location_is_unchanged(user_data_location, backup_location)
     record_user_location(user_data_location, backup_location)
 
-    logger.info(f"User's data     : {os.path.abspath(user_data_location)}")
-    logger.info(f"Backup location : {os.path.abspath(new_backup_path)}")
+    logger.info(f"User's data     : {user_data_location}")
+    logger.info(f"Backup location : {new_backup_path}")
 
     last_backup_path = None if force_copy else find_previous_backup(backup_location)
     if last_backup_path:
-        logger.info(f"Previous backup : {os.path.abspath(last_backup_path)}")
+        logger.info(f"Previous backup : {last_backup_path}")
     else:
         logger.info("No previous backups. Copying everything ...")
 
@@ -313,7 +290,7 @@ def create_new_backup(user_data_location: str | None,
         backup_directory(user_data_location,
                          new_backup_path,
                          last_backup_path,
-                         current_user_path,
+                         Path(current_user_path),
                          user_dir_names,
                          user_file_names,
                          exclusions,
@@ -325,10 +302,10 @@ def create_new_backup(user_data_location: str | None,
         backup_directory(user_data_location,
                          new_backup_path,
                          last_backup_path,
-                         include_path,
+                         Path(include_path),
                          [],
                          include_file_list,
-                         [],
+                         set(),
                          examine_whole_file,
                          action_counter,
                          True)
@@ -350,37 +327,36 @@ def setup_log_file(logger: logging.Logger, log_file_path: str) -> None:
     logger.addHandler(log_file)
 
 
-def recover_file(recovery_file_name: str, backup_location: str) -> None:
+def recover_file(recovery_path: Path, backup_location: Path) -> None:
     try:
         with open(get_user_location_record(backup_location)) as location_file:
-            user_data_location = location_file.readline().rstrip("\n")
+            user_data_location = Path(location_file.readline().rstrip("\n")).resolve(strict=True)
     except FileNotFoundError:
         raise CommandLineError(f"No backups found at {backup_location}")
 
-    recovery_path = os.path.abspath(recovery_file_name)
-    recovery_relative_path = os.path.relpath(recovery_path, user_data_location)
-    if recovery_relative_path.startswith(".."):
+    if not recovery_path.is_relative_to(user_data_location):
         raise CommandLineError(f"{recovery_path} is not contained in the backup set "
                                f"{backup_location}, which contains {user_data_location}.")
 
-    unique_backups = {}
-    for path in sorted(glob.glob(os.path.join(backup_location, "*", "*", recovery_relative_path))):
+    unique_backups: dict[int, Path] = {}
+    recovery_relative_path = recovery_path.relative_to(user_data_location)
+    glob_pattern = str(Path("*") / "*" / recovery_relative_path)
+    for path in sorted(backup_location.glob(glob_pattern)):
         inode = os.stat(path).st_ino
-        if inode not in unique_backups:
-            unique_backups[inode] = path[:-len(recovery_relative_path)]
+        unique_backups.setdefault(inode, path)
 
-    number_column_size = len(str(len(unique_backups)))
-    for choice, backup_copy in enumerate(unique_backups.values(), 1):
-        print(f"{choice:>{number_column_size}}: {os.path.relpath(backup_copy, backup_location)}")
+    backup_choices = sorted(unique_backups.values())
+    number_column_size = len(str(len(backup_choices)))
+    for choice, backup_copy in enumerate(backup_choices, 1):
+        backup_date = backup_copy.relative_to(backup_location).parts[1]
+        print(f"{choice:>{number_column_size}}: {backup_date}")
 
     while True:
         try:
             user_choice = int(input("Version to recover (Ctrl-C to quit): "))
             if user_choice < 1:
                 continue
-            chosen_file = os.path.join(backup_location,
-                                       unique_backups[user_choice - 1],
-                                       recovery_relative_path)
+            chosen_file = backup_choices[user_choice - 1]
             break
         except (ValueError, IndexError):
             pass
@@ -389,14 +365,14 @@ def recover_file(recovery_file_name: str, backup_location: str) -> None:
     unique_id = 0
     while os.path.lexists(recovered_path):
         unique_id += 1
-        root, ext = os.path.splitext(recovery_path)
-        recovered_path = f"{root}.{unique_id}{ext}"
+        new_file_name = f"{recovery_path.stem}.{unique_id}{recovery_path.suffix}"
+        recovered_path = recovery_path.parent / new_file_name
 
     logger.info(f"Copying {chosen_file} to {recovered_path}")
     shutil.copy2(chosen_file, recovered_path)
 
 
-def delete_last_backup(backup_location: str) -> None:
+def delete_last_backup(backup_location: Path) -> None:
     last_backup_directory = find_previous_backup(backup_location)
     if last_backup_directory:
         logger.info(f"Deleting failed backup: {last_backup_directory}")
@@ -493,11 +469,11 @@ backup.""")
     user_input.add_argument("--debug", action="store_true", help="""
 Log information on all action of a backup.""")
 
-    default_log_file_name = os.path.join(os.path.expanduser("~"), "vintagebackup.log")
+    default_log_file_name = Path.home() / "vintagebackup.log"
     user_input.add_argument("-l", "--log", default=default_log_file_name, help=f"""
 Where to log the activity of this program. A file of the same
 name will be written to the backup folder. The default is
-{os.path.basename(default_log_file_name)} in the user's home folder.""")
+{default_log_file_name.name} in the user's home folder.""")
 
     args = user_input.parse_args(args=None if sys.argv[1:] else ["--help"])
     if args.help:
@@ -515,15 +491,33 @@ name will be written to the backup folder. The default is
         logger.debug(args)
 
         if args.recover:
+            if not args.backup_folder:
+                raise CommandLineError("Backup folder needed to recover file.")
+
+            try:
+                backup_folder = Path(args.backup_folder).absolute()
+            except FileNotFoundError:
+                raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
+
             action = "recovery"
-            recover_file(args.recover, args.backup_folder)
+            recover_file(Path(args.recover).absolute(), backup_folder)
         else:
+            def path_or_none(arg: str) -> Path | None:
+                return Path(arg).absolute() if arg else None
+
+            try:
+                user_folder = Path(args.user_folder).resolve(strict=True)
+            except FileNotFoundError:
+                raise CommandLineError(f"Could not find users folder: {args.user_folder}")
+
+            backup_folder = Path(args.backup_folder).absolute()
+
             action = "backup"
             delete_last_backup_on_error = args.delete_on_error
-            create_new_backup(args.user_folder,
-                              args.backup_folder,
-                              args.exclude,
-                              args.include,
+            create_new_backup(user_folder,
+                              backup_folder,
+                              path_or_none(args.exclude),
+                              path_or_none(args.include),
                               args.whole_file,
                               args.force_copy)
         logger.info("")
