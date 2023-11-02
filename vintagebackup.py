@@ -46,21 +46,37 @@ def find_previous_backup(backup_location: Path) -> Path | None:
         return None
 
 
-def create_exclusion_list(exclude_file: Path | None, user_data_location: Path) -> set[Path]:
-    if not exclude_file:
-        return set()
+def glob_file(glob_file_path: Path | None,
+              category: str,
+              user_data_location: Path) -> Iterator[tuple[int, str, Iterator[Path]]]:
+    if not glob_file_path:
+        return
 
-    logger.info(f"Reading exclude file: {exclude_file}")
-    exclusions: set[Path] = set()
-    with open(exclude_file) as exclude_list:
-        for line in exclude_list:
+    logger.info(f"Reading {category} file: {glob_file_path}")
+    with open(glob_file_path) as glob_file:
+        for line_number, line in enumerate(glob_file, 1):
             line = line.rstrip("\n")
-            path_list = user_data_location.glob(line)
-            original_count = len(exclusions)
-            exclusions.update(path_list)
-            if len(exclusions) == original_count:
-                logger.info(f"Ignoring exclude line: {line}")
+            glob_path = Path(line)
+            if glob_path.is_absolute():
+                try:
+                    pattern = str(glob_path.relative_to(user_data_location))
+                except ValueError:
+                    logger.info(f"Ignoring {category} line #{line_number} outside of user folder:"
+                                f" {glob_path}")
+                    continue
+            else:
+                pattern = str(glob_path)
 
+            yield line_number, line, user_data_location.glob(pattern)
+
+
+def create_exclusion_list(exclude_file: Path | None, user_data_location: Path) -> set[Path]:
+    exclusions: set[Path] = set()
+    for line_number, line, exclusion_set in glob_file(exclude_file, "exclude", user_data_location):
+        original_count = len(exclusions)
+        exclusions.update(exclusion_set)
+        if len(exclusions) == original_count:
+            logger.info(f"Nothing found for exclude line #{line_number}: {line}")
     return exclusions
 
 
@@ -148,29 +164,16 @@ def create_hard_link(previous_backup: Path, new_backup: Path) -> bool:
 
 def include_walk(include_file_name: Path | None,
                  user_directory: Path) -> Iterator[tuple[str, list[str], list[str]]]:
-    if not include_file_name:
-        return
-
-    logger.info(f"Backing up locations from include file: {include_file_name} ...")
-    with open(include_file_name) as include_file:
-        for line in include_file:
-            line = line.rstrip("\n")
-            path_entries = user_directory.glob(line)
-            if not path_entries:
-                logger.info(f"No files or directories found for include line: {line}")
-                continue
-
-            for path in path_entries:
-                if not path.is_relative_to(user_directory):
-                    logger.warning(f"Skipping include path outside of backup directory: {path}")
-                    continue
-
-                if not os.path.islink(path) and os.path.isdir(path):
-                    yield from os.walk(path)
-                elif os.path.lexists(path):
-                    yield str(path.parent), [], [path.name]
-                else:
-                    logger.info(f"Skipping non-existant include line: {path}")
+    for line_number, line, inclusions in glob_file(include_file_name, "include", user_directory):
+        found_paths = False
+        for path in inclusions:
+            found_paths = True
+            if not os.path.islink(path) and os.path.isdir(path):
+                yield from os.walk(path)
+            else:
+                yield str(path.parent), [], [path.name]
+        if not found_paths:
+            logger.info(f"Nothing found for include line #{line_number}: {line}")
 
 
 def backup_directory(user_data_location: Path,
