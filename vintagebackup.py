@@ -27,7 +27,7 @@ def byte_units(size: float, prefixes: list[str] | None = None) -> str:
     if not prefixes:
         prefixes = ["", "k", "M", "G", "T", "P", "E", "Z", "Y", "R", "Q"]
 
-    if size >= 1000 and len(prefixes) > 1:
+    if size >= 10_000 and len(prefixes) > 1:
         return byte_units(size / 1000, prefixes[1:])
     else:
         return f"{size:.1f} {prefixes[0]}B"
