@@ -25,7 +25,7 @@ class CommandLineError(ValueError):
 
 def byte_units(size: float, prefixes: list[str] | None = None) -> str:
     if not prefixes:
-        prefixes = ["", "k", "M", "G"]
+        prefixes = ["", "k", "M", "G", "T", "P", "E", "Z", "Y", "R", "Q"]
 
     if size >= 1000 and len(prefixes) > 1:
         return byte_units(size / 1000, prefixes[1:])
