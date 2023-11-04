@@ -114,11 +114,6 @@ def shallow_stats(stats: os.stat_result) -> tuple[int, int, int]:
     return (stats.st_size, stat.S_IFMT(stats.st_mode), stats.st_mtime_ns)
 
 
-def get_stat_info(path: Path) -> tuple[int, int, int]:
-    stats = os.stat(path, follow_symlinks=False)
-    return shallow_stats(stats)
-
-
 def compare_to_backup(user_directory: Path,
                       backup_directory: Path | None,
                       file_names: list[str],
@@ -137,9 +132,11 @@ def compare_to_backup(user_directory: Path,
         matches: list[str] = []
         mismatches: list[str] = []
         errors: list[str] = []
+        with os.scandir(user_directory) as scan:
+            user_files = {entry.name: entry.stat(follow_symlinks=False) for entry in scan}
         for file_name in file_names:
             try:
-                user_file_stats = get_stat_info(user_directory / file_name)
+                user_file_stats = shallow_stats(user_files[file_name])
                 backup_file_stats = shallow_stats(backup_files[file_name])
                 if user_file_stats == backup_file_stats:
                     matches.append(file_name)
