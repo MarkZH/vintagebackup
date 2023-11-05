@@ -324,7 +324,7 @@ def setup_log_file(logger: logging.Logger, log_file_path: str) -> None:
     logger.addHandler(log_file)
 
 
-def recover_file(recovery_path: Path, backup_location: Path) -> None:
+def recover_path(recovery_path: Path, backup_location: Path) -> None:
     try:
         with open(get_user_location_record(backup_location)) as location_file:
             user_data_location = Path(location_file.readline().rstrip("\n")).resolve(strict=True)
@@ -346,14 +346,18 @@ def recover_file(recovery_path: Path, backup_location: Path) -> None:
     number_column_size = len(str(len(backup_choices)))
     for choice, backup_copy in enumerate(backup_choices, 1):
         backup_date = backup_copy.relative_to(backup_location).parts[1]
-        print(f"{choice:>{number_column_size}}: {backup_date}")
+        path_type = ("Symlink" if backup_copy.is_symlink()
+                     else "File" if backup_copy.is_file()
+                     else "Folder" if backup_copy.is_dir()
+                     else "?")
+        print(f"{choice:>{number_column_size}}: {backup_date} ({path_type})")
 
     while True:
         try:
             user_choice = int(input("Version to recover (Ctrl-C to quit): "))
             if user_choice < 1:
                 continue
-            chosen_file = backup_choices[user_choice - 1]
+            chosen_path = backup_choices[user_choice - 1]
             break
         except (ValueError, IndexError):
             pass
@@ -365,8 +369,11 @@ def recover_file(recovery_path: Path, backup_location: Path) -> None:
         new_file_name = f"{recovery_path.stem}.{unique_id}{recovery_path.suffix}"
         recovered_path = recovery_path.parent / new_file_name
 
-    logger.info(f"Copying {chosen_file} to {recovered_path}")
-    shutil.copy2(chosen_file, recovered_path)
+    logger.info(f"Copying {chosen_path} to {recovered_path}")
+    if chosen_path.is_symlink() or chosen_path.is_file():
+        shutil.copy2(chosen_path, recovered_path, follow_symlinks=False)
+    else:
+        shutil.copytree(chosen_path, recovered_path, symlinks=True)
 
 
 def delete_last_backup(backup_location: Path) -> None:
@@ -451,10 +458,12 @@ not being copied or linked (e.g., for lack of permission) are
 not errors, and will only be noted in the log.""")
 
     user_input.add_argument("-r", "--recover", help="""
-Recover a file from the backup. The user will be able to pick
-which version of the file to recover by choosing from dates
-where the backup has a new copy the file due to the file being
-modified. This option requires the -b option to specify which
+Recover a file or folder from the backup. The user will be able
+to pick which version to recover by choosing the backup date as
+the source. If a file is being recovered, only backup dates where
+the file was modified will be presented. If a folder is being
+recovered, then all available backup dates will be options.
+This option requires the -b option to specify which
 backup location to search.""")
 
     user_input.add_argument("--force-copy", action="store_true", help="""
@@ -497,7 +506,7 @@ name will be written to the backup folder. The default is
                 raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
 
             action = "recovery"
-            recover_file(Path(args.recover).absolute(), backup_folder)
+            recover_path(Path(args.recover).absolute(), backup_folder)
         else:
             def path_or_none(arg: str) -> Path | None:
                 return Path(arg).absolute() if arg else None
