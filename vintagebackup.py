@@ -110,11 +110,15 @@ def record_user_location(user_location: Path, backup_location: Path) -> None:
         user_record.write(str(user_location) + "\n")
 
 
-def confirm_user_location_is_unchanged(user_data_location: Path, backup_location: Path) -> None:
+def backup_source(backup_location: Path) -> Path:
     user_folder_record = get_user_location_record(backup_location)
+    with open(user_folder_record) as user_record:
+        return Path(user_record.read().rstrip("\n"))
+
+
+def confirm_user_location_is_unchanged(user_data_location: Path, backup_location: Path) -> None:
     try:
-        with open(user_folder_record) as user_record:
-            recorded_user_folder = user_record.read().rstrip("\n")
+        recorded_user_folder = backup_source(backup_location)
         if not os.path.samefile(recorded_user_folder, user_data_location):
             raise RuntimeError("Previous backup stored a different user folder."
                                f" Previously: {recorded_user_folder}; Now: {user_data_location}")
