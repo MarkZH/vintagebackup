@@ -8,6 +8,7 @@ import logging
 import filecmp
 import stat
 import itertools
+import re
 from collections import Counter
 from typing import Iterator
 from pathlib import Path
@@ -33,15 +34,27 @@ def byte_units(size: float, prefixes: list[str] | None = None) -> str:
         return f"{size:.1f} {prefixes[0]}B"
 
 
-def last_directory(containing_directory: Path) -> Path:
-    with os.scandir(containing_directory) as scan:
-        return Path(sorted(d.path for d in scan if d.is_dir())[-1])
+def all_backups(backup_location: Path) -> list[Path]:
+    year_pattern = re.compile(r"\d\d\d\d")
+    backup_pattern = re.compile(r"\d\d\d\d-\d\d-\d\d \d\d-\d\d-\d\d (.*)")
+
+    def is_valid_directory(dir: os.DirEntry, pattern: re.Pattern) -> bool:
+        return not dir.is_symlink() and dir.is_dir() and bool(pattern.fullmatch(dir.name))
+
+    all_backup_list: list[Path] = []
+    with os.scandir(backup_location) as year_scan:
+        for year in (y for y in year_scan if is_valid_directory(y, year_pattern)):
+            with os.scandir(year) as dated_backup_scan:
+                all_backup_list.extend(Path(dated_backup)
+                                       for dated_backup in dated_backup_scan
+                                       if is_valid_directory(dated_backup, backup_pattern))
+
+    return sorted(all_backup_list)
 
 
 def find_previous_backup(backup_location: Path) -> Path | None:
     try:
-        last_year_dir = last_directory(backup_location)
-        return last_directory(last_year_dir)
+        return all_backups(backup_location)[-1]
     except IndexError:
         return None
 
@@ -337,8 +350,8 @@ def recover_path(recovery_path: Path, backup_location: Path) -> None:
 
     unique_backups: dict[int, Path] = {}
     recovery_relative_path = recovery_path.relative_to(user_data_location)
-    glob_pattern = str(Path("*") / "*" / recovery_relative_path)
-    for path in sorted(backup_location.glob(glob_pattern)):
+    for backup in all_backups(backup_location):
+        path = backup / recovery_relative_path
         inode = os.stat(path).st_ino
         unique_backups.setdefault(inode, path)
 
