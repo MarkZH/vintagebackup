@@ -518,7 +518,7 @@ name will be written to the backup folder. The default is
                 raise CommandLineError("Backup folder needed to recover file.")
 
             try:
-                backup_folder = Path(args.backup_folder).absolute()
+                backup_folder = Path(args.backup_folder).resolve(strict=True)
             except FileNotFoundError:
                 raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
 
