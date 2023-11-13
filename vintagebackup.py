@@ -8,6 +8,7 @@ import logging
 import filecmp
 import stat
 import itertools
+import re
 from collections import Counter
 from typing import Iterator
 from pathlib import Path
@@ -33,15 +34,27 @@ def byte_units(size: float, prefixes: list[str] | None = None) -> str:
         return f"{size:.1f} {prefixes[0]}B"
 
 
-def last_directory(containing_directory: Path) -> Path:
-    with os.scandir(containing_directory) as scan:
-        return Path(sorted(d.path for d in scan if d.is_dir())[-1])
+def all_backups(backup_location: Path) -> list[Path]:
+    year_pattern = re.compile(r"\d\d\d\d")
+    backup_pattern = re.compile(r"\d\d\d\d-\d\d-\d\d \d\d-\d\d-\d\d (.*)")
+
+    def is_valid_directory(dir: os.DirEntry, pattern: re.Pattern) -> bool:
+        return not dir.is_symlink() and dir.is_dir() and bool(pattern.fullmatch(dir.name))
+
+    all_backup_list: list[Path] = []
+    with os.scandir(backup_location) as year_scan:
+        for year in (y for y in year_scan if is_valid_directory(y, year_pattern)):
+            with os.scandir(year) as dated_backup_scan:
+                all_backup_list.extend(Path(dated_backup)
+                                       for dated_backup in dated_backup_scan
+                                       if is_valid_directory(dated_backup, backup_pattern))
+
+    return sorted(all_backup_list)
 
 
 def find_previous_backup(backup_location: Path) -> Path | None:
     try:
-        last_year_dir = last_directory(backup_location)
-        return last_directory(last_year_dir)
+        return all_backups(backup_location)[-1]
     except IndexError:
         return None
 
@@ -97,11 +110,15 @@ def record_user_location(user_location: Path, backup_location: Path) -> None:
         user_record.write(str(user_location) + "\n")
 
 
-def confirm_user_location_is_unchanged(user_data_location: Path, backup_location: Path) -> None:
+def backup_source(backup_location: Path) -> Path:
     user_folder_record = get_user_location_record(backup_location)
+    with open(user_folder_record) as user_record:
+        return Path(user_record.read().rstrip("\n"))
+
+
+def confirm_user_location_is_unchanged(user_data_location: Path, backup_location: Path) -> None:
     try:
-        with open(user_folder_record) as user_record:
-            recorded_user_folder = user_record.read().rstrip("\n")
+        recorded_user_folder = backup_source(backup_location)
         if not os.path.samefile(recorded_user_folder, user_data_location):
             raise RuntimeError("Previous backup stored a different user folder."
                                f" Previously: {recorded_user_folder}; Now: {user_data_location}")
@@ -324,6 +341,49 @@ def setup_log_file(logger: logging.Logger, log_file_path: str) -> None:
     logger.addHandler(log_file)
 
 
+def search_backups(search_directory: Path, backup_folder: Path) -> Path:
+    if search_directory.is_symlink() or not search_directory.is_dir():
+        raise CommandLineError(f"The given search path is not a directory: {search_directory}")
+    try:
+        user_data_location = backup_source(backup_folder)
+    except FileNotFoundError:
+        raise CommandLineError(f"There are no backups in {backup_folder}")
+
+    try:
+        target_relative_path = search_directory.relative_to(search_directory)
+    except ValueError:
+        raise CommandLineError(f"The path {search_directory} is not in the backup at"
+                               f" {backup_folder}, which contains {user_data_location}")
+
+    all_paths: set[tuple[str, str]] = set()
+    for backup in all_backups(backup_folder):
+        backup_search_directory = backup / target_relative_path
+        try:
+            with os.scandir(backup_search_directory) as backup_scan:
+                for item in backup_scan:
+                    path_type = ("Symlink" if item.is_symlink()
+                                 else "File" if item.is_file()
+                                 else "Folder" if item.is_dir()
+                                 else "?")
+                    all_paths.add((item.name, path_type))
+        except FileNotFoundError:
+            continue
+
+    menu_list = sorted(all_paths)
+    number_column_size = len(str(len(menu_list)))
+    for index, (name, path_type) in enumerate(menu_list, 1):
+        print(f"{index:>{number_column_size}}: {name} ({path_type})")
+
+    while True:
+        try:
+            user_choice = int(input("Which path to recover (Ctrl-C to quit): "))
+            if user_choice >= 1:
+                recovery_target_name = menu_list[user_choice - 1][0]
+                return search_directory / recovery_target_name
+        except (ValueError, IndexError):
+            continue
+
+
 def recover_path(recovery_path: Path, backup_location: Path) -> None:
     try:
         with open(get_user_location_record(backup_location)) as location_file:
@@ -337,8 +397,8 @@ def recover_path(recovery_path: Path, backup_location: Path) -> None:
 
     unique_backups: dict[int, Path] = {}
     recovery_relative_path = recovery_path.relative_to(user_data_location)
-    glob_pattern = str(Path("*") / "*" / recovery_relative_path)
-    for path in sorted(backup_location.glob(glob_pattern)):
+    for backup in all_backups(backup_location):
+        path = backup / recovery_relative_path
         inode = os.stat(path).st_ino
         unique_backups.setdefault(inode, path)
 
@@ -466,6 +526,13 @@ recovered, then all available backup dates will be options.
 This option requires the -b option to specify which
 backup location to search.""")
 
+    user_input.add_argument("--list", default=argparse.SUPPRESS,
+                            metavar="DIRECTORY", help="""
+Recover a file or folder in the directory specified by the argument
+by first choosing what to recover from a list of everything that's
+ever been backed up. If no argument is given, the current directory
+is used. The backup location argument (-b) is required.""")
+
     user_input.add_argument("--force-copy", action="store_true", help="""
 Copy all files instead of linking to files previous backups. The
 new backup will contain new copies of all of the user's files,
@@ -501,12 +568,21 @@ name will be written to the backup folder. The default is
                 raise CommandLineError("Backup folder needed to recover file.")
 
             try:
-                backup_folder = Path(args.backup_folder).absolute()
+                backup_folder = Path(args.backup_folder).resolve(strict=True)
             except FileNotFoundError:
                 raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
 
             action = "recovery"
             recover_path(Path(args.recover).absolute(), backup_folder)
+        elif "list" in args:
+            try:
+                backup_folder = Path(args.backup_folder).resolve(strict=True)
+            except FileNotFoundError:
+                raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
+            search_directory = Path(args.list).resolve() if args.list else Path().resolve()
+            print(search_directory)
+            chosen_recovery_path = search_backups(search_directory, backup_folder)
+            recover_path(chosen_recovery_path, backup_folder)
         else:
             def path_or_none(arg: str) -> Path | None:
                 return Path(arg).absolute() if arg else None
