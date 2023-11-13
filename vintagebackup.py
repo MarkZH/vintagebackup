@@ -341,6 +341,49 @@ def setup_log_file(logger: logging.Logger, log_file_path: str) -> None:
     logger.addHandler(log_file)
 
 
+def search_backups(search_directory: Path, backup_folder: Path) -> Path:
+    if search_directory.is_symlink() or not search_directory.is_dir():
+        raise CommandLineError(f"The given search path is not a directory: {search_directory}")
+    try:
+        user_data_location = backup_source(backup_folder)
+    except FileNotFoundError:
+        raise CommandLineError(f"There are no backups in {backup_folder}")
+
+    try:
+        target_relative_path = search_directory.relative_to(search_directory)
+    except ValueError:
+        raise CommandLineError(f"The path {search_directory} is not in the backup at"
+                               f" {backup_folder}, which contains {user_data_location}")
+
+    all_paths: set[tuple[str, str]] = set()
+    for backup in all_backups(backup_folder):
+        backup_search_directory = backup / target_relative_path
+        try:
+            with os.scandir(backup_search_directory) as backup_scan:
+                for item in backup_scan:
+                    path_type = ("Symlink" if item.is_symlink()
+                                 else "File" if item.is_file()
+                                 else "Folder" if item.is_dir()
+                                 else "?")
+                    all_paths.add((item.name, path_type))
+        except FileNotFoundError:
+            continue
+
+    menu_list = sorted(all_paths)
+    number_column_size = len(str(len(menu_list)))
+    for index, (name, path_type) in enumerate(menu_list, 1):
+        print(f"{index:>{number_column_size}}: {name} ({path_type})")
+
+    while True:
+        try:
+            user_choice = int(input("Which path to recover (Ctrl-C to quit): "))
+            if user_choice >= 1:
+                recovery_target_name = menu_list[user_choice - 1][0]
+                return search_directory / recovery_target_name
+        except (ValueError, IndexError):
+            continue
+
+
 def recover_path(recovery_path: Path, backup_location: Path) -> None:
     try:
         with open(get_user_location_record(backup_location)) as location_file:
@@ -483,6 +526,13 @@ recovered, then all available backup dates will be options.
 This option requires the -b option to specify which
 backup location to search.""")
 
+    user_input.add_argument("--list", default=argparse.SUPPRESS,
+                            metavar="DIRECTORY", help="""
+Recover a file or folder in the directory specified by the argument
+by first choosing what to recover from a list of everything that's
+ever been backed up. If no argument is given, the current directory
+is used. The backup location argument (-b) is required.""")
+
     user_input.add_argument("--force-copy", action="store_true", help="""
 Copy all files instead of linking to files previous backups. The
 new backup will contain new copies of all of the user's files,
@@ -524,6 +574,15 @@ name will be written to the backup folder. The default is
 
             action = "recovery"
             recover_path(Path(args.recover).absolute(), backup_folder)
+        elif "list" in args:
+            try:
+                backup_folder = Path(args.backup_folder).resolve(strict=True)
+            except FileNotFoundError:
+                raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
+            search_directory = Path(args.list).resolve() if args.list else Path().resolve()
+            print(search_directory)
+            chosen_recovery_path = search_backups(search_directory, backup_folder)
+            recover_path(chosen_recovery_path, backup_folder)
         else:
             def path_or_none(arg: str) -> Path | None:
                 return Path(arg).absolute() if arg else None
