@@ -458,6 +458,8 @@ def delete_oldest_backups_until(backup_location: Path, space_requirement: str) -
         raise CommandLineError(f"Incorrect format of free-up space: {space_text}")
     if space_text.endswith("%"):
         free_fraction_required = float(space_text[:-1]) / 100
+        if free_fraction_required > 1:
+            raise CommandLineError(f"Percent cannot be greater than 100: {space_text}")
         free_storage_required = total_storage * free_fraction_required
     else:
         space_text = space_text.rstrip('b')
@@ -474,25 +476,30 @@ def delete_oldest_backups_until(backup_location: Path, space_requirement: str) -
         raise CommandLineError(f"Cannot free more storage ({byte_units(free_storage_required)})"
                                f" than exists at {backup_location} ({byte_units(total_storage)})")
 
-    print_deletion_message = True
+    any_deletions = False
     while True:
         backups = all_backups(backup_location)
-        if len(backups) <= 1:
-            logger.info(f"Will not delete only remaining backup: {backups[0]}")
+        if not backups:
             break
 
         free_space = shutil.disk_usage(backup_location).free
         if free_space > free_storage_required:
-            logger.info(f"Stopped deletions. {len(backups)} backups remain, earliest: {backups[0]}")
+            if any_deletions:
+                logger.info("Stopped deletions."
+                            f" {len(backups)} backups remain, earliest: {backups[0]}")
             break
 
-        if print_deletion_message:
+        if len(backups) == 1:
+            logger.warning(f"Will not delete only remaining backup: {backups[0]}")
+            break
+
+        if not any_deletions:
             logger.info(f"Deleting old backups until {byte_units(free_storage_required)} is free.")
-            print_deletion_message = False
 
         oldest_backup = backups[0]
         logger.info(f"Deleting oldest backup: {oldest_backup}")
         shutil.rmtree(oldest_backup)
+        any_deletions = True
 
 
 def print_backup_storage_stats(backup_location: str | Path) -> None:
