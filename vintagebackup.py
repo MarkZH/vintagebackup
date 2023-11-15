@@ -648,6 +648,9 @@ name will be written to the backup folder. The default is
             action = "recovery"
             recover_path(Path(args.recover).absolute(), backup_folder)
         elif "list" in args:
+            if not args.backup_folder:
+                raise CommandLineError("Backup folder needed to list backed up items.")
+
             try:
                 backup_folder = Path(args.backup_folder).resolve(strict=True)
             except FileNotFoundError:
