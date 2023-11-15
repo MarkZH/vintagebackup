@@ -24,9 +24,12 @@ class CommandLineError(ValueError):
     pass
 
 
+storage_prefixes = ["", "k", "M", "G", "T", "P", "E", "Z", "Y", "R", "Q"]
+
+
 def byte_units(size: float, prefixes: list[str] | None = None) -> str:
     if not prefixes:
-        prefixes = ["", "k", "M", "G", "T", "P", "E", "Z", "Y", "R", "Q"]
+        prefixes = storage_prefixes
 
     if size >= 10_000 and len(prefixes) > 1:
         return byte_units(size / 1000, prefixes[1:])
@@ -445,6 +448,53 @@ def delete_last_backup(backup_location: Path) -> None:
         logger.info("No previous backup to delete")
 
 
+def delete_oldest_backups_until(backup_location: Path, space_requirement: str) -> None:
+    space_text = "".join(space_requirement.lower().split())
+    prefixes = [p.lower() for p in storage_prefixes]
+    prefix_pattern = "".join(prefixes)
+    pattern = rf"\d+(.\d*)?[{prefix_pattern}]?b?"
+    total_storage = shutil.disk_usage(backup_location).total
+    if not re.fullmatch(pattern, space_text):
+        raise CommandLineError(f"Incorrect format of free-up space: {space_text}")
+    if space_text.endswith("%"):
+        free_fraction_required = float(space_text[:-1]) / 100
+        free_storage_required = total_storage * free_fraction_required
+    else:
+        space_text = space_text.rstrip('b')
+        if space_text[-1].isalpha():
+            prefix = space_text[-1]
+            space_text = space_text[:-1]
+        else:
+            prefix = ""
+
+        multiplier = 1000**prefixes.index(prefix)
+        free_storage_required = float(space_text) * multiplier
+
+    if free_storage_required > shutil.disk_usage(backup_location).total:
+        raise CommandLineError(f"Cannot free more storage ({byte_units(free_storage_required)})"
+                               f" than exists at {backup_location} ({byte_units(total_storage)})")
+
+    print_deletion_message = True
+    while True:
+        backups = all_backups(backup_location)
+        if len(backups) <= 1:
+            logger.info(f"Will not delete only remaining backup: {backups[0]}")
+            break
+
+        free_space = shutil.disk_usage(backup_location).free
+        if free_space > free_storage_required:
+            logger.info(f"Stopped deletions. {len(backups)} backups remain, earliest: {backups[0]}")
+            break
+
+        if print_deletion_message:
+            logger.info(f"Deleting old backups until {byte_units(free_storage_required)} is free.")
+            print_deletion_message = False
+
+        oldest_backup = backups[0]
+        logger.info(f"Deleting oldest backup: {oldest_backup}")
+        shutil.rmtree(oldest_backup)
+
+
 def print_backup_storage_stats(backup_location: str | Path) -> None:
     try:
         backup_storage = shutil.disk_usage(backup_location)
@@ -516,6 +566,22 @@ so that files that were not part of the failed backup do not
 get copied anew during the next backup. NOTE: Individual files
 not being copied or linked (e.g., for lack of permission) are
 not errors, and will only be noted in the log.""")
+
+    user_input.add_argument("--free-up", metavar="SPACE", help="""
+Automatically delete old backups when space runs low on the
+backup destination. The SPACE argument can be in one of two forms.
+If the argument is a number followed by a percent sign (%%), then
+the number is interpreted as a percent of the total storage space
+of the destination. Old backups will be deleted until that
+percentage of the destination storage space is free.
+
+If the argument ends with one letter or one letter followed by
+a 'B', then the number will be interpretted as a number of bytes.
+Case does not matter, so all of the following specify 15 megabytes:
+15MB, 15Mb, 15mB, 15mb, 15M, 15m. Old backups will be deleted until
+at least that much space is free.
+
+No matter what, at least one backup will always remain.""")
 
     user_input.add_argument("-r", "--recover", help="""
 Recover a file or folder from the backup. The user will be able
@@ -602,6 +668,10 @@ name will be written to the backup folder. The default is
                               path_or_none(args.include),
                               args.whole_file,
                               args.force_copy)
+
+            if args.free_up:
+                delete_oldest_backups_until(backup_folder, args.free_up)
+
         logger.info("")
         print_backup_storage_stats(args.backup_folder)
         exit_code = 0
