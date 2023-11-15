@@ -652,6 +652,7 @@ name will be written to the backup folder. The default is
                 backup_folder = Path(args.backup_folder).resolve(strict=True)
             except FileNotFoundError:
                 raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
+            action = "backup listing"
             search_directory = Path(args.list).resolve() if args.list else Path().resolve()
             print(search_directory)
             chosen_recovery_path = search_backups(search_directory, backup_folder)
