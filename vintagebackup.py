@@ -599,8 +599,7 @@ recovered, then all available backup dates will be options.
 This option requires the -b option to specify which
 backup location to search.""")
 
-    user_input.add_argument("--list", default=argparse.SUPPRESS,
-                            metavar="DIRECTORY", help="""
+    user_input.add_argument("--list", metavar="DIRECTORY", help="""
 Recover a file or folder in the directory specified by the argument
 by first choosing what to recover from a list of everything that's
 ever been backed up. If no argument is given, the current directory
@@ -647,7 +646,7 @@ name will be written to the backup folder. The default is
 
             action = "recovery"
             recover_path(Path(args.recover).absolute(), backup_folder)
-        elif "list" in args:
+        elif args.list:
             if not args.backup_folder:
                 raise CommandLineError("Backup folder needed to list backed up items.")
 
@@ -656,7 +655,7 @@ name will be written to the backup folder. The default is
             except FileNotFoundError:
                 raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
             action = "backup listing"
-            search_directory = Path(args.list).resolve() if args.list else Path().resolve()
+            search_directory = Path(args.list).resolve()
             print(search_directory)
             chosen_recovery_path = search_backups(search_directory, backup_folder)
             recover_path(chosen_recovery_path, backup_folder)
