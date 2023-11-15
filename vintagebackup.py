@@ -445,7 +445,7 @@ def delete_last_backup(backup_location: Path) -> None:
         logger.info("No previous backup to delete")
 
 
-def print_backup_storage_stats(backup_location: str) -> None:
+def print_backup_storage_stats(backup_location: str | Path) -> None:
     try:
         backup_storage = shutil.disk_usage(backup_location)
         percent_used = round(100 * backup_storage.used / backup_storage.total)
