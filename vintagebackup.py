@@ -353,7 +353,7 @@ def search_backups(search_directory: Path, backup_folder: Path) -> Path:
         raise CommandLineError(f"There are no backups in {backup_folder}")
 
     try:
-        target_relative_path = search_directory.relative_to(search_directory)
+        target_relative_path = search_directory.relative_to(user_data_location)
     except ValueError:
         raise CommandLineError(f"The path {search_directory} is not in the backup at"
                                f" {backup_folder}, which contains {user_data_location}")
