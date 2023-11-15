@@ -548,7 +548,7 @@ Where to log the activity of this program. A file of the same
 name will be written to the backup folder. The default is
 {default_log_file_name.name} in the user's home folder.""")
 
-    args = user_input.parse_args(args=None if sys.argv[1:] else ["--help"])
+    args = user_input.parse_args(args=sys.argv[1:] or ["--help"])
     if args.help:
         user_input.print_help()
         sys.exit(0)
