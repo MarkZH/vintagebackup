@@ -685,7 +685,7 @@ name will be written to the backup folder. The default is
                               args.force_copy)
 
             if args.free_up:
-                delete_oldest_backups_until(backup_folder, args.free_up)
+                delete_oldest_backups_for_space(backup_folder, args.free_up)
 
         logger.info("")
         print_backup_storage_stats(args.backup_folder)
