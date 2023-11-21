@@ -13,6 +13,8 @@ from collections import Counter
 from typing import Iterator
 from pathlib import Path
 
+backup_date_format = "%Y-%m-%d %H-%M-%S"
+
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 logger.setLevel(logging.INFO)
@@ -275,7 +277,7 @@ def create_new_backup(user_data_location: Path,
     os.makedirs(backup_location, exist_ok=True)
 
     now = datetime.datetime.now()
-    backup_date = now.strftime("%Y-%m-%d %H-%M-%S")
+    backup_date = now.strftime(backup_date_format)
     os_name = f"{platform.system()} {platform.release()}".strip()
     new_backup_path = backup_location / str(now.year) / f"{backup_date} ({os_name})"
 
@@ -499,6 +501,43 @@ def delete_oldest_backups_for_space(backup_location: Path, space_requirement: st
                        " without deleting most recent backup.")
 
 
+def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
+    time_span = ''.join(time_span.split())
+    try:
+        number = int(time_span[:-1])
+    except ValueError:
+        raise CommandLineError(f"Invalid number in time span (must be whole number): {time_span}")
+
+    letter = time_span[-1]
+    day = datetime.timedelta(days=1)
+    time_units = {"d": day, "m": 30 * day, "y": 365 * day}
+    try:
+        span = number * time_units[letter]
+        date_to_keep = datetime.datetime.now() - span
+    except KeyError:
+        raise CommandLineError(f"Invalid time (valid units: {list(time_units)}): {time_span}")
+
+    any_deletions = False
+    backups = all_backups(backup_folder)
+    for backup in backups[:-1]:
+        date_portion = " ".join(backup.name.split()[0:1])
+        backup_date = datetime.datetime.strptime(date_portion, backup_date_format)
+        if backup_date >= date_to_keep:
+            break
+
+        if not any_deletions:
+            logger.info(f"Deleting backups prior to {date_to_keep.strftime('%Y-%m-%d %H:%M:%S')}.")
+
+        logger.info(f"Deleting oldest backup: {backup}")
+        shutil.rmtree(backup)
+        any_deletions = True
+
+    if any_deletions:
+        remaining_backups = all_backups(backup_folder)
+        logger.info(f"Stopped deletions. {len(remaining_backups)} backups remain,"
+                    f" earliest: {remaining_backups[0]}")
+
+
 def print_backup_storage_stats(backup_location: str | Path) -> None:
     try:
         backup_storage = shutil.disk_usage(backup_location)
@@ -586,6 +625,12 @@ Case does not matter, so all of the following specify 15 megabytes:
 at least that much space is free.
 
 No matter what, the most recent backup will not be deleted.""")
+
+    user_input.add_argument("--delete-after", metavar="TIME", help="""
+Delete backups if they are older than the time span in the argument.
+The format of the argument is Nt, where N is a whole number and
+t is a single letter: d for days, m for months (30 days), or
+y for years (365 days).""")
 
     user_input.add_argument("-r", "--recover", help="""
 Recover a file or folder from the backup. The user will be able
@@ -686,6 +731,9 @@ name will be written to the backup folder. The default is
 
             if args.free_up:
                 delete_oldest_backups_for_space(backup_folder, args.free_up)
+
+            if args.delete_after:
+                delete_backups_older_than(backup_folder, args.delete_after)
 
         logger.info("")
         print_backup_storage_stats(args.backup_folder)
