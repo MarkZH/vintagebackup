@@ -580,12 +580,12 @@ of the destination. Old backups will be deleted until that
 percentage of the destination storage space is free.
 
 If the argument ends with one letter or one letter followed by
-a 'B', then the number will be interpretted as a number of bytes.
+a 'B', then the number will be interpreted as a number of bytes.
 Case does not matter, so all of the following specify 15 megabytes:
 15MB, 15Mb, 15mB, 15mb, 15M, 15m. Old backups will be deleted until
 at least that much space is free.
 
-No matter what, at least one backup will always remain.""")
+No matter what, the most recent backup will not be deleted.""")
 
     user_input.add_argument("-r", "--recover", help="""
 Recover a file or folder from the backup. The user will be able
