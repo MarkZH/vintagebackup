@@ -448,7 +448,7 @@ def delete_last_backup(backup_location: Path) -> None:
         logger.info("No previous backup to delete")
 
 
-def delete_oldest_backups_until(backup_location: Path, space_requirement: str) -> None:
+def delete_oldest_backups_for_space(backup_location: Path, space_requirement: str) -> None:
     space_text = "".join(space_requirement.lower().split())
     prefixes = [p.lower() for p in storage_prefixes]
     prefix_pattern = "".join(prefixes)
@@ -477,29 +477,26 @@ def delete_oldest_backups_until(backup_location: Path, space_requirement: str) -
                                f" than exists at {backup_location} ({byte_units(total_storage)})")
 
     any_deletions = False
-    while True:
-        backups = all_backups(backup_location)
-        if not backups:
-            break
-
-        free_space = shutil.disk_usage(backup_location).free
-        if free_space > free_storage_required:
-            if any_deletions:
-                logger.info("Stopped deletions."
-                            f" {len(backups)} backups remain, earliest: {backups[0]}")
-            break
-
-        if len(backups) == 1:
-            logger.warning(f"Will not delete only remaining backup: {backups[0]}")
+    backups = all_backups(backup_location)
+    for backup in backups[:-1]:
+        if shutil.disk_usage(backup_location).free > free_storage_required:
             break
 
         if not any_deletions:
             logger.info(f"Deleting old backups until {byte_units(free_storage_required)} is free.")
 
-        oldest_backup = backups[0]
-        logger.info(f"Deleting oldest backup: {oldest_backup}")
-        shutil.rmtree(oldest_backup)
+        logger.info(f"Deleting backup: {backup}")
+        shutil.rmtree(backup)
         any_deletions = True
+
+    if any_deletions:
+        remaining_backups = all_backups(backup_location)
+        logger.info(f"Stopped deletions. {len(remaining_backups)} backups remain,"
+                    f" earliest: {remaining_backups[0]}")
+
+    if shutil.disk_usage(backup_location).free < free_storage_required:
+        logger.warning(f"Could not free up {byte_units(free_storage_required)} of storage"
+                       " without deleting most recent backup.")
 
 
 def print_backup_storage_stats(backup_location: str | Path) -> None:
