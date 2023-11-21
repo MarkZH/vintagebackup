@@ -625,7 +625,8 @@ name will be written to the backup folder. The default is
     action_count = [bool(a) for a in (args.help, args.recover, args.list)].count(True)
     if action_count > 1:
         print("Only one action (--help, --recover, --list) may be performed at one time.")
-        print("If none of these options are used, a backup will start, which requires the -u and -b parameters.")
+        print("If none of these options are used, a backup will start,"
+              " which requires the -u and -b parameters.")
         user_input.print_usage()
         sys.exit(1)
 
