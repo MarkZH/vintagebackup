@@ -510,7 +510,7 @@ def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
 
     letter = time_span[-1]
     day = datetime.timedelta(days=1)
-    time_units = {"d": day, "m": 30 * day, "y": 365 * day}
+    time_units = {"d": day, "w": 7 * day, "m": 30 * day, "y": 365 * day}
     try:
         span = number * time_units[letter]
         date_to_keep = datetime.datetime.now() - span
@@ -629,8 +629,8 @@ No matter what, the most recent backup will not be deleted.""")
     user_input.add_argument("--delete-after", metavar="TIME", help="""
 Delete backups if they are older than the time span in the argument.
 The format of the argument is Nt, where N is a whole number and
-t is a single letter: d for days, m for months (30 days), or
-y for years (365 days).""")
+t is a single letter: d for days, w for weeks (7 days), m for months
+(30 days), or y for years (365 days).""")
 
     user_input.add_argument("-r", "--recover", help="""
 Recover a file or folder from the backup. The user will be able
