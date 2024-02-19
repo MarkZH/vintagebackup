@@ -514,33 +514,34 @@ def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
     letter = time_span[-1]
     now = datetime.datetime.now()
     if letter == "d":
-        date_to_keep = now - datetime.timedelta(days=number)
+        timestamp_to_keep = now - datetime.timedelta(days=number)
     elif letter == "w":
-        date_to_keep = now - datetime.timedelta(weeks=number)
+        timestamp_to_keep = now - datetime.timedelta(weeks=number)
     elif letter == "m":
         new_month = now.month - (number % 12)
         new_year = now.year - (number // 12)
         if new_month < 1:
             new_month += 12
             new_year -= 1
-        date_to_keep = datetime.datetime(new_year, new_month, now.day,
-                                         now.hour, now.minute, now.second, now.microsecond)
+        timestamp_to_keep = datetime.datetime(new_year, new_month, now.day,
+                                              now.hour, now.minute, now.second, now.microsecond)
     elif letter == "y":
-        date_to_keep = datetime.datetime(now.year - number, now.month, now.day,
-                                         now.hour, now.minute, now.second, now.microsecond)
+        timestamp_to_keep = datetime.datetime(now.year - number, now.month, now.day,
+                                              now.hour, now.minute, now.second, now.microsecond)
     else:
         raise CommandLineError(f"Invalid time (valid units: {list("dwmy")}): {time_span}")
 
     any_deletions = False
     backups = all_backups(backup_folder)
     for backup in backups[:-1]:
-        date_portion = " ".join(backup.name.split()[:2])
-        backup_date = datetime.datetime.strptime(date_portion, backup_date_format)
-        if backup_date >= date_to_keep:
+        timestamp_portion = " ".join(backup.name.split()[:2])
+        backup_timestamp = datetime.datetime.strptime(timestamp_portion, backup_date_format)
+        if backup_timestamp >= timestamp_to_keep:
             break
 
         if not any_deletions:
-            logger.info(f"Deleting backups prior to {date_to_keep.strftime('%Y-%m-%d %H:%M:%S')}.")
+            logger.info("Deleting backups prior to"
+                        f" {timestamp_to_keep.strftime('%Y-%m-%d %H:%M:%S')}.")
 
         logger.info(f"Deleting oldest backup: {backup}")
         shutil.rmtree(backup)
