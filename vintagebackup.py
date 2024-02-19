@@ -502,7 +502,7 @@ def delete_oldest_backups_for_space(backup_location: Path, space_requirement: st
 
 
 def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
-    time_span = ''.join(time_span.split())
+    time_span = "".join(time_span.lower().split())
     try:
         number = int(time_span[:-1])
     except ValueError:
