@@ -13,6 +13,8 @@ from collections import Counter
 from typing import Iterator
 from pathlib import Path
 
+backup_date_format = "%Y-%m-%d %H-%M-%S"
+
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 logger.setLevel(logging.INFO)
@@ -275,7 +277,7 @@ def create_new_backup(user_data_location: Path,
     os.makedirs(backup_location, exist_ok=True)
 
     now = datetime.datetime.now()
-    backup_date = now.strftime("%Y-%m-%d %H-%M-%S")
+    backup_date = now.strftime(backup_date_format)
     os_name = f"{platform.system()} {platform.release()}".strip()
     new_backup_path = backup_location / str(now.year) / f"{backup_date} ({os_name})"
 
@@ -448,7 +450,7 @@ def delete_last_backup(backup_location: Path) -> None:
         logger.info("No previous backup to delete")
 
 
-def delete_oldest_backups_until(backup_location: Path, space_requirement: str) -> None:
+def delete_oldest_backups_for_space(backup_location: Path, space_requirement: str) -> None:
     space_text = "".join(space_requirement.lower().split())
     prefixes = [p.lower() for p in storage_prefixes]
     prefix_pattern = "".join(prefixes)
@@ -477,29 +479,78 @@ def delete_oldest_backups_until(backup_location: Path, space_requirement: str) -
                                f" than exists at {backup_location} ({byte_units(total_storage)})")
 
     any_deletions = False
-    while True:
-        backups = all_backups(backup_location)
-        if not backups:
-            break
-
-        free_space = shutil.disk_usage(backup_location).free
-        if free_space > free_storage_required:
-            if any_deletions:
-                logger.info("Stopped deletions."
-                            f" {len(backups)} backups remain, earliest: {backups[0]}")
-            break
-
-        if len(backups) == 1:
-            logger.warning(f"Will not delete only remaining backup: {backups[0]}")
+    backups = all_backups(backup_location)
+    for backup in backups[:-1]:
+        if shutil.disk_usage(backup_location).free > free_storage_required:
             break
 
         if not any_deletions:
             logger.info(f"Deleting old backups until {byte_units(free_storage_required)} is free.")
 
-        oldest_backup = backups[0]
-        logger.info(f"Deleting oldest backup: {oldest_backup}")
-        shutil.rmtree(oldest_backup)
+        logger.info(f"Deleting backup: {backup}")
+        shutil.rmtree(backup)
         any_deletions = True
+
+    if any_deletions:
+        remaining_backups = all_backups(backup_location)
+        logger.info(f"Stopped deletions. {len(remaining_backups)} backups remain,"
+                    f" earliest: {remaining_backups[0]}")
+
+    if shutil.disk_usage(backup_location).free < free_storage_required:
+        logger.warning(f"Could not free up {byte_units(free_storage_required)} of storage"
+                       " without deleting most recent backup.")
+
+
+def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
+    time_span = "".join(time_span.lower().split())
+    try:
+        number = int(time_span[:-1])
+        if number < 1:
+            raise ValueError()
+    except ValueError:
+        raise CommandLineError("Invalid number in time span"
+                               f" (must be a positive whole number): {time_span}")
+
+    letter = time_span[-1]
+    now = datetime.datetime.now()
+    if letter == "d":
+        timestamp_to_keep = now - datetime.timedelta(days=number)
+    elif letter == "w":
+        timestamp_to_keep = now - datetime.timedelta(weeks=number)
+    elif letter == "m":
+        new_month = now.month - (number % 12)
+        new_year = now.year - (number // 12)
+        if new_month < 1:
+            new_month += 12
+            new_year -= 1
+        timestamp_to_keep = datetime.datetime(new_year, new_month, now.day,
+                                              now.hour, now.minute, now.second, now.microsecond)
+    elif letter == "y":
+        timestamp_to_keep = datetime.datetime(now.year - number, now.month, now.day,
+                                              now.hour, now.minute, now.second, now.microsecond)
+    else:
+        raise CommandLineError(f"Invalid time (valid units: {list("dwmy")}): {time_span}")
+
+    any_deletions = False
+    backups = all_backups(backup_folder)
+    for backup in backups[:-1]:
+        timestamp_portion = " ".join(backup.name.split()[:2])
+        backup_timestamp = datetime.datetime.strptime(timestamp_portion, backup_date_format)
+        if backup_timestamp >= timestamp_to_keep:
+            break
+
+        if not any_deletions:
+            logger.info("Deleting backups prior to"
+                        f" {timestamp_to_keep.strftime('%Y-%m-%d %H:%M:%S')}.")
+
+        logger.info(f"Deleting oldest backup: {backup}")
+        shutil.rmtree(backup)
+        any_deletions = True
+
+    if any_deletions:
+        remaining_backups = all_backups(backup_folder)
+        logger.info(f"Stopped deletions. {len(remaining_backups)} backups remain,"
+                    f" earliest: {remaining_backups[0]}")
 
 
 def print_backup_storage_stats(backup_location: str | Path) -> None:
@@ -583,12 +634,24 @@ of the destination. Old backups will be deleted until that
 percentage of the destination storage space is free.
 
 If the argument ends with one letter or one letter followed by
-a 'B', then the number will be interpretted as a number of bytes.
+a 'B', then the number will be interpreted as a number of bytes.
 Case does not matter, so all of the following specify 15 megabytes:
 15MB, 15Mb, 15mB, 15mb, 15M, 15m. Old backups will be deleted until
 at least that much space is free.
 
-No matter what, at least one backup will always remain.""")
+In either of the above cases, there should be no space between the
+number and subsequent symbol.
+
+No matter what, the most recent backup will not be deleted.""")
+
+    user_input.add_argument("--delete-after", metavar="TIME", help="""
+Delete backups if they are older than the time span in the argument.
+The format of the argument is Nt, where N is a whole number and
+t is a single letter: d for days, w for weeks, m for calendar months,
+or y for calendar years. There should be no space between the number
+and letter.
+
+No matter what, the most recent backup will not be deleted.""")
 
     user_input.add_argument("-r", "--recover", help="""
 Recover a file or folder from the backup. The user will be able
@@ -689,7 +752,10 @@ name will be written to the backup folder. The default is
                               args.force_copy)
 
             if args.free_up:
-                delete_oldest_backups_until(backup_folder, args.free_up)
+                delete_oldest_backups_for_space(backup_folder, args.free_up)
+
+            if args.delete_after:
+                delete_backups_older_than(backup_folder, args.delete_after)
 
         logger.info("")
         print_backup_storage_stats(args.backup_folder)
