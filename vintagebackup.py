@@ -505,8 +505,11 @@ def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
     time_span = "".join(time_span.lower().split())
     try:
         number = int(time_span[:-1])
+        if number < 1:
+            raise ValueError()
     except ValueError:
-        raise CommandLineError(f"Invalid number in time span (must be whole number): {time_span}")
+        raise CommandLineError("Invalid number in time span"
+                               f" (must be a positive whole number): {time_span}")
 
     letter = time_span[-1]
     day = datetime.timedelta(days=1)
