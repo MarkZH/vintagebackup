@@ -520,7 +520,7 @@ def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
     any_deletions = False
     backups = all_backups(backup_folder)
     for backup in backups[:-1]:
-        date_portion = " ".join(backup.name.split()[0:1])
+        date_portion = " ".join(backup.name.split()[:2])
         backup_date = datetime.datetime.strptime(date_portion, backup_date_format)
         if backup_date >= date_to_keep:
             break
