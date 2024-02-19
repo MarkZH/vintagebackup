@@ -624,13 +624,17 @@ Case does not matter, so all of the following specify 15 megabytes:
 15MB, 15Mb, 15mB, 15mb, 15M, 15m. Old backups will be deleted until
 at least that much space is free.
 
+In either of the above cases, there should be no space between the
+number and subsequent symbol.
+
 No matter what, the most recent backup will not be deleted.""")
 
     user_input.add_argument("--delete-after", metavar="TIME", help="""
 Delete backups if they are older than the time span in the argument.
 The format of the argument is Nt, where N is a whole number and
 t is a single letter: d for days, w for weeks (7 days), m for months
-(30 days), or y for years (365 days).""")
+(30 days), or y for years (365 days). There should be no space between
+the number and letter.""")
 
     user_input.add_argument("-r", "--recover", help="""
 Recover a file or folder from the backup. The user will be able
