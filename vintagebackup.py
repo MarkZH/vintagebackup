@@ -512,13 +512,24 @@ def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
                                f" (must be a positive whole number): {time_span}")
 
     letter = time_span[-1]
-    day = datetime.timedelta(days=1)
-    time_units = {"d": day, "w": 7 * day, "m": 30 * day, "y": 365 * day}
-    try:
-        span = number * time_units[letter]
-        date_to_keep = datetime.datetime.now() - span
-    except KeyError:
-        raise CommandLineError(f"Invalid time (valid units: {list(time_units)}): {time_span}")
+    now = datetime.datetime.now()
+    if letter == "d":
+        date_to_keep = now - datetime.timedelta(days=number)
+    elif letter == "w":
+        date_to_keep = now - datetime.timedelta(weeks=number)
+    elif letter == "m":
+        new_month = now.month - (number % 12)
+        new_year = now.year - (number // 12)
+        if new_month < 1:
+            new_month += 12
+            new_year -= 1
+        date_to_keep = datetime.datetime(new_year, new_month, now.day,
+                                         now.hour, now.minute, now.second, now.microsecond)
+    elif letter == "y":
+        date_to_keep = datetime.datetime(now.year - number, now.month, now.day,
+                                         now.hour, now.minute, now.second, now.microsecond)
+    else:
+        raise CommandLineError(f"Invalid time (valid units: {list("dwmy")}): {time_span}")
 
     any_deletions = False
     backups = all_backups(backup_folder)
@@ -635,9 +646,9 @@ No matter what, the most recent backup will not be deleted.""")
     user_input.add_argument("--delete-after", metavar="TIME", help="""
 Delete backups if they are older than the time span in the argument.
 The format of the argument is Nt, where N is a whole number and
-t is a single letter: d for days, w for weeks (7 days), m for months
-(30 days), or y for years (365 days). There should be no space between
-the number and letter.
+t is a single letter: d for days, w for weeks, m for calendar months,
+or y for calendar years. There should be no space between the number
+and letter.
 
 No matter what, the most recent backup will not be deleted.""")
 
