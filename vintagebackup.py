@@ -567,6 +567,20 @@ def print_backup_storage_stats(backup_location: str | Path) -> None:
         pass
 
 
+def read_configuation_file(config_file_name: str) -> list[str]:
+    arguments: list[str] = []
+
+    with open(config_file_name) as file:
+        for line in file:
+            if not line or line.strip().startswith("#"):
+                continue
+            parameter, value = line.split(":", maxsplit=1)
+            arguments.append(f"--{"-".join(parameter.split())}")
+            arguments.append(value.strip())
+
+    return list(filter(None, arguments))
+
+
 def format_paragraphs(lines: str, line_length: int) -> str:
     paragraphs: list[str] = []
     needs_paragraph_break = True
@@ -611,6 +625,27 @@ each folder in the backup location contain a full backup."""))
 
     user_input.add_argument("-h", "--help", action="store_true", help=format_help("""
 Show this help message and exit."""))
+
+    user_input.add_argument("-c", "--config", metavar="FILE_NAME", help=format_help(r"""
+Read options from a configuration file instead of command-line arguments. The format
+of the file should be one option per line with a colon separating the parameter name
+and value. The parameter names have the same names as the command line otions. If a parameter
+does not take a value, leave the value blank. Any line starting with a # will be ignored. As
+an example:
+
+    # Ignored comment
+    user-folder: C:\Users\Alice
+    backup-folder: E:\Backups
+    delete-on-error:
+
+The parameter names may also be spelled with spaces instead of the dashes:
+
+    # Ignored comment
+    user folder: C:\Users\Alice
+    backup folder: E:\Backups
+    delete on error:
+
+A final note: the parameter "config" does nothing inside a config file."""))
 
     user_input.add_argument("-u", "--user-folder", help=format_help("""
 The directory to be backed up. The contents of this
@@ -712,7 +747,12 @@ Where to log the activity of this program. A file of the same
 name will be written to the backup folder. The default is
 {default_log_file_name.name} in the user's home folder."""))
 
-    args = user_input.parse_args(args=sys.argv[1:] or ["--help"])
+    command_line_args = user_input.parse_args(args=sys.argv[1:] or ["--help"])
+    if command_line_args.config:
+        file_args = read_configuation_file(command_line_args.config)
+        args = user_input.parse_args(file_args)
+    else:
+        args = command_line_args
 
     action_count = [bool(a) for a in (args.help, args.recover, args.list)].count(True)
     if action_count > 1:
@@ -735,6 +775,8 @@ name will be written to the backup folder. The default is
         if args.debug:
             logger.setLevel(logging.DEBUG)
         logger.debug(args)
+        if command_line_args.config:
+            logger.info(f"Reading configuration from file: {os.path.abspath(command_line_args.config)}")
 
         if args.recover:
             if not args.backup_folder:
@@ -803,4 +845,5 @@ name will be written to the backup folder. The default is
             delete_last_backup(args.backup_folder)
         print_backup_storage_stats(args.backup_folder)
     finally:
+        logger.info("-------------------------")
         sys.exit(exit_code)
