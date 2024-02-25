@@ -612,6 +612,7 @@ def format_help(lines: str) -> str:
 if __name__ == "__main__":
     user_input = argparse.ArgumentParser(add_help=False,
                                          formatter_class=argparse.RawTextHelpFormatter,
+                                         allow_abbrev=False,
                                          description=format_text("""
 A backup utility that combines the best aspects of full and incremental backups."""),
                                          epilog=format_text("""
