@@ -783,7 +783,8 @@ name will be written to the backup folder. The default is
         logger.debug(args)
         if command_line_args.config:
             logger.info("=====================")
-            logger.info(f"Reading configuration from file: {os.path.abspath(command_line_args.config)}")
+            logger.info("Reading configuration from file: "
+                        + os.path.abspath(command_line_args.config))
 
         if args.recover:
             if not args.backup_folder:
