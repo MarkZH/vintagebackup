@@ -630,9 +630,9 @@ Show this help message and exit."""))
     user_input.add_argument("-c", "--config", metavar="FILE_NAME", help=format_help(r"""
 Read options from a configuration file instead of command-line arguments. The format
 of the file should be one option per line with a colon separating the parameter name
-and value. The parameter names have the same names as the command line otions. If a parameter
-does not take a value, leave the value blank. Any line starting with a # will be ignored. As
-an example:
+and value. The parameter names have the same names as the double-dashed command line options
+(i.e., "user-folder", not "u"). If a parameter does not take a value, like "whole-file",
+leave the value blank. Any line starting with a # will be ignored. As an example:
 
     # Ignored comment
     user-folder: C:\Users\Alice
@@ -645,6 +645,9 @@ The parameter names may also be spelled with spaces instead of the dashes:
     user folder: C:\Users\Alice
     backup folder: E:\Backups
     delete on error:
+
+If both --config and other command line options are used and they conflict, then the command
+line options override the config file options.
 
 A final note: the parameter "config" does nothing inside a config file."""))
 
@@ -748,10 +751,11 @@ Where to log the activity of this program. A file of the same
 name will be written to the backup folder. The default is
 {default_log_file_name.name} in the user's home folder."""))
 
-    command_line_args = user_input.parse_args(args=sys.argv[1:] or ["--help"])
+    command_line_options = args=sys.argv[1:] or ["--help"]
+    command_line_args = user_input.parse_args(command_line_options)
     if command_line_args.config:
-        file_args = read_configuation_file(command_line_args.config)
-        args = user_input.parse_args(file_args)
+        file_options = read_configuation_file(command_line_args.config)
+        args = user_input.parse_args(file_options + command_line_options)
     else:
         args = command_line_args
 
