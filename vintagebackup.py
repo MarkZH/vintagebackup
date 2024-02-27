@@ -405,8 +405,9 @@ def recover_path(recovery_path: Path, backup_location: Path) -> None:
     recovery_relative_path = recovery_path.relative_to(user_data_location)
     for backup in all_backups(backup_location):
         path = backup / recovery_relative_path
-        inode = os.stat(path).st_ino
-        unique_backups.setdefault(inode, path)
+        if path.exists(follow_symlinks=False):
+            inode = os.stat(path, follow_symlinks=False).st_ino
+            unique_backups.setdefault(inode, path)
 
     backup_choices = sorted(unique_backups.values())
     number_column_size = len(str(len(backup_choices)))
