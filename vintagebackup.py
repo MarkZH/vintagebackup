@@ -30,14 +30,14 @@ class CommandLineError(ValueError):
 storage_prefixes = ["", "k", "M", "G", "T", "P", "E", "Z", "Y", "R", "Q"]
 
 
-def byte_units(size: float, prefixes: list[str] | None = None) -> str:
-    if not prefixes:
-        prefixes = storage_prefixes
+def byte_units(size: float) -> str:
+    for index, prefix in enumerate(storage_prefixes):
+        prefix_size = 10**(3*index)
+        size_in_units = size/prefix_size
+        if size_in_units < 1000:
+            break
 
-    if size >= 1000 and len(prefixes) > 1:
-        return byte_units(size / 1000, prefixes[1:])
-    else:
-        return f"{size:.3f} {prefixes[0]}B"
+    return f"{size_in_units:.3f} {prefix}B"
 
 
 def all_backups(backup_location: Path) -> list[Path]:
