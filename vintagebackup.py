@@ -102,12 +102,12 @@ def create_exclusion_list(exclude_file: Path | None, user_data_location: Path) -
 def filter_excluded_paths(exclusions: set[Path],
                           current_dir: Path,
                           name_list: list[str]) -> list[str]:
-    current_set = set(current_dir / name for name in name_list)
+    current_set = set(current_dir/name for name in name_list)
     return [path.name for path in current_set - exclusions]
 
 
 def get_user_location_record(backup_location: Path) -> Path:
-    return backup_location / "vintagebackup.source.txt"
+    return backup_location/"vintagebackup.source.txt"
 
 
 def record_user_location(user_location: Path, backup_location: Path) -> None:
@@ -214,12 +214,12 @@ def backup_directory(user_data_location: Path,
                                               user_dir_names)
 
     relative_path = current_user_path.relative_to(user_data_location)
-    new_backup_directory = new_backup_path / relative_path
+    new_backup_directory = new_backup_path/relative_path
     os.makedirs(new_backup_directory, exist_ok=is_include_backup)
     global new_backup_directory_created
     new_backup_directory_created = True
 
-    previous_backup_directory = last_backup_path / relative_path if last_backup_path else None
+    previous_backup_directory = last_backup_path/relative_path if last_backup_path else None
 
     matching, mismatching, errors = compare_to_backup(current_user_path,
                                                       previous_backup_directory,
@@ -228,10 +228,10 @@ def backup_directory(user_data_location: Path,
 
     for file_name in matching:
         assert previous_backup_directory
-        previous_backup = previous_backup_directory / file_name
-        new_backup = new_backup_directory / file_name
+        previous_backup = previous_backup_directory/file_name
+        new_backup = new_backup_directory/file_name
         if os.path.lexists(new_backup):
-            logger.debug(f"Skipping backed up include file: {current_user_path / file_name}")
+            logger.debug(f"Skipping backed up include file: {current_user_path/file_name}")
             continue
 
         if create_hard_link(previous_backup, new_backup):
@@ -241,8 +241,8 @@ def backup_directory(user_data_location: Path,
             errors.append(file_name)
 
     for file_name in itertools.chain(mismatching, errors):
-        new_backup_file = new_backup_directory / file_name
-        user_file = current_user_path / file_name
+        new_backup_file = new_backup_directory/file_name
+        user_file = current_user_path/file_name
         try:
             shutil.copy2(user_file, new_backup_file, follow_symlinks=False)
             action_counter["copied files"] += 1
@@ -280,7 +280,7 @@ def create_new_backup(user_data_location: Path,
     now = datetime.datetime.now()
     backup_date = now.strftime(backup_date_format)
     os_name = f"{platform.system()} {platform.release()}".strip()
-    new_backup_path = backup_location / str(now.year) / f"{backup_date} ({os_name})"
+    new_backup_path = backup_location/str(now.year)/f"{backup_date} ({os_name})"
 
     logger.info("")
     logger.info("=====================")
@@ -363,7 +363,7 @@ def search_backups(search_directory: Path, backup_folder: Path) -> Path:
 
     all_paths: set[tuple[str, str]] = set()
     for backup in all_backups(backup_folder):
-        backup_search_directory = backup / target_relative_path
+        backup_search_directory = backup/target_relative_path
         try:
             with os.scandir(backup_search_directory) as backup_scan:
                 for item in backup_scan:
@@ -385,7 +385,7 @@ def search_backups(search_directory: Path, backup_folder: Path) -> Path:
             user_choice = int(input("Which path to recover (Ctrl-C to quit): "))
             if user_choice >= 1:
                 recovery_target_name = menu_list[user_choice - 1][0]
-                return search_directory / recovery_target_name
+                return search_directory/recovery_target_name
         except (ValueError, IndexError):
             continue
 
@@ -404,7 +404,7 @@ def recover_path(recovery_path: Path, backup_location: Path) -> None:
     unique_backups: dict[int, Path] = {}
     recovery_relative_path = recovery_path.relative_to(user_data_location)
     for backup in all_backups(backup_location):
-        path = backup / recovery_relative_path
+        path = backup/recovery_relative_path
         if path.exists(follow_symlinks=False):
             inode = os.stat(path, follow_symlinks=False).st_ino
             unique_backups.setdefault(inode, path)
@@ -434,7 +434,7 @@ def recover_path(recovery_path: Path, backup_location: Path) -> None:
     while os.path.lexists(recovered_path):
         unique_id += 1
         new_file_name = f"{recovery_path.stem}.{unique_id}{recovery_path.suffix}"
-        recovered_path = recovery_path.parent / new_file_name
+        recovered_path = recovery_path.parent/new_file_name
 
     logger.info(f"Copying {chosen_path} to {recovered_path}")
     if chosen_path.is_symlink() or chosen_path.is_file():
@@ -461,10 +461,10 @@ def delete_oldest_backups_for_space(backup_location: Path, space_requirement: st
     if not re.fullmatch(pattern, space_text):
         raise CommandLineError(f"Incorrect format of free-up space: {space_text}")
     if space_text.endswith("%"):
-        free_fraction_required = float(space_text[:-1]) / 100
+        free_fraction_required = float(space_text[:-1])/100
         if free_fraction_required > 1:
             raise CommandLineError(f"Percent cannot be greater than 100: {space_text}")
-        free_storage_required = total_storage * free_fraction_required
+        free_storage_required = total_storage*free_fraction_required
     else:
         space_text = space_text.rstrip('b')
         if space_text[-1].isalpha():
@@ -474,7 +474,7 @@ def delete_oldest_backups_for_space(backup_location: Path, space_requirement: st
             prefix = ""
 
         multiplier = 1000**prefixes.index(prefix)
-        free_storage_required = float(space_text) * multiplier
+        free_storage_required = float(space_text)*multiplier
 
     if free_storage_required > shutil.disk_usage(backup_location).total:
         raise CommandLineError(f"Cannot free more storage ({byte_units(free_storage_required)})"
@@ -558,8 +558,8 @@ def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
 def print_backup_storage_stats(backup_location: str | Path) -> None:
     try:
         backup_storage = shutil.disk_usage(backup_location)
-        percent_used = round(100 * backup_storage.used / backup_storage.total)
-        percent_free = round(100 * backup_storage.free / backup_storage.total)
+        percent_used = round(100*backup_storage.used/backup_storage.total)
+        percent_free = round(100*backup_storage.free/backup_storage.total)
         logger.info("Backup storage space: "
                     f"Total = {byte_units(backup_storage.total)}  "
                     f"Used = {byte_units(backup_storage.used)} ({percent_used}%)  "
@@ -746,7 +746,7 @@ backup."""))
     user_input.add_argument("--debug", action="store_true", help=format_help("""
 Log information on all action of a backup."""))
 
-    default_log_file_name = Path.home() / "vintagebackup.log"
+    default_log_file_name = Path.home()/"vintagebackup.log"
     user_input.add_argument("-l", "--log", default=default_log_file_name, help=format_help(f"""
 Where to log the activity of this program. A file of the same
 name will be written to the backup folder. The default is
