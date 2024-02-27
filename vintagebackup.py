@@ -636,16 +636,19 @@ and value. The parameter names have the same names as the double-dashed command 
 leave the value blank. Any line starting with a # will be ignored. As an example:
 
     # Ignored comment
-    user-folder: C:\Users\Alice
+    user-folder: C:\Users\Ada Lovelace\
     backup-folder: E:\Backups
     delete-on-error:
 
 The parameter names may also be spelled with spaces instead of the dashes:
 
     # Ignored comment
-    user folder: C:\Users\Alice
+    user folder: C:\Users\Ada Lovelace\
     backup folder: E:\Backups
     delete on error:
+
+Values like file and folder names may contain any characters--no escaping or quoting necessary.
+Whitespace at the beginning and end of the values will be trimmed off.
 
 If both --config and other command line options are used and they conflict, then the command
 line options override the config file options.
