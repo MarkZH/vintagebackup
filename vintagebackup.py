@@ -782,6 +782,7 @@ name will be written to the backup folder. The default is
             logger.setLevel(logging.DEBUG)
         logger.debug(args)
         if command_line_args.config:
+            logger.info("=====================")
             logger.info(f"Reading configuration from file: {os.path.abspath(command_line_args.config)}")
 
         if args.recover:
@@ -851,5 +852,4 @@ name will be written to the backup folder. The default is
             delete_last_backup(args.backup_folder)
         print_backup_storage_stats(args.backup_folder)
     finally:
-        logger.info("-------------------------")
         sys.exit(exit_code)
