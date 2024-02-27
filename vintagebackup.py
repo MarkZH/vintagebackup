@@ -34,10 +34,10 @@ def byte_units(size: float, prefixes: list[str] | None = None) -> str:
     if not prefixes:
         prefixes = storage_prefixes
 
-    if size >= 10_000 and len(prefixes) > 1:
+    if size >= 1000 and len(prefixes) > 1:
         return byte_units(size / 1000, prefixes[1:])
     else:
-        return f"{size:.1f} {prefixes[0]}B"
+        return f"{size:.3f} {prefixes[0]}B"
 
 
 def all_backups(backup_location: Path) -> list[Path]:
