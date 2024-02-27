@@ -752,7 +752,7 @@ Where to log the activity of this program. A file of the same
 name will be written to the backup folder. The default is
 {default_log_file_name.name} in the user's home folder."""))
 
-    command_line_options = args=sys.argv[1:] or ["--help"]
+    command_line_options = sys.argv[1:] or ["--help"]
     command_line_args = user_input.parse_args(command_line_options)
     if command_line_args.config:
         file_options = read_configuation_file(command_line_args.config)
