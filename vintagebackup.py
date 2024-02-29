@@ -610,6 +610,17 @@ def format_help(lines: str) -> str:
     return format_paragraphs(lines, width - 24)
 
 
+def add_no_option(user_input: argparse.ArgumentParser, name: str):
+    user_input.add_argument(f"--no-{name}", action="store_true", help=format_help(f"""
+Disable the --{name} option. This is primarily used if "{name}" appears in a
+configuration file. This option has priority even if --{name} is listed later."""))
+
+
+def toggle_set(args: argparse.Namespace, name: str) -> bool:
+    options = vars(args)
+    return options[name] and not options[f"no_{name}"]
+
+
 if __name__ == "__main__":
     user_input = argparse.ArgumentParser(add_help=False,
                                          formatter_class=argparse.RawTextHelpFormatter,
@@ -688,6 +699,8 @@ option, only the file's size, type, and modification date are
 checked for differences. Using this option will make backups
 take considerably longer."""))
 
+    add_no_option(user_input, "whole-file")
+
     user_input.add_argument("--delete-on-error", action="store_true", help=format_help("""
 If an error causes a backup to fail to complete, delete that
 backup. If this option does not appear, then the incomplete
@@ -696,6 +709,8 @@ so that files that were not part of the failed backup do not
 get copied anew during the next backup. NOTE: Individual files
 not being copied or linked (e.g., for lack of permission) are
 not errors, and will only be noted in the log."""))
+
+    add_no_option(user_input, "delete-on-error")
 
     user_input.add_argument("--free-up", metavar="SPACE", help=format_help("""
 Automatically delete old backups when space runs low on the
@@ -746,8 +761,12 @@ new backup will contain new copies of all of the user's files,
 so the backup location will require much more space than a normal
 backup."""))
 
+    add_no_option(user_input, "force-copy")
+
     user_input.add_argument("--debug", action="store_true", help=format_help("""
 Log information on all action of a backup."""))
+
+    add_no_option(user_input, "debug")
 
     default_log_file_name = Path.home()/"vintagebackup.log"
     user_input.add_argument("-l", "--log", default=default_log_file_name, help=format_help(f"""
@@ -781,7 +800,7 @@ name will be written to the backup folder. The default is
 
     try:
         setup_log_file(logger, args.log)
-        if args.debug:
+        if toggle_set(args, "debug"):
             logger.setLevel(logging.DEBUG)
         logger.debug(args)
         if command_line_args.config:
@@ -825,13 +844,13 @@ name will be written to the backup folder. The default is
             backup_folder = Path(args.backup_folder).absolute()
 
             action = "backup"
-            delete_last_backup_on_error = args.delete_on_error
+            delete_last_backup_on_error = toggle_set(args, "delete_on_error")
             create_new_backup(user_folder,
                               backup_folder,
                               path_or_none(args.exclude),
                               path_or_none(args.include),
-                              args.whole_file,
-                              args.force_copy)
+                              toggle_set(args, "whole_file"),
+                              toggle_set(args, "force_copy"))
 
             if args.free_up:
                 delete_oldest_backups_for_space(backup_folder, args.free_up)
