@@ -610,7 +610,7 @@ def format_help(lines: str) -> str:
     return format_paragraphs(lines, width - 24)
 
 
-def add_no_option(user_input: argparse.ArgumentParser, name: str):
+def add_no_option(user_input: argparse.ArgumentParser, name: str) -> None:
     user_input.add_argument(f"--no-{name}", action="store_true", help=format_help(f"""
 Disable the --{name} option. This is primarily used if "{name}" appears in a
 configuration file. This option has priority even if --{name} is listed later."""))
