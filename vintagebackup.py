@@ -146,17 +146,19 @@ def compare_to_backup(user_directory: Path,
     elif examine_whole_file:
         return filecmp.cmpfiles(user_directory, backup_directory, file_names, shallow=False)
     else:
+        def scan_directory(directory: Path) -> dict[str, os.stat_result]:
+            with os.scandir(directory) as scan:
+                return {entry.name: entry.stat(follow_symlinks=False) for entry in scan}
+
         try:
-            with os.scandir(backup_directory) as scan:
-                backup_files = {entry.name: entry.stat(follow_symlinks=False) for entry in scan}
+            backup_files = scan_directory(backup_directory)
         except OSError:
             return [], [], file_names
 
         matches: list[str] = []
         mismatches: list[str] = []
         errors: list[str] = []
-        with os.scandir(user_directory) as scan:
-            user_files = {entry.name: entry.stat(follow_symlinks=False) for entry in scan}
+        user_files = scan_directory(user_directory)
         for file_name in file_names:
             try:
                 user_file_stats = shallow_stats(user_files[file_name])
