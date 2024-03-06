@@ -196,6 +196,13 @@ def include_walk(include_file_name: Path | None,
             logger.info(f"Nothing found for include line #{line_number}: {line}")
 
 
+def separate_symlinks(directory: Path, file_names: list[str]) -> tuple[list[str], list[str]]:
+    def is_symlink(file_name: str) -> bool:
+        return (directory/file_name).is_symlink()
+
+    return list(itertools.filterfalse(is_symlink, file_names)), list(filter(is_symlink, file_names))
+
+
 def backup_directory(user_data_location: Path,
                      new_backup_path: Path,
                      last_backup_path: Path | None,
@@ -220,6 +227,7 @@ def backup_directory(user_data_location: Path,
     new_backup_directory_created = True
 
     previous_backup_directory = last_backup_path/relative_path if last_backup_path else None
+    user_file_names, user_symlinks = separate_symlinks(current_user_path, user_file_names)
 
     matching, mismatching, errors = compare_to_backup(current_user_path,
                                                       previous_backup_directory,
@@ -240,7 +248,7 @@ def backup_directory(user_data_location: Path,
         else:
             errors.append(file_name)
 
-    for file_name in itertools.chain(mismatching, errors):
+    for file_name in itertools.chain(mismatching, errors, user_symlinks):
         new_backup_file = new_backup_directory/file_name
         user_file = current_user_path/file_name
         try:
