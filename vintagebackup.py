@@ -504,9 +504,7 @@ def delete_oldest_backups_for_space(backup_location: Path, space_requirement: st
         any_deletions = True
 
     if any_deletions:
-        remaining_backups = all_backups(backup_location)
-        logger.info(f"Stopped deletions. {len(remaining_backups)} backups remain,"
-                    f" earliest: {remaining_backups[0]}")
+        log_backup_deletions(backup_location)
 
     if shutil.disk_usage(backup_location).free < free_storage_required:
         logger.warning(f"Could not free up {byte_units(free_storage_required)} of storage"
@@ -560,9 +558,15 @@ def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
         any_deletions = True
 
     if any_deletions:
-        remaining_backups = all_backups(backup_folder)
-        logger.info(f"Stopped deletions. {len(remaining_backups)} backups remain,"
-                    f" earliest: {remaining_backups[0]}")
+        log_backup_deletions(backup_folder)
+
+
+def log_backup_deletions(backup_folder: Path) -> None:
+    remaining_backups = all_backups(backup_folder)
+    count = len(remaining_backups)
+    backups = f"backup{"" if count == 1 else "s"}"
+    remain = f"remain{"s" if count == 1 else ""}"
+    logger.info(f"Stopped deletions. {count} {backups} {remain}. Earliest: {remaining_backups[0]}")
 
 
 def print_backup_storage_stats(backup_location: str | Path) -> None:
