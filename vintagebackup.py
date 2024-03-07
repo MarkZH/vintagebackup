@@ -466,7 +466,7 @@ def delete_oldest_backups_for_space(backup_location: Path, space_requirement: st
     space_text = "".join(space_requirement.lower().split())
     prefixes = [p.lower() for p in storage_prefixes]
     prefix_pattern = "".join(prefixes)
-    pattern = rf"\d+(.\d*)?[{prefix_pattern}]?b?"
+    pattern = rf"\d+(\.\d*)?([{prefix_pattern}]?b?|%)"
     total_storage = shutil.disk_usage(backup_location).total
     if not re.fullmatch(pattern, space_text):
         raise CommandLineError(f"Incorrect format of free-up space: {space_text}")
