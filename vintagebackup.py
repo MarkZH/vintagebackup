@@ -590,7 +590,7 @@ def read_configuation_file(config_file_name: str) -> list[str]:
             if not line or line.strip().startswith("#"):
                 continue
             parameter, value = line.split(":", maxsplit=1)
-            arguments.append(f"--{"-".join(parameter.split())}")
+            arguments.append(f"--{"-".join(parameter.lower().split())}")
             arguments.append(value.strip())
 
     return list(filter(None, arguments))
