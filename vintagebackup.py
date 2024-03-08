@@ -146,6 +146,7 @@ def compare_to_backup(user_directory: Path,
     if not backup_directory:
         return [], [], file_names
     elif examine_whole_file:
+        assert not any((user_directory/file_name).is_symlink() for file_name in file_names)
         return filecmp.cmpfiles(user_directory, backup_directory, file_names, shallow=False)
     else:
         def scan_directory(directory: Path) -> dict[str, os.stat_result]:
