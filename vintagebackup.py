@@ -10,6 +10,7 @@ import stat
 import itertools
 import re
 import textwrap
+import math
 from collections import Counter
 from typing import Iterator
 from pathlib import Path
@@ -37,7 +38,8 @@ def byte_units(size: float) -> str:
         if size_in_units < 1000:
             break
 
-    return f"{size_in_units:.3f} {prefix}B"
+    decimal_digits = 4 - math.floor(math.log10(size_in_units) + 1)
+    return f"{size_in_units:.{decimal_digits}f} {prefix}B"
 
 
 def all_backups(backup_location: Path) -> list[Path]:
