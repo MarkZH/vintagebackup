@@ -25,6 +25,8 @@ new_backup_directory_created = False
 
 
 class CommandLineError(ValueError):
+    """An exception class to catch invalid command line parameters."""
+
     pass
 
 
@@ -32,6 +34,7 @@ storage_prefixes = ["", "k", "M", "G", "T", "P", "E", "Z", "Y", "R", "Q"]
 
 
 def byte_units(size: float) -> str:
+    """Display a number of bytes with four significant figures with byte units."""
     for index, prefix in enumerate(storage_prefixes):
         prefix_size = 10**(3*index)
         size_in_units = size/prefix_size
@@ -43,6 +46,7 @@ def byte_units(size: float) -> str:
 
 
 def all_backups(backup_location: Path) -> list[Path]:
+    """Return a sorted list of all backups at the given location."""
     year_pattern = re.compile(r"\d\d\d\d")
     backup_pattern = re.compile(r"\d\d\d\d-\d\d-\d\d \d\d-\d\d-\d\d (.*)")
 
@@ -61,6 +65,7 @@ def all_backups(backup_location: Path) -> list[Path]:
 
 
 def find_previous_backup(backup_location: Path) -> Path | None:
+    """Return the most recent backup at the given location."""
     try:
         return all_backups(backup_location)[-1]
     except IndexError:
@@ -70,6 +75,11 @@ def find_previous_backup(backup_location: Path) -> Path | None:
 def glob_file(glob_file_path: Path | None,
               category: str,
               user_data_location: Path) -> Iterator[tuple[int, str, Iterator[Path]]]:
+    """
+    Read a file of glob patterns and return an iterator over matching paths.
+
+    The line number and line in the file are included in the iterator for error reporting.
+    """
     if not glob_file_path:
         return
 
@@ -92,6 +102,7 @@ def glob_file(glob_file_path: Path | None,
 
 
 def create_exclusion_list(exclude_file: Path | None, user_data_location: Path) -> set[Path]:
+    """Create a set of files and folders to excluded from backups from glob patterns in a file."""
     exclusions: set[Path] = set()
     for line_number, line, exclusion_set in glob_file(exclude_file, "exclude", user_data_location):
         original_count = len(exclusions)
@@ -104,27 +115,38 @@ def create_exclusion_list(exclude_file: Path | None, user_data_location: Path) -
 def filter_excluded_paths(exclusions: set[Path],
                           current_dir: Path,
                           name_list: list[str]) -> list[str]:
+    """Remove excluded files and folders from the data being backed up."""
     current_set = set(current_dir/name for name in name_list)
     return [path.name for path in current_set - exclusions]
 
 
 def get_user_location_record(backup_location: Path) -> Path:
+    """Return the file that contains the user directory that is backed up at the given location."""
     return backup_location/"vintagebackup.source.txt"
 
 
 def record_user_location(user_location: Path, backup_location: Path) -> None:
+    """Write the user directory being backed up to a file in the base backup directory."""
     user_folder_record = get_user_location_record(backup_location)
     with open(user_folder_record, "w") as user_record:
         user_record.write(str(user_location) + "\n")
 
 
 def backup_source(backup_location: Path) -> Path:
+    """Read the user directory that was backed up to the given backup location."""
     user_folder_record = get_user_location_record(backup_location)
     with open(user_folder_record) as user_record:
         return Path(user_record.read().rstrip("\n"))
 
 
 def confirm_user_location_is_unchanged(user_data_location: Path, backup_location: Path) -> None:
+    """
+    Make sure the user directory being backed up is the same as the previous backup run.
+
+    An exception will be thrown when attempting to back up a different user directory to the one
+    that was backed up previously. Backing up multiple different directories to the same backup
+    location negates the hard linking functionality.
+    """
     try:
         recorded_user_folder = backup_source(backup_location)
         if not os.path.samefile(recorded_user_folder, user_data_location):
@@ -136,6 +158,15 @@ def confirm_user_location_is_unchanged(user_data_location: Path, backup_location
 
 
 def shallow_stats(stats: os.stat_result) -> tuple[int, int, int]:
+    """
+    Return simple file information for quicker checks for file changes since the last bacukp.
+
+    When not inspecting file contents, only look at the file size, type, and modification time--in
+    that order.
+
+    Parameter:
+    stats: File information retrieved from a DirEntry.stat() call.
+    """
     return (stats.st_size, stat.S_IFMT(stats.st_mode), stats.st_mtime_ns)
 
 
@@ -143,6 +174,24 @@ def compare_to_backup(user_directory: Path,
                       backup_directory: Path | None,
                       file_names: list[str],
                       examine_whole_file: bool) -> tuple[list[str], list[str], list[str]]:
+    """
+    Sort a list of files according to whether they have changed since the last backup.
+
+    Parameters:
+    user_directory: The subfolder of the user's data currently being walked through
+    backup_direcotry: The backup folder that corresponds with the user_directory
+    file_names: A list of regular files in the user directory.
+    examine_whole_file: Whether the contents of the file should be examined, or just file
+    attributes.
+
+    The file names will be sorted into three lists and returned in this order: (1) matching files
+    that have not changed since the last backup, (2) mismatched files that have changed, (3) error
+    files that could not be compared for some reason (usually because it is a new file with no
+    previous backup). This is the same behavior as filecmp.cmpfiles().
+
+    If file_names contain symlinks, they will be followed if examine_whole_file is True and not
+    followed otherwise.
+    """
     if not backup_directory:
         return [], [], file_names
     elif examine_whole_file:
@@ -177,6 +226,11 @@ def compare_to_backup(user_directory: Path,
 
 
 def create_hard_link(previous_backup: Path, new_backup: Path) -> bool:
+    """
+    Create a hard link between unchanged backup files.
+
+    Return True if successful, False if hard linked failed.
+    """
     try:
         os.link(previous_backup, new_backup, follow_symlinks=False)
         return True
@@ -189,6 +243,7 @@ def create_hard_link(previous_backup: Path, new_backup: Path) -> bool:
 
 def include_walk(include_file_name: Path | None,
                  user_directory: Path) -> Iterator[tuple[str, list[str], list[str]]]:
+    """Create an iterator similar to os.walk() through glob patterns in a file."""
     for line_number, line, inclusions in glob_file(include_file_name, "include", user_directory):
         found_paths = False
         for path in inclusions:
@@ -202,6 +257,16 @@ def include_walk(include_file_name: Path | None,
 
 
 def separate_symlinks(directory: Path, file_names: list[str]) -> tuple[list[str], list[str]]:
+    """
+    Separate regular files from symlinks.
+
+    Parameters:
+    directory: The directory containing all the files.
+    file_names: A list of files in the directory.
+
+    Returns:
+    Two lists: the first a list of regular files, the second a list of symlinks.
+    """
     def is_symlink(file_name: str) -> bool:
         return (directory/file_name).is_symlink()
 
@@ -218,6 +283,21 @@ def backup_directory(user_data_location: Path,
                      examine_whole_file: bool,
                      action_counter: Counter[str],
                      is_include_backup: bool) -> None:
+    """
+    Backup the files in a subfolder in the user's directory.
+
+    Parameters:
+    user_data_location: The base directory that is being backed up
+    new_backup_path: The base directory of the new dated backup
+    last_backup_path: The base directory of the previous dated backup
+    current_user_path: The user directory currently being walked through
+    user_dir_names: The names of directories contained in the current_user_path
+    user_file_names: The names of files contained in the current_user_path
+    exclusions: A set of files and folders to exclude from the backup
+    examine_whole_file: Whether to examine file contents to check for changes since the last backup
+    action_counter: A counter to track how many files have been linked, copied, or failed for both
+    is_include_backup: Whether the current directory comes from the include file.
+    """
     user_file_names[:] = filter_excluded_paths(exclusions,
                                                current_user_path,
                                                user_file_names)
@@ -271,6 +351,17 @@ def create_new_backup(user_data_location: Path,
                       include_file: Path | None,
                       examine_whole_file: bool,
                       force_copy: bool) -> None:
+    """
+    Start the backup process.
+
+    Parameters:
+    user_data_location: The folder containing the data to be backed up
+    backup_location: The base directory of the backup destination
+    exclude_file: A file containg a list of path glob patterns to exclude from the backup
+    include_file: A file containg a list of path glob patterns to include in the backup.
+    examine_whole_file: Whether to examine file contents to check for changes since the last backup
+    force_copy: Whether to always copy files, regardless of whether a previous backup exists.
+    """
     if not os.path.isdir(user_data_location):
         raise CommandLineError(f"The user folder path is not a folder: {user_data_location}")
 
@@ -354,6 +445,7 @@ def create_new_backup(user_data_location: Path,
 
 
 def setup_log_file(logger: logging.Logger, log_file_path: str) -> None:
+    """Set up logging to write to a file."""
     log_file = logging.FileHandler(log_file_path, encoding="utf8")
     log_file_format = logging.Formatter(fmt="%(asctime)s %(levelname)s    %(message)s")
     log_file.setFormatter(log_file_format)
@@ -361,6 +453,19 @@ def setup_log_file(logger: logging.Logger, log_file_path: str) -> None:
 
 
 def search_backups(search_directory: Path, backup_folder: Path) -> Path:
+    """
+    Decide which path to restore among all backups for all items in the given directory.
+
+    The user will pick from a list of all files and folders in search_directory that have ever been
+    backed up.
+
+    Parameters:
+    search_directory: The directory from which backed up files and folders will be listed
+    backup_folder: The backup destination
+
+    Returns:
+    The path to a file or folder that will then be searched for among backups.
+    """
     if search_directory.is_symlink() or not search_directory.is_dir():
         raise CommandLineError(f"The given search path is not a directory: {search_directory}")
     try:
@@ -404,6 +509,19 @@ def search_backups(search_directory: Path, backup_folder: Path) -> Path:
 
 
 def recover_path(recovery_path: Path, backup_location: Path) -> None:
+    """
+    Decide which version of a file to restore to its previous location.
+
+    The user will be presented with a list of backups that contain different versions of the file
+    or folder. Any backup that contains a hard-linked copy of a file will be skipped. After the
+    user selects a backup date, the file or folder from that backup will be copied to the
+    corresponding location in the user's data. The copy from the backup will be renamed with a
+    number so as to not overwrite any existing file with the same name.
+
+    Parameters:
+    recovery_path: The file or folder that is to be restored.
+    backup_location: The folder containing all backups.
+    """
     try:
         with open(get_user_location_record(backup_location)) as location_file:
             user_data_location = Path(location_file.readline().rstrip("\n")).resolve(strict=True)
@@ -457,6 +575,7 @@ def recover_path(recovery_path: Path, backup_location: Path) -> None:
 
 
 def delete_last_backup(backup_location: Path) -> None:
+    """Delete the most recent backup."""
     last_backup_directory = find_previous_backup(backup_location)
     if last_backup_directory:
         logger.info(f"Deleting failed backup: {last_backup_directory}")
@@ -466,6 +585,16 @@ def delete_last_backup(backup_location: Path) -> None:
 
 
 def delete_oldest_backups_for_space(backup_location: Path, space_requirement: str) -> None:
+    """
+    Delete backups--starting with the oldest--until enough space is free on the backup destination.
+
+    The most recent backup will never be deleted.
+
+    Parameters:
+    backup_location: The folder containing all backups
+    space_reuirement: The amount of space that should be free after deleting backups. This may be
+    expressed in bytes ("MB", "GB", etc.) or as a percentage ("%") of the total storage space.
+    """
     space_text = "".join(space_requirement.lower().split())
     prefixes = [p.lower() for p in storage_prefixes]
     prefix_pattern = "".join(prefixes)
@@ -515,6 +644,15 @@ def delete_oldest_backups_for_space(backup_location: Path, space_requirement: st
 
 
 def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
+    """
+    Delete backups older than a given timespan.
+
+    Parameters:
+    backup_folder: The folder containing all backups
+    time_span: The maximum age of a backup to not be deleted. It is specified as a string with a
+    whole number followed by a single letter: "d" for days, "w" for weeks, "m" for calendar months,
+    or "y" for calendar years.
+    """
     time_span = "".join(time_span.lower().split())
     try:
         number = int(time_span[:-1])
@@ -565,6 +703,7 @@ def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
 
 
 def log_backup_deletions(backup_folder: Path) -> None:
+    """Log information about the remaining backups after deletions."""
     remaining_backups = all_backups(backup_folder)
     count = len(remaining_backups)
     backups = f"backup{"" if count == 1 else "s"}"
@@ -573,6 +712,7 @@ def log_backup_deletions(backup_folder: Path) -> None:
 
 
 def print_backup_storage_stats(backup_location: str | Path) -> None:
+    """Log information about the storage space of the backup medium."""
     try:
         backup_storage = shutil.disk_usage(backup_location)
         percent_used = round(100*backup_storage.used/backup_storage.total)
@@ -586,6 +726,7 @@ def print_backup_storage_stats(backup_location: str | Path) -> None:
 
 
 def read_configuation_file(config_file_name: str) -> list[str]:
+    """Parse a configuration file into command line arguments."""
     arguments: list[str] = []
 
     with open(config_file_name) as file:
@@ -600,6 +741,7 @@ def read_configuation_file(config_file_name: str) -> list[str]:
 
 
 def format_paragraphs(lines: str, line_length: int) -> str:
+    """Format multiparagaph text in when printing--help."""
     paragraphs: list[str] = []
     needs_paragraph_break = True
     for paragraph in lines.split("\n\n"):
@@ -618,22 +760,26 @@ def format_paragraphs(lines: str, line_length: int) -> str:
 
 
 def format_text(lines: str) -> str:
+    """Format unindented paragraphs (program description and epilogue) in --help."""
     width, _ = shutil.get_terminal_size()
     return format_paragraphs(lines, width)
 
 
 def format_help(lines: str) -> str:
+    """Format indented command line argument descriptions in --help."""
     width, _ = shutil.get_terminal_size()
     return format_paragraphs(lines, width - 24)
 
 
 def add_no_option(user_input: argparse.ArgumentParser, name: str) -> None:
+    """Add negating option for boolean command line arguments."""
     user_input.add_argument(f"--no-{name}", action="store_true", help=format_help(f"""
 Disable the --{name} option. This is primarily used if "{name}" appears in a
 configuration file. This option has priority even if --{name} is listed later."""))
 
 
 def toggle_set(args: argparse.Namespace, name: str) -> bool:
+    """Check that a boolean command line option has been selected and not negated with --no-X."""
     options = vars(args)
     return options[name] and not options[f"no_{name}"]
 
@@ -853,6 +999,7 @@ log file is desired, use the file name NUL on Windows and
             recover_path(chosen_recovery_path, backup_folder)
         else:
             def path_or_none(arg: str | None) -> Path | None:
+                """Create a Path instance if the input string is valid."""
                 return Path(arg).absolute() if arg else None
 
             try:
