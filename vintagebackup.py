@@ -851,7 +851,7 @@ log file is desired, use the file name NUL on Windows and
             chosen_recovery_path = search_backups(search_directory, backup_folder)
             recover_path(chosen_recovery_path, backup_folder)
         else:
-            def path_or_none(arg: str) -> Path | None:
+            def path_or_none(arg: str | None) -> Path | None:
                 return Path(arg).absolute() if arg else None
 
             try:
