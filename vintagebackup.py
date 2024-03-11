@@ -405,7 +405,7 @@ def create_new_backup(user_data_location: Path,
         logger.info("No previous backups. Copying everything ...")
 
     logger.info("")
-    logger.info(f"Deep file inspection = {examine_whole_file}")
+    logger.info(f"Reading file contents = {examine_whole_file}")
 
     action_counter: Counter[str] = Counter()
     exclusions = create_exclusion_list(exclude_file, user_data_location)
