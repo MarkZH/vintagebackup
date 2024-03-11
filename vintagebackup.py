@@ -797,7 +797,14 @@ If a file in the directory being backed up is unchanged since the last
 back up, a hard link to the same file in the previous backup is created.
 This way, unchanged files do not take up more storage space in the backup
 location, allowing for possible years of daily backups, all while having
-each folder in the backup location contain a full backup."""))
+each folder in the backup location contain a full backup.
+
+Technical notes:
+
+- Symbolic links are not followed and are always copied as symbolic links.
+
+- If two files in the user's directory are hard-linked together, these files will be copied
+separately (the hard link is not preserved in the backup.)"""))
 
     user_input.add_argument("-h", "--help", action="store_true", help=format_help("""
 Show this help message and exit."""))
