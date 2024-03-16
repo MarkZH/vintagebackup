@@ -779,7 +779,7 @@ configuration file. This option has priority even if --{name} is listed later.""
 
 
 def toggle_is_set(args: argparse.Namespace, name: str) -> bool:
-    """Check that a boolean command line option has been selected and not negated with --no-X."""
+    """Check that a boolean command line option --X has been selected and not negated by --no-X."""
     options = vars(args)
     return options[name] and not options[f"no_{name}"]
 
