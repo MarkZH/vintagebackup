@@ -34,7 +34,12 @@ storage_prefixes = ["", "k", "M", "G", "T", "P", "E", "Z", "Y", "R", "Q"]
 
 
 def byte_units(size: float) -> str:
-    """Display a number of bytes with four significant figures with byte units."""
+    """
+    Display a number of bytes with four significant figures with byte units.
+
+    >>> byte_units(12345)
+    '12.35 kB'
+    """
     for index, prefix in enumerate(storage_prefixes):
         prefix_size = 10**(3*index)
         size_in_units = size/prefix_size
@@ -352,7 +357,7 @@ def create_new_backup(user_data_location: Path,
                       examine_whole_file: bool,
                       force_copy: bool) -> None:
     """
-    Start the backup process.
+    Create a new dated backup.
 
     Parameters:
     user_data_location: The folder containing the data to be backed up
