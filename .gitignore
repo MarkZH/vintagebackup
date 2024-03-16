@@ -6,3 +6,4 @@
 *.bat
 *.txt
 temp_*
+*.pyc

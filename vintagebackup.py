@@ -350,7 +350,8 @@ def create_new_backup(user_data_location: Path,
                       exclude_file: Path | None,
                       include_file: Path | None,
                       examine_whole_file: bool,
-                      force_copy: bool) -> None:
+                      force_copy: bool,
+                      is_backup_move: bool = False) -> None:
     """
     Start the backup process.
 
@@ -386,21 +387,26 @@ def create_new_backup(user_data_location: Path,
     os_name = f"{platform.system()} {platform.release()}".strip()
     new_backup_path = backup_location/str(now.year)/f"{backup_date} ({os_name})"
 
-    logger.info("")
-    logger.info("=====================")
-    logger.info(" Starting new backup")
-    logger.info("=====================")
-    logger.info("")
+    if not is_backup_move:
+        logger.info("")
+        logger.info("=====================")
+        logger.info(" Starting new backup")
+        logger.info("=====================")
+        logger.info("")
 
     confirm_user_location_is_unchanged(user_data_location, backup_location)
     record_user_location(user_data_location, backup_location)
 
-    logger.info(f"User's data     : {user_data_location}")
-    logger.info(f"Backup location : {new_backup_path}")
+    if is_backup_move:
+        logger.info(f"Original backup  : {user_data_location}")
+        logger.info(f"Temporary backup : {new_backup_path}")
+    else:
+        logger.info(f"User's data      : {user_data_location}")
+        logger.info(f"Backup location  : {new_backup_path}")
 
     last_backup_path = None if force_copy else find_previous_backup(backup_location)
     if last_backup_path:
-        logger.info(f"Previous backup : {last_backup_path}")
+        logger.info(f"Previous backup  : {last_backup_path}")
     else:
         logger.info("No previous backups. Copying everything ...")
 
@@ -702,13 +708,89 @@ def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
         log_backup_deletions(backup_folder)
 
 
+def plural_noun(count: int, word: str) -> str:
+    """
+    Convert a noun to a simple plural form if the count is not one.
+
+    >>> plural_noun(5, "cow")
+    'cows'
+
+    >>> plural_noun(1, "cat")
+    'cat'
+
+    Irregular nouns that are not pluralized by appending an "s" are not supported.
+    >>> plural_noun(3, "fox")
+    'foxs'
+    """
+    return f"{word}{'' if count == 1 else 's'}"
+
+
+def plural_verb(count: int, word: str) -> str:
+    """
+    Conjugate a third-person present-tense verb based on the count of subjects.
+
+    >>> count = 4
+    >>> f"In the park, {count} people {plural_verb(count, "play")} chess."
+    'In the park, 4 people play chess.'
+    >>> count = 1
+    >>> f"In the house, {count} cat {plural_verb(count, "chase")} a mouse."
+    'In the house, 1 cat chases a mouse.'
+
+    Irregular verbs are not supported.
+    >>> plural_verb(1, "do")
+    'dos'
+
+    "does" would be expected here (i.e., "it does").
+
+    >>> plural_verb(2, "be")
+    'be'
+
+    "are" would be expected here (i.e., "they are").
+    """
+    return f"{word}{'s' if count == 1 else ''}"
+
+
 def log_backup_deletions(backup_folder: Path) -> None:
     """Log information about the remaining backups after deletions."""
     remaining_backups = all_backups(backup_folder)
     count = len(remaining_backups)
-    backups = f"backup{"" if count == 1 else "s"}"
-    remain = f"remain{"s" if count == 1 else ""}"
+    backups = plural_noun(count, "backup")
+    remain = plural_verb(count, "remain")
     logger.info(f"Stopped deletions. {count} {backups} {remain}. Earliest: {remaining_backups[0]}")
+
+
+def move_backups(old_backup_location: Path, new_backup_location: Path, move_count: str) -> None:
+    """Move a set of backups to a new location."""
+    backups_to_move = (all_backups(old_backup_location)
+                       if move_count == "all"
+                       else all_backups(old_backup_location)[-int(move_count):])
+
+    logger.info("=====================")
+    logger.info(f"Moving {move_count} {plural_noun(len(backups_to_move), "backup")}")
+    logger.info(f"from {old_backup_location}")
+    logger.info(f"to   {new_backup_location}")
+    logger.info("=====================")
+
+    for backup in backups_to_move:
+        create_new_backup(backup, new_backup_location, None, None, False, False, True)
+
+        dated_backup_path = all_backups(new_backup_location)[-1]
+        backup_year_folder = dated_backup_path.parent.parent/backup.parent.name
+        correct_backup_path = backup_year_folder/backup.name
+        backup_year_folder.mkdir(parents=True, exist_ok=True)
+
+        logger.info("")
+        logger.info(f"Renaming {dated_backup_path}")
+        logger.info(f"to       {correct_backup_path}")
+
+        dated_backup_path.rename(correct_backup_path)
+
+        backup_source_file = get_user_location_record(new_backup_location)
+        backup_source_file.unlink()
+        logger.info("---------------------")
+
+    original_backup_source = backup_source(old_backup_location)
+    record_user_location(original_backup_source, new_backup_location)
 
 
 def print_backup_storage_stats(backup_location: str | Path) -> None:
@@ -946,6 +1028,18 @@ name will be written to the backup folder. The default is
 log file is desired, use the file name NUL on Windows and
 /dev/null on Linux, Macs, and similar."""))
 
+    user_input.add_argument("--move-backup", metavar="NEW_BACKUP_LOCATION", help=format_help("""
+Move a backup set to a new location. The value of this argument is the new location. The
+--backup-folder option is required to specify the current location of the backup set, and the
+--move-count options is required to specify how many of the most recent backups to move. Moving
+each dated backup will take just as long as a normal backup to move since the hard links to
+previous backups will be recreated to preserve the space savings."""))
+
+    user_input.add_argument("--move-count", help=format_help("""
+Specify the number of the most recent backups to move, or "all" if every backup should be moved
+to the new location. Moving each dated backup will take just as long as a normal backup, so
+some planning is needed when deciding how many backups should be moved."""))
+
     command_line_options = sys.argv[1:] or ["--help"]
     command_line_args = user_input.parse_args(command_line_options)
     if command_line_args.config:
@@ -1004,6 +1098,14 @@ log file is desired, use the file name NUL on Windows and
             print(search_directory)
             chosen_recovery_path = search_backups(search_directory, backup_folder)
             recover_path(chosen_recovery_path, backup_folder)
+        elif args.move_backup:
+            try:
+                old_backup_location = Path(args.backup_folder).resolve(strict=True)
+            except FileNotFoundError:
+                raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
+            action = "move backups"
+            new_backup_location = Path(args.move_backup).absolute()
+            move_backups(old_backup_location, new_backup_location, args.move_count)
         else:
             def path_or_none(arg: str | None) -> Path | None:
                 """Create a Path instance if the input string is valid."""
