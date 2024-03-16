@@ -778,7 +778,7 @@ Disable the --{name} option. This is primarily used if "{name}" appears in a
 configuration file. This option has priority even if --{name} is listed later."""))
 
 
-def toggle_set(args: argparse.Namespace, name: str) -> bool:
+def toggle_is_set(args: argparse.Namespace, name: str) -> bool:
     """Check that a boolean command line option has been selected and not negated with --no-X."""
     options = vars(args)
     return options[name] and not options[f"no_{name}"]
@@ -972,7 +972,7 @@ log file is desired, use the file name NUL on Windows and
 
     try:
         setup_log_file(logger, args.log)
-        if toggle_set(args, "debug"):
+        if toggle_is_set(args, "debug"):
             logger.setLevel(logging.DEBUG)
         logger.debug(args)
         if command_line_args.config:
@@ -1017,13 +1017,13 @@ log file is desired, use the file name NUL on Windows and
             backup_folder = Path(args.backup_folder).absolute()
 
             action = "backup"
-            delete_last_backup_on_error = toggle_set(args, "delete_on_error")
+            delete_last_backup_on_error = toggle_is_set(args, "delete_on_error")
             create_new_backup(user_folder,
                               backup_folder,
                               path_or_none(args.exclude),
                               path_or_none(args.include),
-                              toggle_set(args, "whole_file"),
-                              toggle_set(args, "force_copy"))
+                              toggle_is_set(args, "whole_file"),
+                              toggle_is_set(args, "force_copy"))
 
             if args.free_up:
                 delete_oldest_backups_for_space(backup_folder, args.free_up)
