@@ -804,11 +804,14 @@ This way, unchanged files do not take up more storage space in the backup
 location, allowing for possible years of daily backups, all while having
 each folder in the backup location contain a full backup.
 
+The following options will cause Vinatage Backup to perform an action other than
+creating a new backup: --help, --recover, --list. See below for more information.
+
 Technical notes:
 
 - Symbolic links are not followed and are always copied as symbolic links.
 
-- If two files in the user's directory are hard-linked together, these files will be copied
+- If two files in the user's directory are hard-linked together, these files will be copied/linked
 separately (the hard link is not preserved in the backup.)"""))
 
     user_input.add_argument("-h", "--help", action="store_true", help=format_help("""
