@@ -77,52 +77,55 @@ def find_previous_backup(backup_location: Path) -> Path | None:
         return None
 
 
-def glob_file(glob_file_path: Path | None,
-              category: str,
-              user_data_location: Path) -> Iterator[tuple[int, str, Iterator[Path]]]:
-    """
-    Read a file of glob patterns and return an iterator over matching paths.
-
-    The line number and line in the file are included in the iterator for error reporting.
-    """
-    if not glob_file_path:
+def backup_paths(user_folder: Path, alter_file: Path | None) -> Iterator[tuple[Path, list[str]]]:
+    """Return an iterator to all paths in a user's folder after altering it with an alter file."""
+    if not alter_file:
+        yield from itertools.starmap(lambda cwd, _, files: (cwd, files), os.walk(user_folder))
         return
 
-    logger.info(f"Reading {category} file: {glob_file_path}")
-    with open(glob_file_path) as glob_file:
-        for line_number, line in enumerate(glob_file, 1):
-            line = line.rstrip("\n")
-            glob_path = Path(line)
-            if glob_path.is_absolute():
-                try:
-                    pattern = str(glob_path.relative_to(user_data_location))
-                except ValueError:
-                    logger.info(f"Ignoring {category} line #{line_number} outside of user folder:"
-                                f" {glob_path}")
-                    continue
-            else:
-                pattern = str(glob_path)
+    backup_set: set[Path] = set()
+    for current_directory, directory_names, file_names in os.walk(user_folder):
+        backup_set |= {user_folder/current_directory/name for name in directory_names + file_names}
 
-            yield line_number, line, user_data_location.glob(pattern)
+    logger.info(f"Reading alteration file: {alter_file}")
+    with open(alter_file) as alterations:
+        for line_number, alteration in enumerate(alterations, 1):
+            alteration = alteration.lstrip().rstrip("\n")
+            sign = alteration[0]
 
+            if sign not in "-+#":
+                raise ValueError(f"Line #{line_number} ({alteration}): The first symbol "
+                                 "of each line in the alter file must be -, +, or #.")
 
-def create_exclusion_list(exclude_file: Path | None, user_data_location: Path) -> set[Path]:
-    """Create a set of files and folders to excluded from backups from glob patterns in a file."""
-    exclusions: set[Path] = set()
-    for line_number, line, exclusion_set in glob_file(exclude_file, "exclude", user_data_location):
-        original_count = len(exclusions)
-        exclusions.update(exclusion_set)
-        if len(exclusions) == original_count:
-            logger.info(f"Nothing found for exclude line #{line_number}: {line}")
-    return exclusions
+            if sign == "#":
+                continue
 
+            pattern = user_folder/alteration[1:].lstrip()
+            if not pattern.is_relative_to(user_folder):
+                logger.info(f"Line #{line_number} ({alteration}): Ignoring alterations with paths "
+                            "outside user folder.")
+                continue
 
-def filter_excluded_paths(exclusions: set[Path],
-                          current_dir: Path,
-                          name_list: list[str]) -> list[str]:
-    """Remove excluded files and folders from the data being backed up."""
-    current_set = set(current_dir/name for name in name_list)
-    return [path.name for path in current_set - exclusions]
+            if pattern.is_dir() and not pattern.is_symlink():
+                pattern = pattern/"**"/"*"
+
+            modify = backup_set.discard if sign == "-" else backup_set.add
+            backup_count = len(backup_set)
+            for path_result in user_folder.glob(str(pattern.relative_to(user_folder))):
+                modify(path_result)
+
+            if len(backup_set) == backup_count:
+                logger.info(f"Line #{line_number} ({alteration}) did not change backup set.")
+
+    backup_tree: dict[Path, list[str]] = {}  # Folder name -> list of files
+    for path in backup_set:
+        if path.is_dir() and not path.is_symlink():
+            backup_tree.setdefault(path, [])
+        else:
+            backup_tree.setdefault(path.parent, []).append(path.name)
+
+    for directory, file_names in sorted(backup_tree.items()):
+        yield directory, file_names
 
 
 def get_user_location_record(backup_location: Path) -> Path:
@@ -246,21 +249,6 @@ def create_hard_link(previous_backup: Path, new_backup: Path) -> bool:
         return False
 
 
-def include_walk(include_file_name: Path | None,
-                 user_directory: Path) -> Iterator[tuple[str, list[str], list[str]]]:
-    """Create an iterator similar to os.walk() through glob patterns in a file."""
-    for line_number, line, inclusions in glob_file(include_file_name, "include", user_directory):
-        found_paths = False
-        for path in inclusions:
-            found_paths = True
-            if not os.path.islink(path) and os.path.isdir(path):
-                yield from os.walk(path)
-            else:
-                yield str(path.parent), [], [path.name]
-        if not found_paths:
-            logger.info(f"Nothing found for include line #{line_number}: {line}")
-
-
 def separate_symlinks(directory: Path, file_names: list[str]) -> tuple[list[str], list[str]]:
     """
     Separate regular files from symlinks.
@@ -282,12 +270,9 @@ def backup_directory(user_data_location: Path,
                      new_backup_path: Path,
                      last_backup_path: Path | None,
                      current_user_path: Path,
-                     user_dir_names: list[str],
                      user_file_names: list[str],
-                     exclusions: set[Path],
                      examine_whole_file: bool,
-                     action_counter: Counter[str],
-                     is_include_backup: bool) -> None:
+                     action_counter: Counter[str]) -> None:
     """
     Backup the files in a subfolder in the user's directory.
 
@@ -296,23 +281,13 @@ def backup_directory(user_data_location: Path,
     new_backup_path: The base directory of the new dated backup
     last_backup_path: The base directory of the previous dated backup
     current_user_path: The user directory currently being walked through
-    user_dir_names: The names of directories contained in the current_user_path
     user_file_names: The names of files contained in the current_user_path
-    exclusions: A set of files and folders to exclude from the backup
     examine_whole_file: Whether to examine file contents to check for changes since the last backup
     action_counter: A counter to track how many files have been linked, copied, or failed for both
-    is_include_backup: Whether the current directory comes from the include file.
     """
-    user_file_names[:] = filter_excluded_paths(exclusions,
-                                               current_user_path,
-                                               user_file_names)
-    user_dir_names[:] = filter_excluded_paths(exclusions,
-                                              current_user_path,
-                                              user_dir_names)
-
     relative_path = current_user_path.relative_to(user_data_location)
     new_backup_directory = new_backup_path/relative_path
-    os.makedirs(new_backup_directory, exist_ok=is_include_backup)
+    os.makedirs(new_backup_directory)
     global new_backup_directory_created
     new_backup_directory_created = True
 
@@ -352,8 +327,7 @@ def backup_directory(user_data_location: Path,
 
 def create_new_backup(user_data_location: Path,
                       backup_location: Path,
-                      exclude_file: Path | None,
-                      include_file: Path | None,
+                      alter_file: Path | None,
                       examine_whole_file: bool,
                       force_copy: bool) -> None:
     """
@@ -378,11 +352,8 @@ def create_new_backup(user_data_location: Path,
                                f" User data: {user_data_location}"
                                f"; Backup location: {backup_location}")
 
-    if exclude_file and not os.path.isfile(exclude_file):
-        raise CommandLineError(f"Exclude file not found: {exclude_file}")
-
-    if include_file and not os.path.isfile(include_file):
-        raise CommandLineError(f"Include file not found: {include_file}")
+    if alter_file and not os.path.isfile(alter_file):
+        raise CommandLineError(f"Alter file not found: {alter_file}")
 
     os.makedirs(backup_location, exist_ok=True)
 
@@ -413,31 +384,15 @@ def create_new_backup(user_data_location: Path,
     logger.info(f"Reading file contents = {examine_whole_file}")
 
     action_counter: Counter[str] = Counter()
-    exclusions = create_exclusion_list(exclude_file, user_data_location)
     logger.info("Running backup ...")
-    for current_user_path, user_dir_names, user_file_names in os.walk(user_data_location):
+    for current_user_path, user_file_names in backup_paths(user_data_location, alter_file):
         backup_directory(user_data_location,
                          new_backup_path,
                          last_backup_path,
                          Path(current_user_path),
-                         user_dir_names,
                          user_file_names,
-                         exclusions,
                          examine_whole_file,
-                         action_counter,
-                         False)
-
-    for include_path, _, include_file_list in include_walk(include_file, user_data_location):
-        backup_directory(user_data_location,
-                         new_backup_path,
-                         last_backup_path,
-                         Path(include_path),
-                         [],
-                         include_file_list,
-                         set(),
-                         examine_whole_file,
-                         action_counter,
-                         True)
+                         action_counter)
 
     logger.info("")
     total_files = sum(count for action, count in action_counter.items()
@@ -853,22 +808,22 @@ The destination of the backed up files. This folder will
 contain a set of folders labeled by year, and each year's
 folder will contain all of that year's backups."""))
 
-    user_input.add_argument("-e", "--exclude", help=format_help("""
-The path of a text file containing a list of files and folders
-to exclude from backups. Each line in the file should contain
-one exclusion. Wildcard characters like * and ? are allowed.
-The path should either be an absolute path or one relative to
-the directory being backed up (from the -u option)."""))
+    user_input.add_argument("-a", "--alter", metavar="ALTER_FILE_NAME", help=format_help("""
+Alter the set of files that will be backed up. The value of this argument should be the name of
+a text file that contains lines specifying what files to include or exclude. These may contain
+wildcard characters like *, **, and ? to allow for matching multiple file names.
 
-    user_input.add_argument("-i", "--include", help=format_help("""
-The path of a text file containing a list of files and folders
-to include in the backups. The entries in this text file
-override the exclusions from the --exclude argument. Each line
-should contain one file or directory to include. Wildcard
-characters like * and ? are allowed. The paths should either
-be absolute paths or paths relative to the directory being backed
-up (from the -u option). Included paths must be contained within
-the directory being backed up."""))
+Each line should begin with a minus (-), plus (+), or hash (#). Lines with minus signs specify
+files and folders to exclude. Lines with plus signs specify files and folders to include. Lines
+with hash signs are ignored. All included files must reside within the directory tree of the
+--user-folder. For example, if backing up C:\\Users\\Alice Eaves Roberts, the following alter file:
+
+    # Ignore AppData except Firefox
+    - AppData
+    + AppData/Mozilla/Firefox/
+
+will exclude everything in C:\\Users\\Alice Eaves Roberts\\AppData\\ except the Mozilla\\Firefox
+subfolder."""))
 
     user_input.add_argument("-w", "--whole-file", action="store_true", help=format_help("""
 Examine the entire contents of a file to determine if it has
@@ -1028,8 +983,7 @@ log file is desired, use the file name NUL on Windows and
             delete_last_backup_on_error = toggle_is_set(args, "delete_on_error")
             create_new_backup(user_folder,
                               backup_folder,
-                              path_or_none(args.exclude),
-                              path_or_none(args.include),
+                              path_or_none(args.alter),
                               toggle_is_set(args, "whole_file"),
                               toggle_is_set(args, "force_copy"))
 
