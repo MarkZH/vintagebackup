@@ -714,8 +714,7 @@ def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
     any_deletions = False
     backups = all_backups(backup_folder)
     for backup in backups[:-1]:
-        timestamp_portion = " ".join(backup.name.split()[:2])
-        backup_timestamp = datetime.datetime.strptime(timestamp_portion, backup_date_format)
+        backup_timestamp = backup_datetime(backup)
         if backup_timestamp >= timestamp_to_keep:
             break
 
@@ -729,6 +728,13 @@ def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
 
     if any_deletions:
         log_backup_deletions(backup_folder)
+
+
+def backup_datetime(backup: Path) -> datetime.datetime:
+    """Get the timestamp of a backup from the backup folder name."""
+    timestamp_portion = " ".join(backup.name.split()[:2])
+    backup_timestamp = datetime.datetime.strptime(timestamp_portion, backup_date_format)
+    return backup_timestamp
 
 
 def plural_noun(count: int, word: str) -> str:
@@ -782,14 +788,13 @@ def log_backup_deletions(backup_folder: Path) -> None:
     logger.info(f"Stopped deletions. {count} {backups} {remain}. Earliest: {remaining_backups[0]}")
 
 
-def move_backups(old_backup_location: Path, new_backup_location: Path, move_count: str) -> None:
+def move_backups(old_backup_location: Path,
+                 new_backup_location: Path,
+                 backups_to_move: list[Path]) -> None:
     """Move a set of backups to a new location."""
-    backups_to_move = (all_backups(old_backup_location)
-                       if move_count == "all"
-                       else all_backups(old_backup_location)[-int(move_count):])
-
     logger.info("=====================")
-    logger.info(f"Moving {move_count} {plural_noun(len(backups_to_move), "backup")}")
+    move_count = len(backups_to_move)
+    logger.info(f"Moving {move_count} {plural_noun(move_count, "backup")}")
     logger.info(f"from {old_backup_location}")
     logger.info(f"to   {new_backup_location}")
     logger.info("=====================")
@@ -814,6 +819,25 @@ def move_backups(old_backup_location: Path, new_backup_location: Path, move_coun
 
     original_backup_source = backup_source(old_backup_location)
     record_user_location(original_backup_source, new_backup_location)
+
+
+def last_n_backups(backup_location: Path, n: str) -> list[Path]:
+    """
+    Return a list of the paths of the last n backups.
+
+    backup_location: The location of the backup set.
+    n: A positive integer to get the last n backups, or "all" to get all backups.
+    """
+    backups = all_backups(backup_location)
+    return backups if n == "all" else backups[-int(n):]
+
+
+def backups_since(oldest_backup_date: datetime.datetime, backup_location: Path) -> list[Path]:
+    """Return a list of the backups created since a given date."""
+    def recent_enough(backup_folder: Path) -> bool:
+        return backup_datetime(backup_folder) >= oldest_backup_date
+
+    return list(filter(recent_enough, all_backups(backup_location)))
 
 
 def print_backup_storage_stats(backup_location: str | Path) -> None:
@@ -1053,15 +1077,18 @@ log file is desired, use the file name NUL on Windows and
 
     user_input.add_argument("--move-backup", metavar="NEW_BACKUP_LOCATION", help=format_help("""
 Move a backup set to a new location. The value of this argument is the new location. The
---backup-folder option is required to specify the current location of the backup set, and the
---move-count options is required to specify how many of the most recent backups to move. Moving
-each dated backup will take just as long as a normal backup to move since the hard links to
-previous backups will be recreated to preserve the space savings."""))
+--backup-folder option is required to specify the current location of the backup set, and one
+of --move-count or --move-age is required to specify how many of the most recent backups to
+move. Moving each dated backup will take just as long as a normal backup to move since the hard
+links to previous backups will be recreated to preserve the space savings, so some planning is
+needed when deciding how many backups should be moved."""))
 
     user_input.add_argument("--move-count", help=format_help("""
 Specify the number of the most recent backups to move, or "all" if every backup should be moved
-to the new location. Moving each dated backup will take just as long as a normal backup, so
-some planning is needed when deciding how many backups should be moved."""))
+to the new location."""))
+
+    user_input.add_argument("--move-age", help=format_help("""
+Specify the maximum age of backups to move."""))
 
     command_line_options = sys.argv[1:] or ["--help"]
     command_line_args = user_input.parse_args(command_line_options)
@@ -1128,7 +1155,17 @@ some planning is needed when deciding how many backups should be moved."""))
                 raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
             action = "move backups"
             new_backup_location = Path(args.move_backup).absolute()
-            move_backups(old_backup_location, new_backup_location, args.move_count)
+
+            if args.move_count:
+                backups_to_move = last_n_backups(old_backup_location, args.move_count)
+            elif args.move_age:
+                oldest_backup_date = parse_time_span_to_timepoint(args.move_age)
+                backups_to_move = backups_since(oldest_backup_date, old_backup_location)
+            else:
+                raise CommandLineError("Moving backups requires another argument: "
+                                       "--move-count or --move-age.")
+
+            move_backups(old_backup_location, new_backup_location, backups_to_move)
         else:
             def path_or_none(arg: str | None) -> Path | None:
                 """Create a Path instance if the input string is valid."""
