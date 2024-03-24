@@ -654,15 +654,14 @@ def delete_oldest_backups_for_space(backup_location: Path, space_requirement: st
                        " without deleting most recent backup.")
 
 
-def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
+def parse_time_span_to_timepoint(time_span: str) -> datetime.datetime:
     """
-    Delete backups older than a given timespan.
+    Parse a string representing a time span into a datetime representing a date that long ago.
 
-    Parameters:
-    backup_folder: The folder containing all backups
-    time_span: The maximum age of a backup to not be deleted. It is specified as a string with a
-    whole number followed by a single letter: "d" for days, "w" for weeks, "m" for calendar months,
-    or "y" for calendar years.
+    For example, if time_span is "6m", the result is a date six calendar months ago.
+
+    time_span: A string consisting of a positive integer followed by a single letter: "d" for days,
+    "w" for weeks, "m" for calendar months, and "y" for calendar years.
     """
     time_span = "".join(time_span.lower().split())
     try:
@@ -676,22 +675,41 @@ def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
     letter = time_span[-1]
     now = datetime.datetime.now()
     if letter == "d":
-        timestamp_to_keep = now - datetime.timedelta(days=number)
+        return now - datetime.timedelta(days=number)
     elif letter == "w":
-        timestamp_to_keep = now - datetime.timedelta(weeks=number)
+        return now - datetime.timedelta(weeks=number)
     elif letter == "m":
         new_month = now.month - (number % 12)
         new_year = now.year - (number // 12)
         if new_month < 1:
             new_month += 12
             new_year -= 1
-        timestamp_to_keep = datetime.datetime(new_year, new_month, now.day,
-                                              now.hour, now.minute, now.second, now.microsecond)
+        new_day = now.day
+
+        # If new month has fewer days than current month, the return statement may raise.
+        while True:
+            try:
+                return datetime.datetime(new_year, new_month, new_day,
+                                         now.hour, now.minute, now.second, now.microsecond)
+            except ValueError:
+                new_day -= 1
     elif letter == "y":
-        timestamp_to_keep = datetime.datetime(now.year - number, now.month, now.day,
-                                              now.hour, now.minute, now.second, now.microsecond)
+        return datetime.datetime(now.year - number, now.month, now.day,
+                                 now.hour, now.minute, now.second, now.microsecond)
     else:
         raise CommandLineError(f"Invalid time (valid units: {list("dwmy")}): {time_span}")
+
+
+def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
+    """
+    Delete backups older than a given timespan.
+
+    Parameters:
+    backup_folder: The folder containing all backups
+    time_span: The maximum age of a backup to not be deleted. See parse_time_span_to_timepoint()
+    for how the string is formatted.
+    """
+    timestamp_to_keep = parse_time_span_to_timepoint(time_span)
 
     any_deletions = False
     backups = all_backups(backup_folder)
