@@ -794,8 +794,8 @@ if __name__ == "__main__":
                                          formatter_class=argparse.RawTextHelpFormatter,
                                          allow_abbrev=False,
                                          description=format_text("""
-A backup utility that combines the best aspects of full and incremental backups."""),
-                                         epilog=format_text("""
+A backup utility that combines the best aspects of full and incremental backups.
+
 Every time Vintage Backup runs, a new folder is created at the backup location
 that contains copies of all of the files in the directory being backed up.
 If a file in the directory being backed up is unchanged since the last
