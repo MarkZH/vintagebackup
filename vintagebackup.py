@@ -301,21 +301,22 @@ def backup_directory(user_data_location: Path,
     action_counter: A counter to track how many files have been linked, copied, or failed for both
     is_include_backup: Whether the current directory comes from the include file.
     """
-    user_file_names[:] = filter_excluded_paths(exclusions,
-                                               current_user_path,
-                                               user_file_names)
+    user_file_names = filter_excluded_paths(exclusions,
+                                            current_user_path,
+                                            user_file_names)
     user_dir_names[:] = filter_excluded_paths(exclusions,
                                               current_user_path,
                                               user_dir_names)
+
+    user_file_names, user_symlinks = separate_symlinks(current_user_path, user_file_names)
+    _, user_directory_symlinks = separate_symlinks(current_user_path, user_dir_names)
 
     relative_path = current_user_path.relative_to(user_data_location)
     new_backup_directory = new_backup_path/relative_path
     os.makedirs(new_backup_directory, exist_ok=is_include_backup)
     global new_backup_directory_created
     new_backup_directory_created = True
-
     previous_backup_directory = last_backup_path/relative_path if last_backup_path else None
-    user_file_names, user_symlinks = separate_symlinks(current_user_path, user_file_names)
 
     matching, mismatching, errors = compare_to_backup(current_user_path,
                                                       previous_backup_directory,
@@ -336,7 +337,7 @@ def backup_directory(user_data_location: Path,
         else:
             errors.append(file_name)
 
-    for file_name in itertools.chain(mismatching, errors, user_symlinks):
+    for file_name in itertools.chain(mismatching, errors, user_symlinks, user_directory_symlinks):
         new_backup_file = new_backup_directory/file_name
         user_file = current_user_path/file_name
         try:
