@@ -188,7 +188,7 @@ def compare_to_backup(user_directory: Path,
     Parameters:
     user_directory: The subfolder of the user's data currently being walked through
     backup_direcotry: The backup folder that corresponds with the user_directory
-    file_names: A list of regular files in the user directory.
+    file_names: A list of regular files (not symlinks) in the user directory.
     examine_whole_file: Whether the contents of the file should be examined, or just file
     attributes.
 
@@ -196,9 +196,6 @@ def compare_to_backup(user_directory: Path,
     that have not changed since the last backup, (2) mismatched files that have changed, (3) error
     files that could not be compared for some reason (usually because it is a new file with no
     previous backup). This is the same behavior as filecmp.cmpfiles().
-
-    If file_names contain symlinks, they will be followed if examine_whole_file is True and not
-    followed otherwise.
     """
     if not backup_directory:
         return [], [], file_names
@@ -251,7 +248,9 @@ def create_hard_link(previous_backup: Path, new_backup: Path) -> bool:
 
 def separate_symlinks(directory: Path, file_names: list[str]) -> tuple[list[str], list[str]]:
     """
-    Separate regular files from symlinks.
+    Separate regular files from symlinks within a directory.
+
+    Directories within the given directory are not traversed.
 
     Parameters:
     directory: The directory containing all the files.
