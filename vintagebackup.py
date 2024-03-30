@@ -12,7 +12,7 @@ import re
 import textwrap
 import math
 from collections import Counter
-from typing import Iterator
+from typing import Iterator, Any
 from pathlib import Path
 
 backup_date_format = "%Y-%m-%d %H-%M-%S"
@@ -912,6 +912,11 @@ def toggle_is_set(args: argparse.Namespace, name: str) -> bool:
     return options[name] and not options[f"no_{name}"]
 
 
+def choice_count(*args: Any) -> int:
+    """Count the number of arguments with set values."""
+    return len(list(filter(None, args)))
+
+
 if __name__ == "__main__":
     user_input = argparse.ArgumentParser(add_help=False,
                                          formatter_class=argparse.RawTextHelpFormatter,
@@ -1100,7 +1105,7 @@ Specify the maximum age of backups to move. See --delete-after for the time span
     else:
         args = command_line_args
 
-    action_count = [bool(a) for a in (args.help, args.recover, args.list)].count(True)
+    action_count = choice_count(args.help, args.recover, args.list)
     if action_count > 1:
         print("Only one action (--help, --recover, --list) may be performed at one time.")
         print("If none of these options are used, a backup will start,"
@@ -1157,6 +1162,12 @@ Specify the maximum age of backups to move. See --delete-after for the time span
                 raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
             action = "move backups"
             new_backup_location = Path(args.move_backup).absolute()
+
+            moving_choices = choice_count(args.move_count, args.move_age)
+            if moving_choices != 1:
+                print("Exactly one time spec (--move-count or --move-age) must be used.")
+                user_input.print_usage()
+                sys.exit(1)
 
             if args.move_count:
                 backups_to_move = last_n_backups(old_backup_location, args.move_count)
