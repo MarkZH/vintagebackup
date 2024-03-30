@@ -77,6 +77,11 @@ def find_previous_backup(backup_location: Path) -> Path | None:
         return None
 
 
+def is_real_directory(path: Path) -> bool:
+    """Return True if path is a directory and not a symlink."""
+    return path.is_dir() and not path.is_symlink()
+
+
 def backup_paths(user_folder: Path, alter_file: Path | None) -> Iterator[tuple[Path, list[str]]]:
     """Return an iterator to all paths in a user's folder after altering it with an alter file."""
     if not alter_file:
@@ -106,7 +111,7 @@ def backup_paths(user_folder: Path, alter_file: Path | None) -> Iterator[tuple[P
                             "outside user folder.")
                 continue
 
-            if pattern.is_dir() and not pattern.is_symlink():
+            if is_real_directory(pattern):
                 pattern = pattern/"**"/"*"
 
             modify = backup_set.discard if sign == "-" else backup_set.add
@@ -119,7 +124,7 @@ def backup_paths(user_folder: Path, alter_file: Path | None) -> Iterator[tuple[P
 
     backup_tree: dict[Path, list[str]] = {}  # Folder name -> list of files
     for path in backup_set:
-        if path.is_dir() and not path.is_symlink():
+        if is_real_directory(path):
             backup_tree.setdefault(path, [])
         else:
             backup_tree.setdefault(path.parent, []).append(path.name)
@@ -425,7 +430,7 @@ def search_backups(search_directory: Path, backup_folder: Path) -> Path:
     Returns:
     The path to a file or folder that will then be searched for among backups.
     """
-    if search_directory.is_symlink() or not search_directory.is_dir():
+    if not is_real_directory(search_directory):
         raise CommandLineError(f"The given search path is not a directory: {search_directory}")
     try:
         user_data_location = backup_source(backup_folder)
