@@ -1155,7 +1155,6 @@ Move all backups made on or after the specified date (YYYY-MM-DD)."""))
                 raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
             action = "backup listing"
             search_directory = Path(args.list).resolve()
-            print(search_directory)
             chosen_recovery_path = search_backups(search_directory, backup_folder)
             recover_path(chosen_recovery_path, backup_folder)
         elif args.move_backup:
