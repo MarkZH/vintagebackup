@@ -690,20 +690,37 @@ def parse_time_span_to_timepoint(time_span: str) -> datetime.datetime:
         if new_month < 1:
             new_month += 12
             new_year -= 1
-        new_day = now.day
 
-        # If new month has fewer days than current month, the return statement may raise.
-        while True:
-            try:
-                return datetime.datetime(new_year, new_month, new_day,
-                                         now.hour, now.minute, now.second, now.microsecond)
-            except ValueError:
-                new_day -= 1
+        return fix_end_of_month(new_year, new_month, now.day,
+                                now.hour, now.minute, now.second, now.microsecond)
     elif letter == "y":
-        return datetime.datetime(now.year - number, now.month, now.day,
-                                 now.hour, now.minute, now.second, now.microsecond)
+        return fix_end_of_month(now.year - number, now.month, now.day,
+                                now.hour, now.minute, now.second, now.microsecond)
     else:
         raise CommandLineError(f"Invalid time (valid units: {list("dwmy")}): {time_span}")
+
+
+def fix_end_of_month(year: int, month: int, day: int,
+                     hour: int, minute: int, second: int, microsecond: int) -> datetime.datetime:
+    """
+    Fix day if it is past then end of the month (e.g., Feb. 31).
+
+    >>> fix_end_of_month(2023, 2, 31, 0, 0, 0, 0)
+    datetime.datetime(2023, 2, 28, 0, 0)
+
+    >>> fix_end_of_month(2024, 2, 31, 0, 0, 0, 0)
+    datetime.datetime(2024, 2, 29, 0, 0)
+
+    >>> fix_end_of_month(2025, 4, 31, 0, 0, 0, 0)
+    datetime.datetime(2025, 4, 30, 0, 0)
+    """
+    new_day = day
+    while True:
+        try:
+            return datetime.datetime(year, month, new_day,
+                                     hour, minute, second, microsecond)
+        except ValueError:
+            new_day -= 1
 
 
 def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
