@@ -1090,7 +1090,7 @@ Specify the number of the most recent backups to move, or "all" if every backup 
 to the new location."""))
 
     user_input.add_argument("--move-age", help=format_help("""
-Specify the maximum age of backups to move."""))
+Specify the maximum age of backups to move. See --delete-after for the time span format to use."""))
 
     command_line_options = sys.argv[1:] or ["--help"]
     command_line_args = user_input.parse_args(command_line_options)
