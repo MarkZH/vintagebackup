@@ -1097,6 +1097,9 @@ to the new location."""))
     user_input.add_argument("--move-age", help=format_help("""
 Specify the maximum age of backups to move. See --delete-after for the time span format to use."""))
 
+    user_input.add_argument("--move-since", help=format_help("""
+Move all backups made on or after the specified date (YYYY-MM-DD)."""))
+
     command_line_options = sys.argv[1:] or ["--help"]
     command_line_args = user_input.parse_args(command_line_options)
     if command_line_args.config:
@@ -1163,9 +1166,10 @@ Specify the maximum age of backups to move. See --delete-after for the time span
             action = "move backups"
             new_backup_location = Path(args.move_backup).absolute()
 
-            moving_choices = choice_count(args.move_count, args.move_age)
+            moving_choices = choice_count(args.move_count, args.move_age, args.move_since)
             if moving_choices != 1:
-                print("Exactly one time spec (--move-count or --move-age) must be used.")
+                print("Exactly one of --move-count, --move-age, or --move-since "
+                      "must be used when moving backups.")
                 user_input.print_usage()
                 sys.exit(1)
 
@@ -1175,8 +1179,9 @@ Specify the maximum age of backups to move. See --delete-after for the time span
                 oldest_backup_date = parse_time_span_to_timepoint(args.move_age)
                 backups_to_move = backups_since(oldest_backup_date, old_backup_location)
             else:
-                raise CommandLineError("Moving backups requires another argument: "
-                                       "--move-count or --move-age.")
+                assert args.move_since
+                oldest_backup_date = datetime.datetime.strptime(args.move_since, "%Y-%m-%d")
+                backups_to_move = backups_since(oldest_backup_date, old_backup_location)
 
             move_backups(old_backup_location, new_backup_location, backups_to_move)
         else:
