@@ -185,7 +185,7 @@ def compare_to_backup(user_directory: Path,
     Parameters:
     user_directory: The subfolder of the user's data currently being walked through
     backup_direcotry: The backup folder that corresponds with the user_directory
-    file_names: A list of regular files in the user directory.
+    file_names: A list of regular files (not symlinks) in the user directory.
     examine_whole_file: Whether the contents of the file should be examined, or just file
     attributes.
 
@@ -193,19 +193,17 @@ def compare_to_backup(user_directory: Path,
     that have not changed since the last backup, (2) mismatched files that have changed, (3) error
     files that could not be compared for some reason (usually because it is a new file with no
     previous backup). This is the same behavior as filecmp.cmpfiles().
-
-    If file_names contain symlinks, they will be followed if examine_whole_file is True and not
-    followed otherwise.
     """
+    assert all(not (user_directory/file_name).is_symlink() for file_name in file_names)
+
     if not backup_directory:
         return [], [], file_names
     elif examine_whole_file:
-        assert not any((user_directory/file_name).is_symlink() for file_name in file_names)
         return filecmp.cmpfiles(user_directory, backup_directory, file_names, shallow=False)
     else:
         def scan_directory(directory: Path) -> dict[str, os.stat_result]:
             with os.scandir(directory) as scan:
-                return {entry.name: entry.stat(follow_symlinks=False) for entry in scan}
+                return {entry.name: entry.stat() for entry in scan}
 
         try:
             backup_files = scan_directory(backup_directory)
