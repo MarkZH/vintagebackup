@@ -862,8 +862,8 @@ with hash signs are ignored. All included files must reside within the directory
     - AppData
     + AppData/Roaming/Mozilla/Firefox/
 
-will exclude everything in C:\\Users\\Alice Eaves Roberts\\AppData\\ except the Mozilla\\Firefox
-subfolder."""))
+will exclude everything in C:\\Users\\Alice Eaves Roberts\\AppData\\ except the
+Roaming\\Mozilla\\Firefox subfolder."""))
 
     user_input.add_argument("-w", "--whole-file", action="store_true", help=format_help("""
 Examine the entire contents of a file to determine if it has
