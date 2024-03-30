@@ -185,7 +185,7 @@ def compare_to_backup(user_directory: Path,
     Parameters:
     user_directory: The subfolder of the user's data currently being walked through
     backup_direcotry: The backup folder that corresponds with the user_directory
-    file_names: A list of regular files in the user directory.
+    file_names: A list of regular files (not symlinks) in the user directory.
     examine_whole_file: Whether the contents of the file should be examined, or just file
     attributes.
 
@@ -193,19 +193,17 @@ def compare_to_backup(user_directory: Path,
     that have not changed since the last backup, (2) mismatched files that have changed, (3) error
     files that could not be compared for some reason (usually because it is a new file with no
     previous backup). This is the same behavior as filecmp.cmpfiles().
-
-    If file_names contain symlinks, they will be followed if examine_whole_file is True and not
-    followed otherwise.
     """
+    assert all(not (user_directory/file_name).is_symlink() for file_name in file_names)
+
     if not backup_directory:
         return [], [], file_names
     elif examine_whole_file:
-        assert not any((user_directory/file_name).is_symlink() for file_name in file_names)
         return filecmp.cmpfiles(user_directory, backup_directory, file_names, shallow=False)
     else:
         def scan_directory(directory: Path) -> dict[str, os.stat_result]:
             with os.scandir(directory) as scan:
-                return {entry.name: entry.stat(follow_symlinks=False) for entry in scan}
+                return {entry.name: entry.stat() for entry in scan}
 
         try:
             backup_files = scan_directory(backup_directory)
@@ -303,21 +301,22 @@ def backup_directory(user_data_location: Path,
     action_counter: A counter to track how many files have been linked, copied, or failed for both
     is_include_backup: Whether the current directory comes from the include file.
     """
-    user_file_names[:] = filter_excluded_paths(exclusions,
-                                               current_user_path,
-                                               user_file_names)
+    user_file_names = filter_excluded_paths(exclusions,
+                                            current_user_path,
+                                            user_file_names)
     user_dir_names[:] = filter_excluded_paths(exclusions,
                                               current_user_path,
                                               user_dir_names)
+
+    user_file_names, user_symlinks = separate_symlinks(current_user_path, user_file_names)
+    _, user_directory_symlinks = separate_symlinks(current_user_path, user_dir_names)
 
     relative_path = current_user_path.relative_to(user_data_location)
     new_backup_directory = new_backup_path/relative_path
     os.makedirs(new_backup_directory, exist_ok=is_include_backup)
     global new_backup_directory_created
     new_backup_directory_created = True
-
     previous_backup_directory = last_backup_path/relative_path if last_backup_path else None
-    user_file_names, user_symlinks = separate_symlinks(current_user_path, user_file_names)
 
     matching, mismatching, errors = compare_to_backup(current_user_path,
                                                       previous_backup_directory,
@@ -338,7 +337,7 @@ def backup_directory(user_data_location: Path,
         else:
             errors.append(file_name)
 
-    for file_name in itertools.chain(mismatching, errors, user_symlinks):
+    for file_name in itertools.chain(mismatching, errors, user_symlinks, user_directory_symlinks):
         new_backup_file = new_backup_directory/file_name
         user_file = current_user_path/file_name
         try:
@@ -918,8 +917,8 @@ if __name__ == "__main__":
                                          formatter_class=argparse.RawTextHelpFormatter,
                                          allow_abbrev=False,
                                          description=format_text("""
-A backup utility that combines the best aspects of full and incremental backups."""),
-                                         epilog=format_text("""
+A backup utility that combines the best aspects of full and incremental backups.
+
 Every time Vintage Backup runs, a new folder is created at the backup location
 that contains copies of all of the files in the directory being backed up.
 If a file in the directory being backed up is unchanged since the last
@@ -928,11 +927,14 @@ This way, unchanged files do not take up more storage space in the backup
 location, allowing for possible years of daily backups, all while having
 each folder in the backup location contain a full backup.
 
+The following options will cause Vinatage Backup to perform an action other than
+creating a new backup: --help, --recover, --list. See below for more information.
+
 Technical notes:
 
 - Symbolic links are not followed and are always copied as symbolic links.
 
-- If two files in the user's directory are hard-linked together, these files will be copied
+- If two files in the user's directory are hard-linked together, these files will be copied/linked
 separately (the hard link is not preserved in the backup.)"""))
 
     user_input.add_argument("-h", "--help", action="store_true", help=format_help("""
