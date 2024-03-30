@@ -393,7 +393,7 @@ def create_new_backup(user_data_location: Path,
         backup_directory(user_data_location,
                          new_backup_path,
                          last_backup_path,
-                         Path(current_user_path),
+                         current_user_path,
                          user_file_names,
                          examine_whole_file,
                          action_counter)
