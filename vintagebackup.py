@@ -56,7 +56,7 @@ def all_backups(backup_location: Path) -> list[Path]:
     backup_pattern = re.compile(r"\d\d\d\d-\d\d-\d\d \d\d-\d\d-\d\d (.*)")
 
     def is_valid_directory(dir: os.DirEntry[str], pattern: re.Pattern[str]) -> bool:
-        return not dir.is_symlink() and dir.is_dir() and bool(pattern.fullmatch(dir.name))
+        return dir.is_dir(follow_symlinks=False) and bool(pattern.fullmatch(dir.name))
 
     all_backup_list: list[Path] = []
     with os.scandir(backup_location) as year_scan:
