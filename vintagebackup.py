@@ -661,6 +661,13 @@ def parse_time_span_to_timepoint(time_span: str) -> datetime.datetime:
 
     time_span: A string consisting of a positive integer followed by a single letter: "d" for days,
     "w" for weeks, "m" for calendar months, and "y" for calendar years.
+
+    >>> import datetime
+    >>> today = datetime.date.today()
+    >>> yesterday = today - datetime.timedelta(days=1)
+    >>> yesterday_parse = parse_time_span_to_timepoint("1d")
+    >>> yesterday == yesterday_parse.date()
+    True
     """
     time_span = "".join(time_span.lower().split())
     try:
