@@ -237,15 +237,16 @@ def compare_to_backup(user_directory: Path,
     files that could not be compared for some reason (usually because it is a new file with no
     previous backup). This is the same behavior as filecmp.cmpfiles().
     """
+    assert all(not (user_directory/file_name).is_symlink() for file_name in file_names)
+
     if not backup_directory:
         return [], [], file_names
     elif examine_whole_file:
-        assert not any((user_directory/file_name).is_symlink() for file_name in file_names)
         return filecmp.cmpfiles(user_directory, backup_directory, file_names, shallow=False)
     else:
         def scan_directory(directory: Path) -> dict[str, os.stat_result]:
             with os.scandir(directory) as scan:
-                return {entry.name: entry.stat(follow_symlinks=False) for entry in scan}
+                return {entry.name: entry.stat() for entry in scan}
 
         try:
             backup_files = scan_directory(backup_directory)
@@ -329,9 +330,7 @@ def backup_directory(user_data_location: Path,
     os.makedirs(new_backup_directory)
     global new_backup_directory_created
     new_backup_directory_created = True
-
     previous_backup_directory = last_backup_path/relative_path if last_backup_path else None
-    user_file_names, user_symlinks = separate_symlinks(current_user_path, user_file_names)
 
     matching, mismatching, errors = compare_to_backup(current_user_path,
                                                       previous_backup_directory,
@@ -352,7 +351,7 @@ def backup_directory(user_data_location: Path,
         else:
             errors.append(file_name)
 
-    for file_name in itertools.chain(mismatching, errors, user_symlinks):
+    for file_name in itertools.chain(mismatching, errors, user_symlinks, user_directory_symlinks):
         new_backup_file = new_backup_directory/file_name
         user_file = current_user_path/file_name
         try:
@@ -788,8 +787,8 @@ if __name__ == "__main__":
                                          formatter_class=argparse.RawTextHelpFormatter,
                                          allow_abbrev=False,
                                          description=format_text("""
-A backup utility that combines the best aspects of full and incremental backups."""),
-                                         epilog=format_text("""
+A backup utility that combines the best aspects of full and incremental backups.
+
 Every time Vintage Backup runs, a new folder is created at the backup location
 that contains copies of all of the files in the directory being backed up.
 If a file in the directory being backed up is unchanged since the last
