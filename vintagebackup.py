@@ -1163,7 +1163,7 @@ Move all backups made on or after the specified date (YYYY-MM-DD)."""))
                 old_backup_location = Path(args.backup_folder).resolve(strict=True)
             except FileNotFoundError:
                 raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
-            action = "move backups"
+            action = "backup location move"
             new_backup_location = Path(args.move_backup).absolute()
 
             moving_choices = choice_count(args.move_count, args.move_age, args.move_since)
