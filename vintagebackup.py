@@ -860,7 +860,7 @@ with hash signs are ignored. All included files must reside within the directory
 
     # Ignore AppData except Firefox
     - AppData
-    + AppData/Mozilla/Firefox/
+    + AppData/Roaming/Mozilla/Firefox/
 
 will exclude everything in C:\\Users\\Alice Eaves Roberts\\AppData\\ except the Mozilla\\Firefox
 subfolder."""))
