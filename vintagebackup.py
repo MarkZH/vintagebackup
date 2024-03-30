@@ -1168,10 +1168,8 @@ Move all backups made on or after the specified date (YYYY-MM-DD)."""))
 
             moving_choices = choice_count(args.move_count, args.move_age, args.move_since)
             if moving_choices != 1:
-                print("Exactly one of --move-count, --move-age, or --move-since "
-                      "must be used when moving backups.")
-                user_input.print_usage()
-                sys.exit(1)
+                raise CommandLineError("Exactly one of --move-count, --move-age, or --move-since "
+                                       "must be used when moving backups.")
 
             if args.move_count:
                 backups_to_move = last_n_backups(old_backup_location, args.move_count)
