@@ -1108,9 +1108,10 @@ Move all backups made on or after the specified date (YYYY-MM-DD)."""))
     else:
         args = command_line_args
 
-    action_count = choice_count(args.help, args.recover, args.list)
+    action_count = choice_count(args.help, args.recover, args.list, args.move_backup)
     if action_count > 1:
-        print("Only one action (--help, --recover, --list) may be performed at one time.")
+        print("Up to one of these actions (--help, --recover, --list, --move-backup) "
+              "may be performed at one time.")
         print("If none of these options are used, a backup will start,"
               " which requires the -u and -b parameters.")
         user_input.print_usage()
