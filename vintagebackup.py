@@ -82,55 +82,90 @@ def is_real_directory(path: Path) -> bool:
     return path.is_dir() and not path.is_symlink()
 
 
+PATTERN_ENTRY = tuple[int, str, Path]
+
+
 def backup_paths(user_folder: Path, alter_file: Path | None) -> Iterator[tuple[Path, list[str]]]:
     """Return an iterator to all paths in a user's folder after altering it with an alter file."""
     if not alter_file:
-        yield from itertools.starmap(lambda cwd, _, files: (cwd, files), os.walk(user_folder))
+        for current_directory_name, directory_names, file_names in os.walk(user_folder):
+            current_directory = Path(current_directory_name)
+            _, symlinks = separate_symlinks(current_directory, directory_names)
+            yield current_directory, file_names + symlinks
+
         return
 
-    backup_set: set[Path] = set()
-    for current_directory, directory_names, file_names in os.walk(user_folder):
-        backup_set |= {user_folder/current_directory/name for name in directory_names + file_names}
+    pattern_file_entries = alter_file_patterns(user_folder, alter_file)
+    pattern_used = {entry: False for entry in pattern_file_entries}
 
+    for current_directory_name, directory_names, file_names in os.walk(user_folder):
+        current_directory = Path(current_directory_name)
+        _, symlinks = separate_symlinks(current_directory, directory_names)
+        included_names: list[str] = []
+        for name in itertools.chain(file_names, symlinks):
+            path = Path(current_directory)/name
+            if should_include_path(path, pattern_file_entries, pattern_used):
+                included_names.append(name)
+
+        if included_names or should_include_path(current_directory,
+                                                 pattern_file_entries,
+                                                 pattern_used):
+            yield user_folder/current_directory, included_names
+
+    for (line_number, sign, pattern), was_used in pattern_used.items():
+        if not was_used:
+            logger.info(f"{alter_file}: line #{line_number} ({sign} {pattern}) had no effect.")
+
+
+def should_include_path(path: Path,
+                        pattern_file_entries: list[PATTERN_ENTRY],
+                        pattern_used: dict[PATTERN_ENTRY, bool]) -> bool:
+    """
+    Test whether a path should be included in the backup.
+
+    Parameters:
+    path: The path to be tested
+    pattern_file_entries: Lines read from an alter file (line number, "+"/"-", glob pattern)
+    pattern_used: A dict that tracks whether a glob pattern has made any difference
+    """
+    include = True
+    for pattern_file_entry in pattern_file_entries:
+        _, sign, pattern = pattern_file_entry
+        if include == (sign == "+"):
+            continue
+
+        if (path.is_relative_to(pattern) if is_real_directory(pattern)
+                else path.match(str(pattern))):
+            include = not include
+            pattern_used[pattern_file_entry] = True
+
+    return include
+
+
+def alter_file_patterns(user_folder: Path, alter_file: Path) -> list[PATTERN_ENTRY]:
+    """Read alteration patterns from the given alter file."""
     logger.info(f"Reading alteration file: {alter_file}")
     with open(alter_file) as alterations:
-        for line_number, alteration in enumerate(alterations, 1):
-            alteration = alteration.lstrip().rstrip("\n")
-            sign = alteration[0]
+        entries: list[PATTERN_ENTRY] = []
+        for line_number, line in enumerate(alterations, 1):
+            line = line.lstrip().rstrip("\n")
+            sign = line[0]
 
             if sign not in "-+#":
-                raise ValueError(f"Line #{line_number} ({alteration}): The first symbol "
+                raise ValueError(f"Line #{line_number} ({line}): The first symbol "
                                  "of each line in the alter file must be -, +, or #.")
 
             if sign == "#":
                 continue
 
-            pattern = user_folder/alteration[1:].lstrip()
+            pattern = user_folder/line[1:].lstrip()
             if not pattern.is_relative_to(user_folder):
-                logger.info(f"Line #{line_number} ({alteration}): Ignoring alterations with paths "
-                            "outside user folder.")
-                continue
+                raise ValueError(f"Line #{line_number} ({line}): Alteration looks at paths "
+                                 "outside user folder.")
 
-            if is_real_directory(pattern):
-                pattern = pattern/"**"/"*"
+            entries.append((line_number, sign, pattern))
 
-            modify = backup_set.discard if sign == "-" else backup_set.add
-            backup_count = len(backup_set)
-            for path_result in user_folder.glob(str(pattern.relative_to(user_folder))):
-                modify(path_result)
-
-            if len(backup_set) == backup_count:
-                logger.info(f"Line #{line_number} ({alteration}) did not change backup set.")
-
-    backup_tree: dict[Path, list[str]] = {}  # Folder name -> list of files
-    for path in backup_set:
-        if is_real_directory(path):
-            backup_tree.setdefault(path, [])
-        else:
-            backup_tree.setdefault(path.parent, []).append(path.name)
-
-    for directory, file_names in sorted(backup_tree.items()):
-        yield directory, file_names
+    return entries
 
 
 def get_user_location_record(backup_location: Path) -> Path:
@@ -815,7 +850,8 @@ folder will contain all of that year's backups."""))
     user_input.add_argument("-a", "--alter", metavar="ALTER_FILE_NAME", help=format_help("""
 Alter the set of files that will be backed up. The value of this argument should be the name of
 a text file that contains lines specifying what files to include or exclude. These may contain
-wildcard characters like *, **, and ? to allow for matching multiple file names.
+wildcard characters like * and ? to allow for matching multiple file names. The recursive glob **
+is not suppported.
 
 Each line should begin with a minus (-), plus (+), or hash (#). Lines with minus signs specify
 files and folders to exclude. Lines with plus signs specify files and folders to include. Lines
