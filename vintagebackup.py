@@ -11,6 +11,7 @@ import itertools
 import re
 import textwrap
 import math
+import glob
 from collections import Counter
 from typing import Iterator
 from pathlib import Path
@@ -87,63 +88,50 @@ PATTERN_ENTRY = tuple[int, str, Path]
 
 def backup_paths(user_folder: Path, alter_file: Path | None) -> Iterator[tuple[Path, list[str]]]:
     """Return an iterator to all paths in a user's folder after altering it with an alter file."""
-    if not alter_file:
-        for current_directory_name, directory_names, file_names in os.walk(user_folder):
-            current_directory = Path(current_directory_name)
-            _, symlinks = separate_symlinks(current_directory, directory_names)
-            yield current_directory, file_names + symlinks
+    backup_set: set[Path] = set()
+    for current_directory_name, dir_names, file_names in os.walk(user_folder):
+        current_directory = Path(current_directory_name)
+        dir_names[:], symlinks = separate_symlinks(current_directory, dir_names)
+        backup_set.update(current_directory/name for name in file_names + symlinks + dir_names)
 
-        return
+    original_backup_set = frozenset(backup_set)
 
     pattern_file_entries = alter_file_patterns(user_folder, alter_file)
-    pattern_used = {entry: False for entry in pattern_file_entries}
 
-    for current_directory_name, directory_names, file_names in os.walk(user_folder):
-        current_directory = Path(current_directory_name)
-        _, symlinks = separate_symlinks(current_directory, directory_names)
-        included_names: list[str] = []
-        for name in itertools.chain(file_names, symlinks):
-            path = Path(current_directory)/name
-            if should_include_path(path, pattern_file_entries, pattern_used):
-                included_names.append(name)
+    for line_number, sign, pattern in pattern_file_entries:
+        path_count_before = len(backup_set)
+        change_set: set[Path] = set()
+        for alter_path_str in glob.iglob(str(pattern), include_hidden=True):
+            alter_path = Path(alter_path_str)
+            if is_real_directory(alter_path):
+                change_set.update(filter(lambda p: p.is_relative_to(alter_path), original_backup_set))
+            else:
+                change_set.add(alter_path)
 
-        if included_names or should_include_path(current_directory,
-                                                 pattern_file_entries,
-                                                 pattern_used):
-            yield user_folder/current_directory, included_names
+            if sign == "+":
+                backup_set.update(change_set)
+            else:
+                backup_set.difference_update(change_set)
+            path_count_after = len(backup_set)
 
-    for (line_number, sign, pattern), was_used in pattern_used.items():
-        if not was_used:
+        if path_count_before == path_count_after:
             logger.info(f"{alter_file}: line #{line_number} ({sign} {pattern}) had no effect.")
 
+    backup_tree: dict[Path, list[str]] = {}
+    for path in backup_set:
+        if is_real_directory(path):
+            backup_tree.setdefault(path, [])
+        else:
+            backup_tree.setdefault(path.parent, []).append(path.name)
 
-def should_include_path(path: Path,
-                        pattern_file_entries: list[PATTERN_ENTRY],
-                        pattern_used: dict[PATTERN_ENTRY, bool]) -> bool:
-    """
-    Test whether a path should be included in the backup.
-
-    Parameters:
-    path: The path to be tested
-    pattern_file_entries: Lines read from an alter file (line number, "+"/"-", glob pattern)
-    pattern_used: A dict that tracks whether a glob pattern has made any difference
-    """
-    include = True
-    for pattern_file_entry in pattern_file_entries:
-        _, sign, pattern = pattern_file_entry
-        if include == (sign == "+"):
-            continue
-
-        if (path.is_relative_to(pattern) if is_real_directory(pattern)
-                else path.match(str(pattern))):
-            include = not include
-            pattern_used[pattern_file_entry] = True
-
-    return include
+    yield from sorted(backup_tree.items())
 
 
-def alter_file_patterns(user_folder: Path, alter_file: Path) -> list[PATTERN_ENTRY]:
+def alter_file_patterns(user_folder: Path, alter_file: Path | None) -> list[PATTERN_ENTRY]:
     """Read alteration patterns from the given alter file."""
+    if not alter_file:
+        return []
+
     logger.info(f"Reading alteration file: {alter_file}")
     with open(alter_file) as alterations:
         entries: list[PATTERN_ENTRY] = []
