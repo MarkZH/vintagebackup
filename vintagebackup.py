@@ -101,7 +101,7 @@ def backup_paths(user_folder: Path, alter_file: Path | None) -> Iterator[tuple[P
     for line_number, sign, pattern in pattern_file_entries:
         path_count_before = len(backup_set)
         change_set: set[Path] = set()
-        for alter_path_str in glob.iglob(str(pattern), include_hidden=True):
+        for alter_path_str in glob.iglob(str(pattern), include_hidden=True, recursive=True):
             alter_path = Path(alter_path_str)
             if is_real_directory(alter_path):
                 change_set.update(filter(lambda p: p.is_relative_to(alter_path),
@@ -839,8 +839,7 @@ folder will contain all of that year's backups."""))
     user_input.add_argument("-a", "--alter", metavar="ALTER_FILE_NAME", help=format_help("""
 Alter the set of files that will be backed up. The value of this argument should be the name of
 a text file that contains lines specifying what files to include or exclude. These may contain
-wildcard characters like * and ? to allow for matching multiple file names. The recursive glob **
-is not suppported.
+wildcard characters like * and ? to allow for matching multiple file names.
 
 Each line should begin with a minus (-), plus (+), or hash (#). Lines with minus signs specify
 files and folders to exclude. Lines with plus signs specify files and folders to include. Lines
