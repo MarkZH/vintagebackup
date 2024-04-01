@@ -109,11 +109,11 @@ def backup_paths(user_folder: Path, alter_file: Path | None) -> Iterator[tuple[P
             else:
                 change_set.add(alter_path)
 
-            if sign == "+":
-                backup_set.update(change_set)
-            else:
-                backup_set.difference_update(change_set)
-            path_count_after = len(backup_set)
+        if sign == "+":
+            backup_set.update(change_set)
+        else:
+            backup_set.difference_update(change_set)
+        path_count_after = len(backup_set)
 
         if path_count_before == path_count_after:
             logger.info(f"{alter_file}: line #{line_number} ({sign} {pattern}) had no effect.")
