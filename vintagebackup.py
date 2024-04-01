@@ -104,7 +104,8 @@ def backup_paths(user_folder: Path, alter_file: Path | None) -> Iterator[tuple[P
         for alter_path_str in glob.iglob(str(pattern), include_hidden=True):
             alter_path = Path(alter_path_str)
             if is_real_directory(alter_path):
-                change_set.update(filter(lambda p: p.is_relative_to(alter_path), original_backup_set))
+                change_set.update(filter(lambda p: p.is_relative_to(alter_path),
+                                         original_backup_set))
             else:
                 change_set.add(alter_path)
 
