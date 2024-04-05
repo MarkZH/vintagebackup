@@ -851,7 +851,9 @@ with hash signs are ignored. All included files must reside within the directory
     + AppData/Roaming/Mozilla/Firefox/
 
 will exclude everything in C:\\Users\\Alice Eaves Roberts\\AppData\\ except the
-Roaming\\Mozilla\\Firefox subfolder."""))
+Roaming\\Mozilla\\Firefox subfolder. The order of the lines matters. If the - and + lines above
+were reversed, the Firefox folder would be included and then excluded by the following - Appdata
+line."""))
 
     user_input.add_argument("-w", "--whole-file", action="store_true", help=format_help("""
 Examine the entire contents of a file to determine if it has
