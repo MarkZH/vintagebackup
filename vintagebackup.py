@@ -276,23 +276,23 @@ def create_hard_link(previous_backup: Path, new_backup: Path) -> bool:
         return False
 
 
-def separate_symlinks(directory: Path, file_names: list[str]) -> tuple[list[str], list[str]]:
+def separate_symlinks(directory: Path, path_names: list[str]) -> tuple[list[str], list[str]]:
     """
-    Separate regular files from symlinks within a directory.
+    Separate regular files and folders from symlinks within a directory.
 
     Directories within the given directory are not traversed.
 
     Parameters:
     directory: The directory containing all the files.
-    file_names: A list of files in the directory.
+    path_names: A list of names in the directory.
 
     Returns:
     Two lists: the first a list of regular files, the second a list of symlinks.
     """
-    def is_symlink(file_name: str) -> bool:
-        return (directory/file_name).is_symlink()
+    def is_symlink(name: str) -> bool:
+        return (directory/name).is_symlink()
 
-    return list(itertools.filterfalse(is_symlink, file_names)), list(filter(is_symlink, file_names))
+    return list(itertools.filterfalse(is_symlink, path_names)), list(filter(is_symlink, path_names))
 
 
 def backup_directory(user_data_location: Path,
