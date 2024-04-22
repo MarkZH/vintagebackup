@@ -1183,10 +1183,14 @@ Move all backups made on or after the specified date (YYYY-MM-DD)."""))
             chosen_recovery_path = search_backups(search_directory, backup_folder)
             recover_path(chosen_recovery_path, backup_folder)
         elif args.move_backup:
+            if not args.backup_folder:
+                raise CommandLineError("Current backup folder location (--backup-folder) needed.")
+
             try:
                 old_backup_location = Path(args.backup_folder).resolve(strict=True)
             except FileNotFoundError:
                 raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
+
             action = "backup location move"
             new_backup_location = Path(args.move_backup).absolute()
 
