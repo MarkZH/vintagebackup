@@ -1241,9 +1241,8 @@ Move all backups made on or after the specified date (YYYY-MM-DD)."""))
         print_backup_storage_stats(args.backup_folder)
         exit_code = 0
     except CommandLineError as error:
-        logger.error(error)
-        logger.info("")
         user_input.print_usage()
+        logger.error(error)
     except Exception:
         if action:
             logger.error(f"An error prevented the {action} from completing.")
