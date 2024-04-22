@@ -12,7 +12,7 @@ import re
 import textwrap
 import math
 from collections import Counter
-from typing import Iterator
+from typing import Iterator, Any
 from pathlib import Path
 
 backup_date_format = "%Y-%m-%d %H-%M-%S"
@@ -354,7 +354,8 @@ def create_new_backup(user_data_location: Path,
                       exclude_file: Path | None,
                       include_file: Path | None,
                       examine_whole_file: bool,
-                      force_copy: bool) -> None:
+                      force_copy: bool,
+                      is_backup_move: bool = False) -> None:
     """
     Create a new dated backup.
 
@@ -390,21 +391,26 @@ def create_new_backup(user_data_location: Path,
     os_name = f"{platform.system()} {platform.release()}".strip()
     new_backup_path = backup_location/str(now.year)/f"{backup_date} ({os_name})"
 
-    logger.info("")
-    logger.info("=====================")
-    logger.info(" Starting new backup")
-    logger.info("=====================")
-    logger.info("")
+    if not is_backup_move:
+        logger.info("")
+        logger.info("=====================")
+        logger.info(" Starting new backup")
+        logger.info("=====================")
+        logger.info("")
 
     confirm_user_location_is_unchanged(user_data_location, backup_location)
     record_user_location(user_data_location, backup_location)
 
-    logger.info(f"User's data     : {user_data_location}")
-    logger.info(f"Backup location : {new_backup_path}")
+    if is_backup_move:
+        logger.info(f"Original backup  : {user_data_location}")
+        logger.info(f"Temporary backup : {new_backup_path}")
+    else:
+        logger.info(f"User's data      : {user_data_location}")
+        logger.info(f"Backup location  : {new_backup_path}")
 
     last_backup_path = None if force_copy else find_previous_backup(backup_location)
     if last_backup_path:
-        logger.info(f"Previous backup : {last_backup_path}")
+        logger.info(f"Previous backup  : {last_backup_path}")
     else:
         logger.info("No previous backups. Copying everything ...")
 
@@ -647,15 +653,21 @@ def delete_oldest_backups_for_space(backup_location: Path, space_requirement: st
                        " without deleting most recent backup.")
 
 
-def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
+def parse_time_span_to_timepoint(time_span: str) -> datetime.datetime:
     """
-    Delete backups older than a given timespan.
+    Parse a string representing a time span into a datetime representing a date that long ago.
 
-    Parameters:
-    backup_folder: The folder containing all backups
-    time_span: The maximum age of a backup to not be deleted. It is specified as a string with a
-    whole number followed by a single letter: "d" for days, "w" for weeks, "m" for calendar months,
-    or "y" for calendar years.
+    For example, if time_span is "6m", the result is a date six calendar months ago.
+
+    time_span: A string consisting of a positive integer followed by a single letter: "d" for days,
+    "w" for weeks, "m" for calendar months, and "y" for calendar years.
+
+    >>> import datetime
+    >>> today = datetime.date.today()
+    >>> yesterday = today - datetime.timedelta(days=1)
+    >>> yesterday_parse = parse_time_span_to_timepoint("1d")
+    >>> yesterday == yesterday_parse.date()
+    True
     """
     time_span = "".join(time_span.lower().split())
     try:
@@ -669,28 +681,63 @@ def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
     letter = time_span[-1]
     now = datetime.datetime.now()
     if letter == "d":
-        timestamp_to_keep = now - datetime.timedelta(days=number)
+        return now - datetime.timedelta(days=number)
     elif letter == "w":
-        timestamp_to_keep = now - datetime.timedelta(weeks=number)
+        return now - datetime.timedelta(weeks=number)
     elif letter == "m":
         new_month = now.month - (number % 12)
         new_year = now.year - (number // 12)
         if new_month < 1:
             new_month += 12
             new_year -= 1
-        timestamp_to_keep = datetime.datetime(new_year, new_month, now.day,
-                                              now.hour, now.minute, now.second, now.microsecond)
+
+        return fix_end_of_month(new_year, new_month, now.day,
+                                now.hour, now.minute, now.second, now.microsecond)
     elif letter == "y":
-        timestamp_to_keep = datetime.datetime(now.year - number, now.month, now.day,
-                                              now.hour, now.minute, now.second, now.microsecond)
+        return fix_end_of_month(now.year - number, now.month, now.day,
+                                now.hour, now.minute, now.second, now.microsecond)
     else:
         raise CommandLineError(f"Invalid time (valid units: {list("dwmy")}): {time_span}")
+
+
+def fix_end_of_month(year: int, month: int, day: int,
+                     hour: int, minute: int, second: int, microsecond: int) -> datetime.datetime:
+    """
+    Fix day if it is past then end of the month (e.g., Feb. 31).
+
+    >>> fix_end_of_month(2023, 2, 31, 0, 0, 0, 0)
+    datetime.datetime(2023, 2, 28, 0, 0)
+
+    >>> fix_end_of_month(2024, 2, 31, 0, 0, 0, 0)
+    datetime.datetime(2024, 2, 29, 0, 0)
+
+    >>> fix_end_of_month(2025, 4, 31, 0, 0, 0, 0)
+    datetime.datetime(2025, 4, 30, 0, 0)
+    """
+    new_day = day
+    while True:
+        try:
+            return datetime.datetime(year, month, new_day,
+                                     hour, minute, second, microsecond)
+        except ValueError:
+            new_day -= 1
+
+
+def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
+    """
+    Delete backups older than a given timespan.
+
+    Parameters:
+    backup_folder: The folder containing all backups
+    time_span: The maximum age of a backup to not be deleted. See parse_time_span_to_timepoint()
+    for how the string is formatted.
+    """
+    timestamp_to_keep = parse_time_span_to_timepoint(time_span)
 
     any_deletions = False
     backups = all_backups(backup_folder)
     for backup in backups[:-1]:
-        timestamp_portion = " ".join(backup.name.split()[:2])
-        backup_timestamp = datetime.datetime.strptime(timestamp_portion, backup_date_format)
+        backup_timestamp = backup_datetime(backup)
         if backup_timestamp >= timestamp_to_keep:
             break
 
@@ -706,13 +753,114 @@ def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
         log_backup_deletions(backup_folder)
 
 
+def backup_datetime(backup: Path) -> datetime.datetime:
+    """Get the timestamp of a backup from the backup folder name."""
+    timestamp_portion = " ".join(backup.name.split()[:2])
+    backup_timestamp = datetime.datetime.strptime(timestamp_portion, backup_date_format)
+    return backup_timestamp
+
+
+def plural_noun(count: int, word: str) -> str:
+    """
+    Convert a noun to a simple plural form if the count is not one.
+
+    >>> plural_noun(5, "cow")
+    'cows'
+
+    >>> plural_noun(1, "cat")
+    'cat'
+
+    Irregular nouns that are not pluralized by appending an "s" are not supported.
+    >>> plural_noun(3, "fox")
+    'foxs'
+    """
+    return f"{word}{'' if count == 1 else 's'}"
+
+
+def plural_verb(count: int, word: str) -> str:
+    """
+    Conjugate a third-person present-tense verb based on the count of subjects.
+
+    >>> count = 4
+    >>> f"In the park, {count} people {plural_verb(count, "play")} chess."
+    'In the park, 4 people play chess.'
+    >>> count = 1
+    >>> f"In the house, {count} cat {plural_verb(count, "chase")} a mouse."
+    'In the house, 1 cat chases a mouse.'
+
+    Irregular verbs are not supported.
+    >>> plural_verb(1, "do")
+    'dos'
+
+    "does" would be expected here (i.e., "it does").
+
+    >>> plural_verb(2, "be")
+    'be'
+
+    "are" would be expected here (i.e., "they are").
+    """
+    return f"{word}{'s' if count == 1 else ''}"
+
+
 def log_backup_deletions(backup_folder: Path) -> None:
     """Log information about the remaining backups after deletions."""
     remaining_backups = all_backups(backup_folder)
     count = len(remaining_backups)
-    backups = f"backup{"" if count == 1 else "s"}"
-    remain = f"remain{"s" if count == 1 else ""}"
+    backups = plural_noun(count, "backup")
+    remain = plural_verb(count, "remain")
     logger.info(f"Stopped deletions. {count} {backups} {remain}. Earliest: {remaining_backups[0]}")
+
+
+def move_backups(old_backup_location: Path,
+                 new_backup_location: Path,
+                 backups_to_move: list[Path]) -> None:
+    """Move a set of backups to a new location."""
+    logger.info("=====================")
+    move_count = len(backups_to_move)
+    logger.info(f"Moving {move_count} {plural_noun(move_count, "backup")}")
+    logger.info(f"from {old_backup_location}")
+    logger.info(f"to   {new_backup_location}")
+    logger.info("=====================")
+
+    for backup in backups_to_move:
+        create_new_backup(backup, new_backup_location, None, None, False, False, True)
+
+        dated_backup_path = all_backups(new_backup_location)[-1]
+        backup_year_folder = dated_backup_path.parent.parent/backup.parent.name
+        correct_backup_path = backup_year_folder/backup.name
+        backup_year_folder.mkdir(parents=True, exist_ok=True)
+
+        logger.info("")
+        logger.info(f"Renaming {dated_backup_path}")
+        logger.info(f"to       {correct_backup_path}")
+
+        dated_backup_path.rename(correct_backup_path)
+
+        backup_source_file = get_user_location_record(new_backup_location)
+        backup_source_file.unlink()
+        logger.info("---------------------")
+
+    original_backup_source = backup_source(old_backup_location)
+    record_user_location(original_backup_source, new_backup_location)
+
+
+def last_n_backups(backup_location: Path, n: str) -> list[Path]:
+    """
+    Return a list of the paths of the last n backups.
+
+    backup_location: The location of the backup set.
+    n: A positive integer to get the last n backups, or "all" to get all backups.
+    """
+    backups = all_backups(backup_location)
+    return backups if n == "all" else backups[-int(n):]
+
+
+def backups_since(oldest_backup_date: datetime.datetime, backup_location: Path) -> list[Path]:
+    """Return a list of the backups created since a given date."""
+    def recent_enough(backup_folder: Path) -> bool:
+        return backup_datetime(backup_folder) >= oldest_backup_date
+
+    return list(filter(recent_enough, all_backups(backup_location)))
 
 
 def print_backup_storage_stats(backup_location: str | Path) -> None:
@@ -786,6 +934,11 @@ def toggle_is_set(args: argparse.Namespace, name: str) -> bool:
     """Check that a boolean command line option --X has been selected and not negated by --no-X."""
     options = vars(args)
     return options[name] and not options[f"no_{name}"]
+
+
+def choice_count(*args: Any) -> int:
+    """Count the number of arguments with set values."""
+    return len(list(filter(None, args)))
 
 
 if __name__ == "__main__":
@@ -953,6 +1106,24 @@ name will be written to the backup folder. The default is
 log file is desired, use the file name NUL on Windows and
 /dev/null on Linux, Macs, and similar."""))
 
+    user_input.add_argument("--move-backup", metavar="NEW_BACKUP_LOCATION", help=format_help("""
+Move a backup set to a new location. The value of this argument is the new location. The
+--backup-folder option is required to specify the current location of the backup set, and one
+of --move-count or --move-age is required to specify how many of the most recent backups to
+move. Moving each dated backup will take just as long as a normal backup to move since the hard
+links to previous backups will be recreated to preserve the space savings, so some planning is
+needed when deciding how many backups should be moved."""))
+
+    user_input.add_argument("--move-count", help=format_help("""
+Specify the number of the most recent backups to move, or "all" if every backup should be moved
+to the new location."""))
+
+    user_input.add_argument("--move-age", help=format_help("""
+Specify the maximum age of backups to move. See --delete-after for the time span format to use."""))
+
+    user_input.add_argument("--move-since", help=format_help("""
+Move all backups made on or after the specified date (YYYY-MM-DD)."""))
+
     command_line_options = sys.argv[1:] or ["--help"]
     command_line_args = user_input.parse_args(command_line_options)
     if command_line_args.config:
@@ -961,9 +1132,10 @@ log file is desired, use the file name NUL on Windows and
     else:
         args = command_line_args
 
-    action_count = [bool(a) for a in (args.help, args.recover, args.list)].count(True)
+    action_count = choice_count(args.help, args.recover, args.list, args.move_backup)
     if action_count > 1:
-        print("Only one action (--help, --recover, --list) may be performed at one time.")
+        print("Up to one of these actions (--help, --recover, --list, --move-backup) "
+              "may be performed at one time.")
         print("If none of these options are used, a backup will start,"
               " which requires the -u and -b parameters.")
         user_input.print_usage()
@@ -1008,9 +1180,36 @@ log file is desired, use the file name NUL on Windows and
                 raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
             action = "backup listing"
             search_directory = Path(args.list).resolve()
-            print(search_directory)
             chosen_recovery_path = search_backups(search_directory, backup_folder)
             recover_path(chosen_recovery_path, backup_folder)
+        elif args.move_backup:
+            if not args.backup_folder:
+                raise CommandLineError("Current backup folder location (--backup-folder) needed.")
+
+            try:
+                old_backup_location = Path(args.backup_folder).resolve(strict=True)
+            except FileNotFoundError:
+                raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
+
+            action = "backup location move"
+            new_backup_location = Path(args.move_backup).absolute()
+
+            moving_choices = choice_count(args.move_count, args.move_age, args.move_since)
+            if moving_choices != 1:
+                raise CommandLineError("Exactly one of --move-count, --move-age, or --move-since "
+                                       "must be used when moving backups.")
+
+            if args.move_count:
+                backups_to_move = last_n_backups(old_backup_location, args.move_count)
+            elif args.move_age:
+                oldest_backup_date = parse_time_span_to_timepoint(args.move_age)
+                backups_to_move = backups_since(oldest_backup_date, old_backup_location)
+            else:
+                assert args.move_since
+                oldest_backup_date = datetime.datetime.strptime(args.move_since, "%Y-%m-%d")
+                backups_to_move = backups_since(oldest_backup_date, old_backup_location)
+
+            move_backups(old_backup_location, new_backup_location, backups_to_move)
         else:
             def path_or_none(arg: str | None) -> Path | None:
                 """Create a Path instance if the input string is valid."""
@@ -1042,9 +1241,8 @@ log file is desired, use the file name NUL on Windows and
         print_backup_storage_stats(args.backup_folder)
         exit_code = 0
     except CommandLineError as error:
-        logger.error(error)
-        logger.info("")
         user_input.print_usage()
+        logger.error(error)
     except Exception:
         if action:
             logger.error(f"An error prevented the {action} from completing.")
