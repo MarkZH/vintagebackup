@@ -941,7 +941,12 @@ def choice_count(*args: Any) -> int:
     return len(list(filter(None, args)))
 
 
-if __name__ == "__main__":
+def main(argv: list[str]) -> None:
+    """
+    Start the main program.
+
+    argv: A list of command line arguments as from sys.argv
+    """
     user_input = argparse.ArgumentParser(add_help=False,
                                          formatter_class=argparse.RawTextHelpFormatter,
                                          allow_abbrev=False,
@@ -1124,7 +1129,7 @@ Specify the maximum age of backups to move. See --delete-after for the time span
     user_input.add_argument("--move-since", help=format_help("""
 Move all backups made on or after the specified date (YYYY-MM-DD)."""))
 
-    command_line_options = sys.argv[1:] or ["--help"]
+    command_line_options = argv[1:] or ["--help"]
     command_line_args = user_input.parse_args(command_line_options)
     if command_line_args.config:
         file_options = read_configuation_file(command_line_args.config)
@@ -1254,3 +1259,6 @@ Move all backups made on or after the specified date (YYYY-MM-DD)."""))
         print_backup_storage_stats(args.backup_folder)
     finally:
         sys.exit(exit_code)
+
+if __name__ == "__main__":
+    main(sys.argv)
