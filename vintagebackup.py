@@ -1129,7 +1129,10 @@ Specify the maximum age of backups to move. See --delete-after for the time span
     user_input.add_argument("--move-since", help=format_help("""
 Move all backups made on or after the specified date (YYYY-MM-DD)."""))
 
-    command_line_options = argv[1:] or ["--help"]
+    if argv and argv[0] == sys.argv[0]:
+        argv = argv[1:]
+
+    command_line_options = argv or ["--help"]
     command_line_args = user_input.parse_args(command_line_options)
     if command_line_args.config:
         file_options = read_configuation_file(command_line_args.config)
@@ -1259,6 +1262,7 @@ Move all backups made on or after the specified date (YYYY-MM-DD)."""))
         print_backup_storage_stats(args.backup_folder)
     finally:
         sys.exit(exit_code)
+
 
 if __name__ == "__main__":
     main(sys.argv)
