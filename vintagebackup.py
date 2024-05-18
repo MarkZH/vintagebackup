@@ -844,7 +844,7 @@ def move_backups(old_backup_location: Path,
     record_user_location(original_backup_source, new_backup_location)
 
 
-def last_n_backups(backup_location: Path, n: str) -> list[Path]:
+def last_n_backups(backup_location: Path, n: str | int) -> list[Path]:
     """
     Return a list of the paths of the last n backups.
 
