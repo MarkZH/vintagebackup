@@ -12,7 +12,7 @@ import re
 import textwrap
 import math
 from collections import Counter
-from typing import Iterator, Any
+from typing import Iterator
 from pathlib import Path
 
 backup_date_format = "%Y-%m-%d %H-%M-%S"
@@ -923,7 +923,7 @@ def format_help(lines: str) -> str:
     return format_paragraphs(lines, width - 24)
 
 
-def add_no_option(user_input: argparse.ArgumentParser, name: str) -> None:
+def add_no_option(user_input: argparse.ArgumentParser | argparse._ArgumentGroup, name: str) -> None:
     """Add negating option for boolean command line arguments."""
     user_input.add_argument(f"--no-{name}", action="store_true", help=format_help(f"""
 Disable the --{name} option. This is primarily used if "{name}" appears in a
@@ -934,11 +934,6 @@ def toggle_is_set(args: argparse.Namespace, name: str) -> bool:
     """Check that a boolean command line option --X has been selected and not negated by --no-X."""
     options = vars(args)
     return options[name] and not options[f"no_{name}"]
-
-
-def choice_count(*args: Any) -> int:
-    """Count the number of arguments with set values."""
-    return len(list(filter(None, args)))
 
 
 def main(argv: list[str]) -> None:
@@ -971,10 +966,143 @@ Technical notes:
 - If two files in the user's directory are hard-linked together, these files will be copied/linked
 separately (the hard link is not preserved in the backup.)"""))
 
-    user_input.add_argument("-h", "--help", action="store_true", help=format_help("""
+    action_group = user_input.add_argument_group("Actions", format_text("""
+The default action when vintage backups is run is to create a new backup. If one of the following
+options are chosen, then that action is performed instead."""))
+
+    only_one_action_group = action_group.add_mutually_exclusive_group()
+
+    only_one_action_group.add_argument("-h", "--help", action="store_true", help=format_help("""
 Show this help message and exit."""))
 
-    user_input.add_argument("-c", "--config", metavar="FILE_NAME", help=format_help(r"""
+    only_one_action_group.add_argument("-r", "--recover", help=format_help("""
+Recover a file or folder from the backup. The user will be able
+to pick which version to recover by choosing the backup date as
+the source. If a file is being recovered, only backup dates where
+the file was modified will be presented. If a folder is being
+recovered, then all available backup dates will be options.
+This option requires the -b option to specify which
+backup location to search."""))
+
+    only_one_action_group.add_argument("--list", metavar="DIRECTORY", help=format_help("""
+Recover a file or folder in the directory specified by the argument
+by first choosing what to recover from a list of everything that's
+ever been backed up. If no argument is given, the current directory
+is used. The backup location argument (-b) is required."""))
+
+    only_one_action_group.add_argument("--move-backup", metavar="NEW_BACKUP_LOCATION",
+                                       help=format_help("""
+Move a backup set to a new location. The value of this argument is the new location. The
+--backup-folder option is required to specify the current location of the backup set, and one
+of --move-count or --move-age is required to specify how many of the most recent backups to
+move. Moving each dated backup will take just as long as a normal backup to move since the hard
+links to previous backups will be recreated to preserve the space savings, so some planning is
+needed when deciding how many backups should be moved."""))
+
+    common_group = user_input.add_argument_group("Options needed for all actions")
+
+    common_group.add_argument("-b", "--backup-folder", help=format_help("""
+The destination of the backed up files. This folder will
+contain a set of folders labeled by year, and each year's
+folder will contain all of that year's backups."""))
+
+    backup_group = user_input.add_argument_group("Options for backing up")
+
+    backup_group.add_argument("-u", "--user-folder", help=format_help("""
+The directory to be backed up. The contents of this
+folder and all subfolders will be backed up recursively."""))
+
+    backup_group.add_argument("-e", "--exclude", help=format_help("""
+The path of a text file containing a list of files and folders
+to exclude from backups. Each line in the file should contain
+one exclusion. Wildcard characters like * and ? are allowed.
+The path should either be an absolute path or one relative to
+the directory being backed up (from the -u option)."""))
+
+    backup_group.add_argument("-i", "--include", help=format_help("""
+The path of a text file containing a list of files and folders
+to include in the backups. The entries in this text file
+override the exclusions from the --exclude argument. Each line
+should contain one file or directory to include. Wildcard
+characters like * and ? are allowed. The paths should either
+be absolute paths or paths relative to the directory being backed
+up (from the -u option). Included paths must be contained within
+the directory being backed up."""))
+
+    backup_group.add_argument("-w", "--whole-file", action="store_true", help=format_help("""
+Examine the entire contents of a file to determine if it has
+changed and needs to be copied to the new backup. Without this
+option, only the file's size, type, and modification date are
+checked for differences. Using this option will make backups
+take considerably longer."""))
+
+    add_no_option(backup_group, "whole-file")
+
+    backup_group.add_argument("--delete-on-error", action="store_true", help=format_help("""
+If an error causes a backup to fail to complete, delete that
+backup. If this option does not appear, then the incomplete
+backup is left in place. Users may want to use this option
+so that files that were not part of the failed backup do not
+get copied anew during the next backup. NOTE: Individual files
+not being copied or linked (e.g., for lack of permission) are
+not errors, and will only be noted in the log."""))
+
+    add_no_option(backup_group, "delete-on-error")
+
+    backup_group.add_argument("--free-up", metavar="SPACE", help=format_help("""
+Automatically delete old backups when space runs low on the
+backup destination. The SPACE argument can be in one of two forms.
+If the argument is a number followed by a percent sign (%%), then
+the number is interpreted as a percent of the total storage space
+of the destination. Old backups will be deleted until that
+percentage of the destination storage space is free.
+
+If the argument ends with one letter or one letter followed by
+a 'B', then the number will be interpreted as a number of bytes.
+Case does not matter, so all of the following specify 15 megabytes:
+15MB, 15Mb, 15mB, 15mb, 15M, 15m. Old backups will be deleted until
+at least that much space is free.
+
+In either of the above cases, there should be no space between the
+number and subsequent symbol.
+
+No matter what, the most recent backup will not be deleted."""))
+
+    backup_group.add_argument("--delete-after", metavar="TIME", help=format_help("""
+Delete backups if they are older than the time span in the argument.
+The format of the argument is Nt, where N is a whole number and
+t is a single letter: d for days, w for weeks, m for calendar months,
+or y for calendar years. There should be no space between the number
+and letter.
+
+No matter what, the most recent backup will not be deleted."""))
+
+    backup_group.add_argument("--force-copy", action="store_true", help=format_help("""
+Copy all files instead of linking to files previous backups. The
+new backup will contain new copies of all of the user's files,
+so the backup location will require much more space than a normal
+backup."""))
+
+    add_no_option(backup_group, "force-copy")
+
+    move_group = user_input.add_argument_group("Move backup options", format_text("""
+Use exactly one of these options to specify which backups to move when using --move-backup."""))
+
+    only_one_move_group = move_group.add_mutually_exclusive_group()
+
+    only_one_move_group.add_argument("--move-count", help=format_help("""
+Specify the number of the most recent backups to move, or "all" if every backup should be moved
+to the new location."""))
+
+    only_one_move_group.add_argument("--move-age", help=format_help("""
+Specify the maximum age of backups to move. See --delete-after for the time span format to use."""))
+
+    only_one_move_group.add_argument("--move-since", help=format_help("""
+Move all backups made on or after the specified date (YYYY-MM-DD)."""))
+
+    other_group = user_input.add_argument_group("Other options")
+
+    other_group.add_argument("-c", "--config", metavar="FILE_NAME", help=format_help(r"""
 Read options from a configuration file instead of command-line arguments. The format
 of the file should be one option per line with a colon separating the parameter name
 and value. The parameter names have the same names as the double-dashed command line options
@@ -1001,133 +1129,18 @@ line options override the config file options.
 
 A final note: the parameter "config" does nothing inside a config file."""))
 
-    user_input.add_argument("-u", "--user-folder", help=format_help("""
-The directory to be backed up. The contents of this
-folder and all subfolders will be backed up recursively."""))
-
-    user_input.add_argument("-b", "--backup-folder", help=format_help("""
-The destination of the backed up files. This folder will
-contain a set of folders labeled by year, and each year's
-folder will contain all of that year's backups."""))
-
-    user_input.add_argument("-e", "--exclude", help=format_help("""
-The path of a text file containing a list of files and folders
-to exclude from backups. Each line in the file should contain
-one exclusion. Wildcard characters like * and ? are allowed.
-The path should either be an absolute path or one relative to
-the directory being backed up (from the -u option)."""))
-
-    user_input.add_argument("-i", "--include", help=format_help("""
-The path of a text file containing a list of files and folders
-to include in the backups. The entries in this text file
-override the exclusions from the --exclude argument. Each line
-should contain one file or directory to include. Wildcard
-characters like * and ? are allowed. The paths should either
-be absolute paths or paths relative to the directory being backed
-up (from the -u option). Included paths must be contained within
-the directory being backed up."""))
-
-    user_input.add_argument("-w", "--whole-file", action="store_true", help=format_help("""
-Examine the entire contents of a file to determine if it has
-changed and needs to be copied to the new backup. Without this
-option, only the file's size, type, and modification date are
-checked for differences. Using this option will make backups
-take considerably longer."""))
-
-    add_no_option(user_input, "whole-file")
-
-    user_input.add_argument("--delete-on-error", action="store_true", help=format_help("""
-If an error causes a backup to fail to complete, delete that
-backup. If this option does not appear, then the incomplete
-backup is left in place. Users may want to use this option
-so that files that were not part of the failed backup do not
-get copied anew during the next backup. NOTE: Individual files
-not being copied or linked (e.g., for lack of permission) are
-not errors, and will only be noted in the log."""))
-
-    add_no_option(user_input, "delete-on-error")
-
-    user_input.add_argument("--free-up", metavar="SPACE", help=format_help("""
-Automatically delete old backups when space runs low on the
-backup destination. The SPACE argument can be in one of two forms.
-If the argument is a number followed by a percent sign (%%), then
-the number is interpreted as a percent of the total storage space
-of the destination. Old backups will be deleted until that
-percentage of the destination storage space is free.
-
-If the argument ends with one letter or one letter followed by
-a 'B', then the number will be interpreted as a number of bytes.
-Case does not matter, so all of the following specify 15 megabytes:
-15MB, 15Mb, 15mB, 15mb, 15M, 15m. Old backups will be deleted until
-at least that much space is free.
-
-In either of the above cases, there should be no space between the
-number and subsequent symbol.
-
-No matter what, the most recent backup will not be deleted."""))
-
-    user_input.add_argument("--delete-after", metavar="TIME", help=format_help("""
-Delete backups if they are older than the time span in the argument.
-The format of the argument is Nt, where N is a whole number and
-t is a single letter: d for days, w for weeks, m for calendar months,
-or y for calendar years. There should be no space between the number
-and letter.
-
-No matter what, the most recent backup will not be deleted."""))
-
-    user_input.add_argument("-r", "--recover", help=format_help("""
-Recover a file or folder from the backup. The user will be able
-to pick which version to recover by choosing the backup date as
-the source. If a file is being recovered, only backup dates where
-the file was modified will be presented. If a folder is being
-recovered, then all available backup dates will be options.
-This option requires the -b option to specify which
-backup location to search."""))
-
-    user_input.add_argument("--list", metavar="DIRECTORY", help=format_help("""
-Recover a file or folder in the directory specified by the argument
-by first choosing what to recover from a list of everything that's
-ever been backed up. If no argument is given, the current directory
-is used. The backup location argument (-b) is required."""))
-
-    user_input.add_argument("--force-copy", action="store_true", help=format_help("""
-Copy all files instead of linking to files previous backups. The
-new backup will contain new copies of all of the user's files,
-so the backup location will require much more space than a normal
-backup."""))
-
-    add_no_option(user_input, "force-copy")
-
-    user_input.add_argument("--debug", action="store_true", help=format_help("""
+    other_group.add_argument("--debug", action="store_true", help=format_help("""
 Log information on all action of a backup."""))
 
-    add_no_option(user_input, "debug")
+    add_no_option(other_group, "debug")
 
     default_log_file_name = Path.home()/"vintagebackup.log"
-    user_input.add_argument("-l", "--log", default=default_log_file_name, help=format_help(f"""
+    other_group.add_argument("-l", "--log", default=default_log_file_name, help=format_help(f"""
 Where to log the activity of this program. A file of the same
 name will be written to the backup folder. The default is
 {default_log_file_name.name} in the user's home folder. If no
 log file is desired, use the file name NUL on Windows and
 /dev/null on Linux, Macs, and similar."""))
-
-    user_input.add_argument("--move-backup", metavar="NEW_BACKUP_LOCATION", help=format_help("""
-Move a backup set to a new location. The value of this argument is the new location. The
---backup-folder option is required to specify the current location of the backup set, and one
-of --move-count or --move-age is required to specify how many of the most recent backups to
-move. Moving each dated backup will take just as long as a normal backup to move since the hard
-links to previous backups will be recreated to preserve the space savings, so some planning is
-needed when deciding how many backups should be moved."""))
-
-    user_input.add_argument("--move-count", help=format_help("""
-Specify the number of the most recent backups to move, or "all" if every backup should be moved
-to the new location."""))
-
-    user_input.add_argument("--move-age", help=format_help("""
-Specify the maximum age of backups to move. See --delete-after for the time span format to use."""))
-
-    user_input.add_argument("--move-since", help=format_help("""
-Move all backups made on or after the specified date (YYYY-MM-DD)."""))
 
     if argv and argv[0] == sys.argv[0]:
         argv = argv[1:]
@@ -1139,15 +1152,6 @@ Move all backups made on or after the specified date (YYYY-MM-DD)."""))
         args = user_input.parse_args(file_options + command_line_options)
     else:
         args = command_line_args
-
-    action_count = choice_count(args.help, args.recover, args.list, args.move_backup)
-    if action_count > 1:
-        print("Up to one of these actions (--help, --recover, --list, --move-backup) "
-              "may be performed at one time.")
-        print("If none of these options are used, a backup will start,"
-              " which requires the -u and -b parameters.")
-        user_input.print_usage()
-        sys.exit(1)
 
     if args.help:
         user_input.print_help()
@@ -1202,20 +1206,17 @@ Move all backups made on or after the specified date (YYYY-MM-DD)."""))
             action = "backup location move"
             new_backup_location = Path(args.move_backup).absolute()
 
-            moving_choices = choice_count(args.move_count, args.move_age, args.move_since)
-            if moving_choices != 1:
-                raise CommandLineError("Exactly one of --move-count, --move-age, or --move-since "
-                                       "must be used when moving backups.")
-
             if args.move_count:
                 backups_to_move = last_n_backups(old_backup_location, args.move_count)
             elif args.move_age:
                 oldest_backup_date = parse_time_span_to_timepoint(args.move_age)
                 backups_to_move = backups_since(oldest_backup_date, old_backup_location)
-            else:
-                assert args.move_since
+            elif args.move_since:
                 oldest_backup_date = datetime.datetime.strptime(args.move_since, "%Y-%m-%d")
                 backups_to_move = backups_since(oldest_backup_date, old_backup_location)
+            else:
+                raise CommandLineError("Exactly one of --move-count, --move-age, or --move-since "
+                                       "must be used when moving backups.")
 
             move_backups(old_backup_location, new_backup_location, backups_to_move)
         else:
