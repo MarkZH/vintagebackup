@@ -118,8 +118,7 @@ class BackupTest(unittest.TestCase):
             create_user_data(user_data)
             vintagebackup.create_new_backup(user_data,
                                             backup_location,
-                                            exclude_file=None,
-                                            include_file=None,
+                                            alter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False)
             first_backups = vintagebackup.last_n_backups(backup_location, "all")
@@ -132,8 +131,7 @@ class BackupTest(unittest.TestCase):
             time.sleep(1)  # Make sure backups have unique names
             vintagebackup.create_new_backup(user_data,
                                             backup_location,
-                                            exclude_file=None,
-                                            include_file=None,
+                                            alter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False)
             second_backups = vintagebackup.last_n_backups(backup_location, "all")
@@ -146,8 +144,7 @@ class BackupTest(unittest.TestCase):
             time.sleep(1)  # Make sure backups have unique names
             vintagebackup.create_new_backup(user_data,
                                             backup_location,
-                                            exclude_file=None,
-                                            include_file=None,
+                                            alter_file=None,
                                             examine_whole_file=False,
                                             force_copy=True)
             third_backups = vintagebackup.last_n_backups(backup_location, "all")
@@ -166,28 +163,27 @@ class IncludeExcludeBackupTest(unittest.TestCase):
         """Test that exclude files result in the right files being excluded."""
         with (tempfile.TemporaryDirectory() as user_data_location,
               tempfile.TemporaryDirectory() as backup_folder,
-              tempfile.NamedTemporaryFile("w+", delete_on_close=False) as exclude_file):
+              tempfile.NamedTemporaryFile("w+", delete_on_close=False) as alter_file):
 
             user_data = Path(user_data_location)
             create_user_data(user_data)
             user_paths = directory_contents(user_data)
 
             expected_backups = user_paths.copy()
-            exclude_file.write("sub_directory_2\n")
+            alter_file.write("- sub_directory_2\n")
             expected_backups.difference_update(path for path in user_paths
                                                if "sub_directory_2" in path.parts)
 
-            exclude_file.write(os.path.join("*", "sub_sub_directory_0\n"))
+            alter_file.write(os.path.join("- *", "sub_sub_directory_0\n"))
             expected_backups.difference_update(path for path in user_paths
                                                if "sub_sub_directory_0" in path.parts)
 
-            exclude_file.close()
+            alter_file.close()
 
             backup_location = Path(backup_folder)
             vintagebackup.create_new_backup(user_data,
                                             backup_location,
-                                            exclude_file=Path(exclude_file.name),
-                                            include_file=None,
+                                            alter_file=Path(alter_file.name),
                                             examine_whole_file=False,
                                             force_copy=False)
 
@@ -201,33 +197,33 @@ class IncludeExcludeBackupTest(unittest.TestCase):
         """Test that include-exclude file combinations work properly."""
         with (tempfile.TemporaryDirectory() as user_data_location,
               tempfile.TemporaryDirectory() as backup_folder,
-              tempfile.NamedTemporaryFile("w+", delete_on_close=False) as exclude_file,
-              tempfile.NamedTemporaryFile("w+", delete_on_close=False) as include_file):
+              tempfile.NamedTemporaryFile("w+", delete_on_close=False) as alter_file):
 
             user_data = Path(user_data_location)
             create_user_data(user_data)
             user_paths = directory_contents(user_data)
 
             expected_backup_paths = user_paths.copy()
-            exclude_file.write("sub_directory_2\n")
+            alter_file.write("- sub_directory_2\n")
             expected_backup_paths.difference_update(path for path in user_paths
                                                     if "sub_directory_2" in path.parts)
 
-            exclude_file.write(os.path.join("*", "sub_sub_directory_0\n"))
+            alter_file.write(os.path.join("- *", "sub_sub_directory_0\n"))
             expected_backup_paths.difference_update(path for path in user_paths
                                                     if "sub_sub_directory_0" in path.parts)
-            exclude_file.close()
 
-            include_file.write(os.path.join("sub_directory_1",
-                                            "sub_sub_directory_1",
-                                            "file_1.txt\n"))
-            expected_backup_paths.add(Path("sub_directory_1")/"sub_sub_directory_1"/"file_1.txt")
+            alter_file.write(os.path.join("+ sub_directory_1",
+                                          "sub_sub_directory_0",
+                                          "file_1.txt\n"))
+            expected_backup_paths.add(Path("sub_directory_1")/"sub_sub_directory_0")
+            expected_backup_paths.add(Path("sub_directory_1")/"sub_sub_directory_0"/"file_1.txt")
+
+            alter_file.close()
 
             backup_location = Path(backup_folder)
             vintagebackup.create_new_backup(user_data,
                                             backup_location,
-                                            exclude_file=Path(exclude_file.name),
-                                            include_file=Path(include_file.name),
+                                            alter_file=Path(alter_file.name),
                                             examine_whole_file=False,
                                             force_copy=False)
 
