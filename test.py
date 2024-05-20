@@ -4,6 +4,7 @@ import os
 import time
 import filecmp
 from pathlib import Path
+import itertools
 import vintagebackup
 
 
@@ -26,6 +27,15 @@ def create_user_data(base_directory: Path) -> None:
                 file_path = subsubfolder/f"file_{file_num}.txt"
                 with open(file_path, "w") as file:
                     file.write(f"File contents: {sub_num}/{sub_sub_num}/{file_num}\n")
+
+
+def directory_contents(base_directory: Path) -> set[Path]:
+    """Return a set of all paths in a directory relative to that directory."""
+    paths: set[Path] = set()
+    for directory, directories, files in os.walk(base_directory):
+        for path in itertools.chain(directories, files):
+            paths.add(Path(directory).relative_to(base_directory)/path)
+    return paths
 
 
 def all_files_have_same_content(standard_directory: Path,
@@ -157,12 +167,22 @@ class IncludeExcludeBackupTest(unittest.TestCase):
         with (tempfile.TemporaryDirectory() as user_data_location,
               tempfile.TemporaryDirectory() as backup_folder,
               tempfile.NamedTemporaryFile("w+", delete_on_close=False) as exclude_file):
-            exclude_file.write("sub_directory_2\n")
-            exclude_file.write(os.path.join("*", "sub_sub_directory_0\n"))
-            exclude_file.close()
 
             user_data = Path(user_data_location)
             create_user_data(user_data)
+            user_paths = directory_contents(user_data)
+
+            expected_backups = user_paths.copy()
+            exclude_file.write("sub_directory_2\n")
+            expected_backups.difference_update(path for path in user_paths
+                                               if "sub_directory_2" in path.parts)
+
+            exclude_file.write(os.path.join("*", "sub_sub_directory_0\n"))
+            expected_backups.difference_update(path for path in user_paths
+                                               if "sub_sub_directory_0" in path.parts)
+
+            exclude_file.close()
+
             backup_location = Path(backup_folder)
             vintagebackup.create_new_backup(user_data,
                                             backup_location,
@@ -174,14 +194,8 @@ class IncludeExcludeBackupTest(unittest.TestCase):
             last_backup = vintagebackup.find_previous_backup(backup_location)
             assert last_backup
 
-            self.assertFalse((last_backup/"sub_directory_2").is_dir())
-            for n in range(3):
-                if n == 2:
-                    continue
-                sub_directory = last_backup/f"sub_directory_{n}"
-                for m in range(3):
-                    sub_sub_directory = sub_directory/f"sub_sub_directory_{m}"
-                    self.assertTrue((m != 0) == sub_sub_directory.is_dir())
+            self.assertEqual(directory_contents(last_backup), expected_backups)
+            self.assertNotEqual(directory_contents(user_data), expected_backups)
 
 
 if __name__ == "__main__":
