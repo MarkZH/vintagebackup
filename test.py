@@ -115,6 +115,7 @@ class BackupTest(unittest.TestCase):
             first_backups = vintagebackup.last_n_backups(backup_location, "all")
             self.assertEqual(len(first_backups), 1)
             first_backup = first_backups[0]
+            self.assertEqual(first_backup, vintagebackup.find_previous_backup(backup_location))
             self.assertTrue(directories_have_identical_content(user_data, first_backup))
             self.assertTrue(all_files_are_copies(user_data, first_backup))
 
@@ -129,6 +130,7 @@ class BackupTest(unittest.TestCase):
             self.assertEqual(len(second_backups), 2)
             self.assertEqual(second_backups[0], first_backup)
             second_backup = second_backups[1]
+            self.assertEqual(second_backup, vintagebackup.find_previous_backup(backup_location))
             self.assertTrue(directories_are_completely_hardlinked(first_backup, second_backup))
 
             time.sleep(1)  # Make sure backups have unique names
@@ -143,6 +145,7 @@ class BackupTest(unittest.TestCase):
             self.assertEqual(third_backups[0], first_backup)
             self.assertEqual(third_backups[1], second_backup)
             third_backup = third_backups[2]
+            self.assertEqual(third_backup, vintagebackup.find_previous_backup(backup_location))
             self.assertTrue(directories_are_completely_copied(second_backup, third_backup))
 
 
