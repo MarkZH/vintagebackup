@@ -146,5 +146,40 @@ class BackupTest(unittest.TestCase):
             self.assertTrue(directories_are_completely_copied(second_backup, third_backup))
 
 
+class IncludeExcludeBackupTest(unittest.TestCase):
+    """Test that exclude and include files work properly."""
+
+    def test_exclusions(self) -> None:
+        """Test that exclude files result in the right files being excluded."""
+        with (tempfile.TemporaryDirectory() as user_data_location,
+              tempfile.TemporaryDirectory() as backup_folder,
+              tempfile.NamedTemporaryFile("w+", delete_on_close=False) as exclude_file):
+            exclude_file.write("sub_directory_2\n")
+            exclude_file.write(os.path.join("*", "sub_sub_directory_0\n"))
+            exclude_file.close()
+
+            user_data = Path(user_data_location)
+            create_user_data(user_data)
+            backup_location = Path(backup_folder)
+            vintagebackup.create_new_backup(user_data,
+                                            backup_location,
+                                            exclude_file=Path(exclude_file.name),
+                                            include_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False)
+
+            last_backup = vintagebackup.find_previous_backup(backup_location)
+            assert last_backup
+
+            self.assertFalse((last_backup/"sub_directory_2").is_dir())
+            for n in range(3):
+                if n == 2:
+                    continue
+                sub_directory = last_backup/f"sub_directory_{n}"
+                for m in range(3):
+                    sub_sub_directory = sub_directory/f"sub_sub_directory_{m}"
+                    self.assertTrue((m != 0) == sub_sub_directory.is_dir())
+
+
 if __name__ == "__main__":
     unittest.main()
