@@ -160,7 +160,7 @@ class IncludeExcludeBackupTest(unittest.TestCase):
     """Test that exclude and include files work properly."""
 
     def test_exclusions(self) -> None:
-        """Test that exclude files result in the right files being excluded."""
+        """Test that alter files with only exclusions result in the right files being excluded."""
         with (tempfile.TemporaryDirectory() as user_data_location,
               tempfile.TemporaryDirectory() as backup_folder,
               tempfile.NamedTemporaryFile("w+", delete_on_close=False) as alter_file):
@@ -194,7 +194,7 @@ class IncludeExcludeBackupTest(unittest.TestCase):
             self.assertNotEqual(directory_contents(user_data), expected_backups)
 
     def test_inclusions(self) -> None:
-        """Test that include-exclude file combinations work properly."""
+        """Test that alter files with inclusions and exclusions work properly."""
         with (tempfile.TemporaryDirectory() as user_data_location,
               tempfile.TemporaryDirectory() as backup_folder,
               tempfile.NamedTemporaryFile("w+", delete_on_close=False) as alter_file):
