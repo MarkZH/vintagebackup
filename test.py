@@ -197,6 +197,47 @@ class IncludeExcludeBackupTest(unittest.TestCase):
             self.assertEqual(directory_contents(last_backup), expected_backups)
             self.assertNotEqual(directory_contents(user_data), expected_backups)
 
+    def test_inclusions(self) -> None:
+        """Test that include-exclude file combinations work properly."""
+        with (tempfile.TemporaryDirectory() as user_data_location,
+              tempfile.TemporaryDirectory() as backup_folder,
+              tempfile.NamedTemporaryFile("w+", delete_on_close=False) as exclude_file,
+              tempfile.NamedTemporaryFile("w+", delete_on_close=False) as include_file):
+
+            user_data = Path(user_data_location)
+            create_user_data(user_data)
+            user_paths = directory_contents(user_data)
+
+            expected_backup_paths = user_paths.copy()
+            exclude_file.write("sub_directory_2\n")
+            expected_backup_paths.difference_update(path for path in user_paths
+                                                    if "sub_directory_2" in path.parts)
+
+            exclude_file.write(os.path.join("*", "sub_sub_directory_0\n"))
+            expected_backup_paths.difference_update(path for path in user_paths
+                                                    if "sub_sub_directory_0" in path.parts)
+            exclude_file.close()
+
+            include_file.write(os.path.join("sub_directory_1",
+                                            "sub_sub_directory_1",
+                                            "file_1.txt\n"))
+            expected_backup_paths.add(Path("sub_directory_1")/"sub_sub_directory_1"/"file_1.txt")
+
+            backup_location = Path(backup_folder)
+            vintagebackup.create_new_backup(user_data,
+                                            backup_location,
+                                            exclude_file=Path(exclude_file.name),
+                                            include_file=Path(include_file.name),
+                                            examine_whole_file=False,
+                                            force_copy=False)
+
+            self.assertEqual(len(vintagebackup.last_n_backups(backup_location, "all")), 1)
+            last_backup = vintagebackup.find_previous_backup(backup_location)
+            assert last_backup
+
+            self.assertEqual(directory_contents(last_backup), expected_backup_paths)
+            self.assertNotEqual(directory_contents(user_data), expected_backup_paths)
+
 
 if __name__ == "__main__":
     unittest.main()
