@@ -531,6 +531,7 @@ def recover_path(recovery_path: Path, backup_location: Path, choice: int | None 
     Parameters:
     recovery_path: The file or folder that is to be restored.
     backup_location: The folder containing all backups.
+    choice: Pre-selected choice of which file to recover (used for testing).
     """
     try:
         with open(get_user_location_record(backup_location)) as location_file:
