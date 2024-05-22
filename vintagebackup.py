@@ -518,7 +518,7 @@ def search_backups(search_directory: Path, backup_folder: Path) -> Path:
             continue
 
 
-def recover_path(recovery_path: Path, backup_location: Path) -> None:
+def recover_path(recovery_path: Path, backup_location: Path, choice: int | None = None) -> None:
     """
     Decide which version of a file to restore to its previous location.
 
@@ -551,24 +551,27 @@ def recover_path(recovery_path: Path, backup_location: Path) -> None:
             unique_backups.setdefault(inode, path)
 
     backup_choices = sorted(unique_backups.values())
-    number_column_size = len(str(len(backup_choices)))
-    for choice, backup_copy in enumerate(backup_choices, 1):
-        backup_date = backup_copy.relative_to(backup_location).parts[1]
-        path_type = ("Symlink" if backup_copy.is_symlink()
-                     else "File" if backup_copy.is_file()
-                     else "Folder" if backup_copy.is_dir()
-                     else "?")
-        print(f"{choice:>{number_column_size}}: {backup_date} ({path_type})")
+    if choice is None:
+        number_column_size = len(str(len(backup_choices)))
+        for choice, backup_copy in enumerate(backup_choices, 1):
+            backup_date = backup_copy.relative_to(backup_location).parts[1]
+            path_type = ("Symlink" if backup_copy.is_symlink()
+                         else "File" if backup_copy.is_file()
+                         else "Folder" if backup_copy.is_dir()
+                         else "?")
+            print(f"{choice:>{number_column_size}}: {backup_date} ({path_type})")
 
-    while True:
-        try:
-            user_choice = int(input("Version to recover (Ctrl-C to quit): "))
-            if user_choice < 1:
-                continue
-            chosen_path = backup_choices[user_choice - 1]
-            break
-        except (ValueError, IndexError):
-            pass
+        while True:
+            try:
+                user_choice = int(input("Version to recover (Ctrl-C to quit): "))
+                if user_choice < 1:
+                    continue
+                chosen_path = backup_choices[user_choice - 1]
+                break
+            except (ValueError, IndexError):
+                pass
+    else:
+        chosen_path = backup_choices[choice]
 
     recovered_path = recovery_path
     unique_id = 0
@@ -1181,7 +1184,7 @@ log file is desired, use the file name NUL on Windows and
                 raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
 
             action = "recovery"
-            recover_path(Path(args.recover).absolute(), backup_folder)
+            recover_path(Path(args.recover).resolve(), backup_folder)
         elif args.list:
             if not args.backup_folder:
                 raise CommandLineError("Backup folder needed to list backed up items.")
