@@ -247,8 +247,7 @@ class RecoveryTest(unittest.TestCase):
             backup_location = Path(backup_folder)
             vintagebackup.create_new_backup(user_data,
                                             backup_location,
-                                            exclude_file=None,
-                                            include_file=None,
+                                            alter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False)
             file_path = (user_data/"sub_directory_0"/"sub_sub_directory_0"/"file_0.txt").resolve()
@@ -266,8 +265,7 @@ class RecoveryTest(unittest.TestCase):
             backup_location = Path(backup_folder)
             vintagebackup.create_new_backup(user_data,
                                             backup_location,
-                                            exclude_file=None,
-                                            include_file=None,
+                                            alter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False)
             file_path = (user_data/"sub_directory_0"/"sub_sub_directory_0"/"file_0.txt").resolve()
@@ -284,8 +282,7 @@ class RecoveryTest(unittest.TestCase):
             backup_location = Path(backup_folder)
             vintagebackup.create_new_backup(user_data,
                                             backup_location,
-                                            exclude_file=None,
-                                            include_file=None,
+                                            alter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False)
             folder_path = (user_data/"sub_directory_1").resolve()
@@ -303,8 +300,7 @@ class RecoveryTest(unittest.TestCase):
             backup_location = Path(backup_folder)
             vintagebackup.create_new_backup(user_data,
                                             backup_location,
-                                            exclude_file=None,
-                                            include_file=None,
+                                            alter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False)
             folder_path = (user_data/"sub_directory_1"/"sub_sub_directory_1").resolve()
