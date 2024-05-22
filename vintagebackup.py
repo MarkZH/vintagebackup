@@ -134,14 +134,14 @@ def record_user_location(user_location: Path, backup_location: Path) -> None:
     """Write the user directory being backed up to a file in the base backup directory."""
     user_folder_record = get_user_location_record(backup_location)
     with open(user_folder_record, "w") as user_record:
-        user_record.write(str(user_location) + "\n")
+        user_record.write(str(user_location.resolve(strict=True)) + "\n")
 
 
 def backup_source(backup_location: Path) -> Path:
     """Read the user directory that was backed up to the given backup location."""
     user_folder_record = get_user_location_record(backup_location)
     with open(user_folder_record) as user_record:
-        return Path(user_record.read().rstrip("\n"))
+        return Path(user_record.readline().rstrip("\n")).resolve()
 
 
 def confirm_user_location_is_unchanged(user_data_location: Path, backup_location: Path) -> None:
@@ -534,8 +534,7 @@ def recover_path(recovery_path: Path, backup_location: Path, choice: int | None 
     choice: Pre-selected choice of which file to recover (used for testing).
     """
     try:
-        with open(get_user_location_record(backup_location)) as location_file:
-            user_data_location = Path(location_file.readline().rstrip("\n")).resolve(strict=True)
+        user_data_location = backup_source(backup_location)
     except FileNotFoundError:
         raise CommandLineError(f"No backups found at {backup_location}")
 
