@@ -827,7 +827,13 @@ def move_backups(old_backup_location: Path,
     logger.info("=====================")
 
     for backup in backups_to_move:
-        create_new_backup(backup, new_backup_location, None, None, False, False, True)
+        create_new_backup(backup,
+                          new_backup_location,
+                          exclude_file=None,
+                          include_file=None,
+                          examine_whole_file=False,
+                          force_copy=False,
+                          is_backup_move=True)
 
         dated_backup_path = all_backups(new_backup_location)[-1]
         backup_year_folder = dated_backup_path.parent.parent/backup.parent.name
