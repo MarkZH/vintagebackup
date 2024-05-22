@@ -279,5 +279,24 @@ class RecoveryTest(unittest.TestCase):
             recovered_file_path = file_path.parent/f"{file_path.stem}.1{file_path.suffix}"
             self.assertTrue(filecmp.cmp(file_path, recovered_file_path, shallow=False))
 
+    def test_single_folder_recovery(self) -> None:
+        """Test that recovering a folder works properly."""
+        with (tempfile.TemporaryDirectory() as user_data_location,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_data = Path(user_data_location)
+            create_user_data(user_data)
+            backup_location = Path(backup_folder)
+            vintagebackup.create_new_backup(user_data,
+                                            backup_location,
+                                            exclude_file=None,
+                                            include_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False)
+            folder_path = (user_data/"sub_directory_1").resolve()
+            vintagebackup.recover_path(folder_path, backup_location, 0)
+            recovered_folder_path = folder_path.parent/f"{folder_path.name}.1"
+            self.assertTrue(directories_are_completely_copied(folder_path, recovered_folder_path))
+            self.assertTrue(directories_have_identical_content(folder_path, recovered_folder_path))
+
 if __name__ == "__main__":
     unittest.main()
