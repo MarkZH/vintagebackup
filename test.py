@@ -261,5 +261,23 @@ class RecoveryTest(unittest.TestCase):
             vintagebackup.recover_path(file_path, backup_location, 0)
             self.assertTrue(filecmp.cmp(file_path, moved_file_path, shallow=False))
 
+    def test_single_file_recovery_with_renaming(self) -> None:
+        """Test that recovering a file that exists in user data does not overwrite any files."""
+        with (tempfile.TemporaryDirectory() as user_data_location,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_data = Path(user_data_location)
+            create_user_data(user_data)
+            backup_location = Path(backup_folder)
+            vintagebackup.create_new_backup(user_data,
+                                            backup_location,
+                                            exclude_file=None,
+                                            include_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False)
+            file_path = (user_data/"sub_directory_0"/"sub_sub_directory_0"/"file_0.txt").resolve()
+            vintagebackup.recover_path(file_path, backup_location, 0)
+            recovered_file_path = file_path.parent/f"{file_path.stem}.1{file_path.suffix}"
+            self.assertTrue(filecmp.cmp(file_path, recovered_file_path, shallow=False))
+
 if __name__ == "__main__":
     unittest.main()
