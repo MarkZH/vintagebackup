@@ -462,7 +462,7 @@ def setup_log_file(logger: logging.Logger, log_file_path: str) -> None:
     logger.addHandler(log_file)
 
 
-def search_backups(search_directory: Path, backup_folder: Path) -> Path:
+def search_backups(search_directory: Path, backup_folder: Path, choice: int | None = None) -> Path:
     """
     Decide which path to restore among all backups for all items in the given directory.
 
@@ -472,6 +472,7 @@ def search_backups(search_directory: Path, backup_folder: Path) -> Path:
     Parameters:
     search_directory: The directory from which backed up files and folders will be listed
     backup_folder: The backup destination
+    choice: Pre-selected choice of which file to recover (used for testing).
 
     Returns:
     The path to a file or folder that will then be searched for among backups.
@@ -504,18 +505,21 @@ def search_backups(search_directory: Path, backup_folder: Path) -> Path:
             continue
 
     menu_list = sorted(all_paths)
-    number_column_size = len(str(len(menu_list)))
-    for index, (name, path_type) in enumerate(menu_list, 1):
-        print(f"{index:>{number_column_size}}: {name} ({path_type})")
+    if choice is None:
+        number_column_size = len(str(len(menu_list)))
+        for index, (name, path_type) in enumerate(menu_list, 1):
+            print(f"{index:>{number_column_size}}: {name} ({path_type})")
 
-    while True:
-        try:
-            user_choice = int(input("Which path to recover (Ctrl-C to quit): "))
-            if user_choice >= 1:
-                recovery_target_name = menu_list[user_choice - 1][0]
-                return search_directory/recovery_target_name
-        except (ValueError, IndexError):
-            continue
+        while True:
+            try:
+                user_choice = int(input("Which path to recover (Ctrl-C to quit): "))
+                if user_choice >= 1:
+                    recovery_target_name = menu_list[user_choice - 1][0]
+                    return search_directory/recovery_target_name
+            except (ValueError, IndexError):
+                continue
+    else:
+        return search_directory/menu_list[choice][0]
 
 
 def recover_path(recovery_path: Path, backup_location: Path, choice: int | None = None) -> None:
