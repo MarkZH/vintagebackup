@@ -166,14 +166,14 @@ def record_user_location(user_location: Path, backup_location: Path) -> None:
     """Write the user directory being backed up to a file in the base backup directory."""
     user_folder_record = get_user_location_record(backup_location)
     with open(user_folder_record, "w") as user_record:
-        user_record.write(str(user_location) + "\n")
+        user_record.write(str(user_location.resolve(strict=True)) + "\n")
 
 
 def backup_source(backup_location: Path) -> Path:
     """Read the user directory that was backed up to the given backup location."""
     user_folder_record = get_user_location_record(backup_location)
     with open(user_folder_record) as user_record:
-        return Path(user_record.read().rstrip("\n"))
+        return Path(user_record.readline().rstrip("\n")).resolve()
 
 
 def confirm_user_location_is_unchanged(user_data_location: Path, backup_location: Path) -> None:
@@ -446,7 +446,7 @@ def setup_log_file(logger: logging.Logger, log_file_path: str) -> None:
     logger.addHandler(log_file)
 
 
-def search_backups(search_directory: Path, backup_folder: Path) -> Path:
+def search_backups(search_directory: Path, backup_folder: Path, choice: int | None = None) -> Path:
     """
     Decide which path to restore among all backups for all items in the given directory.
 
@@ -456,6 +456,7 @@ def search_backups(search_directory: Path, backup_folder: Path) -> Path:
     Parameters:
     search_directory: The directory from which backed up files and folders will be listed
     backup_folder: The backup destination
+    choice: Pre-selected choice of which file to recover (used for testing).
 
     Returns:
     The path to a file or folder that will then be searched for among backups.
@@ -488,21 +489,24 @@ def search_backups(search_directory: Path, backup_folder: Path) -> Path:
             continue
 
     menu_list = sorted(all_paths)
-    number_column_size = len(str(len(menu_list)))
-    for index, (name, path_type) in enumerate(menu_list, 1):
-        print(f"{index:>{number_column_size}}: {name} ({path_type})")
+    if choice is None:
+        number_column_size = len(str(len(menu_list)))
+        for index, (name, path_type) in enumerate(menu_list, 1):
+            print(f"{index:>{number_column_size}}: {name} ({path_type})")
 
-    while True:
-        try:
-            user_choice = int(input("Which path to recover (Ctrl-C to quit): "))
-            if user_choice >= 1:
-                recovery_target_name = menu_list[user_choice - 1][0]
-                return search_directory/recovery_target_name
-        except (ValueError, IndexError):
-            continue
+        while True:
+            try:
+                user_choice = int(input("Which path to recover (Ctrl-C to quit): "))
+                if user_choice >= 1:
+                    recovery_target_name = menu_list[user_choice - 1][0]
+                    return search_directory/recovery_target_name
+            except (ValueError, IndexError):
+                continue
+    else:
+        return search_directory/menu_list[choice][0]
 
 
-def recover_path(recovery_path: Path, backup_location: Path) -> None:
+def recover_path(recovery_path: Path, backup_location: Path, choice: int | None = None) -> None:
     """
     Decide which version of a file to restore to its previous location.
 
@@ -515,10 +519,10 @@ def recover_path(recovery_path: Path, backup_location: Path) -> None:
     Parameters:
     recovery_path: The file or folder that is to be restored.
     backup_location: The folder containing all backups.
+    choice: Pre-selected choice of which file to recover (used for testing).
     """
     try:
-        with open(get_user_location_record(backup_location)) as location_file:
-            user_data_location = Path(location_file.readline().rstrip("\n")).resolve(strict=True)
+        user_data_location = backup_source(backup_location)
     except FileNotFoundError:
         raise CommandLineError(f"No backups found at {backup_location}")
 
@@ -535,24 +539,27 @@ def recover_path(recovery_path: Path, backup_location: Path) -> None:
             unique_backups.setdefault(inode, path)
 
     backup_choices = sorted(unique_backups.values())
-    number_column_size = len(str(len(backup_choices)))
-    for choice, backup_copy in enumerate(backup_choices, 1):
-        backup_date = backup_copy.relative_to(backup_location).parts[1]
-        path_type = ("Symlink" if backup_copy.is_symlink()
-                     else "File" if backup_copy.is_file()
-                     else "Folder" if backup_copy.is_dir()
-                     else "?")
-        print(f"{choice:>{number_column_size}}: {backup_date} ({path_type})")
+    if choice is None:
+        number_column_size = len(str(len(backup_choices)))
+        for choice, backup_copy in enumerate(backup_choices, 1):
+            backup_date = backup_copy.relative_to(backup_location).parts[1]
+            path_type = ("Symlink" if backup_copy.is_symlink()
+                         else "File" if backup_copy.is_file()
+                         else "Folder" if backup_copy.is_dir()
+                         else "?")
+            print(f"{choice:>{number_column_size}}: {backup_date} ({path_type})")
 
-    while True:
-        try:
-            user_choice = int(input("Version to recover (Ctrl-C to quit): "))
-            if user_choice < 1:
-                continue
-            chosen_path = backup_choices[user_choice - 1]
-            break
-        except (ValueError, IndexError):
-            pass
+        while True:
+            try:
+                user_choice = int(input("Version to recover (Ctrl-C to quit): "))
+                if user_choice < 1:
+                    continue
+                chosen_path = backup_choices[user_choice - 1]
+                break
+            except (ValueError, IndexError):
+                pass
+    else:
+        chosen_path = backup_choices[choice]
 
     recovered_path = recovery_path
     unique_id = 0
@@ -807,7 +814,12 @@ def move_backups(old_backup_location: Path,
     logger.info("=====================")
 
     for backup in backups_to_move:
-        create_new_backup(backup, new_backup_location, None, False, False, True)
+        create_new_backup(backup,
+                          new_backup_location,
+                          alter_file=None,
+                          examine_whole_file=False,
+                          force_copy=False,
+                          is_backup_move=True)
 
         dated_backup_path = all_backups(new_backup_location)[-1]
         backup_year_folder = dated_backup_path.parent.parent/backup.parent.name
@@ -1167,7 +1179,7 @@ log file is desired, use the file name NUL on Windows and
                 raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
 
             action = "recovery"
-            recover_path(Path(args.recover).absolute(), backup_folder)
+            recover_path(Path(args.recover).resolve(), backup_folder)
         elif args.list:
             if not args.backup_folder:
                 raise CommandLineError("Backup folder needed to list backed up items.")

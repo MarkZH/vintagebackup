@@ -235,5 +235,85 @@ class IncludeExcludeBackupTest(unittest.TestCase):
             self.assertNotEqual(directory_contents(user_data), expected_backup_paths)
 
 
+class RecoveryTest(unittest.TestCase):
+    """Test recovering files and folders from backups."""
+
+    def test_single_file_recovery(self) -> None:
+        """Test that recovering a single file works properly."""
+        with (tempfile.TemporaryDirectory() as user_data_location,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_data = Path(user_data_location)
+            create_user_data(user_data)
+            backup_location = Path(backup_folder)
+            vintagebackup.create_new_backup(user_data,
+                                            backup_location,
+                                            exclude_file=None,
+                                            include_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False)
+            file_path = (user_data/"sub_directory_0"/"sub_sub_directory_0"/"file_0.txt").resolve()
+            moved_file_path = file_path.parent/(file_path.name + "_moved")
+            file_path.rename(moved_file_path)
+            vintagebackup.recover_path(file_path, backup_location, 0)
+            self.assertTrue(filecmp.cmp(file_path, moved_file_path, shallow=False))
+
+    def test_single_file_recovery_with_renaming(self) -> None:
+        """Test that recovering a file that exists in user data does not overwrite any files."""
+        with (tempfile.TemporaryDirectory() as user_data_location,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_data = Path(user_data_location)
+            create_user_data(user_data)
+            backup_location = Path(backup_folder)
+            vintagebackup.create_new_backup(user_data,
+                                            backup_location,
+                                            exclude_file=None,
+                                            include_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False)
+            file_path = (user_data/"sub_directory_0"/"sub_sub_directory_0"/"file_0.txt").resolve()
+            vintagebackup.recover_path(file_path, backup_location, 0)
+            recovered_file_path = file_path.parent/f"{file_path.stem}.1{file_path.suffix}"
+            self.assertTrue(filecmp.cmp(file_path, recovered_file_path, shallow=False))
+
+    def test_single_folder_recovery(self) -> None:
+        """Test that recovering a folder works properly."""
+        with (tempfile.TemporaryDirectory() as user_data_location,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_data = Path(user_data_location)
+            create_user_data(user_data)
+            backup_location = Path(backup_folder)
+            vintagebackup.create_new_backup(user_data,
+                                            backup_location,
+                                            exclude_file=None,
+                                            include_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False)
+            folder_path = (user_data/"sub_directory_1").resolve()
+            vintagebackup.recover_path(folder_path, backup_location, 0)
+            recovered_folder_path = folder_path.parent/f"{folder_path.name}.1"
+            self.assertTrue(directories_are_completely_copied(folder_path, recovered_folder_path))
+            self.assertTrue(directories_have_identical_content(folder_path, recovered_folder_path))
+
+    def test_list_file_recovery(self) -> None:
+        """Test that choosing a file to recover from a list works properly."""
+        with (tempfile.TemporaryDirectory() as user_data_location,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_data = Path(user_data_location)
+            create_user_data(user_data)
+            backup_location = Path(backup_folder)
+            vintagebackup.create_new_backup(user_data,
+                                            backup_location,
+                                            exclude_file=None,
+                                            include_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False)
+            folder_path = (user_data/"sub_directory_1"/"sub_sub_directory_1").resolve()
+            chosen_file = vintagebackup.search_backups(folder_path, backup_location, 1)
+            self.assertEqual(chosen_file, folder_path/"file_1.txt")
+            vintagebackup.recover_path(chosen_file, backup_location, 0)
+            recovered_file_path = chosen_file.parent/f"{chosen_file.stem}.1{chosen_file.suffix}"
+            self.assertTrue(filecmp.cmp(chosen_file, recovered_file_path, shallow=False))
+
+
 if __name__ == "__main__":
     unittest.main()
