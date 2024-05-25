@@ -181,6 +181,40 @@ class BackupTest(unittest.TestCase):
             self.assertEqual(third_backup, vintagebackup.find_previous_backup(backup_location))
             self.assertTrue(directories_are_completely_copied(second_backup, third_backup))
 
+    def test_file_changing_between_backup(self) -> None:
+        """Check that a file changed between backups is copied with others are hardlinked."""
+        with (tempfile.TemporaryDirectory() as user_data_folder,
+              tempfile.TemporaryDirectory() as backup_location_folder):
+            user_data = Path(user_data_folder)
+            backup_location = Path(backup_location_folder)
+            create_user_data(user_data)
+            vintagebackup.create_new_backup(user_data,
+                                            backup_location,
+                                            exclude_file=None,
+                                            include_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False)
+
+            changed_file_name = user_data/"sub_directory_2"/"sub_sub_directory_0"/"file_1.txt"
+            with open(changed_file_name, "a") as changed_file:
+                changed_file.write("the change\n")
+
+            time.sleep(1)
+            vintagebackup.create_new_backup(user_data,
+                                            backup_location,
+                                            exclude_file=None,
+                                            include_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False)
+            backup_1, backup_2 = vintagebackup.last_n_backups(backup_location, "all")
+            contents_1 = directory_contents(backup_1)
+            contents_2 = directory_contents(backup_2)
+            self.assertEqual(contents_1, contents_2)
+            relative_changed_file = changed_file_name.relative_to(user_data)
+            for file in (f for f in contents_1 if f.is_file()):
+                self.assertEqual(file != relative_changed_file,
+                                 (backup_1/file).stat().st_ino == (backup_2/file).stat().st_ino)
+
 
 class IncludeExcludeBackupTest(unittest.TestCase):
     """Test that exclude and include files work properly."""
