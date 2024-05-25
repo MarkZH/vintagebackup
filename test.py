@@ -187,8 +187,7 @@ class BackupTest(unittest.TestCase):
             create_user_data(user_data)
             vintagebackup.create_new_backup(user_data,
                                             backup_location,
-                                            exclude_file=None,
-                                            include_file=None,
+                                            alter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False)
 
@@ -199,8 +198,7 @@ class BackupTest(unittest.TestCase):
             time.sleep(1)
             vintagebackup.create_new_backup(user_data,
                                             backup_location,
-                                            exclude_file=None,
-                                            include_file=None,
+                                            alter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False)
             backup_1, backup_2 = vintagebackup.last_n_backups(backup_location, "all")
@@ -382,8 +380,7 @@ class MoveBackupsTest(unittest.TestCase):
             for _ in range(10):
                 vintagebackup.create_new_backup(user_data,
                                                 backup_location,
-                                                exclude_file=None,
-                                                include_file=None,
+                                                alter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False)
                 time.sleep(1)
@@ -424,8 +421,7 @@ Backup Folder:   D:\Backup
 Delete  on   error:
 
 # Extra options
-InClUdE:         inclusion_file.txt
-Exclude:         exclusion_file.txt
+aLtEr:           alter_file.txt
 force-copy:
 """)
             config_file.close()
@@ -434,8 +430,7 @@ force-copy:
                              ["--user-folder", r"C:\Files",
                               "--backup-folder", r"D:\Backup",
                               "--delete-on-error",
-                              "--include", "inclusion_file.txt",
-                              "--exclude", "exclusion_file.txt",
+                              "--alter", "alter_file.txt",
                               "--force-copy"])
 
 
