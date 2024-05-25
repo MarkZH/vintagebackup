@@ -3,6 +3,7 @@ import tempfile
 import os
 import time
 import filecmp
+import datetime
 from pathlib import Path
 import itertools
 import vintagebackup
@@ -27,6 +28,27 @@ def create_user_data(base_directory: Path) -> None:
                 file_path = subsubfolder/f"file_{file_num}.txt"
                 with open(file_path, "w") as file:
                     file.write(f"File contents: {sub_num}/{sub_sub_num}/{file_num}\n")
+
+
+def create_old_backups(backup_base_directory: Path, count: int) -> None:
+    """
+    Create a set of empty monthly backups.
+
+    Parameters:
+    backup_base_directory: The directory that will contain the backup folders.
+    count: The number of backups to create. The oldest will be (count - 1) months old.
+    """
+    now = datetime.datetime.now()
+    for months_back in range(count):
+        new_month = now.month - months_back
+        new_year = now.year
+        while new_month < 1:
+            new_month += 12
+            new_year -= 1
+        backup_timestamp = vintagebackup.fix_end_of_month(new_year, new_month, now.day,
+                                                          now.hour, now.minute, now.second, now.microsecond)
+        backup_name = f"{backup_timestamp.strftime(vintagebackup.backup_date_format)} (Testing)"
+        (backup_base_directory/str(new_year)/backup_name).mkdir(parents=True)
 
 
 def directory_contents(base_directory: Path) -> set[Path]:
@@ -350,6 +372,16 @@ class MoveBackupsTest(unittest.TestCase):
             new_backups = [p.relative_to(new_backup_location)
                            for p in vintagebackup.last_n_backups(new_backup_location, "all")]
             self.assertEqual(old_backups, new_backups)
+
+    def test_move_age_backups(self) -> None:
+        """Test that moving backups based on a time span works."""
+        with tempfile.TemporaryDirectory() as backup_folder:
+            backup_location = Path(backup_folder)
+            create_old_backups(backup_location, 25)
+            six_months_ago = vintagebackup.parse_time_span_to_timepoint("6m")
+            backups_to_move = vintagebackup.backups_since(six_months_ago, backup_location)
+            self.assertEqual(len(backups_to_move), 6)
+            self.assertEqual(vintagebackup.last_n_backups(backup_location, 6), backups_to_move)
 
 
 if __name__ == "__main__":
