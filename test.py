@@ -46,7 +46,8 @@ def create_old_backups(backup_base_directory: Path, count: int) -> None:
             new_month += 12
             new_year -= 1
         backup_timestamp = vintagebackup.fix_end_of_month(new_year, new_month, now.day,
-                                                          now.hour, now.minute, now.second, now.microsecond)
+                                                          now.hour, now.minute, now.second,
+                                                          now.microsecond)
         backup_name = f"{backup_timestamp.strftime(vintagebackup.backup_date_format)} (Testing)"
         (backup_base_directory/str(new_year)/backup_name).mkdir(parents=True)
 
@@ -366,7 +367,8 @@ class MoveBackupsTest(unittest.TestCase):
             self.assertEqual(len(backups_to_move), 5)
             new_backup_location = Path(new_backup_folder)
             vintagebackup.move_backups(backup_location, new_backup_location, backups_to_move)
-            self.assertEqual(len(vintagebackup.last_n_backups(new_backup_location, "all")), move_count)
+            backups_at_new_location = vintagebackup.last_n_backups(new_backup_location, "all")
+            self.assertEqual(len(backups_at_new_location), move_count)
             old_backups = [p.relative_to(backup_location)
                            for p in vintagebackup.last_n_backups(backup_location, move_count)]
             new_backups = [p.relative_to(new_backup_location)
