@@ -319,5 +319,38 @@ class RecoveryTest(unittest.TestCase):
             self.assertTrue(filecmp.cmp(chosen_file, recovered_file_path, shallow=False))
 
 
+class MoveBackupsTest(unittest.TestCase):
+    """Test moving backup sets to a different location."""
+
+    def test_move_n_backups(self) -> None:
+        """Test that moving N backups works."""
+        with (tempfile.TemporaryDirectory() as user_data_folder,
+              tempfile.TemporaryDirectory() as backup_folder,
+              tempfile.TemporaryDirectory() as new_backup_folder):
+            user_data = Path(user_data_folder)
+            create_user_data(user_data)
+            backup_location = Path(backup_folder)
+            for _ in range(10):
+                vintagebackup.create_new_backup(user_data,
+                                                backup_location,
+                                                exclude_file=None,
+                                                include_file=None,
+                                                examine_whole_file=False,
+                                                force_copy=False)
+                time.sleep(1)
+
+            move_count = 5
+            backups_to_move = vintagebackup.last_n_backups(backup_location, move_count)
+            self.assertEqual(len(backups_to_move), 5)
+            new_backup_location = Path(new_backup_folder)
+            vintagebackup.move_backups(backup_location, new_backup_location, backups_to_move)
+            self.assertEqual(len(vintagebackup.last_n_backups(new_backup_location, "all")), move_count)
+            old_backups = [p.relative_to(backup_location)
+                           for p in vintagebackup.last_n_backups(backup_location, move_count)]
+            new_backups = [p.relative_to(new_backup_location)
+                           for p in vintagebackup.last_n_backups(new_backup_location, "all")]
+            self.assertEqual(old_backups, new_backups)
+
+
 if __name__ == "__main__":
     unittest.main()
