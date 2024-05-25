@@ -386,5 +386,32 @@ class MoveBackupsTest(unittest.TestCase):
             self.assertEqual(vintagebackup.last_n_backups(backup_location, 6), backups_to_move)
 
 
+class ConfigurationFileTest(unittest.TestCase):
+    """Test configuration file functionality."""
+
+    def test_configuration_file(self) -> None:
+        """Test that a properly formatted configuration file is accepted."""
+        with tempfile.NamedTemporaryFile("w+", delete_on_close=False) as config_file:
+            config_file.write(r"""
+User Folder:     C:\Files
+Backup Folder:   D:\Backup
+Delete  on   error:
+
+# Extra options
+InClUdE:         inclusion_file.txt
+Exclude:         exclusion_file.txt
+force-copy:
+""")
+            config_file.close()
+            command_line = vintagebackup.read_configuation_file(config_file.name)
+            self.assertEqual(command_line,
+                             ["--user-folder", r"C:\Files",
+                              "--backup-folder", r"D:\Backup",
+                              "--delete-on-error",
+                              "--include", "inclusion_file.txt",
+                              "--exclude", "exclusion_file.txt",
+                              "--force-copy"])
+
+
 if __name__ == "__main__":
     unittest.main()
