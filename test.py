@@ -3,6 +3,7 @@ import tempfile
 import os
 import time
 import filecmp
+import datetime
 from pathlib import Path
 import itertools
 import vintagebackup
@@ -27,6 +28,28 @@ def create_user_data(base_directory: Path) -> None:
                 file_path = subsubfolder/f"file_{file_num}.txt"
                 with open(file_path, "w") as file:
                     file.write(f"File contents: {sub_num}/{sub_sub_num}/{file_num}\n")
+
+
+def create_old_backups(backup_base_directory: Path, count: int) -> None:
+    """
+    Create a set of empty monthly backups.
+
+    Parameters:
+    backup_base_directory: The directory that will contain the backup folders.
+    count: The number of backups to create. The oldest will be (count - 1) months old.
+    """
+    now = datetime.datetime.now()
+    for months_back in range(count):
+        new_month = now.month - months_back
+        new_year = now.year
+        while new_month < 1:
+            new_month += 12
+            new_year -= 1
+        backup_timestamp = vintagebackup.fix_end_of_month(new_year, new_month, now.day,
+                                                          now.hour, now.minute, now.second,
+                                                          now.microsecond)
+        backup_name = f"{backup_timestamp.strftime(vintagebackup.backup_date_format)} (Testing)"
+        (backup_base_directory/str(new_year)/backup_name).mkdir(parents=True)
 
 
 def directory_contents(base_directory: Path) -> set[Path]:
@@ -154,6 +177,40 @@ class BackupTest(unittest.TestCase):
             third_backup = third_backups[2]
             self.assertEqual(third_backup, vintagebackup.find_previous_backup(backup_location))
             self.assertTrue(directories_are_completely_copied(second_backup, third_backup))
+
+    def test_file_changing_between_backup(self) -> None:
+        """Check that a file changed between backups is copied with others are hardlinked."""
+        with (tempfile.TemporaryDirectory() as user_data_folder,
+              tempfile.TemporaryDirectory() as backup_location_folder):
+            user_data = Path(user_data_folder)
+            backup_location = Path(backup_location_folder)
+            create_user_data(user_data)
+            vintagebackup.create_new_backup(user_data,
+                                            backup_location,
+                                            exclude_file=None,
+                                            include_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False)
+
+            changed_file_name = user_data/"sub_directory_2"/"sub_sub_directory_0"/"file_1.txt"
+            with open(changed_file_name, "a") as changed_file:
+                changed_file.write("the change\n")
+
+            time.sleep(1)
+            vintagebackup.create_new_backup(user_data,
+                                            backup_location,
+                                            exclude_file=None,
+                                            include_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False)
+            backup_1, backup_2 = vintagebackup.last_n_backups(backup_location, "all")
+            contents_1 = directory_contents(backup_1)
+            contents_2 = directory_contents(backup_2)
+            self.assertEqual(contents_1, contents_2)
+            relative_changed_file = changed_file_name.relative_to(user_data)
+            for file in (f for f in contents_1 if f.is_file()):
+                self.assertEqual(file != relative_changed_file,
+                                 (backup_1/file).stat().st_ino == (backup_2/file).stat().st_ino)
 
 
 class IncludeExcludeBackupTest(unittest.TestCase):
@@ -309,6 +366,77 @@ class RecoveryTest(unittest.TestCase):
             vintagebackup.recover_path(chosen_file, backup_location, 0)
             recovered_file_path = chosen_file.parent/f"{chosen_file.stem}.1{chosen_file.suffix}"
             self.assertTrue(filecmp.cmp(chosen_file, recovered_file_path, shallow=False))
+
+
+class MoveBackupsTest(unittest.TestCase):
+    """Test moving backup sets to a different location."""
+
+    def test_move_n_backups(self) -> None:
+        """Test that moving N backups works."""
+        with (tempfile.TemporaryDirectory() as user_data_folder,
+              tempfile.TemporaryDirectory() as backup_folder,
+              tempfile.TemporaryDirectory() as new_backup_folder):
+            user_data = Path(user_data_folder)
+            create_user_data(user_data)
+            backup_location = Path(backup_folder)
+            for _ in range(10):
+                vintagebackup.create_new_backup(user_data,
+                                                backup_location,
+                                                exclude_file=None,
+                                                include_file=None,
+                                                examine_whole_file=False,
+                                                force_copy=False)
+                time.sleep(1)
+
+            move_count = 5
+            backups_to_move = vintagebackup.last_n_backups(backup_location, move_count)
+            self.assertEqual(len(backups_to_move), 5)
+            new_backup_location = Path(new_backup_folder)
+            vintagebackup.move_backups(backup_location, new_backup_location, backups_to_move)
+            backups_at_new_location = vintagebackup.last_n_backups(new_backup_location, "all")
+            self.assertEqual(len(backups_at_new_location), move_count)
+            old_backups = [p.relative_to(backup_location)
+                           for p in vintagebackup.last_n_backups(backup_location, move_count)]
+            new_backups = [p.relative_to(new_backup_location)
+                           for p in vintagebackup.last_n_backups(new_backup_location, "all")]
+            self.assertEqual(old_backups, new_backups)
+
+    def test_move_age_backups(self) -> None:
+        """Test that moving backups based on a time span works."""
+        with tempfile.TemporaryDirectory() as backup_folder:
+            backup_location = Path(backup_folder)
+            create_old_backups(backup_location, 25)
+            six_months_ago = vintagebackup.parse_time_span_to_timepoint("6m")
+            backups_to_move = vintagebackup.backups_since(six_months_ago, backup_location)
+            self.assertEqual(len(backups_to_move), 6)
+            self.assertEqual(vintagebackup.last_n_backups(backup_location, 6), backups_to_move)
+
+
+class ConfigurationFileTest(unittest.TestCase):
+    """Test configuration file functionality."""
+
+    def test_configuration_file(self) -> None:
+        """Test that a properly formatted configuration file is accepted."""
+        with tempfile.NamedTemporaryFile("w+", delete_on_close=False) as config_file:
+            config_file.write(r"""
+User Folder:     C:\Files
+Backup Folder:   D:\Backup
+Delete  on   error:
+
+# Extra options
+InClUdE:         inclusion_file.txt
+Exclude:         exclusion_file.txt
+force-copy:
+""")
+            config_file.close()
+            command_line = vintagebackup.read_configuation_file(config_file.name)
+            self.assertEqual(command_line,
+                             ["--user-folder", r"C:\Files",
+                              "--backup-folder", r"D:\Backup",
+                              "--delete-on-error",
+                              "--include", "inclusion_file.txt",
+                              "--exclude", "exclusion_file.txt",
+                              "--force-copy"])
 
 
 if __name__ == "__main__":
