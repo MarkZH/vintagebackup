@@ -143,8 +143,7 @@ class BackupTest(unittest.TestCase):
             create_user_data(user_data)
             vintagebackup.create_new_backup(user_data,
                                             backup_location,
-                                            exclude_file=None,
-                                            include_file=None,
+                                            alter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False)
             first_backups = vintagebackup.last_n_backups(backup_location, "all")
@@ -157,8 +156,7 @@ class BackupTest(unittest.TestCase):
             time.sleep(1)  # Make sure backups have unique names
             vintagebackup.create_new_backup(user_data,
                                             backup_location,
-                                            exclude_file=None,
-                                            include_file=None,
+                                            alter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False)
             second_backups = vintagebackup.last_n_backups(backup_location, "all")
@@ -171,8 +169,7 @@ class BackupTest(unittest.TestCase):
             time.sleep(1)  # Make sure backups have unique names
             vintagebackup.create_new_backup(user_data,
                                             backup_location,
-                                            exclude_file=None,
-                                            include_file=None,
+                                            alter_file=None,
                                             examine_whole_file=False,
                                             force_copy=True)
             third_backups = vintagebackup.last_n_backups(backup_location, "all")
@@ -192,8 +189,7 @@ class BackupTest(unittest.TestCase):
             create_user_data(user_data)
             vintagebackup.create_new_backup(user_data,
                                             backup_location,
-                                            exclude_file=None,
-                                            include_file=None,
+                                            alter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False)
 
@@ -204,8 +200,7 @@ class BackupTest(unittest.TestCase):
             time.sleep(1)
             vintagebackup.create_new_backup(user_data,
                                             backup_location,
-                                            exclude_file=None,
-                                            include_file=None,
+                                            alter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False)
             backup_1, backup_2 = vintagebackup.last_n_backups(backup_location, "all")
@@ -222,31 +217,30 @@ class IncludeExcludeBackupTest(unittest.TestCase):
     """Test that exclude and include files work properly."""
 
     def test_exclusions(self) -> None:
-        """Test that exclude files result in the right files being excluded."""
+        """Test that alter files with only exclusions result in the right files being excluded."""
         with (tempfile.TemporaryDirectory() as user_data_location,
               tempfile.TemporaryDirectory() as backup_folder,
-              tempfile.NamedTemporaryFile("w+", delete_on_close=False) as exclude_file):
+              tempfile.NamedTemporaryFile("w+", delete_on_close=False) as alter_file):
 
             user_data = Path(user_data_location)
             create_user_data(user_data)
             user_paths = directory_contents(user_data)
 
             expected_backups = user_paths.copy()
-            exclude_file.write("sub_directory_2\n")
+            alter_file.write("- sub_directory_2\n")
             expected_backups.difference_update(path for path in user_paths
                                                if "sub_directory_2" in path.parts)
 
-            exclude_file.write(os.path.join("*", "sub_sub_directory_0\n"))
+            alter_file.write(os.path.join("- *", "sub_sub_directory_0\n"))
             expected_backups.difference_update(path for path in user_paths
                                                if "sub_sub_directory_0" in path.parts)
 
-            exclude_file.close()
+            alter_file.close()
 
             backup_location = Path(backup_folder)
             vintagebackup.create_new_backup(user_data,
                                             backup_location,
-                                            exclude_file=Path(exclude_file.name),
-                                            include_file=None,
+                                            alter_file=Path(alter_file.name),
                                             examine_whole_file=False,
                                             force_copy=False)
 
@@ -257,36 +251,36 @@ class IncludeExcludeBackupTest(unittest.TestCase):
             self.assertNotEqual(directory_contents(user_data), expected_backups)
 
     def test_inclusions(self) -> None:
-        """Test that include-exclude file combinations work properly."""
+        """Test that alter files with inclusions and exclusions work properly."""
         with (tempfile.TemporaryDirectory() as user_data_location,
               tempfile.TemporaryDirectory() as backup_folder,
-              tempfile.NamedTemporaryFile("w+", delete_on_close=False) as exclude_file,
-              tempfile.NamedTemporaryFile("w+", delete_on_close=False) as include_file):
+              tempfile.NamedTemporaryFile("w+", delete_on_close=False) as alter_file):
 
             user_data = Path(user_data_location)
             create_user_data(user_data)
             user_paths = directory_contents(user_data)
 
             expected_backup_paths = user_paths.copy()
-            exclude_file.write("sub_directory_2\n")
+            alter_file.write("- sub_directory_2\n")
             expected_backup_paths.difference_update(path for path in user_paths
                                                     if "sub_directory_2" in path.parts)
 
-            exclude_file.write(os.path.join("*", "sub_sub_directory_0\n"))
+            alter_file.write(os.path.join("- *", "sub_sub_directory_0\n"))
             expected_backup_paths.difference_update(path for path in user_paths
                                                     if "sub_sub_directory_0" in path.parts)
-            exclude_file.close()
 
-            include_file.write(os.path.join("sub_directory_1",
-                                            "sub_sub_directory_1",
-                                            "file_1.txt\n"))
-            expected_backup_paths.add(Path("sub_directory_1")/"sub_sub_directory_1"/"file_1.txt")
+            alter_file.write(os.path.join("+ sub_directory_1",
+                                          "sub_sub_directory_0",
+                                          "file_1.txt\n"))
+            expected_backup_paths.add(Path("sub_directory_1")/"sub_sub_directory_0")
+            expected_backup_paths.add(Path("sub_directory_1")/"sub_sub_directory_0"/"file_1.txt")
+
+            alter_file.close()
 
             backup_location = Path(backup_folder)
             vintagebackup.create_new_backup(user_data,
                                             backup_location,
-                                            exclude_file=Path(exclude_file.name),
-                                            include_file=Path(include_file.name),
+                                            alter_file=Path(alter_file.name),
                                             examine_whole_file=False,
                                             force_copy=False)
 
@@ -310,8 +304,7 @@ class RecoveryTest(unittest.TestCase):
             backup_location = Path(backup_folder)
             vintagebackup.create_new_backup(user_data,
                                             backup_location,
-                                            exclude_file=None,
-                                            include_file=None,
+                                            alter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False)
             file_path = (user_data/"sub_directory_0"/"sub_sub_directory_0"/"file_0.txt").resolve()
@@ -329,8 +322,7 @@ class RecoveryTest(unittest.TestCase):
             backup_location = Path(backup_folder)
             vintagebackup.create_new_backup(user_data,
                                             backup_location,
-                                            exclude_file=None,
-                                            include_file=None,
+                                            alter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False)
             file_path = (user_data/"sub_directory_0"/"sub_sub_directory_0"/"file_0.txt").resolve()
@@ -347,8 +339,7 @@ class RecoveryTest(unittest.TestCase):
             backup_location = Path(backup_folder)
             vintagebackup.create_new_backup(user_data,
                                             backup_location,
-                                            exclude_file=None,
-                                            include_file=None,
+                                            alter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False)
             folder_path = (user_data/"sub_directory_1").resolve()
@@ -366,8 +357,7 @@ class RecoveryTest(unittest.TestCase):
             backup_location = Path(backup_folder)
             vintagebackup.create_new_backup(user_data,
                                             backup_location,
-                                            exclude_file=None,
-                                            include_file=None,
+                                            alter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False)
             folder_path = (user_data/"sub_directory_1"/"sub_sub_directory_1").resolve()
@@ -476,8 +466,7 @@ class MoveBackupsTest(unittest.TestCase):
             for _ in range(10):
                 vintagebackup.create_new_backup(user_data,
                                                 backup_location,
-                                                exclude_file=None,
-                                                include_file=None,
+                                                alter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False)
                 time.sleep(1)
@@ -518,8 +507,7 @@ Backup Folder:   D:\Backup
 Delete  on   error:
 
 # Extra options
-InClUdE:         inclusion_file.txt
-Exclude:         exclusion_file.txt
+aLtEr:           alter_file.txt
 force-copy:
 """)
             config_file.close()
@@ -528,8 +516,7 @@ force-copy:
                              ["--user-folder", r"C:\Files",
                               "--backup-folder", r"D:\Backup",
                               "--delete-on-error",
-                              "--include", "inclusion_file.txt",
-                              "--exclude", "exclusion_file.txt",
+                              "--alter", "alter_file.txt",
                               "--force-copy"])
 
 
