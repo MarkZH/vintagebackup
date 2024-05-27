@@ -4,6 +4,8 @@ import os
 import time
 import filecmp
 import datetime
+import shutil
+import logging
 from pathlib import Path
 import itertools
 import vintagebackup
@@ -366,6 +368,90 @@ class RecoveryTest(unittest.TestCase):
             self.assertTrue(filecmp.cmp(chosen_file, recovered_file_path, shallow=False))
 
 
+class BackupDeletionTest(unittest.TestCase):
+    """Test deleting backups."""
+
+    def test_deleting_last_backup(self) -> None:
+        """Test deleting only the most recent backup."""
+        with tempfile.TemporaryDirectory() as backup_folder:
+            backup_location = Path(backup_folder)
+            create_old_backups(backup_location, 10)
+            all_backups = vintagebackup.last_n_backups(backup_location, "all")
+            vintagebackup.delete_last_backup(backup_location)
+            expected_remaining_backups = all_backups[:-1]
+            all_backups_left = vintagebackup.last_n_backups(backup_location, "all")
+            self.assertEqual(expected_remaining_backups, all_backups_left)
+
+    def test_space_deletion(self) -> None:
+        """Test deleting backups until there is a given amount of free space."""
+        with tempfile.TemporaryDirectory() as backup_folder:
+            backup_location = Path(backup_folder)
+            before_backup_space = shutil.disk_usage(backup_location).free
+            backups_created = 30
+            create_old_backups(backup_location, backups_created)
+            file_size = 10_000_000
+            data = "A"*file_size
+            for directory_name, sub_directory_names, _ in os.walk(backup_location):
+                if not sub_directory_names:
+                    with open(Path(directory_name)/"file.txt", "w") as file:
+                        file.write(data)
+            after_backup_space = shutil.disk_usage(backup_location).free
+            backups_after_deletion = 10
+            backup_size = after_backup_space - before_backup_space
+            backup_size_after_deletion = backup_size*(backups_after_deletion/backups_created)
+            goal_space = before_backup_space + backup_size_after_deletion - file_size/2
+            vintagebackup.delete_oldest_backups_for_space(backup_location, f"{goal_space}B")
+            backups_left = len(vintagebackup.last_n_backups(backup_location, "all"))
+            self.assertEqual(backups_left, backups_after_deletion)
+
+    def test_space_percent_deletion(self) -> None:
+        """Test deleting backups until there is a given percent of free space."""
+        with tempfile.TemporaryDirectory() as backup_folder:
+            backup_location = Path(backup_folder)
+            before_backup_space = shutil.disk_usage(backup_location).free
+            backups_created = 30
+            create_old_backups(backup_location, backups_created)
+            file_size = 10_000_000
+            data = "A"*file_size
+            for directory_name, sub_directory_names, _ in os.walk(backup_location):
+                if not sub_directory_names:
+                    with open(Path(directory_name)/"file.txt", "w") as file:
+                        file.write(data)
+            after_backup_space = shutil.disk_usage(backup_location).free
+            backups_after_deletion = 10
+            backup_size = after_backup_space - before_backup_space
+            backup_size_after_deletion = backup_size*(backups_after_deletion/backups_created)
+            goal_space = before_backup_space + backup_size_after_deletion - file_size/2
+            goal_space_percent = 100*goal_space/shutil.disk_usage(backup_location).total
+            vintagebackup.delete_oldest_backups_for_space(backup_location, f"{goal_space_percent}%")
+            backups_left = len(vintagebackup.last_n_backups(backup_location, "all"))
+            self.assertEqual(backups_left, backups_after_deletion)
+
+    def test_date_deletion(self) -> None:
+        """Test that backups older than a given date can be deleted."""
+        with tempfile.TemporaryDirectory() as backup_folder:
+            backup_location = Path(backup_folder)
+            create_old_backups(backup_location, 30)
+            vintagebackup.delete_backups_older_than(backup_location, "1y")
+            self.assertEqual(len(vintagebackup.last_n_backups(backup_location, "all")), 12)
+
+    def test_deleting_all_backups_leaves_one(self) -> None:
+        """Test that trying to delete all backups actually leaves the last one."""
+        with tempfile.TemporaryDirectory() as backup_folder:
+            backup_location = Path(backup_folder)
+            create_old_backups(backup_location, 30)
+            vintagebackup.delete_last_backup(backup_location)
+            vintagebackup.delete_backups_older_than(backup_location, "1d")
+            self.assertEqual(len(vintagebackup.last_n_backups(backup_location, "all")), 1)
+
+        with tempfile.TemporaryDirectory() as backup_folder:
+            backup_location = Path(backup_folder)
+            create_old_backups(backup_location, 30)
+            total_space = shutil.disk_usage(backup_location).total
+            vintagebackup.delete_oldest_backups_for_space(backup_location, f"{total_space}B")
+            self.assertEqual(len(vintagebackup.last_n_backups(backup_location, "all")), 1)
+
+
 class MoveBackupsTest(unittest.TestCase):
     """Test moving backup sets to a different location."""
 
@@ -435,4 +521,5 @@ force-copy:
 
 
 if __name__ == "__main__":
+    vintagebackup.logger.setLevel(logging.ERROR)
     unittest.main()
