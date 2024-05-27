@@ -83,9 +83,6 @@ def is_real_directory(path: Path) -> bool:
     return path.is_dir() and not path.is_symlink()
 
 
-PATTERN_ENTRY = tuple[int, str, Path]
-
-
 def backup_paths(user_folder: Path, alter_file: Path | None) -> Iterator[tuple[Path, list[str]]]:
     """Return an iterator to all paths in a user's folder after altering it with an alter file."""
     backup_set: set[Path] = set()
@@ -126,6 +123,9 @@ def backup_paths(user_folder: Path, alter_file: Path | None) -> Iterator[tuple[P
             backup_tree.setdefault(path.parent, []).append(path.name)
 
     yield from sorted(backup_tree.items())
+
+
+PATTERN_ENTRY = tuple[int, str, Path]
 
 
 def alter_file_patterns(user_folder: Path, alter_file: Path | None) -> list[PATTERN_ENTRY]:
