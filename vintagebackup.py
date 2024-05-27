@@ -609,7 +609,7 @@ def delete_oldest_backups_for_space(backup_location: Path, space_requirement: st
 
     Parameters:
     backup_location: The folder containing all backups
-    space_reuirement: The amount of space that should be free after deleting backups. This may be
+    space_requirement: The amount of space that should be free after deleting backups. This may be
     expressed in bytes ("MB", "GB", etc.) or as a percentage ("%") of the total storage space.
     """
     space_text = "".join(space_requirement.lower().split())
