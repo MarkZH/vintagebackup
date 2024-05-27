@@ -227,11 +227,11 @@ class IncludeExcludeBackupTest(unittest.TestCase):
             user_paths = directory_contents(user_data)
 
             expected_backups = user_paths.copy()
-            alter_file.write("- sub_directory_2\n")
+            alter_file.write("- sub_directory_2\n\n")
             expected_backups.difference_update(path for path in user_paths
                                                if "sub_directory_2" in path.parts)
 
-            alter_file.write(os.path.join("- *", "sub_sub_directory_0\n"))
+            alter_file.write(os.path.join("- *", "sub_sub_directory_0\n\n"))
             expected_backups.difference_update(path for path in user_paths
                                                if "sub_sub_directory_0" in path.parts)
 
@@ -261,17 +261,17 @@ class IncludeExcludeBackupTest(unittest.TestCase):
             user_paths = directory_contents(user_data)
 
             expected_backup_paths = user_paths.copy()
-            alter_file.write("- sub_directory_2\n")
+            alter_file.write("- sub_directory_2\n\n")
             expected_backup_paths.difference_update(path for path in user_paths
                                                     if "sub_directory_2" in path.parts)
 
-            alter_file.write(os.path.join("- *", "sub_sub_directory_0\n"))
+            alter_file.write(os.path.join("- *", "sub_sub_directory_0\n\n"))
             expected_backup_paths.difference_update(path for path in user_paths
                                                     if "sub_sub_directory_0" in path.parts)
 
             alter_file.write(os.path.join("+ sub_directory_1",
                                           "sub_sub_directory_0",
-                                          "file_1.txt\n"))
+                                          "file_1.txt\n\n"))
             expected_backup_paths.add(Path("sub_directory_1")/"sub_sub_directory_0")
             expected_backup_paths.add(Path("sub_directory_1")/"sub_sub_directory_0"/"file_1.txt")
 

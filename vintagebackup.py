@@ -138,6 +138,8 @@ def alter_file_patterns(user_folder: Path, alter_file: Path | None) -> list[PATT
         entries: list[PATTERN_ENTRY] = []
         for line_number, line in enumerate(alterations, 1):
             line = line.lstrip().rstrip("\n")
+            if not line:
+                continue
             sign = line[0]
 
             if sign not in "-+#":
