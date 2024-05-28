@@ -1,3 +1,4 @@
+"""Testing code for Vintage Backup."""
 import unittest
 import tempfile
 import os
