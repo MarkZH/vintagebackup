@@ -413,8 +413,10 @@ def create_new_backup(user_data_location: Path,
     last_backup_path = None if force_copy else find_previous_backup(backup_location)
     if last_backup_path:
         logger.info(f"Previous backup  : {last_backup_path}")
+    elif force_copy:
+        logger.info("Copying everything.")
     else:
-        logger.info("No previous backups. Copying everything ...")
+        logger.info("No previous backups. Copying everything.")
 
     logger.info("")
     logger.info(f"Reading file contents = {examine_whole_file}")
