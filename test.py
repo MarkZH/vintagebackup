@@ -510,6 +510,8 @@ class MoveBackupsTest(unittest.TestCase):
             new_backups = [p.relative_to(new_backup_location)
                            for p in vintagebackup.last_n_backups(new_backup_location, "all")]
             self.assertEqual(old_backups, new_backups)
+            self.assertEqual(vintagebackup.backup_source(backup_location),
+                             vintagebackup.backup_source(new_backup_location))
 
     def test_move_age_backups(self) -> None:
         """Test that moving backups based on a time span works."""
