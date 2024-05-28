@@ -88,8 +88,7 @@ def backup_paths(user_folder: Path, alter_file: Path | None) -> Iterator[tuple[P
     backup_set: set[Path] = set()
     for current_directory_name, dir_names, file_names in os.walk(user_folder):
         current_directory = Path(current_directory_name)
-        dir_names[:], symlinks = separate_symlinks(current_directory, dir_names)
-        backup_set.update(current_directory/name for name in file_names + symlinks + dir_names)
+        backup_set.update(current_directory/name for name in file_names + dir_names)
 
     original_backup_set = frozenset(backup_set)
 
