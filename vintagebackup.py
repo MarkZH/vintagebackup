@@ -419,8 +419,9 @@ def create_new_backup(user_data_location: Path,
     logger.info(f"Reading file contents = {examine_whole_file}")
 
     action_counter: Counter[str] = Counter()
+    paths_to_backup = backup_paths(user_data_location, alter_file)
     logger.info("Running backup ...")
-    for current_user_path, user_file_names in backup_paths(user_data_location, alter_file):
+    for current_user_path, user_file_names in paths_to_backup:
         backup_directory(user_data_location,
                          new_backup_path,
                          last_backup_path,
