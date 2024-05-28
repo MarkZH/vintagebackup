@@ -500,7 +500,7 @@ class MoveBackupsTest(unittest.TestCase):
 
             move_count = 5
             backups_to_move = vintagebackup.last_n_backups(backup_location, move_count)
-            self.assertEqual(len(backups_to_move), 5)
+            self.assertEqual(len(backups_to_move), move_count)
             new_backup_location = Path(new_backup_folder)
             vintagebackup.move_backups(backup_location, new_backup_location, backups_to_move)
             backups_at_new_location = vintagebackup.last_n_backups(new_backup_location, "all")
