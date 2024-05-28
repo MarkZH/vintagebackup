@@ -181,6 +181,37 @@ class BackupTest(unittest.TestCase):
             self.assertEqual(third_backup, vintagebackup.find_previous_backup(backup_location))
             self.assertTrue(directories_are_completely_copied(second_backup, third_backup))
 
+            time.sleep(1)  # Make sure backups have unique names
+            vintagebackup.create_new_backup(user_data,
+                                            backup_location,
+                                            alter_file=None,
+                                            examine_whole_file=True,
+                                            force_copy=False)
+            fourth_backups = vintagebackup.last_n_backups(backup_location, "all")
+            self.assertEqual(len(fourth_backups), 4)
+            self.assertEqual(fourth_backups[0], first_backup)
+            self.assertEqual(fourth_backups[1], second_backup)
+            self.assertEqual(fourth_backups[2], third_backup)
+            fourth_backup = fourth_backups[3]
+            self.assertEqual(fourth_backup, vintagebackup.find_previous_backup(backup_location))
+            self.assertTrue(directories_are_completely_hardlinked(third_backup, fourth_backup))
+
+            time.sleep(1)  # Make sure backups have unique names
+            vintagebackup.create_new_backup(user_data,
+                                            backup_location,
+                                            alter_file=None,
+                                            examine_whole_file=True,
+                                            force_copy=True)
+            fifth_backups = vintagebackup.last_n_backups(backup_location, "all")
+            self.assertEqual(len(fifth_backups), 5)
+            self.assertEqual(fifth_backups[0], first_backup)
+            self.assertEqual(fifth_backups[1], second_backup)
+            self.assertEqual(fifth_backups[2], third_backup)
+            self.assertEqual(fifth_backups[3], fourth_backup)
+            fifth_backup = fifth_backups[4]
+            self.assertEqual(fifth_backup, vintagebackup.find_previous_backup(backup_location))
+            self.assertTrue(directories_are_completely_copied(fourth_backup, fifth_backup))
+
     def test_file_changing_between_backup(self) -> None:
         """Check that a file changed between backups is copied with others are hardlinked."""
         with (tempfile.TemporaryDirectory() as user_data_folder,
