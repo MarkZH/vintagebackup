@@ -490,8 +490,8 @@ class MoveBackupsTest(unittest.TestCase):
     def test_move_all_backups(self) -> None:
         """Test that moving all backups works."""
         with (tempfile.TemporaryDirectory() as user_data_folder,
-            tempfile.TemporaryDirectory() as backup_folder,
-            tempfile.TemporaryDirectory() as new_backup_folder):
+              tempfile.TemporaryDirectory() as backup_folder,
+              tempfile.TemporaryDirectory() as new_backup_folder):
             user_data = Path(user_data_folder)
             create_user_data(user_data)
             backup_location = Path(backup_folder)
