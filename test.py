@@ -456,6 +456,32 @@ class BackupDeletionTest(unittest.TestCase):
 class MoveBackupsTest(unittest.TestCase):
     """Test moving backup sets to a different location."""
 
+    def test_move_all_backups(self) -> None:
+        """Test that moving all backups works."""
+        with (tempfile.TemporaryDirectory() as user_data_folder,
+            tempfile.TemporaryDirectory() as backup_folder,
+            tempfile.TemporaryDirectory() as new_backup_folder):
+            user_data = Path(user_data_folder)
+            create_user_data(user_data)
+            backup_location = Path(backup_folder)
+            backup_count = 10
+            for _ in range(backup_count):
+                vintagebackup.create_new_backup(user_data,
+                                                backup_location,
+                                                alter_file=None,
+                                                examine_whole_file=False,
+                                                force_copy=False)
+                time.sleep(1)
+
+            backups_to_move = vintagebackup.last_n_backups(backup_location, "all")
+            self.assertEqual(len(backups_to_move), backup_count)
+            new_backup_location = Path(new_backup_folder)
+            vintagebackup.move_backups(backup_location, new_backup_location, backups_to_move)
+            self.assertTrue(directories_are_completely_copied(backup_location,
+                                                              new_backup_location))
+            self.assertEqual(vintagebackup.backup_source(backup_location),
+                             vintagebackup.backup_source(new_backup_location))
+
     def test_move_n_backups(self) -> None:
         """Test that moving N backups works."""
         with (tempfile.TemporaryDirectory() as user_data_folder,
