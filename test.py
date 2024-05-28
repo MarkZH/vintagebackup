@@ -483,6 +483,17 @@ class BackupDeletionTest(unittest.TestCase):
             vintagebackup.delete_oldest_backups_for_space(backup_location, f"{total_space}B")
             self.assertEqual(len(vintagebackup.last_n_backups(backup_location, "all")), 1)
 
+    def test_deleting_backups_for_too_much_space(self) -> None:
+        """Test that error is thrown when trying to free too much space."""
+        with tempfile.TemporaryDirectory() as backup_folder:
+            backup_location = Path(backup_folder)
+            max_space = shutil.disk_usage(backup_location).total
+            too_much_space = 2*max_space
+            self.assertRaises(vintagebackup.CommandLineError,
+                              vintagebackup.delete_oldest_backups_for_space,
+                              backup_location,
+                              f"{too_much_space}B")
+
 
 class MoveBackupsTest(unittest.TestCase):
     """Test moving backup sets to a different location."""
