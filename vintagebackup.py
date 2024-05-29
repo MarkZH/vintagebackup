@@ -14,7 +14,6 @@ import textwrap
 import math
 import glob
 from collections import Counter
-from typing import Iterator
 from pathlib import Path
 
 backup_date_format = "%Y-%m-%d %H-%M-%S"
@@ -84,7 +83,7 @@ def is_real_directory(path: Path) -> bool:
     return path.is_dir() and not path.is_symlink()
 
 
-def backup_paths(user_folder: Path, alter_file: Path | None) -> Iterator[tuple[Path, list[str]]]:
+def backup_paths(user_folder: Path, alter_file: Path | None) -> list[tuple[Path, list[str]]]:
     """Return an iterator to all paths in a user's folder after altering it with an alter file."""
     backup_set: set[Path] = set()
     for current_directory_name, dir_names, file_names in os.walk(user_folder):
@@ -122,7 +121,7 @@ def backup_paths(user_folder: Path, alter_file: Path | None) -> Iterator[tuple[P
         else:
             backup_tree.setdefault(path.parent, []).append(path.name)
 
-    yield from sorted(backup_tree.items())
+    return sorted(backup_tree.items())
 
 
 PATTERN_ENTRY = tuple[int, str, Path]
