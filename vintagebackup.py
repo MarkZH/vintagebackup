@@ -80,7 +80,7 @@ def find_previous_backup(backup_location: Path) -> Path | None:
 
 def is_real_directory(path: Path) -> bool:
     """Return True if path is a directory and not a symlink."""
-    return path.is_dir() and not path.is_symlink()
+    return path.is_dir() and not path.is_symlink() and not path.is_junction()
 
 
 def backup_paths(user_folder: Path, alter_file: Path | None) -> list[tuple[Path, list[str]]]:
@@ -277,9 +277,9 @@ def create_hard_link(previous_backup: Path, new_backup: Path) -> bool:
         return False
 
 
-def separate_symlinks(directory: Path, path_names: list[str]) -> tuple[list[str], list[str]]:
+def separate_links(directory: Path, path_names: list[str]) -> tuple[list[str], list[str]]:
     """
-    Separate regular files and folders from symlinks within a directory.
+    Separate regular files and folders from symlinks and soft links (Windows junctions).
 
     Directories within the given directory are not traversed.
 
@@ -290,10 +290,11 @@ def separate_symlinks(directory: Path, path_names: list[str]) -> tuple[list[str]
     Returns:
     Two lists: the first a list of regular files, the second a list of symlinks.
     """
-    def is_symlink(name: str) -> bool:
-        return (directory/name).is_symlink()
+    def is_link(name: str) -> bool:
+        full_path = directory/name
+        return full_path.is_symlink() or full_path.is_junction()
 
-    return list(itertools.filterfalse(is_symlink, path_names)), list(filter(is_symlink, path_names))
+    return list(itertools.filterfalse(is_link, path_names)), list(filter(is_link, path_names))
 
 
 def backup_directory(user_data_location: Path,
@@ -322,7 +323,7 @@ def backup_directory(user_data_location: Path,
     new_backup_directory_created = True
     previous_backup_directory = last_backup_path/relative_path if last_backup_path else None
 
-    user_file_names, user_symlinks = separate_symlinks(current_user_path, user_file_names)
+    user_file_names, user_links = separate_links(current_user_path, user_file_names)
     matching, mismatching, errors = compare_to_backup(current_user_path,
                                                       previous_backup_directory,
                                                       user_file_names,
@@ -342,7 +343,7 @@ def backup_directory(user_data_location: Path,
         else:
             errors.append(file_name)
 
-    for file_name in itertools.chain(mismatching, errors, user_symlinks):
+    for file_name in itertools.chain(mismatching, errors, user_links):
         new_backup_file = new_backup_directory/file_name
         user_file = current_user_path/file_name
         try:
@@ -962,7 +963,8 @@ creating a new backup: --help, --recover, --list. See below for more information
 
 Technical notes:
 
-- Symbolic links are not followed and are always copied as symbolic links.
+- Symbolic links and soft links (Windows junctions) are not followed and are always copied as
+symbolic links.
 
 - If two files in the user's directory are hard-linked together, these files will be copied/linked
 separately (the hard link is not preserved in the backup.)"""))
