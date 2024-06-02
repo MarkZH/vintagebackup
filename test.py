@@ -589,6 +589,13 @@ force-copy:
                               "--delete-on-error",
                               "--alter", "alter_file.txt",
                               "--force-copy"])
+            arg_parser = vintagebackup.argument_parser()
+            args = arg_parser.parse_args(command_line)
+            self.assertEqual(args.user_folder, r"C:\Files")
+            self.assertEqual(args.backup_folder, r"D:\Backup")
+            self.assertTrue(args.delete_on_error)
+            self.assertEqual(args.alter, "alter_file.txt")
+            self.assertTrue(args.force_copy)
 
     def test_override_config_file_with_command_line(self) -> None:
         """Test that command line options override file configurations."""
