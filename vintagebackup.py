@@ -80,7 +80,7 @@ def find_previous_backup(backup_location: Path) -> Path | None:
 
 def is_real_directory(path: Path) -> bool:
     """Return True if path is a directory and not a symlink."""
-    return path.is_dir() and not path.is_symlink() and not path.is_junction()
+    return path.is_dir() and not path.is_symlink()
 
 
 def backup_paths(user_folder: Path, alter_file: Path | None) -> list[tuple[Path, list[str]]]:
@@ -88,7 +88,8 @@ def backup_paths(user_folder: Path, alter_file: Path | None) -> list[tuple[Path,
     backup_set: set[Path] = set()
     for current_directory_name, dir_names, file_names in os.walk(user_folder):
         current_directory = Path(current_directory_name)
-        backup_set.update(current_directory/name for name in file_names + dir_names)
+        backup_set.update(current_directory/name for name in file_names + dir_names
+                          if not (current_directory/name).is_junction())
 
     original_backup_set = frozenset(backup_set)
 
@@ -279,7 +280,7 @@ def create_hard_link(previous_backup: Path, new_backup: Path) -> bool:
 
 def separate_links(directory: Path, path_names: list[str]) -> tuple[list[str], list[str]]:
     """
-    Separate regular files and folders from symlinks and soft links (Windows junctions).
+    Separate regular files and folders from symlinks.
 
     Directories within the given directory are not traversed.
 
@@ -291,8 +292,7 @@ def separate_links(directory: Path, path_names: list[str]) -> tuple[list[str], l
     Two lists: the first a list of regular files, the second a list of symlinks.
     """
     def is_link(name: str) -> bool:
-        full_path = directory/name
-        return full_path.is_symlink() or full_path.is_junction()
+        return (directory/name).is_symlink()
 
     return list(itertools.filterfalse(is_link, path_names)), list(filter(is_link, path_names))
 
@@ -963,8 +963,10 @@ creating a new backup: --help, --recover, --list. See below for more information
 
 Technical notes:
 
-- Symbolic links and soft links (Windows junctions) are not followed and are always copied as
-symbolic links.
+- Symbolic links are not followed and are always copied as symbolic links.
+
+- Windows junction points (soft links) are excluded by default. They may be added using an alter
+file (see --alter below). In that case, all of the contents will be copied.
 
 - If two files in the user's directory are hard-linked together, these files will be copied/linked
 separately (the hard link is not preserved in the backup.)"""))
