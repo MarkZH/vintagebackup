@@ -620,6 +620,27 @@ Debug:""")
             self.assertEqual(options.backup_folder, actual_backup_folder)
             self.assertEqual(options.log, actual_log_file)
 
+    def test_negating_config_file_with_command_line(self) -> None:
+        """Test that command line options override file configurations."""
+        with tempfile.NamedTemporaryFile("w+", delete_on_close=False) as config_file:
+            config_file.write(r"""
+# Test configuration file
+User Folder : C:\Users\Test User\
+Backup Folder: temp_back
+alter: alter.txt
+log: temp_log.txt
+whole file:
+Debug:""")
+            config_file.close()
+            command_line_options = ["-c", config_file.name,
+                                    "--no-whole-file",
+                                    "--no-debug"]
+            file_commands = vintagebackup.read_configuation_file(config_file.name)
+            arg_parser = vintagebackup.argument_parser()
+            options = arg_parser.parse_args(file_commands + command_line_options)
+            self.assertFalse(vintagebackup.toggle_is_set(options, "whole_file"))
+            self.assertFalse(vintagebackup.toggle_is_set(options, "debug"))
+
 
 if __name__ == "__main__":
     vintagebackup.logger.setLevel(logging.ERROR)
