@@ -590,6 +590,29 @@ force-copy:
                               "--alter", "alter_file.txt",
                               "--force-copy"])
 
+    def test_override_config_file_with_command_line(self) -> None:
+        """Test that command line options override file configurations."""
+        with tempfile.NamedTemporaryFile("w+", delete_on_close=False) as config_file:
+            config_file.write(r"""
+# Test configuration file
+User Folder : C:\Users\Test User\
+Backup Folder: temp_back
+alter: alter.txt
+log: temp_log.txt
+whole file:
+Debug:""")
+            config_file.close()
+            command_line_options = ["-b", "temp_back2",
+                                    "-c", config_file.name,
+                                    "-l", "temporary_log.log"]
+            actual_backup_folder = command_line_options[1]
+            actual_log_file = command_line_options[-1]
+            file_commands = vintagebackup.read_configuation_file(config_file.name)
+            arg_parser = vintagebackup.argument_parser()
+            options = arg_parser.parse_args(file_commands + command_line_options)
+            self.assertEqual(options.backup_folder, actual_backup_folder)
+            self.assertEqual(options.log, actual_log_file)
+
 
 if __name__ == "__main__":
     vintagebackup.logger.setLevel(logging.ERROR)

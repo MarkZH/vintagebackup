@@ -946,12 +946,8 @@ def toggle_is_set(args: argparse.Namespace, name: str) -> bool:
     return options[name] and not options[f"no_{name}"]
 
 
-def main(argv: list[str]) -> None:
-    """
-    Start the main program.
-
-    argv: A list of command line arguments as from sys.argv
-    """
+def argument_parser() -> argparse.ArgumentParser:
+    """Create the parser for command line arguments."""
     user_input = argparse.ArgumentParser(add_help=False,
                                          formatter_class=argparse.RawTextHelpFormatter,
                                          allow_abbrev=False,
@@ -1157,10 +1153,20 @@ name will be written to the backup folder. The default is
 log file is desired, use the file name NUL on Windows and
 /dev/null on Linux, Macs, and similar."""))
 
+    return user_input
+
+
+def main(argv: list[str]) -> None:
+    """
+    Start the main program.
+
+    argv: A list of command line arguments as from sys.argv
+    """
     if argv and argv[0] == sys.argv[0]:
         argv = argv[1:]
 
     command_line_options = argv or ["--help"]
+    user_input = argument_parser()
     command_line_args = user_input.parse_args(command_line_options)
     if command_line_args.config:
         file_options = read_configuation_file(command_line_args.config)
