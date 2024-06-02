@@ -93,9 +93,7 @@ def backup_paths(user_folder: Path, alter_file: Path | None) -> list[tuple[Path,
 
     original_backup_set = frozenset(backup_set)
 
-    pattern_file_entries = alter_file_patterns(user_folder, alter_file)
-
-    for line_number, sign, pattern in pattern_file_entries:
+    for line_number, sign, pattern in alter_file_patterns(user_folder, alter_file):
         path_count_before = len(backup_set)
         change_set: set[Path] = set()
         for alter_path_str in glob.iglob(str(pattern), include_hidden=True, recursive=True):
@@ -129,7 +127,17 @@ PATTERN_ENTRY = tuple[int, str, Path]
 
 
 def alter_file_patterns(user_folder: Path, alter_file: Path | None) -> list[PATTERN_ENTRY]:
-    """Read alteration patterns from the given alter file."""
+    """
+    Read alteration patterns from the given alter file.
+
+    Parameters:
+    user_folder: The base folder of the user's data.
+    alter_file: The file containing alterations to the data being backed up.
+
+    Returns:
+    A list of tuples of (line number, alter file line, path) where the path may contain glob
+    wildcard characters.
+    """
     if not alter_file:
         return []
 
