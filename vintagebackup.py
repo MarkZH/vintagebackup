@@ -663,7 +663,7 @@ def delete_oldest_backups_for_space(backup_location: Path, space_requirement: st
             break
 
         if not any_deletions:
-            logger.info(f"Deleting old backups until {byte_units(free_storage_required)} is free.")
+            logger.info(f"Deleting old backups to free up {byte_units(free_storage_required)} of space.")
 
         logger.info(f"Deleting backup: {backup}")
         delete_single_backup(backup)
