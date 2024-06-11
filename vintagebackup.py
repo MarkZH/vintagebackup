@@ -328,7 +328,7 @@ def backup_directory(user_data_location: Path,
     if not current_user_path.is_dir():
         logger.warning(f"Folder disappeared during backup: {current_user_path}")
         return
-    
+
     relative_path = current_user_path.relative_to(user_data_location)
     new_backup_directory = new_backup_path/relative_path
     os.makedirs(new_backup_directory)
