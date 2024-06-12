@@ -21,4 +21,6 @@ E:\backups\2023\2023-09-02 17-25-33 (Windows 10)
 Unchanged files will be linked to earlier backups so they don't take up more space, while new or changed files will be copied to the backup.
 This can result in years of daily backups fitting on a single external drive with every backup folder containing every backed up file, making restoring these files as easy as drag-and-drop.
 
-Running `python vintagebackup.py -h` displays details about more options.
+Running `python vintagebackup.py -h` displays help about all the options.
+
+This program is based on a previous `bash` script I had written that was basically a complicated wrapper around `rsync` with the `--link-dest` option. I rewrote the program in Python to make it cross-platform.
