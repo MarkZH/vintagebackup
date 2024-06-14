@@ -437,6 +437,28 @@ class BackupDeletionTest(unittest.TestCase):
             backup_count_after = len(vintagebackup.last_n_backups(backup_location, "all"))
             self.assertEqual(backup_count_after, 0)
 
+    def test_deleting_backup_with_read_only_folder(self) -> None:
+        """Test deleting a backup containing a readonly file."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_data = Path(user_folder)
+            create_user_data(user_data)
+            os.chmod(user_data/"sub_directory_1"/"sub_sub_directory_1", stat.S_IRUSR | stat.S_IXUSR)
+
+            backup_location = Path(backup_folder)
+            vintagebackup.create_new_backup(user_data,
+                                            backup_location,
+                                            alter_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False)
+
+            backup_count_before = len(vintagebackup.last_n_backups(backup_location, "all"))
+            self.assertEqual(backup_count_before, 1)
+
+            vintagebackup.delete_last_backup(backup_location)
+            backup_count_after = len(vintagebackup.last_n_backups(backup_location, "all"))
+            self.assertEqual(backup_count_after, 0)
+
     def test_space_deletion(self) -> None:
         """Test deleting backups until there is a given amount of free space."""
         with tempfile.TemporaryDirectory() as backup_folder:
