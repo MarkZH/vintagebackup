@@ -595,14 +595,13 @@ def recover_path(recovery_path: Path, backup_location: Path, choice: int | None 
 
 def delete_single_backup(backup_path: Path) -> None:
     """Delete a single backup."""
-    def remove_readonly(func: Callable[..., Any], path: str, exc: Exception) -> None:
+    def remove_readonly(func: Callable[..., Any], path: str, _: Any) -> None:
         """
         Clear the readonly bit and reattempt the removal.
 
         Copied from https://docs.python.org/3/library/shutil.html#rmtree-example
         """
-        if isinstance(exc, PermissionError):
-            os.chmod(path, stat.S_IWRITE)
+        os.chmod(path, stat.S_IWRITE)
         func(path)
 
     shutil.rmtree(backup_path, onexc=remove_readonly)
