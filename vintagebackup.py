@@ -770,6 +770,12 @@ def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
 
         logger.info(f"Deleting oldest backup: {backup}")
         delete_single_backup(backup)
+        try:
+            year_folder = backup.parent
+            year_folder.rmdir()
+            logger.info(f"Deleted empty year folder {year_folder}")
+        except OSError:
+            pass
         any_deletions = True
 
     if any_deletions:

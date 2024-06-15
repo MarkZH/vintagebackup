@@ -539,6 +539,18 @@ class BackupDeletionTest(unittest.TestCase):
                               backup_location,
                               f"{too_much_space}B")
 
+    def test_deleting_last_backup_in_year_folder_deletes_year_folder(self) -> None:
+        """Test that deleting a backup leaves a year folder empty, that year folder is deleted."""
+        with tempfile.TemporaryDirectory() as backup_folder:
+            backup_location = Path(backup_folder)
+            today = datetime.date.today()
+            create_old_backups(backup_location, today.month + 1)
+            oldest_backup_year_folder = backup_location/f"{today.year - 1}"
+            self.assertTrue(oldest_backup_year_folder.is_dir())
+            self.assertEqual(len(os.listdir(oldest_backup_year_folder)), 1)
+            vintagebackup.delete_backups_older_than(backup_location, f"{today.month}m")
+            self.assertFalse(oldest_backup_year_folder.is_dir())
+
 
 class MoveBackupsTest(unittest.TestCase):
     """Test moving backup sets to a different location."""
