@@ -1294,8 +1294,9 @@ def main(argv: list[str]) -> None:
                 action = "deletion of old backups"
                 delete_backups_older_than(backup_folder, args.delete_after)
 
-        logger.info("")
-        print_backup_storage_stats(args.backup_folder)
+            logger.info("")
+            print_backup_storage_stats(args.backup_folder)
+
         exit_code = 0
     except CommandLineError as error:
         user_input.print_usage()
