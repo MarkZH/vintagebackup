@@ -11,6 +11,7 @@ from pathlib import Path
 import itertools
 import stat
 import vintagebackup
+from typing import cast
 
 
 def create_user_data(base_directory: Path) -> None:
@@ -395,6 +396,8 @@ class RecoveryTest(unittest.TestCase):
                                             force_copy=False)
             folder_path = (user_data/"sub_directory_1"/"sub_sub_directory_1").resolve()
             chosen_file = vintagebackup.search_backups(folder_path, backup_location, 1)
+            self.assertIsNotNone(chosen_file)
+            chosen_file = cast(Path, chosen_file)
             self.assertEqual(chosen_file, folder_path/"file_1.txt")
             vintagebackup.recover_path(chosen_file, backup_location, 0)
             recovered_file_path = chosen_file.parent/f"{chosen_file.stem}.1{chosen_file.suffix}"

@@ -465,7 +465,9 @@ def setup_log_file(logger: logging.Logger, log_file_path: str) -> None:
     logger.addHandler(log_file)
 
 
-def search_backups(search_directory: Path, backup_folder: Path, choice: int | None = None) -> Path:
+def search_backups(search_directory: Path,
+                   backup_folder: Path,
+                   choice: int | None = None) -> Path | None:
     """
     Decide which path to restore among all backups for all items in the given directory.
 
@@ -506,6 +508,10 @@ def search_backups(search_directory: Path, backup_folder: Path, choice: int | No
                     all_paths.add((item.name, path_type))
         except FileNotFoundError:
             continue
+
+    if not all_paths:
+        logger.info(f"No backups found for the folder {search_directory}")
+        return None
 
     menu_list = sorted(all_paths)
     if choice is None:
@@ -556,6 +562,10 @@ def recover_path(recovery_path: Path, backup_location: Path, choice: int | None 
         if path.exists(follow_symlinks=False):
             inode = os.stat(path, follow_symlinks=False).st_ino
             unique_backups.setdefault(inode, path)
+
+    if not unique_backups:
+        logger.info(f"No backups found for {recovery_path}")
+        return
 
     backup_choices = sorted(unique_backups.values())
     if choice is None:
@@ -1240,7 +1250,8 @@ def main(argv: list[str]) -> None:
             action = "backup listing"
             search_directory = Path(args.list).resolve()
             chosen_recovery_path = search_backups(search_directory, backup_folder)
-            recover_path(chosen_recovery_path, backup_folder)
+            if chosen_recovery_path is not None:
+                recover_path(chosen_recovery_path, backup_folder)
         elif args.move_backup:
             if not args.backup_folder:
                 raise CommandLineError("Current backup folder location (--backup-folder) needed.")
