@@ -370,6 +370,7 @@ def backup_directory(user_data_location: Path,
 
 def create_new_backup(user_data_location: Path,
                       backup_location: Path,
+                      *,
                       alter_file: Path | None,
                       examine_whole_file: bool,
                       force_copy: bool,
@@ -1281,9 +1282,9 @@ def main(argv: list[str]) -> None:
             delete_last_backup_on_error = toggle_is_set(args, "delete_on_error")
             create_new_backup(user_folder,
                               backup_folder,
-                              path_or_none(args.alter),
-                              toggle_is_set(args, "whole_file"),
-                              toggle_is_set(args, "force_copy"))
+                              alter_file=path_or_none(args.alter),
+                              examine_whole_file=toggle_is_set(args, "whole_file"),
+                              force_copy=toggle_is_set(args, "force_copy"))
 
             if args.free_up:
                 action = "deletions for freeing up space"
