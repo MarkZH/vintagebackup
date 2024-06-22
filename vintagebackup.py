@@ -1009,7 +1009,7 @@ Technical notes:
 file (see --filter below). In that case, all of the contents will be copied.
 
 - If two files in the user's directory are hard-linked together, these files will be copied/linked
-separately (the hard link is not preserved in the backup.)
+separately. The hard link is not preserved in the backup.
 
 - If the user folder and the backup destination are on different drives or partitions with different
 file systems (NTFS, ext4, APFS, etc.), hard links may not be created due to differences in how file
