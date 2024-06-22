@@ -84,8 +84,8 @@ def is_real_directory(path: Path) -> bool:
     return path.is_dir() and not path.is_symlink()
 
 
-def backup_paths(user_folder: Path, alter_file: Path | None) -> list[tuple[Path, list[str]]]:
-    """Return a list of all paths in a user's folder after altering it with an alter file."""
+def backup_paths(user_folder: Path, filter_file: Path | None) -> list[tuple[Path, list[str]]]:
+    """Return a list of all paths in a user's folder after filtering it with a filter file."""
     backup_set: set[Path] = set()
     for current_directory_name, dir_names, file_names in os.walk(user_folder):
         current_directory = Path(current_directory_name)
@@ -94,16 +94,16 @@ def backup_paths(user_folder: Path, alter_file: Path | None) -> list[tuple[Path,
 
     original_backup_set = frozenset(backup_set)
 
-    for line_number, sign, pattern in alter_file_patterns(user_folder, alter_file):
+    for line_number, sign, pattern in filter_file_patterns(user_folder, filter_file):
         path_count_before = len(backup_set)
         change_set: set[Path] = set()
-        for alter_path_str in glob.iglob(str(pattern), include_hidden=True, recursive=True):
-            alter_path = Path(alter_path_str)
-            if is_real_directory(alter_path):
-                change_set.update(filter(lambda p: p.is_relative_to(alter_path),
+        for filter_path_str in glob.iglob(str(pattern), include_hidden=True, recursive=True):
+            filter_path = Path(filter_path_str)
+            if is_real_directory(filter_path):
+                change_set.update(filter(lambda p: p.is_relative_to(filter_path),
                                          original_backup_set))
             else:
-                change_set.add(alter_path)
+                change_set.add(filter_path)
 
         if sign == "+":
             backup_set.update(change_set)
@@ -112,7 +112,7 @@ def backup_paths(user_folder: Path, alter_file: Path | None) -> list[tuple[Path,
         path_count_after = len(backup_set)
 
         if path_count_before == path_count_after:
-            logger.info(f"{alter_file}: line #{line_number} ({sign} {pattern}) had no effect.")
+            logger.info(f"{filter_file}: line #{line_number} ({sign} {pattern}) had no effect.")
 
     backup_tree: dict[Path, list[str]] = {}
     for path in backup_set:
@@ -127,25 +127,25 @@ def backup_paths(user_folder: Path, alter_file: Path | None) -> list[tuple[Path,
 PATTERN_ENTRY = tuple[int, str, Path]
 
 
-def alter_file_patterns(user_folder: Path, alter_file: Path | None) -> list[PATTERN_ENTRY]:
+def filter_file_patterns(user_folder: Path, filter_file: Path | None) -> list[PATTERN_ENTRY]:
     """
-    Read alteration patterns from the given alter file.
+    Read filter patterns from the given filter file.
 
     Parameters:
     user_folder: The base folder of the user's data.
-    alter_file: The file containing alterations to the data being backed up.
+    filter_file: The file containing filters to the data being backed up.
 
     Returns:
-    A list of tuples of (line number, alter file line, path) where the path may contain glob
+    A list of tuples of (line number, filter file line, path) where the path may contain glob
     wildcard characters.
     """
-    if not alter_file:
+    if not filter_file:
         return []
 
-    logger.info(f"Reading alteration file: {alter_file}")
-    with open(alter_file) as alterations:
+    logger.info(f"Reading filter file: {filter_file}")
+    with open(filter_file) as filters:
         entries: list[PATTERN_ENTRY] = []
-        for line_number, line in enumerate(alterations, 1):
+        for line_number, line in enumerate(filters, 1):
             line = line.lstrip().rstrip("\n")
             if not line:
                 continue
@@ -153,14 +153,14 @@ def alter_file_patterns(user_folder: Path, alter_file: Path | None) -> list[PATT
 
             if sign not in "-+#":
                 raise ValueError(f"Line #{line_number} ({line}): The first symbol "
-                                 "of each line in the alter file must be -, +, or #.")
+                                 "of each line in the filter file must be -, +, or #.")
 
             if sign == "#":
                 continue
 
             pattern = user_folder/line[1:].lstrip()
             if not pattern.is_relative_to(user_folder):
-                raise ValueError(f"Line #{line_number} ({line}): Alteration looks at paths "
+                raise ValueError(f"Line #{line_number} ({line}): Filter looks at paths "
                                  "outside user folder.")
 
             entries.append((line_number, sign, pattern))
@@ -371,7 +371,7 @@ def backup_directory(user_data_location: Path,
 def create_new_backup(user_data_location: Path,
                       backup_location: Path,
                       *,
-                      alter_file: Path | None,
+                      filter_file: Path | None,
                       examine_whole_file: bool,
                       force_copy: bool,
                       is_backup_move: bool = False) -> None:
@@ -397,8 +397,8 @@ def create_new_backup(user_data_location: Path,
                                f" User data: {user_data_location}"
                                f"; Backup location: {backup_location}")
 
-    if alter_file and not os.path.isfile(alter_file):
-        raise CommandLineError(f"Alter file not found: {alter_file}")
+    if filter_file and not os.path.isfile(filter_file):
+        raise CommandLineError(f"Filter file not found: {filter_file}")
 
     os.makedirs(backup_location, exist_ok=True)
 
@@ -436,7 +436,7 @@ def create_new_backup(user_data_location: Path,
     logger.info(f"Reading file contents = {examine_whole_file}")
 
     action_counter: Counter[str] = Counter()
-    paths_to_backup = backup_paths(user_data_location, alter_file)
+    paths_to_backup = backup_paths(user_data_location, filter_file)
     logger.info("Running backup ...")
     for current_user_path, user_file_names in paths_to_backup:
         backup_directory(user_data_location,
@@ -865,7 +865,7 @@ def move_backups(old_backup_location: Path,
     for backup in backups_to_move:
         create_new_backup(backup,
                           new_backup_location,
-                          alter_file=None,
+                          filter_file=None,
                           examine_whole_file=False,
                           force_copy=False,
                           is_backup_move=True)
@@ -1005,8 +1005,8 @@ Technical notes:
 
 - Symbolic links are not followed and are always copied as symbolic links.
 
-- Windows junction points (soft links) are excluded by default. They may be added using an alter
-file (see --alter below). In that case, all of the contents will be copied.
+- Windows junction points (soft links) are excluded by default. They may be added using a filter
+file (see --filter below). In that case, all of the contents will be copied.
 
 - If two files in the user's directory are hard-linked together, these files will be copied/linked
 separately (the hard link is not preserved in the backup.)"""))
@@ -1057,15 +1057,15 @@ folder will contain all of that year's backups."""))
 The directory to be backed up. The contents of this
 folder and all subfolders will be backed up recursively."""))
 
-    backup_group.add_argument("-a", "--alter", metavar="ALTER_FILE_NAME", help=format_help("""
-Alter the set of files that will be backed up. The value of this argument should be the name of
+    backup_group.add_argument("-f", "--filter", metavar="FILTER_FILE_NAME", help=format_help("""
+Filter the set of files that will be backed up. The value of this argument should be the name of
 a text file that contains lines specifying what files to include or exclude. These may contain
 wildcard characters like * and ? to allow for matching multiple file names.
 
 Each line should begin with a minus (-), plus (+), or hash (#). Lines with minus signs specify
 files and folders to exclude. Lines with plus signs specify files and folders to include. Lines
 with hash signs are ignored. All included files must reside within the directory tree of the
---user-folder. For example, if backing up C:\\Users\\Alice Eaves Roberts, the following alter file:
+--user-folder. For example, if backing up C:\\Users\\Alice Eaves Roberts, the following filter file:
 
     # Ignore AppData except Firefox
     - AppData
@@ -1293,7 +1293,7 @@ def main(argv: list[str]) -> None:
             delete_last_backup_on_error = toggle_is_set(args, "delete_on_error")
             create_new_backup(user_folder,
                               backup_folder,
-                              alter_file=path_or_none(args.alter),
+                              filter_file=path_or_none(args.filter),
                               examine_whole_file=toggle_is_set(args, "whole_file"),
                               force_copy=toggle_is_set(args, "force_copy"))
 
