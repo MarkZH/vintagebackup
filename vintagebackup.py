@@ -85,7 +85,7 @@ def is_real_directory(path: Path) -> bool:
 
 
 def backup_paths(user_folder: Path, alter_file: Path | None) -> list[tuple[Path, list[str]]]:
-    """Return an iterator to all paths in a user's folder after altering it with an alter file."""
+    """Return a list of all paths in a user's folder after altering it with an alter file."""
     backup_set: set[Path] = set()
     for current_directory_name, dir_names, file_names in os.walk(user_folder):
         current_directory = Path(current_directory_name)
