@@ -1009,7 +1009,12 @@ Technical notes:
 file (see --filter below). In that case, all of the contents will be copied.
 
 - If two files in the user's directory are hard-linked together, these files will be copied/linked
-separately (the hard link is not preserved in the backup.)"""))
+separately (the hard link is not preserved in the backup.)
+
+- If the user folder and the backup destination are on different drives or partitions with different
+file systems (NTFS, ext4, APFS, etc.), hard links may not be created due to differences in how file
+modification times are recorded. Using the --whole-file option may mitigate this, but backups will
+take much more time."""))
 
     action_group = user_input.add_argument_group("Actions", format_text("""
 The default action when vintage backups is run is to create a new backup. If one of the following
