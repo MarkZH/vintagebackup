@@ -1191,8 +1191,7 @@ Log information on all action of a backup."""))
 Where to log the activity of this program. A file of the same
 name will be written to the backup folder. The default is
 {default_log_file_name.name} in the user's home folder. If no
-log file is desired, use the file name NUL on Windows and
-/dev/null on Linux, Macs, and similar."""))
+log file is desired, use the file name {os.devnull}."""))
 
     return user_input
 
