@@ -157,7 +157,8 @@ def run_backup(run_method: Invocation,
                                         force_copy=force_copy)
     elif run_method == Invocation.cli:
         argv = ["--user-folder", str(user_data),
-                "--backup-folder", str(backup_location)]
+                "--backup-folder", str(backup_location),
+                "--log", os.devnull]
         if filter_file:
             argv.extend(["--filter", str(filter_file)])
         if examine_whole_file:
@@ -376,7 +377,8 @@ def run_recovery(method: Invocation, backup_location: Path, file_path: Path) -> 
     elif method == Invocation.cli:
         argv = ["--recover", str(file_path),
                 "--backup-folder", str(backup_location),
-                "--choice", "0"]
+                "--choice", "0",
+                "--log", os.devnull]
         vintagebackup.main(argv)
 
 
