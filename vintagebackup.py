@@ -1193,6 +1193,9 @@ name will be written to the backup folder. The default is
 {default_log_file_name.name} in the user's home folder. If no
 log file is desired, use the file name {os.devnull}."""))
 
+    # This argument is only used for testing.
+    user_input.add_argument("--choice", help=argparse.SUPPRESS)
+
     return user_input
 
 
@@ -1242,7 +1245,8 @@ def main(argv: list[str]) -> int:
                 raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
 
             action = "recovery"
-            recover_path(Path(args.recover).resolve(), backup_folder)
+            choice = None if args.choice is None else int(args.choice)
+            recover_path(Path(args.recover).resolve(), backup_folder, choice)
         elif args.list:
             if not args.backup_folder:
                 raise CommandLineError("Backup folder needed to list backed up items.")

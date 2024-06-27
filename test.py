@@ -369,26 +369,38 @@ class IncludeExcludeBackupTest(unittest.TestCase):
             self.assertNotEqual(directory_contents(user_data), expected_backup_paths)
 
 
+def run_recovery(method: Invocation, backup_location: Path, file_path: Path) -> None:
+    """Test file recovery through a direct function call or a CLI invocation."""
+    if method == Invocation.function:
+        vintagebackup.recover_path(file_path, backup_location, 0)
+    elif method == Invocation.cli:
+        argv = ["--recover", str(file_path),
+                "--backup-folder", str(backup_location),
+                "--choice", "0"]
+        vintagebackup.main(argv)
+
+
 class RecoveryTest(unittest.TestCase):
     """Test recovering files and folders from backups."""
 
     def test_single_file_recovery(self) -> None:
         """Test that recovering a single file works properly."""
-        with (tempfile.TemporaryDirectory() as user_data_location,
-              tempfile.TemporaryDirectory() as backup_folder):
-            user_data = Path(user_data_location)
-            create_user_data(user_data)
-            backup_location = Path(backup_folder)
-            vintagebackup.create_new_backup(user_data,
-                                            backup_location,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False)
-            file_path = (user_data/"sub_directory_0"/"sub_sub_directory_0"/"file_0.txt").resolve()
-            moved_file_path = file_path.parent/(file_path.name + "_moved")
-            file_path.rename(moved_file_path)
-            vintagebackup.recover_path(file_path, backup_location, 0)
-            self.assertTrue(filecmp.cmp(file_path, moved_file_path, shallow=False))
+        for method in Invocation:
+            with (tempfile.TemporaryDirectory() as user_data_location,
+                  tempfile.TemporaryDirectory() as backup_folder):
+                user_data = Path(user_data_location)
+                create_user_data(user_data)
+                backup_location = Path(backup_folder)
+                vintagebackup.create_new_backup(user_data,
+                                                backup_location,
+                                                filter_file=None,
+                                                examine_whole_file=False,
+                                                force_copy=False)
+                file = (user_data/"sub_directory_0"/"sub_sub_directory_0"/"file_0.txt").resolve()
+                moved_file_path = file.parent/(file.name + "_moved")
+                file.rename(moved_file_path)
+                run_recovery(method, backup_location, file)
+                self.assertTrue(filecmp.cmp(file, moved_file_path, shallow=False))
 
     def test_single_file_recovery_with_renaming(self) -> None:
         """Test that recovering a file that exists in user data does not overwrite any files."""
