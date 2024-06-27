@@ -12,6 +12,7 @@ import itertools
 import stat
 import vintagebackup
 from typing import cast
+import enum
 
 
 def create_user_data(base_directory: Path) -> None:
@@ -134,85 +135,125 @@ def directories_are_completely_copied(base_directory_1: Path, base_directory_2: 
             and all_files_are_copies(base_directory_2, base_directory_1))
 
 
+class Invocation(enum.StrEnum):
+    """Specify whether to test a direct function call or a CLI invocation."""
+
+    function = enum.auto()
+    cli = enum.auto()
+
+
+def run_backup(run_method: Invocation,
+               user_data: Path,
+               backup_location: Path,
+               filter_file: Path | None,
+               examine_whole_file: bool,
+               force_copy: bool) -> None:
+    """Create a new backup while choosing a direct function call or a CLI invocation."""
+    if run_method == Invocation.function:
+        vintagebackup.create_new_backup(user_data,
+                                        backup_location,
+                                        filter_file=filter_file,
+                                        examine_whole_file=examine_whole_file,
+                                        force_copy=force_copy)
+    elif run_method == Invocation.cli:
+        argv = ["--user-folder", str(user_data),
+                "--backup-folder", str(backup_location)]
+        if filter_file:
+            argv.extend(["--filter", str(filter_file)])
+        if examine_whole_file:
+            argv.append("--whole-file")
+        if force_copy:
+            argv.append("--force-copy")
+        vintagebackup.main(argv)
+    else:
+        raise NotImplementedError(f"Backup test with {run_method} not implemented.")
+
+
 class BackupTest(unittest.TestCase):
     """Test the main backup procedure."""
 
     def test_backups(self) -> None:
         """Test basic backups with no include/exclude files."""
-        with (tempfile.TemporaryDirectory() as user_data_folder,
-              tempfile.TemporaryDirectory() as backup_location_folder):
-            user_data = Path(user_data_folder)
-            backup_location = Path(backup_location_folder)
-            create_user_data(user_data)
-            vintagebackup.create_new_backup(user_data,
-                                            backup_location,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False)
-            first_backups = vintagebackup.last_n_backups(backup_location, "all")
-            self.assertEqual(len(first_backups), 1)
-            first_backup = first_backups[0]
-            self.assertEqual(first_backup, vintagebackup.find_previous_backup(backup_location))
-            self.assertTrue(directories_have_identical_content(user_data, first_backup))
-            self.assertTrue(all_files_are_copies(user_data, first_backup))
+        for method in Invocation:
+            with (tempfile.TemporaryDirectory() as user_data_folder,
+                  tempfile.TemporaryDirectory() as backup_location_folder):
+                user_data = Path(user_data_folder)
+                backup_location = Path(backup_location_folder)
+                create_user_data(user_data)
+                run_backup(method,
+                           user_data,
+                           backup_location,
+                           filter_file=None,
+                           examine_whole_file=False,
+                           force_copy=False)
+                first_backups = vintagebackup.last_n_backups(backup_location, "all")
+                self.assertEqual(len(first_backups), 1)
+                first_backup = first_backups[0]
+                self.assertEqual(first_backup, vintagebackup.find_previous_backup(backup_location))
+                self.assertTrue(directories_have_identical_content(user_data, first_backup))
+                self.assertTrue(all_files_are_copies(user_data, first_backup))
 
-            time.sleep(1)  # Make sure backups have unique names
-            vintagebackup.create_new_backup(user_data,
-                                            backup_location,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False)
-            second_backups = vintagebackup.last_n_backups(backup_location, "all")
-            self.assertEqual(len(second_backups), 2)
-            self.assertEqual(second_backups[0], first_backup)
-            second_backup = second_backups[1]
-            self.assertEqual(second_backup, vintagebackup.find_previous_backup(backup_location))
-            self.assertTrue(directories_are_completely_hardlinked(first_backup, second_backup))
+                time.sleep(1)  # Make sure backups have unique names
+                run_backup(method,
+                           user_data,
+                           backup_location,
+                           filter_file=None,
+                           examine_whole_file=False,
+                           force_copy=False)
+                second_backups = vintagebackup.last_n_backups(backup_location, "all")
+                self.assertEqual(len(second_backups), 2)
+                self.assertEqual(second_backups[0], first_backup)
+                second_backup = second_backups[1]
+                self.assertEqual(second_backup, vintagebackup.find_previous_backup(backup_location))
+                self.assertTrue(directories_are_completely_hardlinked(first_backup, second_backup))
 
-            time.sleep(1)  # Make sure backups have unique names
-            vintagebackup.create_new_backup(user_data,
-                                            backup_location,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=True)
-            third_backups = vintagebackup.last_n_backups(backup_location, "all")
-            self.assertEqual(len(third_backups), 3)
-            self.assertEqual(third_backups[0], first_backup)
-            self.assertEqual(third_backups[1], second_backup)
-            third_backup = third_backups[2]
-            self.assertEqual(third_backup, vintagebackup.find_previous_backup(backup_location))
-            self.assertTrue(directories_are_completely_copied(second_backup, third_backup))
+                time.sleep(1)  # Make sure backups have unique names
+                run_backup(method,
+                           user_data,
+                           backup_location,
+                           filter_file=None,
+                           examine_whole_file=False,
+                           force_copy=True)
+                third_backups = vintagebackup.last_n_backups(backup_location, "all")
+                self.assertEqual(len(third_backups), 3)
+                self.assertEqual(third_backups[0], first_backup)
+                self.assertEqual(third_backups[1], second_backup)
+                third_backup = third_backups[2]
+                self.assertEqual(third_backup, vintagebackup.find_previous_backup(backup_location))
+                self.assertTrue(directories_are_completely_copied(second_backup, third_backup))
 
-            time.sleep(1)  # Make sure backups have unique names
-            vintagebackup.create_new_backup(user_data,
-                                            backup_location,
-                                            filter_file=None,
-                                            examine_whole_file=True,
-                                            force_copy=False)
-            fourth_backups = vintagebackup.last_n_backups(backup_location, "all")
-            self.assertEqual(len(fourth_backups), 4)
-            self.assertEqual(fourth_backups[0], first_backup)
-            self.assertEqual(fourth_backups[1], second_backup)
-            self.assertEqual(fourth_backups[2], third_backup)
-            fourth_backup = fourth_backups[3]
-            self.assertEqual(fourth_backup, vintagebackup.find_previous_backup(backup_location))
-            self.assertTrue(directories_are_completely_hardlinked(third_backup, fourth_backup))
+                time.sleep(1)  # Make sure backups have unique names
+                run_backup(method,
+                           user_data,
+                           backup_location,
+                           filter_file=None,
+                           examine_whole_file=True,
+                           force_copy=False)
+                fourth_backups = vintagebackup.last_n_backups(backup_location, "all")
+                self.assertEqual(len(fourth_backups), 4)
+                self.assertEqual(fourth_backups[0], first_backup)
+                self.assertEqual(fourth_backups[1], second_backup)
+                self.assertEqual(fourth_backups[2], third_backup)
+                fourth_backup = fourth_backups[3]
+                self.assertEqual(fourth_backup, vintagebackup.find_previous_backup(backup_location))
+                self.assertTrue(directories_are_completely_hardlinked(third_backup, fourth_backup))
 
-            time.sleep(1)  # Make sure backups have unique names
-            vintagebackup.create_new_backup(user_data,
-                                            backup_location,
-                                            filter_file=None,
-                                            examine_whole_file=True,
-                                            force_copy=True)
-            fifth_backups = vintagebackup.last_n_backups(backup_location, "all")
-            self.assertEqual(len(fifth_backups), 5)
-            self.assertEqual(fifth_backups[0], first_backup)
-            self.assertEqual(fifth_backups[1], second_backup)
-            self.assertEqual(fifth_backups[2], third_backup)
-            self.assertEqual(fifth_backups[3], fourth_backup)
-            fifth_backup = fifth_backups[4]
-            self.assertEqual(fifth_backup, vintagebackup.find_previous_backup(backup_location))
-            self.assertTrue(directories_are_completely_copied(fourth_backup, fifth_backup))
+                time.sleep(1)  # Make sure backups have unique names
+                run_backup(method,
+                           user_data,
+                           backup_location,
+                           filter_file=None,
+                           examine_whole_file=True,
+                           force_copy=True)
+                fifth_backups = vintagebackup.last_n_backups(backup_location, "all")
+                self.assertEqual(len(fifth_backups), 5)
+                self.assertEqual(fifth_backups[0], first_backup)
+                self.assertEqual(fifth_backups[1], second_backup)
+                self.assertEqual(fifth_backups[2], third_backup)
+                self.assertEqual(fifth_backups[3], fourth_backup)
+                fifth_backup = fifth_backups[4]
+                self.assertEqual(fifth_backup, vintagebackup.find_previous_backup(backup_location))
+                self.assertTrue(directories_are_completely_copied(fourth_backup, fifth_backup))
 
     def test_file_changing_between_backup(self) -> None:
         """Check that a file changed between backups is copied with others are hardlinked."""
@@ -252,37 +293,39 @@ class IncludeExcludeBackupTest(unittest.TestCase):
 
     def test_exclusions(self) -> None:
         """Test that filter files with only exclusions result in the right files being excluded."""
-        with (tempfile.TemporaryDirectory() as user_data_location,
-              tempfile.TemporaryDirectory() as backup_folder,
-              tempfile.NamedTemporaryFile("w+", delete_on_close=False) as filter_file):
+        for method in Invocation:
+            with (tempfile.TemporaryDirectory() as user_data_location,
+                  tempfile.TemporaryDirectory() as backup_folder,
+                  tempfile.NamedTemporaryFile("w+", delete_on_close=False) as filter_file):
 
-            user_data = Path(user_data_location)
-            create_user_data(user_data)
-            user_paths = directory_contents(user_data)
+                user_data = Path(user_data_location)
+                create_user_data(user_data)
+                user_paths = directory_contents(user_data)
 
-            expected_backups = user_paths.copy()
-            filter_file.write("- sub_directory_2\n\n")
-            expected_backups.difference_update(path for path in user_paths
-                                               if "sub_directory_2" in path.parts)
+                expected_backups = user_paths.copy()
+                filter_file.write("- sub_directory_2\n\n")
+                expected_backups.difference_update(path for path in user_paths
+                                                   if "sub_directory_2" in path.parts)
 
-            filter_file.write(os.path.join("- *", "sub_sub_directory_0\n\n"))
-            expected_backups.difference_update(path for path in user_paths
-                                               if "sub_sub_directory_0" in path.parts)
+                filter_file.write(os.path.join("- *", "sub_sub_directory_0\n\n"))
+                expected_backups.difference_update(path for path in user_paths
+                                                   if "sub_sub_directory_0" in path.parts)
 
-            filter_file.close()
+                filter_file.close()
 
-            backup_location = Path(backup_folder)
-            vintagebackup.create_new_backup(user_data,
-                                            backup_location,
-                                            filter_file=Path(filter_file.name),
-                                            examine_whole_file=False,
-                                            force_copy=False)
+                backup_location = Path(backup_folder)
+                run_backup(method,
+                           user_data,
+                           backup_location,
+                           filter_file=Path(filter_file.name),
+                           examine_whole_file=False,
+                           force_copy=False)
 
-            last_backup = vintagebackup.find_previous_backup(backup_location)
-            assert last_backup
+                last_backup = vintagebackup.find_previous_backup(backup_location)
+                assert last_backup
 
-            self.assertEqual(directory_contents(last_backup), expected_backups)
-            self.assertNotEqual(directory_contents(user_data), expected_backups)
+                self.assertEqual(directory_contents(last_backup), expected_backups)
+                self.assertNotEqual(directory_contents(user_data), expected_backups)
 
     def test_inclusions(self) -> None:
         """Test that filter files with inclusions and exclusions work properly."""
