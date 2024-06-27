@@ -1196,7 +1196,7 @@ log file is desired, use the file name {os.devnull}."""))
     return user_input
 
 
-def main(argv: list[str]) -> None:
+def main(argv: list[str]) -> int:
     """
     Start the main program.
 
@@ -1216,7 +1216,7 @@ def main(argv: list[str]) -> None:
 
     if args.help:
         user_input.print_help()
-        sys.exit(0)
+        return 0
 
     exit_code = 1
     delete_last_backup_on_error = False
@@ -1326,8 +1326,8 @@ def main(argv: list[str]) -> None:
             delete_last_backup(args.backup_folder)
         print_backup_storage_stats(args.backup_folder)
     finally:
-        sys.exit(exit_code)
+        return exit_code
 
 
 if __name__ == "__main__":
-    main(sys.argv)
+    sys.exit(main(sys.argv))
