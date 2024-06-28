@@ -386,7 +386,7 @@ def create_new_backup(user_data_location: Path,
     examine_whole_file: Whether to examine file contents to check for changes since the last backup
     force_copy: Whether to always copy files, regardless of whether a previous backup exists.
     """
-    if not os.path.isdir(user_data_location):
+    if not user_data_location.is_dir():
         raise CommandLineError(f"The user folder path is not a folder: {user_data_location}")
 
     if not backup_location:
@@ -397,7 +397,7 @@ def create_new_backup(user_data_location: Path,
                                f" User data: {user_data_location}"
                                f"; Backup location: {backup_location}")
 
-    if filter_file and not os.path.isfile(filter_file):
+    if filter_file and not filter_file.is_file():
         raise CommandLineError(f"Filter file not found: {filter_file}")
 
     os.makedirs(backup_location, exist_ok=True)
@@ -592,7 +592,7 @@ def recover_path(recovery_path: Path, backup_location: Path, choice: int | None 
 
     recovered_path = recovery_path
     unique_id = 0
-    while os.path.lexists(recovered_path):
+    while recovered_path.exists(follow_symlinks=False):
         unique_id += 1
         new_file_name = f"{recovery_path.stem}.{unique_id}{recovery_path.suffix}"
         recovered_path = recovery_path.parent/new_file_name
