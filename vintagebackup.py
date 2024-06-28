@@ -346,9 +346,6 @@ def backup_directory(user_data_location: Path,
         assert previous_backup_directory
         previous_backup = previous_backup_directory/file_name
         new_backup = new_backup_directory/file_name
-        if os.path.lexists(new_backup):
-            logger.debug(f"Skipping backed up include file: {current_user_path/file_name}")
-            continue
 
         if create_hard_link(previous_backup, new_backup):
             action_counter["linked files"] += 1
