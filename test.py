@@ -692,7 +692,6 @@ class ConfigurationFileTest(unittest.TestCase):
             config_file.write(r"""
 User Folder:     C:\Files
 Backup Folder:   D:\Backup
-Delete  on   error:
 
 # Extra options
 FiLteR:           filter_file.txt
@@ -703,14 +702,12 @@ force-copy:
             self.assertEqual(command_line,
                              ["--user-folder", r"C:\Files",
                               "--backup-folder", r"D:\Backup",
-                              "--delete-on-error",
                               "--filter", "filter_file.txt",
                               "--force-copy"])
             arg_parser = vintagebackup.argument_parser()
             args = arg_parser.parse_args(command_line)
             self.assertEqual(args.user_folder, r"C:\Files")
             self.assertEqual(args.backup_folder, r"D:\Backup")
-            self.assertTrue(args.delete_on_error)
             self.assertEqual(args.filter, "filter_file.txt")
             self.assertTrue(args.force_copy)
 

@@ -23,8 +23,6 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 logger.setLevel(logging.INFO)
 
-new_backup_directory_created = False
-
 
 class CommandLineError(ValueError):
     """An exception class to catch invalid command line parameters."""
@@ -332,8 +330,6 @@ def backup_directory(user_data_location: Path,
     relative_path = current_user_path.relative_to(user_data_location)
     new_backup_directory = new_backup_path/relative_path
     new_backup_directory.mkdir(parents=True)
-    global new_backup_directory_created
-    new_backup_directory_created = True
     previous_backup_directory = last_backup_path/relative_path if last_backup_path else None
 
     user_file_names, user_links = separate_links(current_user_path, user_file_names)
@@ -1087,17 +1083,6 @@ take considerably longer."""))
 
     add_no_option(backup_group, "whole-file")
 
-    backup_group.add_argument("--delete-on-error", action="store_true", help=format_help("""
-If an error causes a backup to fail to complete, delete that
-backup. If this option does not appear, then the incomplete
-backup is left in place. Users may want to use this option
-so that files that were not part of the failed backup do not
-get copied anew during the next backup. NOTE: Individual files
-not being copied or linked (e.g., for lack of permission) are
-not errors, and will only be noted in the log."""))
-
-    add_no_option(backup_group, "delete-on-error")
-
     backup_group.add_argument("--free-up", metavar="SPACE", help=format_help("""
 Automatically delete old backups when space runs low on the
 backup destination. The SPACE argument can be in one of two forms.
@@ -1219,7 +1204,6 @@ def main(argv: list[str]) -> int:
         return 0
 
     exit_code = 1
-    delete_last_backup_on_error = False
     action = ""
 
     try:
@@ -1295,7 +1279,6 @@ def main(argv: list[str]) -> int:
             backup_folder = Path(args.backup_folder).absolute()
 
             action = "backup"
-            delete_last_backup_on_error = toggle_is_set(args, "delete_on_error")
             create_new_backup(user_folder,
                               backup_folder,
                               filter_file=path_or_none(args.filter),
@@ -1323,8 +1306,6 @@ def main(argv: list[str]) -> int:
         else:
             logger.error("An error occurred before any action could take place.")
         logger.exception("Error:")
-        if delete_last_backup_on_error and new_backup_directory_created:
-            delete_last_backup(args.backup_folder)
         print_backup_storage_stats(args.backup_folder)
     finally:
         return exit_code
