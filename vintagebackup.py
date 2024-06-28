@@ -331,7 +331,7 @@ def backup_directory(user_data_location: Path,
 
     relative_path = current_user_path.relative_to(user_data_location)
     new_backup_directory = new_backup_path/relative_path
-    os.makedirs(new_backup_directory)
+    new_backup_directory.mkdir(parents=True)
     global new_backup_directory_created
     new_backup_directory_created = True
     previous_backup_directory = last_backup_path/relative_path if last_backup_path else None
@@ -397,7 +397,7 @@ def create_new_backup(user_data_location: Path,
     if filter_file and not filter_file.is_file():
         raise CommandLineError(f"Filter file not found: {filter_file}")
 
-    os.makedirs(backup_location, exist_ok=True)
+    backup_location.mkdir(parents=True, exist_ok=True)
 
     now = datetime.datetime.now()
     backup_date = now.strftime(backup_date_format)
