@@ -564,26 +564,41 @@ class BackupDeletionTest(unittest.TestCase):
 
     def test_space_percent_deletion(self) -> None:
         """Test deleting backups until there is a given percent of free space."""
-        with tempfile.TemporaryDirectory() as backup_folder:
-            backup_location = Path(backup_folder)
-            before_backup_space = shutil.disk_usage(backup_location).free
-            backups_created = 30
-            create_old_backups(backup_location, backups_created)
-            file_size = 10_000_000
-            data = "A"*file_size
-            for directory_name, sub_directory_names, _ in os.walk(backup_location):
-                if not sub_directory_names:
-                    with open(Path(directory_name)/"file.txt", "w") as file:
-                        file.write(data)
-            after_backup_space = shutil.disk_usage(backup_location).free
-            backups_after_deletion = 10
-            backup_size = after_backup_space - before_backup_space
-            backup_size_after_deletion = backup_size*(backups_after_deletion/backups_created)
-            goal_space = before_backup_space + backup_size_after_deletion - file_size/2
-            goal_space_percent = 100*goal_space/shutil.disk_usage(backup_location).total
-            vintagebackup.delete_oldest_backups_for_space(backup_location, f"{goal_space_percent}%")
-            backups_left = len(vintagebackup.last_n_backups(backup_location, "all"))
-            self.assertEqual(backups_left, backups_after_deletion)
+        for method in Invocation:
+            with tempfile.TemporaryDirectory() as backup_folder:
+                backup_location = Path(backup_folder)
+                before_backup_space = shutil.disk_usage(backup_location).free
+                backups_created = 30
+                create_old_backups(backup_location, backups_created)
+                file_size = 10_000_000
+                create_large_files(backup_location, file_size)
+                after_backup_space = shutil.disk_usage(backup_location).free
+                backups_after_deletion = 10
+                backup_size = after_backup_space - before_backup_space
+                backup_size_after_deletion = backup_size*(backups_after_deletion/backups_created)
+                goal_space = before_backup_space + backup_size_after_deletion - file_size/2
+                goal_space_percent = 100*goal_space/shutil.disk_usage(backup_location).total
+                goal_space_percent_str = f"{goal_space_percent}%"
+                if method == Invocation.function:
+                    vintagebackup.delete_oldest_backups_for_space(backup_location,
+                                                                  goal_space_percent_str)
+                elif method == Invocation.cli:
+                    with tempfile.TemporaryDirectory() as user_folder:
+                        user_data = Path(user_folder)
+                        create_large_files(user_data, file_size)
+                        vintagebackup.main(["--user-folder", user_folder,
+                                            "--backup-folder", backup_folder,
+                                            "--free-up", goal_space_percent_str])
+
+                    # While backups are being deleted, the fake user data still exists, so one more
+                    # backup needs to be deleted to free up the required space.
+                    backups_after_deletion -= 1
+                else:
+                    raise NotImplementedError("Delete backup percent test "
+                                              f"not implemented for {method}")
+
+                backups_left = len(vintagebackup.last_n_backups(backup_location, "all"))
+                self.assertEqual(backups_left, backups_after_deletion)
 
     def test_date_deletion(self) -> None:
         """Test that backups older than a given date can be deleted."""
