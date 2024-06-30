@@ -618,8 +618,7 @@ class MoveBackupsTest(unittest.TestCase):
     def test_move_all_backups(self) -> None:
         """Test that moving all backups works."""
         with (tempfile.TemporaryDirectory() as user_data_folder,
-              tempfile.TemporaryDirectory() as backup_folder,
-              tempfile.TemporaryDirectory() as new_backup_folder):
+              tempfile.TemporaryDirectory() as backup_folder):
             user_data = Path(user_data_folder)
             create_user_data(user_data)
             backup_location = Path(backup_folder)
@@ -632,14 +631,27 @@ class MoveBackupsTest(unittest.TestCase):
                                                 force_copy=False)
                 time.sleep(1)
 
-            backups_to_move = vintagebackup.last_n_backups(backup_location, "all")
-            self.assertEqual(len(backups_to_move), backup_count)
-            new_backup_location = Path(new_backup_folder)
-            vintagebackup.move_backups(backup_location, new_backup_location, backups_to_move)
-            self.assertTrue(directories_are_completely_copied(backup_location,
-                                                              new_backup_location))
-            self.assertEqual(vintagebackup.backup_source(backup_location),
-                             vintagebackup.backup_source(new_backup_location))
+            for method in Invocation:
+                with tempfile.TemporaryDirectory() as new_backup_folder:
+                    new_backup_location = Path(new_backup_folder)
+                    if method == Invocation.function:
+                        backups_to_move = vintagebackup.last_n_backups(backup_location, "all")
+                        self.assertEqual(len(backups_to_move), backup_count)
+                        vintagebackup.move_backups(backup_location,
+                                                   new_backup_location,
+                                                   backups_to_move)
+                    elif method == Invocation.cli:
+                        vintagebackup.main(["--user-folder", user_data_folder,
+                                            "--backup-folder", backup_folder,
+                                            "--move-backup", new_backup_folder,
+                                            "--move-count", "all"])
+                    else:
+                        raise NotImplementedError(f"Move backup test not implemented for {method}.")
+
+                    self.assertTrue(directories_are_completely_copied(backup_location,
+                                                                      new_backup_location))
+                    self.assertEqual(vintagebackup.backup_source(backup_location),
+                                     vintagebackup.backup_source(new_backup_location))
 
     def test_move_n_backups(self) -> None:
         """Test that moving N backups works."""
