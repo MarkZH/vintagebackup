@@ -552,6 +552,7 @@ class BackupDeletionTest(unittest.TestCase):
                         create_large_files(user_data, file_size)
                         vintagebackup.main(["--user-folder", user_folder,
                                             "--backup-folder", backup_folder,
+                                            "--log", os.devnull,
                                             "--free-up", goal_space_str])
 
                     # While backups are being deleted, the fake user data still exists, so one more
@@ -588,6 +589,7 @@ class BackupDeletionTest(unittest.TestCase):
                         create_large_files(user_data, file_size)
                         vintagebackup.main(["--user-folder", user_folder,
                                             "--backup-folder", backup_folder,
+                                            "--log", os.devnull,
                                             "--free-up", goal_space_percent_str])
 
                     # While backups are being deleted, the fake user data still exists, so one more
@@ -616,6 +618,7 @@ class BackupDeletionTest(unittest.TestCase):
                         vintagebackup.delete_last_backup(backup_location)
                         vintagebackup.main(["--user-folder", user_folder,
                                             "--backup-folder", backup_folder,
+                                            "--log", os.devnull,
                                             "--delete-after", max_age])
                 else:
                     raise NotImplementedError("Delete old backup test not implemented for {method}")
@@ -692,6 +695,7 @@ class MoveBackupsTest(unittest.TestCase):
                     elif method == Invocation.cli:
                         vintagebackup.main(["--user-folder", user_data_folder,
                                             "--backup-folder", backup_folder,
+                                            "--log", os.devnull,
                                             "--move-backup", new_backup_folder,
                                             "--move-count", "all"])
                     else:
@@ -730,6 +734,7 @@ class MoveBackupsTest(unittest.TestCase):
                     elif method == Invocation.cli:
                         vintagebackup.main(["--user-folder", user_data_folder,
                                             "--backup-folder", backup_folder,
+                                            "--log", os.devnull,
                                             "--move-backup", new_backup_folder,
                                             "--move-count", str(move_count)])
                     else:
