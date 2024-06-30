@@ -602,11 +602,24 @@ class BackupDeletionTest(unittest.TestCase):
 
     def test_date_deletion(self) -> None:
         """Test that backups older than a given date can be deleted."""
-        with tempfile.TemporaryDirectory() as backup_folder:
-            backup_location = Path(backup_folder)
-            create_old_backups(backup_location, 30)
-            vintagebackup.delete_backups_older_than(backup_location, "1y")
-            self.assertEqual(len(vintagebackup.last_n_backups(backup_location, "all")), 12)
+        for method in Invocation:
+            with tempfile.TemporaryDirectory() as backup_folder:
+                backup_location = Path(backup_folder)
+                create_old_backups(backup_location, 30)
+                max_age = "1y"
+                if method == Invocation.function:
+                    vintagebackup.delete_backups_older_than(backup_location, max_age)
+                elif method == Invocation.cli:
+                    with tempfile.TemporaryDirectory() as user_folder:
+                        user_data = Path(user_folder)
+                        create_user_data(user_data)
+                        vintagebackup.delete_last_backup(backup_location)
+                        vintagebackup.main(["--user-folder", user_folder,
+                                            "--backup-folder", backup_folder,
+                                            "--delete-after", max_age])
+                else:
+                    raise NotImplementedError("Delete old backup test not implemented for {method}")
+                self.assertEqual(len(vintagebackup.last_n_backups(backup_location, "all")), 12)
 
     def test_deleting_all_backups_leaves_one(self) -> None:
         """Test that trying to delete all backups actually leaves the last one."""
