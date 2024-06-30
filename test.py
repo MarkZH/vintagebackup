@@ -693,8 +693,7 @@ class MoveBackupsTest(unittest.TestCase):
                                                    new_backup_location,
                                                    backups_to_move)
                     elif method == Invocation.cli:
-                        vintagebackup.main(["--user-folder", user_data_folder,
-                                            "--backup-folder", backup_folder,
+                        vintagebackup.main(["--backup-folder", backup_folder,
                                             "--log", os.devnull,
                                             "--move-backup", new_backup_folder,
                                             "--move-count", "all"])
@@ -732,8 +731,7 @@ class MoveBackupsTest(unittest.TestCase):
                                                    new_backup_location,
                                                    backups_to_move)
                     elif method == Invocation.cli:
-                        vintagebackup.main(["--user-folder", user_data_folder,
-                                            "--backup-folder", backup_folder,
+                        vintagebackup.main(["--backup-folder", backup_folder,
                                             "--log", os.devnull,
                                             "--move-backup", new_backup_folder,
                                             "--move-count", str(move_count)])
