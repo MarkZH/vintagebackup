@@ -770,26 +770,29 @@ class ConfigurationFileTest(unittest.TestCase):
     def test_configuration_file(self) -> None:
         """Test that a properly formatted configuration file is accepted."""
         with tempfile.NamedTemporaryFile("w+", delete_on_close=False) as config_file:
-            config_file.write(r"""
-User Folder:     C:\Files
-Backup Folder:   D:\Backup
+            user_folder = r"C:\Files"
+            backup_folder = r"D:\Backup"
+            filter_file = "filter_file.txt"
+            config_file.write(rf"""
+User Folder:     {user_folder}
+Backup Folder:   {backup_folder}
 
 # Extra options
-FiLteR:           filter_file.txt
+FiLteR:           {filter_file}
 force-copy:
 """)
             config_file.close()
             command_line = vintagebackup.read_configuation_file(config_file.name)
             self.assertEqual(command_line,
-                             ["--user-folder", r"C:\Files",
-                              "--backup-folder", r"D:\Backup",
-                              "--filter", "filter_file.txt",
+                             ["--user-folder", user_folder,
+                              "--backup-folder", backup_folder,
+                              "--filter", filter_file,
                               "--force-copy"])
             arg_parser = vintagebackup.argument_parser()
             args = arg_parser.parse_args(command_line)
-            self.assertEqual(args.user_folder, r"C:\Files")
-            self.assertEqual(args.backup_folder, r"D:\Backup")
-            self.assertEqual(args.filter, "filter_file.txt")
+            self.assertEqual(args.user_folder, user_folder)
+            self.assertEqual(args.backup_folder, backup_folder)
+            self.assertEqual(args.filter, filter_file)
             self.assertTrue(args.force_copy)
 
     def test_override_config_file_with_command_line(self) -> None:
@@ -804,11 +807,11 @@ log: temp_log.txt
 whole file:
 Debug:""")
             config_file.close()
-            command_line_options = ["-b", "temp_back2",
+            actual_backup_folder = "temp_back2"
+            actual_log_file = "temporary_log.log"
+            command_line_options = ["-b", actual_backup_folder,
                                     "-c", config_file.name,
-                                    "-l", "temporary_log.log"]
-            actual_backup_folder = command_line_options[1]
-            actual_log_file = command_line_options[-1]
+                                    "-l", actual_log_file]
             file_commands = vintagebackup.read_configuation_file(config_file.name)
             arg_parser = vintagebackup.argument_parser()
             options = arg_parser.parse_args(file_commands + command_line_options)
