@@ -1037,9 +1037,9 @@ is used. The backup location argument (-b) is required."""))
                                        help=format_help("""
 Move a backup set to a new location. The value of this argument is the new location. The
 --backup-folder option is required to specify the current location of the backup set, and one
-of --move-count or --move-age is required to specify how many of the most recent backups to
-move. Moving each dated backup will take just as long as a normal backup to move since the hard
-links to previous backups will be recreated to preserve the space savings, so some planning is
+of --move-count, --move-age, or --move-since is required to specify how many of the most recent
+backups tomove. Moving each dated backup will take just as long as a normal backup to move since the
+hard links to previous backups will be recreated to preserve the space savings, so some planning is
 needed when deciding how many backups should be moved."""))
 
     common_group = user_input.add_argument_group("Options needed for all actions")
