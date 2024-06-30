@@ -656,8 +656,7 @@ class MoveBackupsTest(unittest.TestCase):
     def test_move_n_backups(self) -> None:
         """Test that moving N backups works."""
         with (tempfile.TemporaryDirectory() as user_data_folder,
-              tempfile.TemporaryDirectory() as backup_folder,
-              tempfile.TemporaryDirectory() as new_backup_folder):
+              tempfile.TemporaryDirectory() as backup_folder):
             user_data = Path(user_data_folder)
             create_user_data(user_data)
             backup_location = Path(backup_folder)
@@ -670,19 +669,35 @@ class MoveBackupsTest(unittest.TestCase):
                 time.sleep(1)
 
             move_count = 5
-            backups_to_move = vintagebackup.last_n_backups(backup_location, move_count)
-            self.assertEqual(len(backups_to_move), move_count)
-            new_backup_location = Path(new_backup_folder)
-            vintagebackup.move_backups(backup_location, new_backup_location, backups_to_move)
-            backups_at_new_location = vintagebackup.last_n_backups(new_backup_location, "all")
-            self.assertEqual(len(backups_at_new_location), move_count)
-            old_backups = [p.relative_to(backup_location)
-                           for p in vintagebackup.last_n_backups(backup_location, move_count)]
-            new_backups = [p.relative_to(new_backup_location)
-                           for p in vintagebackup.last_n_backups(new_backup_location, "all")]
-            self.assertEqual(old_backups, new_backups)
-            self.assertEqual(vintagebackup.backup_source(backup_location),
-                             vintagebackup.backup_source(new_backup_location))
+            for method in Invocation:
+                with tempfile.TemporaryDirectory() as new_backup_folder:
+                    new_backup_location = Path(new_backup_folder)
+                    if method == Invocation.function:
+                        backups_to_move = vintagebackup.last_n_backups(backup_location, move_count)
+                        self.assertEqual(len(backups_to_move), move_count)
+                        vintagebackup.move_backups(backup_location,
+                                                   new_backup_location,
+                                                   backups_to_move)
+                    elif method == Invocation.cli:
+                        vintagebackup.main(["--user-folder", user_data_folder,
+                                            "--backup-folder", backup_folder,
+                                            "--move-backup", new_backup_folder,
+                                            "--move-count", str(move_count)])
+                    else:
+                        raise NotImplementedError(f"Move backup test not implemented for {method}")
+
+                    backups_at_new_location = vintagebackup.last_n_backups(new_backup_location,
+                                                                           "all")
+                    self.assertEqual(len(backups_at_new_location), move_count)
+                    old_backups = [p.relative_to(backup_location)
+                                   for p in vintagebackup.last_n_backups(backup_location,
+                                                                         move_count)]
+                    new_backups = [p.relative_to(new_backup_location)
+                                   for p in vintagebackup.last_n_backups(new_backup_location,
+                                                                         "all")]
+                    self.assertEqual(old_backups, new_backups)
+                    self.assertEqual(vintagebackup.backup_source(backup_location),
+                                     vintagebackup.backup_source(new_backup_location))
 
     def test_move_age_backups(self) -> None:
         """Test that moving backups based on a time span works."""
