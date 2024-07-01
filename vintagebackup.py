@@ -994,8 +994,8 @@ This way, unchanged files do not take up more storage space in the backup
 location, allowing for possible years of daily backups, all while having
 each folder in the backup location contain a full backup.
 
-The following options will cause Vinatage Backup to perform an action other than
-creating a new backup: --help, --recover, --list. See below for more information.
+Vintage Backup can also perform other operations besides backups. See the Actions section below for
+more capabilities.
 
 Technical notes:
 
