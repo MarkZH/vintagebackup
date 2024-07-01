@@ -927,8 +927,6 @@ def verify_last_backup(user_folder: Path,
 
         for count, (directory, file_names) in enumerate(paths_to_check, start=1):
             relative_directory = directory.relative_to(user_folder)
-            print(f"Progress: {count}/{len(paths_to_check)} directories"
-                  f" | {relative_directory}", end="", flush=True)
             backup_directory = last_backup_folder/relative_directory
             matches, mismatches, errors = filecmp.cmpfiles(directory,
                                                            backup_directory,
@@ -937,7 +935,6 @@ def verify_last_backup(user_folder: Path,
             match_count = len(matches)
             mismatch_count = len(mismatches)
             error_count = len(errors)
-            print(f" | Matches: {match_count}, Mismatches: {mismatch_count}, Errors: {error_count}")
 
             total_match_count += match_count
             total_mismatch_count += mismatch_count
