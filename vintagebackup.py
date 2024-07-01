@@ -39,6 +39,9 @@ def byte_units(size: float) -> str:
 
     >>> byte_units(12345)
     '12.35 kB'
+
+    >>> byte_units(12)
+    '12.00 B'
     """
     for index, prefix in enumerate(storage_prefixes):
         prefix_size = 10**(3*index)
