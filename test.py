@@ -761,6 +761,79 @@ class MoveBackupsTest(unittest.TestCase):
             self.assertEqual(vintagebackup.last_n_backups(backup_location, 6), backups_to_move)
 
 
+class BackupVerificationTest(unittest.TestCase):
+    """Test backup verification."""
+
+    def test_backup_verification(self) -> None:
+        """Test that backups correctly verify."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_location = Path(user_folder)
+            backup_location = Path(backup_folder)
+            create_user_data(user_location)
+            vintagebackup.create_new_backup(user_location,
+                                            backup_location,
+                                            filter_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False)
+
+            mismatch_file = Path("sub_directory_1")/"sub_sub_directory_2"/"file_0.txt"
+            with open(user_location/mismatch_file, "a") as file:
+                file.write("\naddition\n")
+
+            error_file = Path("sub_directory_2")/"sub_sub_directory_0"/"file_1.txt"
+            last_backup = vintagebackup.find_previous_backup(backup_location)
+            self.assertIsNotNone(last_backup)
+            assert last_backup is not None
+            (last_backup/error_file).unlink()
+
+            matching_path_set: set[Path] = set()
+            mismatching_path_set: set[Path] = set()
+            error_path_set: set[Path] = set()
+            user_paths = vintagebackup.backup_paths(user_location, None)
+            for directory, file_names in user_paths:
+                for file_name in file_names:
+                    path = (directory/file_name).relative_to(user_location)
+                    if path == mismatch_file:
+                        mismatching_path_set.add(path)
+                    elif path == error_file:
+                        error_path_set.add(path)
+                    else:
+                        matching_path_set.add(path)
+
+            for method in Invocation:
+                with tempfile.TemporaryDirectory() as verification_folder:
+                    verification_location = Path(verification_folder)
+                    if method == Invocation.function:
+                        vintagebackup.verify_last_backup(user_location,
+                                                         backup_location,
+                                                         None,
+                                                         verification_location)
+                    else:
+                        vintagebackup.main(["--user-folder", user_folder,
+                                            "--backup-folder", backup_folder,
+                                            "--verify", verification_folder,
+                                            "--log", os.devnull])
+
+                    for file_name in os.listdir(verification_location):
+                        if " matching " in file_name:
+                            path_set = matching_path_set
+                        elif " mismatching " in file_name:
+                            path_set = mismatching_path_set
+                        elif " error " in file_name:
+                            path_set = error_path_set
+                        else:
+                            # Should be unreachable
+                            self.assertTrue(False)
+
+                        verify_file_path = verification_location/file_name
+                        with open(verify_file_path) as verify_file:
+                            verify_file.readline()
+                            files_from_verify = set(Path(line.strip("\n")) for line in verify_file)
+
+                        self.assertEqual(files_from_verify, path_set)
+
+
 class ConfigurationFileTest(unittest.TestCase):
     """Test configuration file functionality."""
 

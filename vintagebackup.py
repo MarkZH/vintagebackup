@@ -885,6 +885,77 @@ def move_backups(old_backup_location: Path,
     record_user_location(original_backup_source, new_backup_location)
 
 
+def verify_last_backup(user_folder: Path,
+                       backup_folder: Path,
+                       filter_file: Path | None,
+                       result_folder: Path) -> None:
+    """
+    Verify the most recent backup by comparing with the users files.
+
+    Parameters:
+    user_folder: The source of the backed up data.
+    backup_folder: The location of the backed up data.
+    filter_file: The file that filters which files are backed up.
+    result_folder: Where the results files will be saved.
+    """
+    confirm_user_location_is_unchanged(user_folder, backup_folder)
+    last_backup_folder = find_previous_backup(backup_folder)
+
+    if last_backup_folder is None:
+        raise CommandLineError(f"No backups found in {backup_folder}.")
+
+    logger.info("=====================")
+    logger.info(f"Verifying backup in {backup_folder} by comparing against {user_folder}")
+
+    paths_to_check = backup_paths(user_folder, filter_file)
+    result_folder.mkdir(parents=True, exist_ok=True)
+    prefix = datetime.datetime.now().strftime(backup_date_format)
+    matching_file_name = result_folder/f"{prefix} matching files.txt"
+    mismatching_file_name = result_folder/f"{prefix} mismatching files.txt"
+    error_file_name = result_folder/f"{prefix} error files.txt"
+
+    total_match_count = 0
+    total_mismatch_count = 0
+    total_error_count = 0
+
+    with (open(matching_file_name, "w", encoding="utf8") as matching_file,
+          open(mismatching_file_name, "w", encoding="utf8") as mismatching_file,
+          open(error_file_name, "w", encoding="utf8") as error_file):
+
+        for file in (matching_file, mismatching_file, error_file):
+            file.write(f"Comparison: {user_folder} <---> {backup_folder}\n")
+
+        for count, (directory, file_names) in enumerate(paths_to_check, start=1):
+            relative_directory = directory.relative_to(user_folder)
+            print(f"Progress: {count}/{len(paths_to_check)} directories"
+                  f" | {relative_directory}", end="", flush=True)
+            backup_directory = last_backup_folder/relative_directory
+            matches, mismatches, errors = filecmp.cmpfiles(directory,
+                                                           backup_directory,
+                                                           file_names,
+                                                           shallow=False)
+            match_count = len(matches)
+            mismatch_count = len(mismatches)
+            error_count = len(errors)
+            print(f" | Matches: {match_count}, Mismatches: {mismatch_count}, Errors: {error_count}")
+
+            total_match_count += match_count
+            total_mismatch_count += mismatch_count
+            total_error_count += error_count
+
+            def file_name_line(file_name: str) -> str:
+                """Create a relative path for recording to a file."""
+                return f"{relative_directory/file_name}\n"
+
+            matching_file.writelines(map(file_name_line, matches))
+            mismatching_file.writelines(map(file_name_line, mismatches))
+            error_file.writelines(map(file_name_line, errors))
+
+    logger.info(f"Result -- Matches: {total_match_count}, "
+                f"Mismatches: {total_mismatch_count}, "
+                f"Errors: {total_error_count}")
+
+
 def last_n_backups(backup_location: Path, n: str | int) -> list[Path]:
     """
     Return a list of the paths of the last n backups.
@@ -978,6 +1049,11 @@ def toggle_is_set(args: argparse.Namespace, name: str) -> bool:
     return options[name] and not options[f"no_{name}"]
 
 
+def path_or_none(arg: str | None) -> Path | None:
+    """Create a Path instance if the input string is valid."""
+    return Path(arg).absolute() if arg else None
+
+
 def argument_parser() -> argparse.ArgumentParser:
     """Create the parser for command line arguments."""
     user_input = argparse.ArgumentParser(add_help=False,
@@ -1044,6 +1120,13 @@ of --move-count, --move-age, or --move-since is required to specify how many of 
 backups tomove. Moving each dated backup will take just as long as a normal backup to move since the
 hard links to previous backups will be recreated to preserve the space savings, so some planning is
 needed when deciding how many backups should be moved."""))
+
+    only_one_action_group.add_argument("--verify", metavar="RESULT_DIR", help=format_help("""
+Verify the latest backup by comparing them against the original files. The result of the comparison
+will be placed in the folder RESULT_DIR. The result is three files: a list of files that match, a
+list of files that do not match, and a list of files that caused errors during the comparison. The
+arguments --user-folder and --backup-folder are required. If a filter file was used to create the
+backup, then --filter should be supplied as well."""))
 
     common_group = user_input.add_argument_group("Options needed for all actions")
 
@@ -1269,11 +1352,23 @@ def main(argv: list[str]) -> int:
                                        "must be used when moving backups.")
 
             move_backups(old_backup_location, new_backup_location, backups_to_move)
-        else:
-            def path_or_none(arg: str | None) -> Path | None:
-                """Create a Path instance if the input string is valid."""
-                return Path(arg).absolute() if arg else None
+        elif args.verify:
+            try:
+                user_folder = Path(args.user_folder).resolve(strict=True)
+            except FileNotFoundError:
+                raise CommandLineError(f"Could not find users folder: {args.user_folder}")
 
+            try:
+                backup_folder = Path(args.backup_folder).resolve(strict=True)
+            except FileNotFoundError:
+                raise CommandLineError(f"Could not find backup location: {args.backup_folder}")
+
+            action = "verification"
+            filter_file = path_or_none(args.filter)
+            result_folder = path_or_none(args.verify)
+            assert result_folder is not None
+            verify_last_backup(user_folder, backup_folder, filter_file, result_folder)
+        else:
             try:
                 user_folder = Path(args.user_folder).resolve(strict=True)
             except FileNotFoundError:
