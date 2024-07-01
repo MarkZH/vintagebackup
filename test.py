@@ -6,7 +6,6 @@ import time
 import filecmp
 import datetime
 import shutil
-import logging
 from pathlib import Path
 import itertools
 import stat
@@ -839,5 +838,4 @@ Debug:""")
 
 
 if __name__ == "__main__":
-    vintagebackup.logger.setLevel(logging.ERROR)
     unittest.main()
