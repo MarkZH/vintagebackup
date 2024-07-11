@@ -55,11 +55,16 @@ def byte_units(size: float) -> str:
 
 def all_backups(backup_location: Path) -> list[Path]:
     """Return a sorted list of all backups at the given location."""
-    year_pattern = re.compile(r"\d\d\d\d")
-    backup_pattern = re.compile(r"\d\d\d\d-\d\d-\d\d \d\d-\d\d-\d\d (.*)")
+    year_pattern = "%Y"
+    backup_pattern = backup_date_format
 
-    def is_valid_directory(dir: os.DirEntry[str], pattern: re.Pattern[str]) -> bool:
-        return dir.is_dir(follow_symlinks=False) and bool(pattern.fullmatch(dir.name))
+    def is_valid_directory(dir: os.DirEntry[str], pattern: str) -> bool:
+        name = dir.name.split(" (")[0] if pattern == backup_pattern else dir.name
+        try:
+            datetime.datetime.strptime(name, pattern)
+            return dir.is_dir(follow_symlinks=False)
+        except ValueError:
+            return False
 
     all_backup_list: list[Path] = []
     with os.scandir(backup_location) as year_scan:
