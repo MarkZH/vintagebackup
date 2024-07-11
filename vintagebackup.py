@@ -982,6 +982,10 @@ def print_backup_storage_stats(backup_location: str | Path) -> None:
                     f"Total = {byte_units(backup_storage.total)}  "
                     f"Used = {byte_units(backup_storage.used)} ({percent_used}%)  "
                     f"Free = {byte_units(backup_storage.free)} ({percent_free}%)")
+        backup_folder = Path(backup_location)
+        backups = all_backups(backup_folder)
+        logger.info(f"Backups stored: {len(backups)}")
+        logger.info(f"Earliest backup: {backups[0].name}")
     except Exception:
         pass
 
