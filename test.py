@@ -914,13 +914,13 @@ Debug:""")
 class ErrorTest(unittest.TestCase):
     """Test that bad user inputs raise correct exceptions."""
 
-    def test_user_folder_errors(self) -> None:
+    def test_no_user_folder_error(self) -> None:
         """Test that omitting the user folder prints the correct error message."""
         with self.assertLogs(vintagebackup.logger, logging.ERROR) as log_check:
             vintagebackup.main(["-l", os.devnull])
             self.assertEqual(log_check.output, ["ERROR:vintagebackup:User's folder not specified."])
 
-    def test_backup_errors(self) -> None:
+    def test_no_backup_folder_error(self) -> None:
         """Test that omitting the backup folder prints the correct error message."""
         with (tempfile.TemporaryDirectory() as user_folder,
               self.assertLogs(vintagebackup.logger, logging.ERROR) as log_check):
