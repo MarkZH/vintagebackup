@@ -1418,6 +1418,7 @@ def print_run_title(command_line_args: argparse.Namespace, action_title: str) ->
     if command_line_args.config:
         logger.info("Reading configuration from file: "
                     + os.path.abspath(command_line_args.config))
+        logger.info("")
 
 
 if __name__ == "__main__":
