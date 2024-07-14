@@ -408,13 +408,6 @@ def create_new_backup(user_data_location: Path,
     os_name = f"{platform.system()} {platform.release()}".strip()
     new_backup_path = backup_location/str(now.year)/f"{backup_date} ({os_name})"
 
-    if not is_backup_move:
-        logger.info("")
-        logger.info("=====================")
-        logger.info(" Starting new backup")
-        logger.info("=====================")
-        logger.info("")
-
     confirm_user_location_is_unchanged(user_data_location, backup_location)
     record_user_location(user_data_location, backup_location)
 
@@ -856,12 +849,10 @@ def move_backups(old_backup_location: Path,
                  new_backup_location: Path,
                  backups_to_move: list[Path]) -> None:
     """Move a set of backups to a new location."""
-    logger.info("=====================")
     move_count = len(backups_to_move)
     logger.info(f"Moving {move_count} {plural_noun(move_count, "backup")}")
     logger.info(f"from {old_backup_location}")
     logger.info(f"to   {new_backup_location}")
-    logger.info("=====================")
 
     for backup in backups_to_move:
         create_new_backup(backup,
@@ -909,7 +900,6 @@ def verify_last_backup(user_folder: Path,
     if last_backup_folder is None:
         raise CommandLineError(f"No backups found in {backup_folder}.")
 
-    logger.info("=====================")
     logger.info(f"Verifying backup in {backup_folder} by comparing against {user_folder}")
 
     paths_to_check = backup_paths(user_folder, filter_file)
@@ -1303,10 +1293,6 @@ def main(argv: list[str]) -> int:
         if toggle_is_set(args, "debug"):
             logger.setLevel(logging.DEBUG)
         logger.debug(args)
-        if command_line_args.config:
-            logger.info("=====================")
-            logger.info("Reading configuration from file: "
-                        + os.path.abspath(command_line_args.config))
 
         if args.recover:
             if not args.backup_folder:
@@ -1319,6 +1305,7 @@ def main(argv: list[str]) -> int:
 
             action = "recovery"
             choice = None if args.choice is None else int(args.choice)
+            print_run_title(command_line_args, "Recovering from backups")
             recover_path(Path(args.recover).resolve(), backup_folder, choice)
         elif args.list:
             if not args.backup_folder:
@@ -1330,6 +1317,7 @@ def main(argv: list[str]) -> int:
                 raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
             action = "backup listing"
             search_directory = Path(args.list).resolve()
+            print_run_title(command_line_args, "Listing recoverable files")
             chosen_recovery_path = search_backups(search_directory, backup_folder)
             if chosen_recovery_path is not None:
                 recover_path(chosen_recovery_path, backup_folder)
@@ -1357,6 +1345,7 @@ def main(argv: list[str]) -> int:
                 raise CommandLineError("Exactly one of --move-count, --move-age, or --move-since "
                                        "must be used when moving backups.")
 
+            print_run_title(command_line_args, "Moving backups")
             move_backups(old_backup_location, new_backup_location, backups_to_move)
         elif args.verify:
             try:
@@ -1373,6 +1362,7 @@ def main(argv: list[str]) -> int:
             filter_file = path_or_none(args.filter)
             result_folder = path_or_none(args.verify)
             assert result_folder is not None
+            print_run_title(command_line_args, "Verifying last backup")
             verify_last_backup(user_folder, backup_folder, filter_file, result_folder)
         else:
             try:
@@ -1383,6 +1373,7 @@ def main(argv: list[str]) -> int:
             backup_folder = Path(args.backup_folder).absolute()
 
             action = "backup"
+            print_run_title(command_line_args, "Starting new backup")
             create_new_backup(user_folder,
                               backup_folder,
                               filter_file=path_or_none(args.filter),
@@ -1413,6 +1404,18 @@ def main(argv: list[str]) -> int:
         print_backup_storage_stats(args.backup_folder)
     finally:
         return exit_code
+
+def print_run_title(command_line_args, action_title):
+    logger.info("")
+    divider = "="*(len(action_title) + 2)
+    logger.info(divider)
+    logger.info(f" {action_title}")
+    logger.info(divider)
+    logger.info("")
+
+    if command_line_args.config:
+        logger.info("Reading configuration from file: "
+                        + os.path.abspath(command_line_args.config))
 
 
 if __name__ == "__main__":
