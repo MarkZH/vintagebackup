@@ -1405,7 +1405,9 @@ def main(argv: list[str]) -> int:
     finally:
         return exit_code
 
-def print_run_title(command_line_args, action_title):
+
+def print_run_title(command_line_args: argparse.Namespace, action_title: str) -> None:
+    """Print the action taking place."""
     logger.info("")
     divider = "="*(len(action_title) + 2)
     logger.info(divider)
@@ -1415,7 +1417,7 @@ def print_run_title(command_line_args, action_title):
 
     if command_line_args.config:
         logger.info("Reading configuration from file: "
-                        + os.path.abspath(command_line_args.config))
+                    + os.path.abspath(command_line_args.config))
 
 
 if __name__ == "__main__":
