@@ -453,10 +453,11 @@ def create_new_backup(user_data_location: Path,
 
 def setup_log_file(logger: logging.Logger, log_file_path: str) -> None:
     """Set up logging to write to a file."""
-    log_file = logging.FileHandler(log_file_path, encoding="utf8")
-    log_file_format = logging.Formatter(fmt="%(asctime)s %(levelname)s    %(message)s")
-    log_file.setFormatter(log_file_format)
-    logger.addHandler(log_file)
+    if log_file_path != os.devnull:
+        log_file = logging.FileHandler(log_file_path, encoding="utf8")
+        log_file_format = logging.Formatter(fmt="%(asctime)s %(levelname)s    %(message)s")
+        log_file.setFormatter(log_file_format)
+        logger.addHandler(log_file)
 
 
 def search_backups(search_directory: Path,
@@ -1365,10 +1366,16 @@ def main(argv: list[str]) -> int:
             print_run_title(command_line_args, "Verifying last backup")
             verify_last_backup(user_folder, backup_folder, filter_file, result_folder)
         else:
+            if not args.user_folder:
+                raise CommandLineError("User's folder not specified.")
+
             try:
                 user_folder = Path(args.user_folder).resolve(strict=True)
             except FileNotFoundError:
-                raise CommandLineError(f"Could not find users folder: {args.user_folder}")
+                raise CommandLineError(f"Could not find user's folder: {args.user_folder}")
+
+            if not args.backup_folder:
+                raise CommandLineError("Backup folder not specified.")
 
             backup_folder = Path(args.backup_folder).absolute()
 
@@ -1393,7 +1400,8 @@ def main(argv: list[str]) -> int:
 
         exit_code = 0
     except CommandLineError as error:
-        user_input.print_usage()
+        if __name__ == "__main__":
+            user_input.print_usage()
         logger.error(error)
     except Exception:
         if action:
@@ -1401,7 +1409,8 @@ def main(argv: list[str]) -> int:
         else:
             logger.error("An error occurred before any action could take place.")
         logger.exception("Error:")
-        print_backup_storage_stats(args.backup_folder)
+        if __name__ == "__main__":
+            print_backup_storage_stats(args.backup_folder)
     finally:
         return exit_code
 

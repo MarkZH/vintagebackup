@@ -911,6 +911,18 @@ Debug:""")
             self.assertFalse(vintagebackup.toggle_is_set(options, "debug"))
 
 
+class ErrorTest(unittest.TestCase):
+    """Test that bad user inputs raise correct exceptions."""
+
+    def test_backup_errors(self) -> None:
+        """Test that omitting the backup folder prints the correct error message."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              self.assertLogs(vintagebackup.logger, logging.ERROR) as log_check):
+            vintagebackup.main(["-u", user_folder,
+                                "-l", os.devnull])
+            self.assertEqual(log_check.output, ["ERROR:vintagebackup:Backup folder not specified."])
+
+
 if __name__ == "__main__":
-    vintagebackup.logger.setLevel(logging.ERROR)
+    vintagebackup.logger.setLevel(logging.CRITICAL)
     unittest.main()
