@@ -909,10 +909,6 @@ def verify_last_backup(user_folder: Path,
     mismatching_file_name = result_folder/f"{prefix} mismatching files.txt"
     error_file_name = result_folder/f"{prefix} error files.txt"
 
-    total_match_count = 0
-    total_mismatch_count = 0
-    total_error_count = 0
-
     with (open(matching_file_name, "w", encoding="utf8") as matching_file,
           open(mismatching_file_name, "w", encoding="utf8") as mismatching_file,
           open(error_file_name, "w", encoding="utf8") as error_file):
@@ -927,9 +923,6 @@ def verify_last_backup(user_folder: Path,
                                                            backup_directory,
                                                            file_names,
                                                            shallow=False)
-            total_match_count += len(matches)
-            total_mismatch_count += len(mismatches)
-            total_error_count += len(errors)
 
             def file_name_line(file_name: str) -> str:
                 """Create a relative path for recording to a file."""
@@ -938,10 +931,6 @@ def verify_last_backup(user_folder: Path,
             matching_file.writelines(map(file_name_line, matches))
             mismatching_file.writelines(map(file_name_line, mismatches))
             error_file.writelines(map(file_name_line, errors))
-
-    logger.info(f"Result -- Matches: {total_match_count}, "
-                f"Mismatches: {total_mismatch_count}, "
-                f"Errors: {total_error_count}")
 
 
 def last_n_backups(backup_location: Path, n: str | int) -> list[Path]:
