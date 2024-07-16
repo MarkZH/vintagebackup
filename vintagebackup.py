@@ -903,7 +903,6 @@ def verify_last_backup(user_folder: Path,
 
     logger.info(f"Verifying backup in {backup_folder} by comparing against {user_folder}")
 
-    paths_to_check = backup_paths(user_folder, filter_file)
     result_folder.mkdir(parents=True, exist_ok=True)
     prefix = datetime.datetime.now().strftime(backup_date_format)
     matching_file_name = result_folder/f"{prefix} matching files.txt"
@@ -921,20 +920,16 @@ def verify_last_backup(user_folder: Path,
         for file in (matching_file, mismatching_file, error_file):
             file.write(f"Comparison: {user_folder} <---> {backup_folder}\n")
 
-        for directory, file_names in paths_to_check:
+        for directory, file_names in backup_paths(user_folder, filter_file):
             relative_directory = directory.relative_to(user_folder)
             backup_directory = last_backup_folder/relative_directory
             matches, mismatches, errors = filecmp.cmpfiles(directory,
                                                            backup_directory,
                                                            file_names,
                                                            shallow=False)
-            match_count = len(matches)
-            mismatch_count = len(mismatches)
-            error_count = len(errors)
-
-            total_match_count += match_count
-            total_mismatch_count += mismatch_count
-            total_error_count += error_count
+            total_match_count += len(matches)
+            total_mismatch_count += len(mismatches)
+            total_error_count += len(errors)
 
             def file_name_line(file_name: str) -> str:
                 """Create a relative path for recording to a file."""
