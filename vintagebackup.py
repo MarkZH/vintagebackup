@@ -921,7 +921,7 @@ def verify_last_backup(user_folder: Path,
         for file in (matching_file, mismatching_file, error_file):
             file.write(f"Comparison: {user_folder} <---> {backup_folder}\n")
 
-        for count, (directory, file_names) in enumerate(paths_to_check, start=1):
+        for directory, file_names in paths_to_check:
             relative_directory = directory.relative_to(user_folder)
             backup_directory = last_backup_folder/relative_directory
             matches, mismatches, errors = filecmp.cmpfiles(directory,
