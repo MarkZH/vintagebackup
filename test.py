@@ -13,6 +13,8 @@ import stat
 import vintagebackup
 from typing import cast
 import enum
+import random
+import string
 
 
 def create_user_data(base_directory: Path) -> None:
@@ -943,6 +945,15 @@ class ErrorTest(unittest.TestCase):
             exit_code = vintagebackup.main(["-u", user_folder, "-l", os.devnull])
             self.assertEqual(exit_code, 1)
             self.assertEqual(log_check.output, ["ERROR:vintagebackup:Backup folder not specified."])
+
+    def test_non_existent_user_folder(self) -> None:
+        """Test that non-existent user folder prints correct error message."""
+        user_folder = "".join(random.choices(string.ascii_letters, k=50))
+        with self.assertLogs(vintagebackup.logger, logging.ERROR) as log_check:
+            exit_code = vintagebackup.main(["-u", user_folder, "-l", os.devnull])
+            self.assertEqual(exit_code, 1)
+            self.assertEqual(log_check.output,
+                             [f"ERROR:vintagebackup:Could not find user's folder: {user_folder}"])
 
 
 if __name__ == "__main__":
