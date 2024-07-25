@@ -668,6 +668,7 @@ def delete_oldest_backups_for_space(backup_location: Path, space_requirement: st
             break
 
         if not any_deletions:
+            logger.info("")
             logger.info(f"Deleting old backups to free up {byte_units(free_storage_required)}.")
 
         logger.info(f"Deleting backup: {backup}")
@@ -771,6 +772,7 @@ def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
             break
 
         if not any_deletions:
+            logger.info("")
             logger.info("Deleting backups prior to"
                         f" {timestamp_to_keep.strftime('%Y-%m-%d %H:%M:%S')}.")
 
