@@ -623,7 +623,7 @@ def choose_backup(backup_folder: Path, choice: int | None) -> Path | None:
             pass
 
 
-def delete_single_backup(backup_path: Path) -> None:
+def delete_directory_tree(backup_path: Path) -> None:
     """Delete a single backup."""
     def remove_readonly(func: Callable[..., Any], path: str, _: Any) -> None:
         """
@@ -642,7 +642,7 @@ def delete_last_backup(backup_location: Path) -> None:
     last_backup_directory = find_previous_backup(backup_location)
     if last_backup_directory:
         logger.info(f"Deleting failed backup: {last_backup_directory}")
-        delete_single_backup(last_backup_directory)
+        delete_directory_tree(last_backup_directory)
     else:
         logger.info("No previous backup to delete")
 
@@ -696,7 +696,7 @@ def delete_oldest_backups_for_space(backup_location: Path, space_requirement: st
             logger.info(f"Deleting old backups to free up {byte_units(free_storage_required)}.")
 
         logger.info(f"Deleting backup: {backup}")
-        delete_single_backup(backup)
+        delete_directory_tree(backup)
         any_deletions = True
 
     if any_deletions:
@@ -801,7 +801,7 @@ def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
                         f" {timestamp_to_keep.strftime('%Y-%m-%d %H:%M:%S')}.")
 
         logger.info(f"Deleting oldest backup: {backup}")
-        delete_single_backup(backup)
+        delete_directory_tree(backup)
         try:
             year_folder = backup.parent
             year_folder.rmdir()
@@ -989,7 +989,7 @@ def restore_backup(backup_folder: Path, user_folder: Path, delete_new_files: boo
             for new_name in user_paths - backed_up_paths:
                 new_path = current_user_path/new_name
                 if is_real_directory(new_path):
-                    delete_single_backup(new_path)
+                    delete_directory_tree(new_path)
                 else:
                     new_path.unlink()
 
