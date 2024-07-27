@@ -599,6 +599,30 @@ def recover_path(recovery_path: Path, backup_location: Path, choice: int | None 
         shutil.copytree(chosen_path, recovered_path, symlinks=True)
 
 
+def choose_backup(backup_folder: Path, choice: int | None) -> Path | None:
+    """Choose a backup from a numbered list shown in a terminal."""
+    backup_choices = all_backups(backup_folder)
+    if not backup_choices:
+        return None
+
+    if choice is not None:
+        return backup_choices[choice]
+
+    number_column_size = len(str(len(backup_choices)))
+    for choice, backup in enumerate(backup_choices, 1):
+        backup_name = backup.relative_to(backup_folder)
+        print(f"{choice:>{number_column_size}}: {backup_name}")
+
+    while True:
+        try:
+            user_choice = int(input("Backup to restore (Ctrl-C to quit): "))
+            if user_choice < 1:
+                continue
+            return backup_choices[user_choice - 1]
+        except (ValueError, IndexError):
+            pass
+
+
 def delete_single_backup(backup_path: Path) -> None:
     """Delete a single backup."""
     def remove_readonly(func: Callable[..., Any], path: str, _: Any) -> None:
@@ -935,6 +959,41 @@ def verify_last_backup(user_folder: Path,
             error_file.writelines(map(file_name_line, errors))
 
 
+def restore_backup(backup_folder: Path, user_folder: Path, delete_new_files: bool) -> None:
+    """
+    Return a user's folder to a previously backed up state.
+
+    Existing files that were backed up will be overwritten with the backup.
+
+    Parameters:
+    backup_folder: The backup from which to restore files and folders
+    user_folder: The folder that will be restored to a previous state.
+    delete_new_files: Whether to delete files and folders that are not present in the backup.
+    """
+    for current_backup_folder, folder_names, file_names in os.walk(backup_folder):
+        current_backup_path = Path(current_backup_folder)
+        current_user_path = user_folder/current_backup_path.relative_to(backup_folder)
+        current_user_path.mkdir(parents=True, exist_ok=True)
+
+        for file_name in file_names:
+            try:
+                source = current_backup_path/file_name
+                destination = current_user_path/file_name
+                shutil.copy2(source, destination, follow_symlinks=False)
+            except Exception as error:
+                logger.warning(f"Could not restore {destination} from {source}: {error}")
+
+        if delete_new_files:
+            backed_up_paths = set(folder_names) | set(file_names)
+            user_paths = set(entry.name for entry in os.scandir(current_user_path))
+            for new_name in user_paths - backed_up_paths:
+                new_path = current_user_path/new_name
+                if is_real_directory(new_path):
+                    delete_single_backup(new_path)
+                else:
+                    new_path.unlink()
+
+
 def last_n_backups(backup_location: Path, n: str | int) -> list[Path]:
     """
     Return a list of the paths of the last n backups.
@@ -1111,6 +1170,11 @@ list of files that do not match, and a list of files that caused errors during t
 arguments --user-folder and --backup-folder are required. If a filter file was used to create the
 backup, then --filter should be supplied as well."""))
 
+    only_one_action_group.add_argument("--restore", action="store_true", help=format_help("""
+This action restores the user's folder to a previous, backed up state. Any existing user files that
+have the same name as one in the backup will be overwritten. See the Restore Options section below
+for required parameters."""))
+
     common_group = user_input.add_argument_group("Options needed for all actions")
 
     common_group.add_argument("-b", "--backup-folder", help=format_help("""
@@ -1202,6 +1266,29 @@ Specify the maximum age of backups to move. See --delete-after for the time span
 
     only_one_move_group.add_argument("--move-since", help=format_help("""
 Move all backups made on or after the specified date (YYYY-MM-DD)."""))
+
+    restore_group = user_input.add_argument_group("Restore Options", format_help("""
+Exactly one of each of the following option pairs(--use-last-backup/--choose-backup and
+--delete-new/--keep-new) is required when restoring a backup."""))
+
+    choose_restore_backup_group = restore_group.add_mutually_exclusive_group()
+
+    choose_restore_backup_group.add_argument("--use-last-backup", action="store_true",
+                                             help=format_help("""
+Restore from the most recent backup."""))
+
+    choose_restore_backup_group.add_argument("--choose-backup", action="store_true",
+                                             help=format_help("""
+Choose which backup to restore from a list."""))
+
+    restore_preservation_group = restore_group.add_mutually_exclusive_group()
+
+    restore_preservation_group.add_argument("--delete-new", action="store_true",
+                                            help=format_help("""
+Delete any new files that are not in the backup."""))
+
+    restore_preservation_group.add_argument("--keep-new", action="store_true", help=format_help("""
+New files not in the backup will be preserved."""))
 
     other_group = user_input.add_argument_group("Other options")
 
@@ -1351,6 +1438,37 @@ def main(argv: list[str]) -> int:
             assert result_folder is not None
             print_run_title(command_line_args, "Verifying last backup")
             verify_last_backup(user_folder, backup_folder, filter_file, result_folder)
+        elif args.restore:
+            try:
+                user_folder = Path(args.user_folder).resolve(strict=True)
+            except FileNotFoundError:
+                raise CommandLineError(f"Could not find users folder: {args.user_folder}")
+
+            try:
+                backup_folder = Path(args.backup_folder).resolve(strict=True)
+            except FileNotFoundError:
+                raise CommandLineError(f"Could not find backup location: {args.backup_folder}")
+
+            confirm_user_location_is_unchanged(user_folder, backup_folder)
+
+            if not args.delete_new and not args.keep_new:
+                raise CommandLineError("One of the following are required: "
+                                       "--delete-new or --keep-new")
+            delete_new_files = bool(args.delete_new)
+
+            if not args.use_last_backup and not args.choose_backup:
+                raise CommandLineError("One of the following are required: "
+                                       "--use-last-backup or --choose-backup")
+            choice = None if args.choice is None else int(args.choice)
+            restore_source = (find_previous_backup(backup_folder)
+                              if args.use_last_backup else
+                              choose_backup(backup_folder, choice))
+
+            if not restore_source:
+                raise CommandLineError(f"No backups found in {backup_folder}")
+
+            action = "restoration"
+            restore_backup(backup_folder, user_folder, delete_new_files)
         else:
             if not args.user_folder:
                 raise CommandLineError("User's folder not specified.")
