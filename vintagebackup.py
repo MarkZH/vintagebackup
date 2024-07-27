@@ -9,7 +9,6 @@ import logging
 import filecmp
 import stat
 import itertools
-import re
 import textwrap
 import math
 import glob
@@ -634,28 +633,8 @@ def delete_oldest_backups_for_space(backup_location: Path, space_requirement: st
     space_requirement: The amount of space that should be free after deleting backups. This may be
     expressed in bytes ("MB", "GB", etc.) or as a percentage ("%") of the total storage space.
     """
-    space_text = "".join(space_requirement.lower().split())
-    prefixes = [p.lower() for p in storage_prefixes]
-    prefix_pattern = "".join(prefixes)
-    pattern = rf"\d+(\.\d*)?([{prefix_pattern}]?b?|%)"
     total_storage = shutil.disk_usage(backup_location).total
-    if not re.fullmatch(pattern, space_text):
-        raise CommandLineError(f"Incorrect format of free-up space: {space_text}")
-    if space_text.endswith("%"):
-        free_fraction_required = float(space_text[:-1])/100
-        if free_fraction_required > 1:
-            raise CommandLineError(f"Percent cannot be greater than 100: {space_text}")
-        free_storage_required = total_storage*free_fraction_required
-    else:
-        space_text = space_text.rstrip('b')
-        if space_text[-1].isalpha():
-            prefix = space_text[-1]
-            space_text = space_text[:-1]
-        else:
-            prefix = ""
-
-        multiplier = 1000**prefixes.index(prefix)
-        free_storage_required = float(space_text)*multiplier
+    free_storage_required = parse_storage_space(space_requirement, total_storage)
 
     if free_storage_required > shutil.disk_usage(backup_location).total:
         raise CommandLineError(f"Cannot free more storage ({byte_units(free_storage_required)})"
@@ -681,6 +660,48 @@ def delete_oldest_backups_for_space(backup_location: Path, space_requirement: st
     if shutil.disk_usage(backup_location).free < free_storage_required:
         logger.warning(f"Could not free up {byte_units(free_storage_required)} of storage"
                        " without deleting most recent backup.")
+
+
+def parse_storage_space(space_requirement: str, total_storage: int) -> float:
+    """
+    Parse a string into a number of bytes of storage space.
+
+    Parameters:
+    space_requirement: A string indicating an amount of space, either as an absolute number of bytes
+    or a percentage of the total storage. Byte units and prefixes are allowed. Percents require a
+    percent sign.
+    total_storage: The total storage space in bytes on the device. Used with percentage values.
+
+    >>> parse_storage_space("152 kB", 0)
+    152000.0
+
+    >>> parse_storage_space("15%", 1000)
+    150.0
+    """
+    space_text = "".join(space_requirement.lower().split())
+    if space_text.endswith("%"):
+        try:
+            free_fraction_required = float(space_text[:-1])/100
+        except ValueError:
+            raise CommandLineError(f"Invalid percentage value: {space_requirement}")
+
+        if free_fraction_required > 1:
+            raise CommandLineError(f"Percent cannot be greater than 100: {space_requirement}")
+
+        return total_storage*free_fraction_required
+    elif space_text[-1].isalpha():
+        space_text = space_text.rstrip('b')
+        number, prefix = ((space_text[:-1], space_text[-1])
+                          if space_text[-1].isalpha() else
+                          (space_text, ""))
+
+        try:
+            multiplier: int = 1000**storage_prefixes.index(prefix)
+            return float(number)*multiplier
+        except ValueError:
+            raise CommandLineError(f"Invalid storage space value: {space_requirement}")
+    else:
+        raise CommandLineError(f"Incorrect format of free-up space: {space_requirement}")
 
 
 def parse_time_span_to_timepoint(time_span: str) -> datetime.datetime:
