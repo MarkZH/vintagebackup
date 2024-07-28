@@ -980,7 +980,7 @@ def verify_last_backup(user_folder: Path,
             error_file.writelines(map(file_name_line, errors))
 
 
-def restore_backup(backup_folder: Path, user_folder: Path, delete_new_files: bool) -> None:
+def restore_backup(dated_backup_folder: Path, user_folder: Path, *, delete_new_files: bool) -> None:
     """
     Return a user's folder to a previously backed up state.
 
@@ -991,9 +991,9 @@ def restore_backup(backup_folder: Path, user_folder: Path, delete_new_files: boo
     user_folder: The folder that will be restored to a previous state.
     delete_new_files: Whether to delete files and folders that are not present in the backup.
     """
-    for current_backup_folder, folder_names, file_names in os.walk(backup_folder):
+    for current_backup_folder, folder_names, file_names in os.walk(dated_backup_folder):
         current_backup_path = Path(current_backup_folder)
-        current_user_path = user_folder/current_backup_path.relative_to(backup_folder)
+        current_user_path = user_folder/current_backup_path.relative_to(dated_backup_folder)
         current_user_path.mkdir(parents=True, exist_ok=True)
 
         for file_name in file_names:
@@ -1489,7 +1489,7 @@ def main(argv: list[str]) -> int:
                 raise CommandLineError(f"No backups found in {backup_folder}")
 
             action = "restoration"
-            restore_backup(backup_folder, user_folder, delete_new_files)
+            restore_backup(restore_source, user_folder, delete_new_files=delete_new_files)
         else:
             if not args.user_folder:
                 raise CommandLineError("User's folder not specified.")
