@@ -297,7 +297,7 @@ class BackupTest(unittest.TestCase):
                                  (backup_1/file).stat().st_ino == (backup_2/file).stat().st_ino)
 
 
-class IncludeExcludeBackupTest(unittest.TestCase):
+class IncludeExcludeTest(unittest.TestCase):
     """Test that exclude and include files work properly."""
 
     def test_exclusions(self) -> None:
@@ -481,7 +481,7 @@ def create_large_files(backup_location: Path, file_size: int) -> None:
                 file.write(data)
 
 
-class BackupDeletionTest(unittest.TestCase):
+class DeleteBackupTest(unittest.TestCase):
     """Test deleting backups."""
 
     def test_deleting_last_backup(self) -> None:
@@ -778,7 +778,7 @@ class MoveBackupsTest(unittest.TestCase):
             self.assertEqual(vintagebackup.last_n_backups(backup_location, 6), backups_to_move)
 
 
-class BackupVerificationTest(unittest.TestCase):
+class VerificationTest(unittest.TestCase):
     """Test backup verification."""
 
     def test_backup_verification(self) -> None:
