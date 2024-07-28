@@ -993,7 +993,7 @@ class RestorationTest(unittest.TestCase):
             exit_code = vintagebackup.main(["--restore",
                                             "--user-folder", user_folder,
                                             "--backup-folder", backup_folder,
-                                            "--use-last-backup", "--delete-new"])
+                                            "--last-backup", "--delete-new"])
 
             self.assertEqual(exit_code, 0)
             last_backup = vintagebackup.find_previous_backup(backup_path)
@@ -1036,7 +1036,7 @@ class RestorationTest(unittest.TestCase):
             exit_code = vintagebackup.main(["--restore",
                                             "--user-folder", user_folder,
                                             "--backup-folder", backup_folder,
-                                            "--use-last-backup", "--keep-new"])
+                                            "--last-backup", "--keep-new"])
 
             self.assertEqual(exit_code, 0)
             last_backup = vintagebackup.find_previous_backup(backup_path)

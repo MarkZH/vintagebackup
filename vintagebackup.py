@@ -1294,7 +1294,7 @@ Exactly one of each of the following option pairs(--use-last-backup/--choose-bac
 
     choose_restore_backup_group = restore_group.add_mutually_exclusive_group()
 
-    choose_restore_backup_group.add_argument("--use-last-backup", action="store_true",
+    choose_restore_backup_group.add_argument("--last-backup", action="store_true",
                                              help=format_help("""
 Restore from the most recent backup."""))
 
@@ -1477,12 +1477,12 @@ def main(argv: list[str]) -> int:
                                        "--delete-new or --keep-new")
             delete_new_files = bool(args.delete_new)
 
-            if not args.use_last_backup and not args.choose_backup:
+            if not args.last_backup and not args.choose_backup:
                 raise CommandLineError("One of the following are required: "
                                        "--use-last-backup or --choose-backup")
             choice = None if args.choice is None else int(args.choice)
             restore_source = (find_previous_backup(backup_folder)
-                              if args.use_last_backup else
+                              if args.last_backup else
                               choose_backup(backup_folder, choice))
 
             if not restore_source:
