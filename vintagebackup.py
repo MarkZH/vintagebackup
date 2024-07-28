@@ -717,8 +717,12 @@ def parse_storage_space(space_requirement: str, total_storage: int) -> float:
 
     >>> parse_storage_space("15%", 1000)
     150.0
+
+    Note that the byte units are case and spacing insensitive.
+    >>> parse_storage_space("123gb", 0)
+    123000000000.0
     """
-    space_text = "".join(space_requirement.lower().split())
+    space_text = "".join(space_requirement.upper().split())
     if space_text.endswith("%"):
         try:
             free_fraction_required = float(space_text[:-1])/100
@@ -730,12 +734,13 @@ def parse_storage_space(space_requirement: str, total_storage: int) -> float:
 
         return total_storage*free_fraction_required
     elif space_text[-1].isalpha():
-        space_text = space_text.rstrip('b')
+        space_text = space_text.rstrip('B')
         number, prefix = ((space_text[:-1], space_text[-1])
                           if space_text[-1].isalpha() else
                           (space_text, ""))
 
         try:
+            prefix = prefix.lower() if prefix == "K" else prefix
             multiplier: int = 1000**storage_prefixes.index(prefix)
             return float(number)*multiplier
         except ValueError:
