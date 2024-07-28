@@ -993,7 +993,7 @@ class RestorationTest(unittest.TestCase):
             exit_code = vintagebackup.main(["--restore",
                                             "--user-folder", user_folder,
                                             "--backup-folder", backup_folder,
-                                            "--last-backup", "--delete-new"])
+                                            "--last-backup", "--delete-extra"])
 
             self.assertEqual(exit_code, 0)
             last_backup = vintagebackup.find_previous_backup(backup_path)
@@ -1036,7 +1036,7 @@ class RestorationTest(unittest.TestCase):
             exit_code = vintagebackup.main(["--restore",
                                             "--user-folder", user_folder,
                                             "--backup-folder", backup_folder,
-                                            "--last-backup", "--keep-new"])
+                                            "--last-backup", "--keep-extra"])
 
             self.assertEqual(exit_code, 0)
             last_backup = vintagebackup.find_previous_backup(backup_path)
@@ -1081,7 +1081,7 @@ class RestorationTest(unittest.TestCase):
             exit_code = vintagebackup.main(["--restore",
                                             "--user-folder", user_folder,
                                             "--backup-folder", backup_folder,
-                                            "--choose-backup", "--delete-new",
+                                            "--choose-backup", "--delete-extra",
                                             "--choice", str(choice)])
 
             self.assertEqual(exit_code, 0)
@@ -1126,7 +1126,7 @@ class RestorationTest(unittest.TestCase):
             exit_code = vintagebackup.main(["--restore",
                                             "--user-folder", user_folder,
                                             "--backup-folder", backup_folder,
-                                            "--choose-backup", "--keep-new",
+                                            "--choose-backup", "--keep-extra",
                                             "--choice", str(choice)])
 
             self.assertEqual(exit_code, 0)

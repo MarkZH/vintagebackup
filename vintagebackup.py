@@ -980,7 +980,8 @@ def verify_last_backup(user_folder: Path,
             error_file.writelines(map(file_name_line, errors))
 
 
-def restore_backup(dated_backup_folder: Path, user_folder: Path, *, delete_new_files: bool) -> None:
+def restore_backup(dated_backup_folder: Path, user_folder: Path,
+                   *, delete_extra_files: bool) -> None:
     """
     Return a user's folder to a previously backed up state.
 
@@ -1004,7 +1005,7 @@ def restore_backup(dated_backup_folder: Path, user_folder: Path, *, delete_new_f
             except Exception as error:
                 logger.warning(f"Could not restore {destination} from {source}: {error}")
 
-        if delete_new_files:
+        if delete_extra_files:
             backed_up_paths = set(folder_names) | set(file_names)
             user_paths = set(entry.name for entry in os.scandir(current_user_path))
             for new_name in user_paths - backed_up_paths:
@@ -1304,12 +1305,13 @@ Choose which backup to restore from a list."""))
 
     restore_preservation_group = restore_group.add_mutually_exclusive_group()
 
-    restore_preservation_group.add_argument("--delete-new", action="store_true",
+    restore_preservation_group.add_argument("--delete-extra", action="store_true",
                                             help=format_help("""
-Delete any new files that are not in the backup."""))
+Delete any extra files that are not in the backup."""))
 
-    restore_preservation_group.add_argument("--keep-new", action="store_true", help=format_help("""
-New files not in the backup will be preserved."""))
+    restore_preservation_group.add_argument("--keep-extra", action="store_true",
+                                            help=format_help("""
+Preserve any extra files that are not in the backup."""))
 
     other_group = user_input.add_argument_group("Other options")
 
@@ -1472,10 +1474,10 @@ def main(argv: list[str]) -> int:
 
             confirm_user_location_is_unchanged(user_folder, backup_folder)
 
-            if not args.delete_new and not args.keep_new:
+            if not args.delete_extra and not args.keep_extra:
                 raise CommandLineError("One of the following are required: "
                                        "--delete-new or --keep-new")
-            delete_new_files = bool(args.delete_new)
+            delete_extra_files = bool(args.delete_extra)
 
             if not args.last_backup and not args.choose_backup:
                 raise CommandLineError("One of the following are required: "
@@ -1489,7 +1491,7 @@ def main(argv: list[str]) -> int:
                 raise CommandLineError(f"No backups found in {backup_folder}")
 
             action = "restoration"
-            restore_backup(restore_source, user_folder, delete_new_files=delete_new_files)
+            restore_backup(restore_source, user_folder, delete_extra_files=delete_extra_files)
         else:
             if not args.user_folder:
                 raise CommandLineError("User's folder not specified.")
