@@ -1134,6 +1134,21 @@ def path_or_none(arg: str | None) -> Path | None:
     return Path(arg).absolute() if arg else None
 
 
+def print_run_title(command_line_args: argparse.Namespace, action_title: str) -> None:
+    """Print the action taking place."""
+    logger.info("")
+    divider = "="*(len(action_title) + 2)
+    logger.info(divider)
+    logger.info(f" {action_title}")
+    logger.info(divider)
+    logger.info("")
+
+    if command_line_args.config:
+        logger.info("Reading configuration from file: "
+                    + os.path.abspath(command_line_args.config))
+        logger.info("")
+
+
 def argument_parser() -> argparse.ArgumentParser:
     """Create the parser for command line arguments."""
     user_input = argparse.ArgumentParser(add_help=False,
@@ -1558,21 +1573,6 @@ def main(argv: list[str]) -> int:
             print_backup_storage_stats(args.backup_folder)
     finally:
         return exit_code
-
-
-def print_run_title(command_line_args: argparse.Namespace, action_title: str) -> None:
-    """Print the action taking place."""
-    logger.info("")
-    divider = "="*(len(action_title) + 2)
-    logger.info(divider)
-    logger.info(f" {action_title}")
-    logger.info(divider)
-    logger.info("")
-
-    if command_line_args.config:
-        logger.info("Reading configuration from file: "
-                    + os.path.abspath(command_line_args.config))
-        logger.info("")
 
 
 if __name__ == "__main__":
