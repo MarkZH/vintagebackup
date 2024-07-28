@@ -297,8 +297,8 @@ class BackupTest(unittest.TestCase):
                                  (backup_1/file).stat().st_ino == (backup_2/file).stat().st_ino)
 
 
-class IncludeExcludeTest(unittest.TestCase):
-    """Test that exclude and include files work properly."""
+class FilterTest(unittest.TestCase):
+    """Test that filter files work properly."""
 
     def test_exclusions(self) -> None:
         """Test that filter files with only exclusions result in the right files being excluded."""
