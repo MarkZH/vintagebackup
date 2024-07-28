@@ -91,6 +91,7 @@ def is_real_directory(path: Path) -> bool:
 
 def backup_paths(user_folder: Path, filter_file: Path | None) -> list[tuple[Path, list[str]]]:
     """Return a list of all paths in a user's folder after filtering it with a filter file."""
+    logger.info(f"Gathering items for backup in {user_folder} ...")
     backup_set: set[Path] = set()
     for current_directory_name, dir_names, file_names in os.walk(user_folder):
         current_directory = Path(current_directory_name)
@@ -147,7 +148,7 @@ def filter_file_patterns(user_folder: Path, filter_file: Path | None) -> list[PA
     if not filter_file:
         return []
 
-    logger.info(f"Reading filter file: {filter_file}")
+    logger.info(f"Filtering items according to {filter_file} ...")
     with open(filter_file) as filters:
         entries: list[PATTERN_ENTRY] = []
         for line_number, line in enumerate(filters, 1):
