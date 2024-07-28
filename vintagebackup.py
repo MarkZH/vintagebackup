@@ -386,19 +386,7 @@ def create_new_backup(user_data_location: Path,
     examine_whole_file: Whether to examine file contents to check for changes since the last backup
     force_copy: Whether to always copy files, regardless of whether a previous backup exists.
     """
-    if not user_data_location.is_dir():
-        raise CommandLineError(f"The user folder path is not a folder: {user_data_location}")
-
-    if backup_location.exists() and not backup_location.is_dir():
-        raise CommandLineError("Backup location exists but is not a folder.")
-
-    if backup_location.is_relative_to(user_data_location):
-        raise CommandLineError("Backup destination cannot be inside user's folder:"
-                               f" User data: {user_data_location}"
-                               f"; Backup location: {backup_location}")
-
-    if filter_file and not filter_file.is_file():
-        raise CommandLineError(f"Filter file not found: {filter_file}")
+    check_paths_for_validity(user_data_location, backup_location, filter_file)
 
     backup_location.mkdir(parents=True, exist_ok=True)
 
@@ -448,6 +436,25 @@ def create_new_backup(user_data_location: Path,
     count_column_size = len(str(max(action_counter.values())))
     for action, count in action_counter.items():
         logger.info(f"{action.capitalize():<{name_column_size}} : {count:>{count_column_size}}")
+
+
+def check_paths_for_validity(user_data_location: Path,
+                             backup_location: Path,
+                             filter_file: Path | None) -> None:
+    """Check the given paths for validity and raise an exception for improper inputs."""
+    if not user_data_location.is_dir():
+        raise CommandLineError(f"The user folder path is not a folder: {user_data_location}")
+
+    if backup_location.exists() and not backup_location.is_dir():
+        raise CommandLineError("Backup location exists but is not a folder.")
+
+    if backup_location.is_relative_to(user_data_location):
+        raise CommandLineError("Backup destination cannot be inside user's folder:"
+                               f" User data: {user_data_location}"
+                               f"; Backup location: {backup_location}")
+
+    if filter_file and not filter_file.is_file():
+        raise CommandLineError(f"Filter file not found: {filter_file}")
 
 
 def setup_log_file(logger: logging.Logger, log_file_path: str) -> None:
