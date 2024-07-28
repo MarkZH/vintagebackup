@@ -368,12 +368,24 @@ def backup_directory(user_data_location: Path,
             action_counter["failed copies"] += 1
 
 
+def backup_name(backup_datetime: datetime.datetime | str | None) -> Path:
+    """Create the name and relative path for the new dated backup."""
+    now = (datetime.datetime.strptime(backup_datetime, backup_date_format)
+           if isinstance(backup_datetime, str)
+           else (backup_datetime or datetime.datetime.now()))
+    backup_date = now.strftime(backup_date_format)
+    os_name = f"{platform.system()} {platform.release()}".strip()
+    new_backup_path = Path(str(now.year))/f"{backup_date} ({os_name})"
+    return new_backup_path
+
+
 def create_new_backup(user_data_location: Path,
                       backup_location: Path,
                       *,
                       filter_file: Path | None,
                       examine_whole_file: bool,
                       force_copy: bool,
+                      timestamp: datetime.datetime | str | None,
                       is_backup_move: bool = False) -> None:
     """
     Create a new dated backup.
@@ -389,11 +401,7 @@ def create_new_backup(user_data_location: Path,
     check_paths_for_validity(user_data_location, backup_location, filter_file)
 
     backup_location.mkdir(parents=True, exist_ok=True)
-
-    now = datetime.datetime.now()
-    backup_date = now.strftime(backup_date_format)
-    os_name = f"{platform.system()} {platform.release()}".strip()
-    new_backup_path = backup_location/str(now.year)/f"{backup_date} ({os_name})"
+    new_backup_path = backup_location/backup_name(timestamp)
 
     confirm_user_location_is_unchanged(user_data_location, backup_location)
     record_user_location(user_data_location, backup_location)
@@ -915,7 +923,8 @@ def move_backups(old_backup_location: Path,
                           filter_file=None,
                           examine_whole_file=False,
                           force_copy=False,
-                          is_backup_move=True)
+                          is_backup_move=True,
+                          timestamp=backup_datetime(backup))
 
         dated_backup_path = all_backups(new_backup_location)[-1]
         backup_year_folder = dated_backup_path.parent.parent/backup.parent.name
@@ -1361,8 +1370,9 @@ name will be written to the backup folder. The default is
 {default_log_file_name.name} in the user's home folder. If no
 log file is desired, use the file name {os.devnull}."""))
 
-    # This argument is only used for testing.
+    # These argument are only used for testing.
     user_input.add_argument("--choice", help=argparse.SUPPRESS)
+    user_input.add_argument("--timestamp", help=argparse.SUPPRESS)
 
     return user_input
 
@@ -1519,7 +1529,8 @@ def main(argv: list[str]) -> int:
                               backup_folder,
                               filter_file=path_or_none(args.filter),
                               examine_whole_file=toggle_is_set(args, "whole_file"),
-                              force_copy=toggle_is_set(args, "force_copy"))
+                              force_copy=toggle_is_set(args, "force_copy"),
+                              timestamp=args.timestamp)
 
             if args.free_up:
                 action = "deletions for freeing up space"
