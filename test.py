@@ -956,6 +956,189 @@ class ErrorTest(unittest.TestCase):
                              [f"ERROR:vintagebackup:Could not find user's folder: {user_folder}"])
 
 
+class RestorationTest(unittest.TestCase):
+    """Test that restoring backups works correctly."""
+
+    def test_restore_last_backup_delete_new_files(self) -> None:
+        """Test restoring the last backup while deleting new files."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+            backup_path = Path(backup_folder)
+            vintagebackup.create_new_backup(user_path,
+                                            backup_path,
+                                            filter_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False)
+
+            self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
+
+            first_extra_file = user_path/"extra_file1.txt"
+            with open(first_extra_file, "w") as file1:
+                file1.write("extra 1\n")
+
+            time.sleep(1)
+            vintagebackup.create_new_backup(user_path,
+                                            backup_path,
+                                            filter_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False)
+            self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
+
+            second_extra_file = user_path/"extra_file2.txt"
+            with open(second_extra_file, "w") as file2:
+                file2.write("extra 2\n")
+
+            exit_code = vintagebackup.main(["--restore",
+                                            "--user-folder", user_folder,
+                                            "--backup-folder", backup_folder,
+                                            "--last-backup", "--delete-extra"])
+
+            self.assertEqual(exit_code, 0)
+            last_backup = vintagebackup.find_previous_backup(backup_path)
+            assert last_backup
+            self.assertTrue(first_extra_file.exists(follow_symlinks=False))
+            self.assertFalse(second_extra_file.exists(follow_symlinks=False))
+            self.assertTrue(directories_have_identical_content(user_path, last_backup))
+
+    def test_restore_last_backup_keep_new_files(self) -> None:
+        """Test restoring the last backup while keeping new files."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+            backup_path = Path(backup_folder)
+            vintagebackup.create_new_backup(user_path,
+                                            backup_path,
+                                            filter_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False)
+
+            self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
+
+            first_extra_file = user_path/"extra_file1.txt"
+            with open(first_extra_file, "w") as file1:
+                file1.write("extra 1\n")
+
+            time.sleep(1)
+            vintagebackup.create_new_backup(user_path,
+                                            backup_path,
+                                            filter_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False)
+            self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
+
+            second_extra_file = user_path/"extra_file2.txt"
+            with open(second_extra_file, "w") as file2:
+                file2.write("extra 2\n")
+
+            exit_code = vintagebackup.main(["--restore",
+                                            "--user-folder", user_folder,
+                                            "--backup-folder", backup_folder,
+                                            "--last-backup", "--keep-extra"])
+
+            self.assertEqual(exit_code, 0)
+            last_backup = vintagebackup.find_previous_backup(backup_path)
+            assert last_backup
+            self.assertTrue(first_extra_file.exists(follow_symlinks=False))
+            self.assertTrue(second_extra_file.exists(follow_symlinks=False))
+            second_extra_file.unlink()
+            self.assertTrue(directories_have_identical_content(user_path, last_backup))
+
+    def test_restore_choose_backup_delete_new_files(self) -> None:
+        """Test restoring a chosen backup while deleting new files."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+            backup_path = Path(backup_folder)
+            vintagebackup.create_new_backup(user_path,
+                                            backup_path,
+                                            filter_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False)
+
+            self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
+
+            first_extra_file = user_path/"extra_file1.txt"
+            with open(first_extra_file, "w") as file1:
+                file1.write("extra 1\n")
+
+            time.sleep(1)
+            vintagebackup.create_new_backup(user_path,
+                                            backup_path,
+                                            filter_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False)
+            self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
+
+            second_extra_file = user_path/"extra_file2.txt"
+            with open(second_extra_file, "w") as file2:
+                file2.write("extra 2\n")
+
+            choice = 0
+            exit_code = vintagebackup.main(["--restore",
+                                            "--user-folder", user_folder,
+                                            "--backup-folder", backup_folder,
+                                            "--choose-backup", "--delete-extra",
+                                            "--choice", str(choice)])
+
+            self.assertEqual(exit_code, 0)
+            restored_backup = vintagebackup.all_backups(backup_path)[choice]
+            assert restored_backup
+            self.assertFalse(first_extra_file.exists(follow_symlinks=False))
+            self.assertFalse(second_extra_file.exists(follow_symlinks=False))
+            self.assertTrue(directories_have_identical_content(user_path, restored_backup))
+
+    def test_restore_choose_backup_keep_new_files(self) -> None:
+        """Test restoring a chosen backup while keeping new files."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+            backup_path = Path(backup_folder)
+            vintagebackup.create_new_backup(user_path,
+                                            backup_path,
+                                            filter_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False)
+
+            self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
+
+            first_extra_file = user_path/"extra_file1.txt"
+            with open(first_extra_file, "w") as file1:
+                file1.write("extra 1\n")
+
+            time.sleep(1)
+            vintagebackup.create_new_backup(user_path,
+                                            backup_path,
+                                            filter_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False)
+            self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
+
+            second_extra_file = user_path/"extra_file2.txt"
+            with open(second_extra_file, "w") as file2:
+                file2.write("extra 2\n")
+
+            choice = 0
+            exit_code = vintagebackup.main(["--restore",
+                                            "--user-folder", user_folder,
+                                            "--backup-folder", backup_folder,
+                                            "--choose-backup", "--keep-extra",
+                                            "--choice", str(choice)])
+
+            self.assertEqual(exit_code, 0)
+            restored_backup = vintagebackup.all_backups(backup_path)[choice]
+            assert restored_backup
+            self.assertTrue(first_extra_file.exists(follow_symlinks=False))
+            self.assertTrue(second_extra_file.exists(follow_symlinks=False))
+            first_extra_file.unlink()
+            second_extra_file.unlink()
+            self.assertTrue(directories_have_identical_content(user_path, restored_backup))
+
+
 if __name__ == "__main__":
     vintagebackup.logger.setLevel(logging.CRITICAL)
     unittest.main()
