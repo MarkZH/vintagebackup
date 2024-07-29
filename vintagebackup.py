@@ -526,20 +526,10 @@ def search_backups(search_directory: Path,
 
     menu_list = sorted(all_paths)
     if choice is None:
-        number_column_size = len(str(len(menu_list)))
-        for index, (name, path_type) in enumerate(menu_list, 1):
-            print(f"{index:>{number_column_size}}: {name} ({path_type})")
+        menu_choices = [f"{name} ({path_type})" for (name, path_type) in menu_list]
+        choice = choose_from_menu(menu_choices, "Which path to recover")
 
-        while True:
-            try:
-                user_choice = int(input("Which path to recover (Ctrl-C to quit): "))
-                if user_choice >= 1:
-                    recovery_target_name = menu_list[user_choice - 1][0]
-                    return search_directory/recovery_target_name
-            except (ValueError, IndexError):
-                continue
-    else:
-        return search_directory/menu_list[choice][0]
+    return search_directory/menu_list[choice][0]
 
 
 def recover_path(recovery_path: Path, backup_location: Path, choice: int | None = None) -> None:
@@ -580,27 +570,17 @@ def recover_path(recovery_path: Path, backup_location: Path, choice: int | None 
 
     backup_choices = sorted(unique_backups.values())
     if choice is None:
-        number_column_size = len(str(len(backup_choices)))
-        for choice, backup_copy in enumerate(backup_choices, 1):
+        menu_choices: list[str] = []
+        for backup_copy in backup_choices:
             backup_date = backup_copy.relative_to(backup_location).parts[1]
             path_type = ("Symlink" if backup_copy.is_symlink()
                          else "File" if backup_copy.is_file()
                          else "Folder" if backup_copy.is_dir()
                          else "?")
-            print(f"{choice:>{number_column_size}}: {backup_date} ({path_type})")
+            menu_choices.append(f"{backup_date} ({path_type})")
+        choice = choose_from_menu(menu_choices, "Version to recover")
 
-        while True:
-            try:
-                user_choice = int(input("Version to recover (Ctrl-C to quit): "))
-                if user_choice < 1:
-                    continue
-                chosen_path = backup_choices[user_choice - 1]
-                break
-            except (ValueError, IndexError):
-                pass
-    else:
-        chosen_path = backup_choices[choice]
-
+    chosen_path = backup_choices[choice]
     recovered_path = recovery_path
     unique_id = 0
     while recovered_path.exists(follow_symlinks=False):
@@ -615,6 +595,33 @@ def recover_path(recovery_path: Path, backup_location: Path, choice: int | None 
         shutil.copytree(chosen_path, recovered_path, symlinks=True)
 
 
+def choose_from_menu(menu_choices: list[str], prompt: str) -> int:
+    """
+    Let user choose from options presented a numbered list in a terminal.
+
+    Parameters:
+    menu_choices: List of choices
+    prompt: Message to show user prior to the prompt for a choice.
+
+    Returns:
+    The returned number is an index into the input list. Note that the user interface has the user
+    choose a number from 1 to len(menu_list), but returns a number from 0 to len(menu_list) - 1.
+    """
+    number_column_size = len(str(len(menu_choices)))
+    for number, choice in enumerate(menu_choices):
+        print(f"{number:>{number_column_size}}: {choice}")
+
+    while True:
+        try:
+            user_choice = int(input(f"{prompt} (Ctrl-C to quit): "))
+            if 1 <= user_choice <= len(menu_choices):
+                return user_choice - 1
+        except ValueError:
+            pass
+
+        print(f"Enter a number from 1 to {len(menu_choices)}")
+
+
 def choose_backup(backup_folder: Path, choice: int | None) -> Path | None:
     """Choose a backup from a numbered list shown in a terminal."""
     backup_choices = all_backups(backup_folder)
@@ -624,19 +631,8 @@ def choose_backup(backup_folder: Path, choice: int | None) -> Path | None:
     if choice is not None:
         return backup_choices[choice]
 
-    number_column_size = len(str(len(backup_choices)))
-    for choice, backup in enumerate(backup_choices, 1):
-        backup_name = backup.relative_to(backup_folder)
-        print(f"{choice:>{number_column_size}}: {backup_name}")
-
-    while True:
-        try:
-            user_choice = int(input("Backup to restore (Ctrl-C to quit): "))
-            if user_choice < 1:
-                continue
-            return backup_choices[user_choice - 1]
-        except (ValueError, IndexError):
-            pass
+    menu_choices = [str(backup.relative_to(backup_folder)) for backup in backup_choices]
+    return backup_choices[choose_from_menu(menu_choices, "Backup to restore")]
 
 
 def delete_directory_tree(backup_path: Path) -> None:
