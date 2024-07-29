@@ -494,6 +494,7 @@ def search_backups(search_directory: Path,
     """
     if not is_real_directory(search_directory):
         raise CommandLineError(f"The given search path is not a directory: {search_directory}")
+
     try:
         user_data_location = backup_source(backup_folder)
     except FileNotFoundError:
