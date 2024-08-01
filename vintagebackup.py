@@ -680,12 +680,14 @@ def delete_oldest_backups_for_space(backup_location: Path, space_requirement: st
     any_deletions = False
     backups = all_backups(backup_location)
     for backup in backups[:-1]:
-        if shutil.disk_usage(backup_location).free > free_storage_required:
+        current_free_space = shutil.disk_usage(backup_location).free
+        if current_free_space > free_storage_required:
             break
 
         if not any_deletions:
             logger.info("")
-            logger.info(f"Deleting old backups to free up {byte_units(free_storage_required)}.")
+            logger.info(f"Deleting old backups to free up {byte_units(free_storage_required)}"
+                        f" ({byte_units(current_free_space)} currently free).")
 
         logger.info(f"Deleting backup: {backup}")
         delete_directory_tree(backup)
