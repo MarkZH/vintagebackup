@@ -1401,23 +1401,28 @@ log file is desired, use the file name {os.devnull}."""))
     return user_input
 
 
+def parse_command_line(argv: list[str], user_input: argparse.ArgumentParser) -> argparse.Namespace:
+    """Parse the command line options and incorporate configuration file options if needed."""
+    if argv and argv[0] == sys.argv[0]:
+        argv = argv[1:]
+
+    command_line_options = argv or ["--help"]
+    command_line_args = user_input.parse_args(command_line_options)
+    if command_line_args.config:
+        file_options = read_configuation_file(command_line_args.config)
+        return user_input.parse_args(file_options + command_line_options)
+    else:
+        return command_line_args
+
+
 def main(argv: list[str]) -> int:
     """
     Start the main program.
 
     argv: A list of command line arguments as from sys.argv
     """
-    if argv and argv[0] == sys.argv[0]:
-        argv = argv[1:]
-
-    command_line_options = argv or ["--help"]
     user_input = argument_parser()
-    command_line_args = user_input.parse_args(command_line_options)
-    if command_line_args.config:
-        file_options = read_configuation_file(command_line_args.config)
-        args = user_input.parse_args(file_options + command_line_options)
-    else:
-        args = command_line_args
+    args = parse_command_line(argv, user_input)
 
     if args.help:
         user_input.print_help()
@@ -1443,7 +1448,7 @@ def main(argv: list[str]) -> int:
 
             action = "recovery"
             choice = None if args.choice is None else int(args.choice)
-            print_run_title(command_line_args, "Recovering from backups")
+            print_run_title(args, "Recovering from backups")
             recover_path(Path(args.recover).resolve(), backup_folder, choice)
         elif args.list:
             if not args.backup_folder:
@@ -1455,7 +1460,7 @@ def main(argv: list[str]) -> int:
                 raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
             action = "backup listing"
             search_directory = Path(args.list).resolve()
-            print_run_title(command_line_args, "Listing recoverable files")
+            print_run_title(args, "Listing recoverable files")
             chosen_recovery_path = search_backups(search_directory, backup_folder)
             if chosen_recovery_path is not None:
                 recover_path(chosen_recovery_path, backup_folder)
@@ -1483,7 +1488,7 @@ def main(argv: list[str]) -> int:
                 raise CommandLineError("Exactly one of --move-count, --move-age, or --move-since "
                                        "must be used when moving backups.")
 
-            print_run_title(command_line_args, "Moving backups")
+            print_run_title(args, "Moving backups")
             move_backups(old_backup_location, new_backup_location, backups_to_move)
         elif args.verify:
             try:
@@ -1500,7 +1505,7 @@ def main(argv: list[str]) -> int:
             filter_file = path_or_none(args.filter)
             result_folder = path_or_none(args.verify)
             assert result_folder is not None
-            print_run_title(command_line_args, "Verifying last backup")
+            print_run_title(args, "Verifying last backup")
             verify_last_backup(user_folder, backup_folder, filter_file, result_folder)
         elif args.restore:
             try:
@@ -1548,7 +1553,7 @@ def main(argv: list[str]) -> int:
             backup_folder = Path(args.backup_folder).absolute()
 
             action = "backup"
-            print_run_title(command_line_args, "Starting new backup")
+            print_run_title(args, "Starting new backup")
             create_new_backup(user_folder,
                               backup_folder,
                               filter_file=path_or_none(args.filter),
