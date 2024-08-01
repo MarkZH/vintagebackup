@@ -365,7 +365,7 @@ def backup_directory(user_data_location: Path,
             action_counter["copied files"] += 1
             logger.debug(f"Copied {user_file} to {new_backup_file}")
         except Exception as error:
-            logger.warning(f"Could not copy {user_file} to {new_backup_file} ({error})")
+            logger.warning(f"Could not copy {user_file} ({error})")
             action_counter["failed copies"] += 1
 
 
