@@ -673,7 +673,7 @@ def delete_oldest_backups_for_space(backup_location: Path, space_requirement: st
     total_storage = shutil.disk_usage(backup_location).total
     free_storage_required = parse_storage_space(space_requirement, total_storage)
 
-    if free_storage_required > shutil.disk_usage(backup_location).total:
+    if free_storage_required > total_storage:
         raise CommandLineError(f"Cannot free more storage ({byte_units(free_storage_required)})"
                                f" than exists at {backup_location} ({byte_units(total_storage)})")
 
