@@ -12,7 +12,7 @@ These are vintage files.
 The program can be run from the command line or automatically with tools like Linux cron or Windows Task Scheduler.
 To start the program to back up, for example, Alice's Windows 10 home directory to a folder named `backups` on an external hard drive connected as drive E, the following command could be used:
 ```
-python vintagebackup.py --user-folder "C:\Users\Alice Eve Roberts" --backup-folder "E:\backups"
+python vintagebackup.py --user-folder C:\Users\Alice --backup-folder E:\backups
 ```
 Every time this program is run with the same options, a new dated backup folder will be created. For example, the above command would create a new backup folder that might look like this:
 ```
