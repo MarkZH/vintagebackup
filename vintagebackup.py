@@ -26,8 +26,6 @@ logger.setLevel(logging.INFO)
 class CommandLineError(ValueError):
     """An exception class to catch invalid command line parameters."""
 
-    pass
-
 
 storage_prefixes = ["", "k", "M", "G", "T", "P", "E", "Z", "Y", "R", "Q"]
 
