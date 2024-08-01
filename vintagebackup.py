@@ -1084,6 +1084,9 @@ def read_configuation_file(config_file_name: str) -> list[str]:
             if not line or line.startswith("#"):
                 continue
             parameter, value = line.split(":", maxsplit=1)
+            if parameter.lower() == "config":
+                raise CommandLineError("The parameter `config` within a configuration file"
+                                       " has no effect.")
             arguments.append(f"--{"-".join(parameter.lower().split())}")
             arguments.append(value.strip())
 
@@ -1376,7 +1379,8 @@ Whitespace at the beginning and end of the values will be trimmed off.
 If both --config and other command line options are used and they conflict, then the command
 line options override the config file options.
 
-A final note: the parameter "config" does nothing inside a config file."""))
+A final note: the parameter "config" does nothing inside a config file and will cause the program to
+quit with an error."""))
 
     other_group.add_argument("--debug", action="store_true", help=format_help("""
 Log information on all action of a backup."""))

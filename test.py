@@ -949,6 +949,25 @@ Debug:""")
             self.assertFalse(vintagebackup.toggle_is_set(options, "whole_file"))
             self.assertFalse(vintagebackup.toggle_is_set(options, "debug"))
 
+    def test_error_on_recursive_config_file(self) -> None:
+        """Test that putting a config parameter in a configuration file raises an exception."""
+        with tempfile.NamedTemporaryFile("w+", delete_on_close=False) as config_file:
+            user_folder = r"C:\Files"
+            backup_folder = r"D:\Backup"
+            filter_file = "filter_file.txt"
+            config_file.write(rf"""
+User Folder:     {user_folder}
+Backup Folder:   {backup_folder}
+
+# Extra options
+FiLteR:           {filter_file}
+force-copy:
+config: config_file_2.txt
+""")
+            config_file.close()
+            with self.assertRaises(vintagebackup.CommandLineError):
+                vintagebackup.read_configuation_file(config_file.name)
+
 
 class ErrorTest(unittest.TestCase):
     """Test that bad user inputs raise correct exceptions."""
