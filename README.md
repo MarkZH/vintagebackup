@@ -18,6 +18,16 @@ Every time this program is run with the same options, a new dated backup folder 
 ```
 E:\backups\2023\2023-09-02 17-25-33 (Windows 10)
 ```
+Bob, on a Linux or Mac, might run it like this:
+```
+python vintagebackup.py --user-folder /home/bob/ --backup-folder /mnt/backup_drive/bob/
+```
+which might create
+```
+/mnt/backup_drive/bob/2024/2024-08-27 22-10-12 (Linux 5.4.0-54-generic)
+```
+as the first backup.
+
 Unchanged files will be linked to earlier backups so they don't take up more space, while new or changed files will be copied to the backup.
 This can result in years of daily backups fitting on a single external drive with every backup folder containing every backed up file, making restoring these files as easy as drag-and-drop.
 
