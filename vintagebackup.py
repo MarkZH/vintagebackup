@@ -1392,8 +1392,13 @@ name will be written to the backup folder. The default is
 {default_log_file_name.name} in the user's home folder. If no
 log file is desired, use the file name {os.devnull}."""))
 
-    # These argument are only used for testing.
+    # The following argument are only used for testing.
+
+    # Bypass keyboard input when testing functions that ask for a choice from a menu
     user_input.add_argument("--choice", help=argparse.SUPPRESS)
+
+    # Allow for backups to be created more quickly by providing a timestamp instead of using
+    # datetime.datetime.now()
     user_input.add_argument("--timestamp", help=argparse.SUPPRESS)
 
     return user_input
