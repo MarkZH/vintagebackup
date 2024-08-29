@@ -617,7 +617,8 @@ def choose_from_menu(menu_choices: list[str], prompt: str) -> int:
 
     while True:
         try:
-            user_choice = int(input(f"{prompt} (Ctrl-C to quit): "))
+            action_key = "Cmd" if platform.system() == "Darwin" else "Ctrl"
+            user_choice = int(input(f"{prompt} ({action_key}-C to quit): "))
             if 1 <= user_choice <= len(menu_choices):
                 return user_choice - 1
         except ValueError:
