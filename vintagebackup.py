@@ -373,7 +373,13 @@ def backup_name(backup_datetime: datetime.datetime | str | None) -> Path:
            if isinstance(backup_datetime, str)
            else (backup_datetime or datetime.datetime.now()))
     backup_date = now.strftime(backup_date_format)
-    os_name = f"{platform.system()} {platform.release()}".strip()
+    os_type = platform.system()
+    if os_type == "Windows":
+        os_name = f"{platform.system()} {platform.release()}".strip()
+    elif os_type == "Linux":
+        os_name = platform.freedesktop_os_release()["PRETTY_NAME"]
+    else:
+        os_name = platform.platform()
     new_backup_path = Path(str(now.year))/f"{backup_date} ({os_name})"
     return new_backup_path
 
