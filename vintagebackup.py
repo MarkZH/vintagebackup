@@ -373,7 +373,8 @@ def backup_name(backup_datetime: datetime.datetime | str | None) -> Path:
            if isinstance(backup_datetime, str)
            else (backup_datetime or datetime.datetime.now()))
     backup_date = now.strftime(backup_date_format)
-    new_backup_path = Path(str(now.year))/f"{backup_date} ({os_name()})"
+    backup_name = f"{backup_date} ({os_name()})".removesuffix("()").strip()
+    new_backup_path = Path(str(now.year))/backup_name
     return new_backup_path
 
 
