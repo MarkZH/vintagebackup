@@ -1399,7 +1399,7 @@ name will be written to the backup folder. The default is
 {default_log_file_name.name} in the user's home folder. If no
 log file is desired, use the file name {os.devnull}."""))
 
-    # The following argument are only used for testing.
+    # The following arguments are only used for testing.
 
     # Bypass keyboard input when testing functions that ask for a choice from a menu
     user_input.add_argument("--choice", help=argparse.SUPPRESS)
