@@ -617,7 +617,7 @@ def choose_from_menu(menu_choices: list[str], prompt: str) -> int:
     choose a number from 1 to len(menu_list), but returns a number from 0 to len(menu_list) - 1.
     """
     number_column_size = len(str(len(menu_choices)))
-    for number, choice in enumerate(menu_choices):
+    for number, choice in enumerate(menu_choices, 1):
         print(f"{number:>{number_column_size}}: {choice}")
 
     while True:
