@@ -24,7 +24,7 @@ python vintagebackup.py --user-folder /home/bob/ --backup-folder /mnt/backup_dri
 ```
 which might create
 ```
-/mnt/backup_drive/bob/2024/2024-08-27 22-10-12 (Linux 5.4.0-54-generic)
+/mnt/backup_drive/bob/2024/2024-08-27 22-10-12 (Ubuntu 22.04.4 LTS)
 ```
 as the first backup.
 
