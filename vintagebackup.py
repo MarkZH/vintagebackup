@@ -1188,7 +1188,11 @@ more capabilities.
 
 Technical notes:
 
-- Symbolic links are not followed and are always copied as symbolic links.
+- Symbolic links are not followed and are always copied as symbolic links. On Windows, symbolic
+links cannot be created or copied without elevated privileges. Symbolic links will be missing from
+backups if not run in administrator mode. Backups will be complete for all other files, so an
+unprivileged user may user this program and use the logs to restore symbolic links after restoring a
+backup.
 
 - Windows junction points (soft links) are excluded by default. They may be added using a filter
 file (see --filter below). In that case, all of the contents will be copied.

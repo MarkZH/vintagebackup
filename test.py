@@ -14,6 +14,7 @@ from typing import cast
 import enum
 import random
 import string
+import platform
 
 testing_timestamp = datetime.datetime.now()
 
@@ -308,6 +309,33 @@ class BackupTest(unittest.TestCase):
             for file in (f for f in contents_1 if f.is_file()):
                 self.assertEqual(file != relative_changed_file,
                                  (backup_1/file).stat().st_ino == (backup_2/file).stat().st_ino)
+
+    def test_backup_with_symlinks(self) -> None:
+        """Test that backups correctly handle symbolic links in user data."""
+        if platform.system() == "Windows":
+            self.skipTest("Cannot create symlinks on Windows without elevated privileges.")
+
+        with (tempfile.TemporaryDirectory() as user_data_folder,
+              tempfile.TemporaryDirectory() as backup_location_folder):
+            user_data_path = Path(user_data_folder)
+            create_user_data(user_data_path)
+            directory_symlink_name = "directory_symlink"
+            os.symlink(user_data_path/"sub_directory_1", user_data_path/directory_symlink_name)
+            file_symlink_name = "file_symlink.txt"
+            os.symlink(user_data_path/"sub_directory_1"/"sub_sub_directory_1"/"file_2.txt",
+                       user_data_path/file_symlink_name)
+
+            backup_path = Path(backup_location_folder)
+            vintagebackup.create_new_backup(user_data_path,
+                                            backup_path,
+                                            filter_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False,
+                                            timestamp=unique_timestamp())
+            last_backup = vintagebackup.find_previous_backup(backup_path)
+            assert last_backup is not None
+            self.assertTrue((last_backup/directory_symlink_name).is_symlink())
+            self.assertTrue((last_backup/file_symlink_name).is_symlink())
 
 
 class FilterTest(unittest.TestCase):
