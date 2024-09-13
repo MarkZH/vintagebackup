@@ -1353,7 +1353,7 @@ A final note: the parameter "config" does nothing inside a config file and will 
 quit with an error."""))
 
     other_group.add_argument("--debug", action="store_true", help=format_help("""
-Log information on all action of a backup."""))
+Log information on all actions during a program run."""))
 
     add_no_option(other_group, "debug")
 
