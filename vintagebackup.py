@@ -703,9 +703,6 @@ def delete_oldest_backups_for_space(backup_location: Path, space_requirement: st
         delete_directory_tree(backup)
         any_deletions = True
 
-    if any_deletions:
-        log_backup_deletions(backup_location)
-
     if shutil.disk_usage(backup_location).free < free_storage_required:
         logger.warning(f"Could not free up {byte_units(free_storage_required)} of storage"
                        " without deleting most recent backup.")
@@ -861,9 +858,6 @@ def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
             pass
         any_deletions = True
 
-    if any_deletions:
-        log_backup_deletions(backup_folder)
-
 
 def backup_datetime(backup: Path) -> datetime.datetime:
     """Get the timestamp of a backup from the backup folder name."""
@@ -887,40 +881,6 @@ def plural_noun(count: int, word: str) -> str:
     'foxs'
     """
     return f"{word}{'' if count == 1 else 's'}"
-
-
-def plural_verb(count: int, word: str) -> str:
-    """
-    Conjugate a third-person present-tense verb based on the count of subjects.
-
-    >>> count = 4
-    >>> f"In the park, {count} people {plural_verb(count, "play")} chess."
-    'In the park, 4 people play chess.'
-    >>> count = 1
-    >>> f"In the house, {count} cat {plural_verb(count, "chase")} a mouse."
-    'In the house, 1 cat chases a mouse.'
-
-    Irregular verbs are not supported.
-    >>> plural_verb(1, "do")
-    'dos'
-
-    "does" would be expected here (i.e., "it does").
-
-    >>> plural_verb(2, "be")
-    'be'
-
-    "are" would be expected here (i.e., "they are").
-    """
-    return f"{word}{'s' if count == 1 else ''}"
-
-
-def log_backup_deletions(backup_folder: Path) -> None:
-    """Log information about the remaining backups after deletions."""
-    remaining_backups = all_backups(backup_folder)
-    count = len(remaining_backups)
-    backups = plural_noun(count, "backup")
-    remain = plural_verb(count, "remain")
-    logger.info(f"Stopped deletions. {count} {backups} {remain}. Earliest: {remaining_backups[0]}")
 
 
 def move_backups(old_backup_location: Path,
