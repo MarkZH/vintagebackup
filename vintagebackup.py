@@ -687,21 +687,19 @@ def delete_oldest_backups_for_space(backup_location: Path, space_requirement: st
         raise CommandLineError(f"Cannot free more storage ({byte_units(free_storage_required)})"
                                f" than exists at {backup_location} ({byte_units(total_storage)})")
 
-    any_deletions = False
     backups = all_backups(backup_location)
-    for backup in backups[:-1]:
+    for deletion_count, backup in enumerate(backups[:-1]):
         current_free_space = shutil.disk_usage(backup_location).free
         if current_free_space > free_storage_required:
             break
 
-        if not any_deletions:
+        if not deletion_count == 0:
             logger.info("")
             logger.info(f"Deleting old backups to free up {byte_units(free_storage_required)}"
                         f" ({byte_units(current_free_space)} currently free).")
 
         logger.info(f"Deleting backup: {backup}")
         delete_directory_tree(backup)
-        any_deletions = True
 
     if shutil.disk_usage(backup_location).free < free_storage_required:
         logger.warning(f"Could not free up {byte_units(free_storage_required)} of storage"
@@ -836,14 +834,13 @@ def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
     """
     timestamp_to_keep = parse_time_span_to_timepoint(time_span)
 
-    any_deletions = False
     backups = all_backups(backup_folder)
-    for backup in backups[:-1]:
+    for deletion_count, backup in enumerate(backups[:-1]):
         backup_timestamp = backup_datetime(backup)
         if backup_timestamp >= timestamp_to_keep:
             break
 
-        if not any_deletions:
+        if deletion_count == 0:
             logger.info("")
             logger.info("Deleting backups prior to"
                         f" {timestamp_to_keep.strftime('%Y-%m-%d %H:%M:%S')}.")
@@ -856,7 +853,6 @@ def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
             logger.info(f"Deleted empty year folder {year_folder}")
         except OSError:
             pass
-        any_deletions = True
 
 
 def backup_datetime(backup: Path) -> datetime.datetime:
