@@ -1215,6 +1215,34 @@ class RestorationTest(unittest.TestCase):
             second_extra_file.unlink()
             self.assertTrue(directories_have_identical_content(user_path, restored_backup))
 
+    def test_restore_backup_to_alternate_location(self) -> None:
+        """Test restoring to a destination different from the user folder."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder,
+              tempfile.TemporaryDirectory() as destination_folder):
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+            backup_path = Path(backup_folder)
+            vintagebackup.create_new_backup(user_path,
+                                            backup_path,
+                                            filter_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False,
+                                            timestamp=unique_timestamp())
+
+            exit_code = vintagebackup.main(["--restore",
+                                            "--user-folder", user_folder,
+                                            "--backup-folder", backup_folder,
+                                            "--last-backup", "--delete-extra",
+                                            "--log", os.devnull,
+                                            "--destination", destination_folder])
+
+            self.assertEqual(exit_code, 0)
+            destination_path = Path(destination_folder)
+            last_backup = vintagebackup.find_previous_backup(backup_path)
+            assert last_backup
+            self.assertTrue(directories_have_identical_content(last_backup, destination_path))
+
 
 if __name__ == "__main__":
     vintagebackup.logger.setLevel(logging.CRITICAL)

@@ -1300,7 +1300,8 @@ Move all backups made on or after the specified date (YYYY-MM-DD)."""))
 
     restore_group = user_input.add_argument_group("Restore Options", format_help("""
 Exactly one of each of the following option pairs(--use-last-backup/--choose-backup and
---delete-new/--keep-new) is required when restoring a backup."""))
+--delete-new/--keep-new) is required when restoring a backup. The --destination option is
+optional."""))
 
     choose_restore_backup_group = restore_group.add_mutually_exclusive_group()
 
@@ -1321,6 +1322,10 @@ Delete any extra files that are not in the backup."""))
     restore_preservation_group.add_argument("--keep-extra", action="store_true",
                                             help=format_help("""
 Preserve any extra files that are not in the backup."""))
+
+    restore_group.add_argument("--destination", help=format_help("""
+Specify a different destination for the backup restoration. Either this or the --user-folder option
+is required when recovering from a backup."""))
 
     other_group = user_input.add_argument_group("Other options")
 
@@ -1483,17 +1488,23 @@ def main(argv: list[str]) -> int:
             print_run_title(args, "Verifying last backup")
             verify_last_backup(user_folder, backup_folder, filter_file, result_folder)
         elif args.restore:
-            try:
-                user_folder = Path(args.user_folder).resolve(strict=True)
-            except FileNotFoundError:
-                raise CommandLineError(f"Could not find users folder: {args.user_folder}")
+            if args.destination:
+                destination = Path(args.destination).resolve()
+                user_folder = None
+            else:
+                try:
+                    user_folder = Path(args.user_folder).resolve(strict=True)
+                    destination = user_folder
+                except FileNotFoundError:
+                    raise CommandLineError(f"Could not find users folder: {args.user_folder}")
 
             try:
                 backup_folder = Path(args.backup_folder).resolve(strict=True)
             except FileNotFoundError:
                 raise CommandLineError(f"Could not find backup location: {args.backup_folder}")
 
-            confirm_user_location_is_unchanged(user_folder, backup_folder)
+            if user_folder:
+                confirm_user_location_is_unchanged(user_folder, backup_folder)
 
             if not args.delete_extra and not args.keep_extra:
                 raise CommandLineError("One of the following are required: "
@@ -1512,7 +1523,7 @@ def main(argv: list[str]) -> int:
                 raise CommandLineError(f"No backups found in {backup_folder}")
 
             action = "restoration"
-            restore_backup(restore_source, user_folder, delete_extra_files=delete_extra_files)
+            restore_backup(restore_source, destination, delete_extra_files=delete_extra_files)
         else:
             if not args.user_folder:
                 raise CommandLineError("User's folder not specified.")
