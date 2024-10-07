@@ -1060,7 +1060,7 @@ def read_configuation_file(config_file_name: str) -> list[str]:
 
 
 def format_paragraphs(lines: str, line_length: int) -> str:
-    """Format multiparagaph text in when printing--help."""
+    """Format multiparagaph text in when printing --help."""
     paragraphs: list[str] = []
     needs_paragraph_break = True
     for paragraph in lines.split("\n\n"):
