@@ -1060,7 +1060,17 @@ def read_configuation_file(config_file_name: str) -> list[str]:
 
 
 def format_paragraphs(lines: str, line_length: int) -> str:
-    """Format multiparagaph text in when printing --help."""
+    """
+    Format multiparagraph text in when printing --help.
+
+    Arguments:
+    lines: A string of text with paragraphs are separated by at least two newlines. Indented lines
+    will be preserved as-is.
+    line_length: The length of the line for word wrapping. Indented lines will not be word wrapped.
+
+    Returns:
+    A single string with word-wrapped lines and paragraphs separated by exactly two newlines.
+    """
     paragraphs: list[str] = []
     for paragraph in lines.split("\n\n"):
         paragraph = paragraph.strip("\n")
