@@ -26,6 +26,15 @@ def unique_timestamp() -> datetime.datetime:
     return testing_timestamp
 
 
+def delete_last_backup(backup_location: Path) -> None:
+    """Delete the most recent backup."""
+    last_backup_directory = vintagebackup.find_previous_backup(backup_location)
+    if last_backup_directory:
+        vintagebackup.delete_directory_tree(last_backup_directory)
+    else:
+        vintagebackup.logger.info("No previous backup to delete")
+
+
 def create_user_data(base_directory: Path) -> None:
     """
     Fill the given directory with folders and files.
@@ -537,7 +546,7 @@ class DeleteBackupTest(unittest.TestCase):
             backup_location = Path(backup_folder)
             create_old_backups(backup_location, 10)
             all_backups = vintagebackup.last_n_backups(backup_location, "all")
-            vintagebackup.delete_last_backup(backup_location)
+            delete_last_backup(backup_location)
             expected_remaining_backups = all_backups[:-1]
             all_backups_left = vintagebackup.last_n_backups(backup_location, "all")
             self.assertEqual(expected_remaining_backups, all_backups_left)
@@ -561,7 +570,7 @@ class DeleteBackupTest(unittest.TestCase):
             backup_count_before = len(vintagebackup.last_n_backups(backup_location, "all"))
             self.assertEqual(backup_count_before, 1)
 
-            vintagebackup.delete_last_backup(backup_location)
+            delete_last_backup(backup_location)
             backup_count_after = len(vintagebackup.last_n_backups(backup_location, "all"))
             self.assertEqual(backup_count_after, 0)
 
@@ -584,7 +593,7 @@ class DeleteBackupTest(unittest.TestCase):
             backup_count_before = len(vintagebackup.last_n_backups(backup_location, "all"))
             self.assertEqual(backup_count_before, 1)
 
-            vintagebackup.delete_last_backup(backup_location)
+            delete_last_backup(backup_location)
             backup_count_after = len(vintagebackup.last_n_backups(backup_location, "all"))
             self.assertEqual(backup_count_after, 0)
 
@@ -677,7 +686,7 @@ class DeleteBackupTest(unittest.TestCase):
                     with tempfile.TemporaryDirectory() as user_folder:
                         user_data = Path(user_folder)
                         create_user_data(user_data)
-                        vintagebackup.delete_last_backup(backup_location)
+                        delete_last_backup(backup_location)
                         exit_code = vintagebackup.main(["--user-folder", user_folder,
                                                         "--backup-folder", backup_folder,
                                                         "--log", os.devnull,
@@ -692,7 +701,7 @@ class DeleteBackupTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as backup_folder:
             backup_location = Path(backup_folder)
             create_old_backups(backup_location, 30)
-            vintagebackup.delete_last_backup(backup_location)
+            delete_last_backup(backup_location)
             vintagebackup.delete_backups_older_than(backup_location, "1d")
             self.assertEqual(len(vintagebackup.last_n_backups(backup_location, "all")), 1)
 

@@ -659,16 +659,6 @@ def delete_directory_tree(backup_path: Path) -> None:
     shutil.rmtree(backup_path, onexc=remove_readonly)
 
 
-def delete_last_backup(backup_location: Path) -> None:
-    """Delete the most recent backup."""
-    last_backup_directory = find_previous_backup(backup_location)
-    if last_backup_directory:
-        logger.info(f"Deleting failed backup: {last_backup_directory}")
-        delete_directory_tree(last_backup_directory)
-    else:
-        logger.info("No previous backup to delete")
-
-
 def delete_oldest_backups_for_space(backup_location: Path, space_requirement: str) -> None:
     """
     Delete backups--starting with the oldest--until enough space is free on the backup destination.
