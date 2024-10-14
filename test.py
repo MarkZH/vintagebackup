@@ -31,8 +31,6 @@ def delete_last_backup(backup_location: Path) -> None:
     last_backup_directory = vintagebackup.find_previous_backup(backup_location)
     if last_backup_directory:
         vintagebackup.delete_directory_tree(last_backup_directory)
-    else:
-        vintagebackup.logger.info("No previous backup to delete")
 
 
 def create_user_data(base_directory: Path) -> None:
