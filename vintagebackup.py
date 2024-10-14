@@ -683,7 +683,7 @@ def delete_oldest_backups_for_space(backup_location: Path, space_requirement: st
         if current_free_space > free_storage_required:
             break
 
-        if not deletion_count == 0:
+        if deletion_count == 0:
             logger.info("")
             logger.info(f"Deleting old backups to free up {byte_units(free_storage_required)}"
                         f" ({byte_units(current_free_space)} currently free).")
