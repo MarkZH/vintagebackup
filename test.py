@@ -1277,5 +1277,4 @@ class RestorationTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    vintagebackup.logger.setLevel(logging.CRITICAL)
     unittest.main()

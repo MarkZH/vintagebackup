@@ -19,7 +19,7 @@ from typing import Callable, Any
 backup_date_format = "%Y-%m-%d %H-%M-%S"
 
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.StreamHandler(sys.stdout))
+logger.addHandler(logging.FileHandler(os.devnull))
 logger.setLevel(logging.INFO)
 
 
@@ -1570,4 +1570,5 @@ def main(argv: list[str]) -> int:
 
 
 if __name__ == "__main__":
+    logger.addHandler(logging.StreamHandler(sys.stdout))
     sys.exit(main(sys.argv))
