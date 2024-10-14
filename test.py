@@ -1032,7 +1032,7 @@ class ErrorTest(unittest.TestCase):
 
     def test_no_user_folder_error(self) -> None:
         """Test that omitting the user folder prints the correct error message."""
-        with self.assertLogs(vintagebackup.logger, logging.ERROR) as log_check:
+        with self.assertLogs(level=logging.ERROR) as log_check:
             exit_code = vintagebackup.main(["-l", os.devnull])
             self.assertEqual(exit_code, 1)
             self.assertEqual(log_check.output, ["ERROR:vintagebackup:User's folder not specified."])
@@ -1040,7 +1040,7 @@ class ErrorTest(unittest.TestCase):
     def test_no_backup_folder_error(self) -> None:
         """Test that omitting the backup folder prints the correct error message."""
         with (tempfile.TemporaryDirectory() as user_folder,
-              self.assertLogs(vintagebackup.logger, logging.ERROR) as log_check):
+              self.assertLogs(level=logging.ERROR) as log_check):
             exit_code = vintagebackup.main(["-u", user_folder, "-l", os.devnull])
             self.assertEqual(exit_code, 1)
             self.assertEqual(log_check.output, ["ERROR:vintagebackup:Backup folder not specified."])
@@ -1048,7 +1048,7 @@ class ErrorTest(unittest.TestCase):
     def test_non_existent_user_folder(self) -> None:
         """Test that non-existent user folder prints correct error message."""
         user_folder = "".join(random.choices(string.ascii_letters, k=50))
-        with self.assertLogs(vintagebackup.logger, logging.ERROR) as log_check:
+        with self.assertLogs(level=logging.ERROR) as log_check:
             exit_code = vintagebackup.main(["-u", user_folder, "-l", os.devnull])
             self.assertEqual(exit_code, 1)
             self.assertEqual(log_check.output,
