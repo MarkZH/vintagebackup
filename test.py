@@ -430,6 +430,29 @@ class FilterTest(unittest.TestCase):
             self.assertEqual(directory_contents(last_backup), expected_backup_paths)
             self.assertNotEqual(directory_contents(user_data), expected_backup_paths)
 
+    def test_ineffective_filter_line_detection(self) -> None:
+        """Test that filter lines with no effect on the backup files are detected."""
+        with (tempfile.TemporaryDirectory() as user_data_location,
+              tempfile.TemporaryFile("w+", delete_on_close=False) as filter_file):
+            user_path = Path(user_data_location)
+            create_user_data(user_path)
+
+            filter_file.write("- sub_directory_1\n")
+            filter_file.write("- sub_directory_1/sub_sub_directory_0\n")
+            filter_file.write("+ sub_directory_0\n")
+            filter_file.close()
+
+            with self.assertLogs() as log_assert:
+                vintagebackup.backup_paths(user_path, Path(filter_file.name))
+
+            self.assertIn(fr"INFO:vintagebackup:{filter_file.name}: line #2 "
+                          fr"(- {user_data_location}\sub_directory_1\sub_sub_directory_0) "
+                          fr"had no effect.",
+                          log_assert.output)
+            self.assertIn(fr"INFO:vintagebackup:{filter_file.name}: line #3 "
+                          fr"(+ {user_data_location}\sub_directory_0) had no effect.",
+                          log_assert.output)
+
 
 def run_recovery(method: Invocation, backup_location: Path, file_path: Path) -> int:
     """Test file recovery through a direct function call or a CLI invocation."""
