@@ -1070,7 +1070,7 @@ def format_paragraphs(lines: str, line_length: int) -> str:
         if paragraph[0].isspace():
             paragraphs.append(paragraph)
         else:
-            paragraphs.append("\n".join(textwrap.wrap(paragraph, line_length)))
+            paragraphs.append(textwrap.fill(paragraph, line_length))
 
     return "\n\n".join(paragraphs)
 
