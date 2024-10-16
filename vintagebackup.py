@@ -1064,6 +1064,9 @@ def format_paragraphs(lines: str, line_length: int) -> str:
     paragraphs: list[str] = []
     for paragraph in lines.split("\n\n"):
         paragraph = paragraph.strip("\n")
+        if not paragraph:
+            continue
+
         if paragraph[0].isspace():
             paragraphs.append(paragraph)
         else:
