@@ -166,6 +166,7 @@ def run_backup(run_method: Invocation,
                filter_file: Path | None,
                examine_whole_file: bool,
                force_copy: bool,
+               randomly_copy_probability: float,
                timestamp: datetime.datetime) -> int:
     """Create a new backup while choosing a direct function call or a CLI invocation."""
     if run_method == Invocation.function:
@@ -174,6 +175,7 @@ def run_backup(run_method: Invocation,
                                         filter_file=filter_file,
                                         examine_whole_file=examine_whole_file,
                                         force_copy=force_copy,
+                                        randomly_copy_probability=randomly_copy_probability,
                                         timestamp=timestamp)
         return 0
     elif run_method == Invocation.cli:
@@ -209,6 +211,7 @@ class BackupTest(unittest.TestCase):
                                        filter_file=None,
                                        examine_whole_file=False,
                                        force_copy=False,
+                                       randomly_copy_probability=0.0,
                                        timestamp=unique_timestamp())
                 self.assertEqual(exit_code, 0)
                 first_backups = vintagebackup.last_n_backups(backup_location, "all")
@@ -224,6 +227,7 @@ class BackupTest(unittest.TestCase):
                                        filter_file=None,
                                        examine_whole_file=False,
                                        force_copy=False,
+                                       randomly_copy_probability=0.0,
                                        timestamp=unique_timestamp())
                 self.assertEqual(exit_code, 0)
                 second_backups = vintagebackup.last_n_backups(backup_location, "all")
@@ -239,6 +243,7 @@ class BackupTest(unittest.TestCase):
                                        filter_file=None,
                                        examine_whole_file=False,
                                        force_copy=True,
+                                       randomly_copy_probability=0.0,
                                        timestamp=unique_timestamp())
                 self.assertEqual(exit_code, 0)
                 third_backups = vintagebackup.last_n_backups(backup_location, "all")
@@ -255,6 +260,7 @@ class BackupTest(unittest.TestCase):
                                        filter_file=None,
                                        examine_whole_file=True,
                                        force_copy=False,
+                                       randomly_copy_probability=0.0,
                                        timestamp=unique_timestamp())
                 self.assertEqual(exit_code, 0)
                 fourth_backups = vintagebackup.last_n_backups(backup_location, "all")
@@ -272,6 +278,7 @@ class BackupTest(unittest.TestCase):
                                        filter_file=None,
                                        examine_whole_file=True,
                                        force_copy=True,
+                                       randomly_copy_probability=0.0,
                                        timestamp=unique_timestamp())
                 self.assertEqual(exit_code, 0)
                 fifth_backups = vintagebackup.last_n_backups(backup_location, "all")
@@ -296,6 +303,7 @@ class BackupTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
+                                            randomly_copy_probability=0.0,
                                             timestamp=unique_timestamp())
 
             changed_file_name = user_data/"sub_directory_2"/"sub_sub_directory_0"/"file_1.txt"
@@ -307,6 +315,7 @@ class BackupTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
+                                            randomly_copy_probability=0.0,
                                             timestamp=unique_timestamp())
             backup_1, backup_2 = vintagebackup.last_n_backups(backup_location, "all")
             contents_1 = directory_contents(backup_1)
@@ -338,6 +347,7 @@ class BackupTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
+                                            randomly_copy_probability=0.0,
                                             timestamp=unique_timestamp())
             last_backup = vintagebackup.find_previous_backup(backup_path)
             assert last_backup is not None
@@ -377,6 +387,7 @@ class FilterTest(unittest.TestCase):
                                        filter_file=Path(filter_file.name),
                                        examine_whole_file=False,
                                        force_copy=False,
+                                       randomly_copy_probability=0.0,
                                        timestamp=unique_timestamp())
                 self.assertEqual(exit_code, 0)
 
@@ -419,6 +430,7 @@ class FilterTest(unittest.TestCase):
                                             filter_file=Path(filter_file.name),
                                             examine_whole_file=False,
                                             force_copy=False,
+                                            randomly_copy_probability=0.0,
                                             timestamp=unique_timestamp())
 
             self.assertEqual(len(vintagebackup.last_n_backups(backup_location, "all")), 1)
@@ -483,6 +495,7 @@ class RecoveryTest(unittest.TestCase):
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
+                                                randomly_copy_probability=0.0,
                                                 timestamp=unique_timestamp())
                 file = (user_data/"sub_directory_0"/"sub_sub_directory_0"/"file_0.txt").resolve()
                 moved_file_path = file.parent/(file.name + "_moved")
@@ -503,6 +516,7 @@ class RecoveryTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
+                                            randomly_copy_probability=0.0,
                                             timestamp=unique_timestamp())
             file_path = (user_data/"sub_directory_0"/"sub_sub_directory_0"/"file_0.txt").resolve()
             vintagebackup.recover_path(file_path, backup_location, 0)
@@ -521,6 +535,7 @@ class RecoveryTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
+                                            randomly_copy_probability=0.0,
                                             timestamp=unique_timestamp())
             folder_path = (user_data/"sub_directory_1").resolve()
             vintagebackup.recover_path(folder_path, backup_location, 0)
@@ -540,6 +555,7 @@ class RecoveryTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
+                                            randomly_copy_probability=0.0,
                                             timestamp=unique_timestamp())
             folder_path = (user_data/"sub_directory_1"/"sub_sub_directory_1").resolve()
             chosen_file = vintagebackup.search_backups(folder_path, backup_location, 1)
@@ -588,6 +604,7 @@ class DeleteBackupTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
+                                            randomly_copy_probability=0.0,
                                             timestamp=unique_timestamp())
 
             backup_count_before = len(vintagebackup.last_n_backups(backup_location, "all"))
@@ -611,6 +628,7 @@ class DeleteBackupTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
+                                            randomly_copy_probability=0.0,
                                             timestamp=unique_timestamp())
 
             backup_count_before = len(vintagebackup.last_n_backups(backup_location, "all"))
@@ -776,6 +794,7 @@ class MoveBackupsTest(unittest.TestCase):
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
+                                                randomly_copy_probability=0.0,
                                                 timestamp=unique_timestamp())
 
             for method in Invocation:
@@ -814,6 +833,7 @@ class MoveBackupsTest(unittest.TestCase):
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
+                                                randomly_copy_probability=0.0,
                                                 timestamp=unique_timestamp())
 
             move_count = 5
@@ -874,6 +894,7 @@ class VerificationTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
+                                            randomly_copy_probability=0.0,
                                             timestamp=unique_timestamp())
 
             mismatch_file = Path("sub_directory_1")/"sub_sub_directory_2"/"file_0.txt"
@@ -1072,6 +1093,7 @@ class RestorationTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
+                                            randomly_copy_probability=0.0,
                                             timestamp=unique_timestamp())
 
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
@@ -1085,6 +1107,7 @@ class RestorationTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
+                                            randomly_copy_probability=0.0,
                                             timestamp=unique_timestamp())
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
 
@@ -1117,6 +1140,7 @@ class RestorationTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
+                                            randomly_copy_probability=0.0,
                                             timestamp=unique_timestamp())
 
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
@@ -1130,6 +1154,7 @@ class RestorationTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
+                                            randomly_copy_probability=0.0,
                                             timestamp=unique_timestamp())
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
 
@@ -1163,6 +1188,7 @@ class RestorationTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
+                                            randomly_copy_probability=0.0,
                                             timestamp=unique_timestamp())
 
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
@@ -1176,6 +1202,7 @@ class RestorationTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
+                                            randomly_copy_probability=0.0,
                                             timestamp=unique_timestamp())
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
 
@@ -1210,6 +1237,7 @@ class RestorationTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
+                                            randomly_copy_probability=0.0,
                                             timestamp=unique_timestamp())
 
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
@@ -1223,6 +1251,7 @@ class RestorationTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
+                                            randomly_copy_probability=0.0,
                                             timestamp=unique_timestamp())
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
 
@@ -1260,6 +1289,7 @@ class RestorationTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
+                                            randomly_copy_probability=0.0,
                                             timestamp=unique_timestamp())
 
             exit_code = vintagebackup.main(["--restore",
