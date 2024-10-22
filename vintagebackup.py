@@ -1173,23 +1173,23 @@ to pick which version to recover by choosing the backup date as
 the source. If a file is being recovered, only backup dates where
 the file was modified will be presented. If a folder is being
 recovered, then all available backup dates will be options.
-This option requires the -b option to specify which
+This option requires the --backup-folder option to specify which
 backup location to search."""))
 
     only_one_action_group.add_argument("--list", metavar="DIRECTORY", help=format_help("""
 Recover a file or folder in the directory specified by the argument
 by first choosing what to recover from a list of everything that's
 ever been backed up. If no argument is given, the current directory
-is used. The backup location argument (-b) is required."""))
+is used. The backup location argument --backup-folder is required."""))
 
     only_one_action_group.add_argument("--move-backup", metavar="NEW_BACKUP_LOCATION",
                                        help=format_help("""
 Move a backup set to a new location. The value of this argument is the new location. The
 --backup-folder option is required to specify the current location of the backup set, and one
 of --move-count, --move-age, or --move-since is required to specify how many of the most recent
-backups tomove. Moving each dated backup will take just as long as a normal backup to move since the
-hard links to previous backups will be recreated to preserve the space savings, so some planning is
-needed when deciding how many backups should be moved."""))
+backups to move. Moving each dated backup will take just as long as a normal backup to move since
+the hard links to previous backups will be recreated to preserve the space savings, so some planning
+is needed when deciding how many backups should be moved."""))
 
     only_one_action_group.add_argument("--verify", metavar="RESULT_DIR", help=format_help("""
 Verify the latest backup by comparing them against the original files. The result of the comparison
@@ -1200,8 +1200,9 @@ backup, then --filter should be supplied as well."""))
 
     only_one_action_group.add_argument("--restore", action="store_true", help=format_help("""
 This action restores the user's folder to a previous, backed up state. Any existing user files that
-have the same name as one in the backup will be overwritten. See the Restore Options section below
-for required parameters."""))
+have the same name as one in the backup will be overwritten. The --backup-folder is required to
+specify from where to restore. See the Restore Options section below for the other required
+parameters."""))
 
     common_group = user_input.add_argument_group("Options needed for all actions")
 
@@ -1224,13 +1225,13 @@ wildcard characters like * and ? to allow for matching multiple file names.
 Each line should begin with a minus (-), plus (+), or hash (#). Lines with minus signs specify
 files and folders to exclude. Lines with plus signs specify files and folders to include. Lines
 with hash signs are ignored. All included files must reside within the directory tree of the
---user-folder. For example, if backing up C:\\Users\\Alice Eaves Roberts, the following filter file:
+--user-folder. For example, if backing up C:\\Users\\Alice, the following filter file:
 
     # Ignore AppData except Firefox
     - AppData
     + AppData/Roaming/Mozilla/Firefox/
 
-will exclude everything in C:\\Users\\Alice Eaves Roberts\\AppData\\ except the
+will exclude everything in C:\\Users\\Alice\\AppData\\ except the
 Roaming\\Mozilla\\Firefox subfolder. The order of the lines matters. If the - and + lines above
 were reversed, the Firefox folder would be included and then excluded by the following - Appdata
 line."""))
@@ -1245,8 +1246,8 @@ take considerably longer."""))
     add_no_option(backup_group, "whole-file")
 
     backup_group.add_argument("--free-up", metavar="SPACE", help=format_help("""
-Automatically delete old backups when space runs low on the
-backup destination. The SPACE argument can be in one of two forms.
+After a successful backup, delete old backups until the amount of free space on the
+backup destination is at least SPACE. The SPACE argument can be in one of two forms.
 If the argument is a number followed by a percent sign (%%), then
 the number is interpreted as a percent of the total storage space
 of the destination. Old backups will be deleted until that
@@ -1264,7 +1265,7 @@ number and subsequent symbol.
 No matter what, the most recent backup will not be deleted."""))
 
     backup_group.add_argument("--delete-after", metavar="TIME", help=format_help("""
-Delete backups if they are older than the time span in the argument.
+After a successful backup, delete backups if they are older than the time span in the argument.
 The format of the argument is Nt, where N is a whole number and
 t is a single letter: d for days, w for weeks, m for calendar months,
 or y for calendar years. There should be no space between the number
@@ -1286,7 +1287,7 @@ Use exactly one of these options to specify which backups to move when using --m
     only_one_move_group = move_group.add_mutually_exclusive_group()
 
     only_one_move_group.add_argument("--move-count", help=format_help("""
-Specify the number of the most recent backups to move, or "all" if every backup should be moved
+Specify the number of the most recent backups to move or "all" if every backup should be moved
 to the new location."""))
 
     only_one_move_group.add_argument("--move-age", help=format_help("""
@@ -1361,8 +1362,7 @@ Log information on all actions during a program run."""))
 
     default_log_file_name = Path.home()/"vintagebackup.log"
     other_group.add_argument("-l", "--log", default=default_log_file_name, help=format_help(f"""
-Where to log the activity of this program. A file of the same
-name will be written to the backup folder. The default is
+Where to log the activity of this program. The default is
 {default_log_file_name.name} in the user's home folder. If no
 log file is desired, use the file name {os.devnull}."""))
 
