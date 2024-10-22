@@ -59,7 +59,7 @@ def all_backups(backup_location: Path) -> list[Path]:
         name = dir.name.split(" (")[0] if pattern == backup_pattern else dir.name
         try:
             datetime.datetime.strptime(name, pattern)
-            return dir.is_dir(follow_symlinks=False)
+            return is_real_directory(dir)
         except ValueError:
             return False
 
@@ -82,7 +82,7 @@ def find_previous_backup(backup_location: Path) -> Path | None:
         return None
 
 
-def is_real_directory(path: Path) -> bool:
+def is_real_directory(path: Path | os.DirEntry[str]) -> bool:
     """Return True if path is a directory and not a symlink."""
     return path.is_dir() and not path.is_symlink()
 
