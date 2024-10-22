@@ -407,6 +407,8 @@ def create_new_backup(user_data_location: Path,
     include_file: A file containg a list of path glob patterns to include in the backup.
     examine_whole_file: Whether to examine file contents to check for changes since the last backup
     force_copy: Whether to always copy files, regardless of whether a previous backup exists.
+    timestamp: Manually set timestamp of new backup. Used for debugging.
+    is_backup_move: Used to customize log messages when moving a backup to a new location.
     """
     check_paths_for_validity(user_data_location, backup_location, filter_file)
 
