@@ -1123,6 +1123,28 @@ def path_or_none(arg: str | None) -> Path | None:
     return Path(arg).absolute() if arg else None
 
 
+def copy_probability_from_hard_link_count(hard_link_count: str | None) -> float:
+    """
+    Convert an expected avergae hard link count into a copy probability.
+
+    In order to prevent the slow increase in time required to make a backup on Windows, this
+    function returns a probability of copying an unchanged file instead of hard linking. The
+    convesion is p = 1/(h + 1), where h is the hard link count and p is the resulting probability.
+    """
+    if hard_link_count is None:
+        return 0.0
+
+    try:
+        average_hard_link_count = int(hard_link_count)
+    except ValueError:
+        raise CommandLineError(f"Invalid value for hard link count: {hard_link_count}")
+
+    if average_hard_link_count < 1:
+        raise CommandLineError("Hard link count must be a positive whole number.")
+
+    return 1/(average_hard_link_count + 1)
+
+
 def print_run_title(command_line_args: argparse.Namespace, action_title: str) -> None:
     """Print the action taking place."""
     logger.info("")
@@ -1561,19 +1583,7 @@ def main(argv: list[str]) -> int:
                 raise CommandLineError("Backup folder not specified.")
 
             backup_folder = Path(args.backup_folder).absolute()
-
-            if args.hard_link_count is not None:
-                try:
-                    average_hard_link_count = int(args.hard_link_count)
-                    if average_hard_link_count < 1:
-                        raise CommandLineError("Hard link count (--hard-link-count) must be a "
-                                               "positive whole number.")
-                except ValueError:
-                    raise CommandLineError("Invalid value for hard link count: "
-                                           f"{args.hard_link_count}")
-                copy_probability = 1/(average_hard_link_count + 1)
-            else:
-                copy_probability = 0.0
+            copy_probability = copy_probability_from_hard_link_count(args.hard_link_count)
 
             action = "backup"
             print_run_title(args, "Starting new backup")
