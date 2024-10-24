@@ -431,7 +431,7 @@ class FilterTest(unittest.TestCase):
     def test_ineffective_filter_line_detection(self) -> None:
         """Test that filter lines with no effect on the backup files are detected."""
         with (tempfile.TemporaryDirectory() as user_data_location,
-              tempfile.TemporaryFile("w+", delete_on_close=False) as filter_file):
+              tempfile.NamedTemporaryFile("w+", delete_on_close=False) as filter_file):
             user_path = Path(user_data_location)
             create_user_data(user_path)
 
