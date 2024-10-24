@@ -1222,7 +1222,7 @@ folder and all subfolders will be backed up recursively."""))
     backup_group.add_argument("-f", "--filter", metavar="FILTER_FILE_NAME", help=format_help("""
 Filter the set of files that will be backed up. The value of this argument should be the name of
 a text file that contains lines specifying what files to include or exclude. These may contain
-wildcard characters like * and ? to allow for matching multiple file names.
+wildcard characters like *, **, and ? to allow for matching multiple file names.
 
 Each line should begin with a minus (-), plus (+), or hash (#). Lines with minus signs specify
 files and folders to exclude. Lines with plus signs specify files and folders to include. Lines
