@@ -339,7 +339,7 @@ def backup_directory(user_data_location: Path,
     randomly_copy_probability: Probability of copying a file when it would normally be hard-linked
     action_counter: A counter to track how many files have been linked, copied, or failed for both
     """
-    if not current_user_path.is_dir():
+    if not is_real_directory(current_user_path):
         logger.warning(f"Folder disappeared during backup: {current_user_path}")
         return
 
