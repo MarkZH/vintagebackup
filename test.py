@@ -435,21 +435,23 @@ class FilterTest(unittest.TestCase):
             user_path = Path(user_data_location)
             create_user_data(user_path)
 
+            ineffective_sub_directory = Path("sub_directory_1/sub_sub_directory_0")
+            ineffective_directory = Path("sub_directory_0")
             filter_file.write("- sub_directory_1\n")
             filter_file.write("# Ineffective line:\n")
-            filter_file.write("- sub_directory_1/sub_sub_directory_0\n")
-            filter_file.write("+ sub_directory_0\n")
+            filter_file.write(f"- {ineffective_sub_directory}\n")
+            filter_file.write(f"+ {ineffective_directory}\n")
             filter_file.close()
 
             with self.assertLogs() as log_assert:
                 vintagebackup.backup_paths(user_path, Path(filter_file.name))
 
             self.assertIn(f"INFO:vintagebackup:{filter_file.name}: line #3 "
-                          fr"(- {user_data_location}\sub_directory_1\sub_sub_directory_0) "
+                          f"(- {user_data_location/ineffective_sub_directory}) "
                           "had no effect.",
                           log_assert.output)
             self.assertIn(f"INFO:vintagebackup:{filter_file.name}: line #4 "
-                          fr"(+ {user_data_location}\sub_directory_0) had no effect.",
+                          f"(+ {user_data_location/ineffective_directory}) had no effect.",
                           log_assert.output)
             self.assertFalse(any("Ineffective" in message for message in log_assert.output))
 
