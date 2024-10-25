@@ -12,6 +12,7 @@ import itertools
 import textwrap
 import math
 import glob
+import random
 from collections import Counter
 from pathlib import Path
 from typing import Callable, Any
@@ -225,7 +226,8 @@ def shallow_stats(stats: os.stat_result) -> tuple[int, int, int]:
 def compare_to_backup(user_directory: Path,
                       backup_directory: Path | None,
                       file_names: list[str],
-                      examine_whole_file: bool) -> tuple[list[str], list[str], list[str]]:
+                      examine_whole_file: bool,
+                      randomly_copy_probability: float) -> tuple[list[str], list[str], list[str]]:
     """
     Sort a list of files according to whether they have changed since the last backup.
 
@@ -235,6 +237,8 @@ def compare_to_backup(user_directory: Path,
     file_names: A list of regular files (not symlinks) in the user directory.
     examine_whole_file: Whether the contents of the file should be examined, or just file
     attributes.
+    randomly_copy_probability: Instead of hard-linking a file that hasn't changed since the last
+    backup, copy it anyway with a given probability.
 
     The file names will be sorted into three lists and returned in this order: (1) matching files
     that have not changed since the last backup, (2) mismatched files that have changed, (3) error
@@ -272,6 +276,11 @@ def compare_to_backup(user_directory: Path,
             except Exception:
                 errors.append(file_name)
 
+        if randomly_copy_probability > 0:
+            for item in list(filter(lambda _: random.random() < randomly_copy_probability,
+                                    matches)):
+                matches.remove(item)
+                errors.append(item)
         return matches, mismatches, errors
 
 
@@ -316,6 +325,7 @@ def backup_directory(user_data_location: Path,
                      current_user_path: Path,
                      user_file_names: list[str],
                      examine_whole_file: bool,
+                     randomly_copy_probability: float,
                      action_counter: Counter[str]) -> None:
     """
     Backup the files in a subfolder in the user's directory.
@@ -327,6 +337,7 @@ def backup_directory(user_data_location: Path,
     current_user_path: The user directory currently being walked through
     user_file_names: The names of files contained in the current_user_path
     examine_whole_file: Whether to examine file contents to check for changes since the last backup
+    randomly_copy_probability: Probability of copying a file when it would normally be hard-linked
     action_counter: A counter to track how many files have been linked, copied, or failed for both
     """
     if not is_real_directory(current_user_path):
@@ -342,7 +353,8 @@ def backup_directory(user_data_location: Path,
     matching, mismatching, errors = compare_to_backup(current_user_path,
                                                       previous_backup_directory,
                                                       user_file_names,
-                                                      examine_whole_file)
+                                                      examine_whole_file,
+                                                      randomly_copy_probability)
 
     for file_name in matching:
         assert previous_backup_directory
@@ -395,6 +407,7 @@ def create_new_backup(user_data_location: Path,
                       filter_file: Path | None,
                       examine_whole_file: bool,
                       force_copy: bool,
+                      max_average_hard_links: str | None,
                       timestamp: datetime.datetime | str | None,
                       is_backup_move: bool = False) -> None:
     """
@@ -407,6 +420,7 @@ def create_new_backup(user_data_location: Path,
     include_file: A file containg a list of path glob patterns to include in the backup.
     examine_whole_file: Whether to examine file contents to check for changes since the last backup
     force_copy: Whether to always copy files, regardless of whether a previous backup exists.
+    randomly_copy_probability: Specify probability that an unchanged file will be copied anyway.
     timestamp: Manually set timestamp of new backup. Used for debugging.
     is_backup_move: Used to customize log messages when moving a backup to a new location.
     """
@@ -438,6 +452,7 @@ def create_new_backup(user_data_location: Path,
 
     action_counter: Counter[str] = Counter()
     paths_to_backup = backup_paths(user_data_location, filter_file)
+    copy_probability = copy_probability_from_hard_link_count(max_average_hard_links)
     logger.info("Running backup ...")
     for current_user_path, user_file_names in paths_to_backup:
         backup_directory(user_data_location,
@@ -446,6 +461,7 @@ def create_new_backup(user_data_location: Path,
                          current_user_path,
                          user_file_names,
                          examine_whole_file,
+                         copy_probability,
                          action_counter)
 
     logger.info("")
@@ -886,6 +902,7 @@ def move_backups(old_backup_location: Path,
                           filter_file=None,
                           examine_whole_file=False,
                           force_copy=False,
+                          max_average_hard_links=None,
                           is_backup_move=True,
                           timestamp=backup_datetime(backup))
 
@@ -1107,6 +1124,29 @@ def path_or_none(arg: str | None) -> Path | None:
     return Path(arg).absolute() if arg else None
 
 
+def copy_probability_from_hard_link_count(hard_link_count: str | None) -> float:
+    """
+    Convert an expected avergae hard link count into a copy probability.
+
+    In order to prevent the slow increase in time required to make a backup on Windows, this
+    function returns a probability of copying an unchanged file instead of hard linking. The
+    convesion is p = 1/(h + 1), where h is the hard link count and p is the resulting probability.
+    """
+    if hard_link_count is None:
+        return 0.0
+
+    try:
+        average_hard_link_count = int(hard_link_count)
+    except ValueError:
+        raise CommandLineError(f"Invalid value for hard link count: {hard_link_count}")
+
+    if average_hard_link_count < 1:
+        raise CommandLineError("Hard link count must be a positive whole number.")
+
+    logger.info(f"Maximum average hard link count = {average_hard_link_count}")
+    return 1/(average_hard_link_count + 1)
+
+
 def print_run_title(command_line_args: argparse.Namespace, action_title: str) -> None:
     """Print the action taking place."""
     logger.info("")
@@ -1282,6 +1322,15 @@ so the backup location will require much more space than a normal
 backup."""))
 
     add_no_option(backup_group, "force-copy")
+
+    backup_group.add_argument("--hard-link-count", help=format_help("""
+Specify the average number of hard links Vintage Backup should create for a file before copying it
+again. The argument HARD_LINK_COUNT should be an integer. If specified, every unchanged file will be
+copied with a probability of 1/(HARD_LINK_COUNT + 1).
+
+This is probably only useful for Windows machines. If a lot of files being backed up are not
+changing, the backups will gradually slow down as the number of hard links increases. This is due to
+peculiarities of the NTFS file system."""))
 
     move_group = user_input.add_argument_group("Move backup options", format_text("""
 Use exactly one of these options to specify which backups to move when using --move-backup."""))
@@ -1544,6 +1593,7 @@ def main(argv: list[str]) -> int:
                               filter_file=path_or_none(args.filter),
                               examine_whole_file=toggle_is_set(args, "whole_file"),
                               force_copy=toggle_is_set(args, "force_copy"),
+                              max_average_hard_links=args.hard_link_count,
                               timestamp=args.timestamp)
 
             if args.free_up:
