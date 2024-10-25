@@ -407,7 +407,7 @@ def create_new_backup(user_data_location: Path,
                       filter_file: Path | None,
                       examine_whole_file: bool,
                       force_copy: bool,
-                      randomly_copy_probability: float,
+                      max_average_hard_links: str | None,
                       timestamp: datetime.datetime | str | None,
                       is_backup_move: bool = False) -> None:
     """
@@ -452,6 +452,7 @@ def create_new_backup(user_data_location: Path,
 
     action_counter: Counter[str] = Counter()
     paths_to_backup = backup_paths(user_data_location, filter_file)
+    copy_probability = copy_probability_from_hard_link_count(max_average_hard_links)
     logger.info("Running backup ...")
     for current_user_path, user_file_names in paths_to_backup:
         backup_directory(user_data_location,
@@ -460,7 +461,7 @@ def create_new_backup(user_data_location: Path,
                          current_user_path,
                          user_file_names,
                          examine_whole_file,
-                         randomly_copy_probability,
+                         copy_probability,
                          action_counter)
 
     logger.info("")
@@ -901,7 +902,7 @@ def move_backups(old_backup_location: Path,
                           filter_file=None,
                           examine_whole_file=False,
                           force_copy=False,
-                          randomly_copy_probability=0.0,
+                          max_average_hard_links=None,
                           is_backup_move=True,
                           timestamp=backup_datetime(backup))
 
@@ -1142,6 +1143,7 @@ def copy_probability_from_hard_link_count(hard_link_count: str | None) -> float:
     if average_hard_link_count < 1:
         raise CommandLineError("Hard link count must be a positive whole number.")
 
+    logger.info(f"Maximum average hard link count = {average_hard_link_count}")
     return 1/(average_hard_link_count + 1)
 
 
@@ -1583,7 +1585,6 @@ def main(argv: list[str]) -> int:
                 raise CommandLineError("Backup folder not specified.")
 
             backup_folder = Path(args.backup_folder).absolute()
-            copy_probability = copy_probability_from_hard_link_count(args.hard_link_count)
 
             action = "backup"
             print_run_title(args, "Starting new backup")
@@ -1592,7 +1593,7 @@ def main(argv: list[str]) -> int:
                               filter_file=path_or_none(args.filter),
                               examine_whole_file=toggle_is_set(args, "whole_file"),
                               force_copy=toggle_is_set(args, "force_copy"),
-                              randomly_copy_probability=copy_probability,
+                              max_average_hard_links=args.hard_link_count,
                               timestamp=args.timestamp)
 
             if args.free_up:
