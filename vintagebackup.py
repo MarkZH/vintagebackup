@@ -1177,6 +1177,23 @@ def start_recovery_from_backup(args: argparse.Namespace) -> None:
     recover_path(Path(args.recover).resolve(), backup_folder, choice)
 
 
+def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
+    """Choose what to recover a list of backed up files and folders."""
+    if not args.backup_folder:
+        raise CommandLineError("Backup folder needed to list backed up items.")
+
+    try:
+        backup_folder = Path(args.backup_folder).resolve(strict=True)
+    except FileNotFoundError:
+        raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
+
+    search_directory = Path(args.list).resolve()
+    print_run_title(args, "Listing recoverable files")
+    chosen_recovery_path = search_backups(search_directory, backup_folder)
+    if chosen_recovery_path is not None:
+        recover_path(chosen_recovery_path, backup_folder)
+
+
 def argument_parser() -> argparse.ArgumentParser:
     """Create the parser for command line arguments."""
     user_input = argparse.ArgumentParser(add_help=False,
@@ -1484,19 +1501,8 @@ def main(argv: list[str]) -> int:
             action = "recovery"
             start_recovery_from_backup(args)
         elif args.list:
-            if not args.backup_folder:
-                raise CommandLineError("Backup folder needed to list backed up items.")
-
-            try:
-                backup_folder = Path(args.backup_folder).resolve(strict=True)
-            except FileNotFoundError:
-                raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
             action = "backup listing"
-            search_directory = Path(args.list).resolve()
-            print_run_title(args, "Listing recoverable files")
-            chosen_recovery_path = search_backups(search_directory, backup_folder)
-            if chosen_recovery_path is not None:
-                recover_path(chosen_recovery_path, backup_folder)
+            choose_recovery_target_from_backups(args)
         elif args.move_backup:
             if not args.backup_folder:
                 raise CommandLineError("Current backup folder location (--backup-folder) needed.")
