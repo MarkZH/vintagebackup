@@ -1222,6 +1222,25 @@ def start_move_backups(args: argparse.Namespace) -> None:
     move_backups(old_backup_location, new_backup_location, backups_to_move)
 
 
+def start_verify_backup(args: argparse.Namespace) -> None:
+    """Parse command line options for verifying backups."""
+    try:
+        user_folder = Path(args.user_folder).resolve(strict=True)
+    except FileNotFoundError:
+        raise CommandLineError(f"Could not find users folder: {args.user_folder}")
+
+    try:
+        backup_folder = Path(args.backup_folder).resolve(strict=True)
+    except FileNotFoundError:
+        raise CommandLineError(f"Could not find backup location: {args.backup_folder}")
+
+    filter_file = path_or_none(args.filter)
+    result_folder = path_or_none(args.verify)
+    assert result_folder is not None
+    print_run_title(args, "Verifying last backup")
+    verify_last_backup(user_folder, backup_folder, filter_file, result_folder)
+
+
 def argument_parser() -> argparse.ArgumentParser:
     """Create the parser for command line arguments."""
     user_input = argparse.ArgumentParser(add_help=False,
@@ -1535,22 +1554,8 @@ def main(argv: list[str]) -> int:
             action = "backup location move"
             start_move_backups(args)
         elif args.verify:
-            try:
-                user_folder = Path(args.user_folder).resolve(strict=True)
-            except FileNotFoundError:
-                raise CommandLineError(f"Could not find users folder: {args.user_folder}")
-
-            try:
-                backup_folder = Path(args.backup_folder).resolve(strict=True)
-            except FileNotFoundError:
-                raise CommandLineError(f"Could not find backup location: {args.backup_folder}")
-
             action = "verification"
-            filter_file = path_or_none(args.filter)
-            result_folder = path_or_none(args.verify)
-            assert result_folder is not None
-            print_run_title(args, "Verifying last backup")
-            verify_last_backup(user_folder, backup_folder, filter_file, result_folder)
+            start_verify_backup(args)
         elif args.restore:
             if args.destination:
                 destination = Path(args.destination).resolve()
