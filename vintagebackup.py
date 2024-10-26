@@ -1194,6 +1194,34 @@ def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
         recover_path(chosen_recovery_path, backup_folder)
 
 
+def start_move_backups(args: argparse.Namespace) -> None:
+    """Parse command line options to move backupos to another location."""
+    if not args.backup_folder:
+        raise CommandLineError("Current backup folder location (--backup-folder) needed.")
+
+    try:
+        old_backup_location = Path(args.backup_folder).resolve(strict=True)
+    except FileNotFoundError:
+        raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
+
+    new_backup_location = Path(args.move_backup).absolute()
+
+    if args.move_count:
+        backups_to_move = last_n_backups(old_backup_location, args.move_count)
+    elif args.move_age:
+        oldest_backup_date = parse_time_span_to_timepoint(args.move_age)
+        backups_to_move = backups_since(oldest_backup_date, old_backup_location)
+    elif args.move_since:
+        oldest_backup_date = datetime.datetime.strptime(args.move_since, "%Y-%m-%d")
+        backups_to_move = backups_since(oldest_backup_date, old_backup_location)
+    else:
+        raise CommandLineError("Exactly one of --move-count, --move-age, or --move-since "
+                               "must be used when moving backups.")
+
+    print_run_title(args, "Moving backups")
+    move_backups(old_backup_location, new_backup_location, backups_to_move)
+
+
 def argument_parser() -> argparse.ArgumentParser:
     """Create the parser for command line arguments."""
     user_input = argparse.ArgumentParser(add_help=False,
@@ -1504,31 +1532,8 @@ def main(argv: list[str]) -> int:
             action = "backup listing"
             choose_recovery_target_from_backups(args)
         elif args.move_backup:
-            if not args.backup_folder:
-                raise CommandLineError("Current backup folder location (--backup-folder) needed.")
-
-            try:
-                old_backup_location = Path(args.backup_folder).resolve(strict=True)
-            except FileNotFoundError:
-                raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
-
             action = "backup location move"
-            new_backup_location = Path(args.move_backup).absolute()
-
-            if args.move_count:
-                backups_to_move = last_n_backups(old_backup_location, args.move_count)
-            elif args.move_age:
-                oldest_backup_date = parse_time_span_to_timepoint(args.move_age)
-                backups_to_move = backups_since(oldest_backup_date, old_backup_location)
-            elif args.move_since:
-                oldest_backup_date = datetime.datetime.strptime(args.move_since, "%Y-%m-%d")
-                backups_to_move = backups_since(oldest_backup_date, old_backup_location)
-            else:
-                raise CommandLineError("Exactly one of --move-count, --move-age, or --move-since "
-                                       "must be used when moving backups.")
-
-            print_run_title(args, "Moving backups")
-            move_backups(old_backup_location, new_backup_location, backups_to_move)
+            start_move_backups(args)
         elif args.verify:
             try:
                 user_folder = Path(args.user_folder).resolve(strict=True)
