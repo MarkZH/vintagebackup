@@ -1241,6 +1241,45 @@ def start_verify_backup(args: argparse.Namespace) -> None:
     verify_last_backup(user_folder, backup_folder, filter_file, result_folder)
 
 
+def start_backup_restore(args: argparse.Namespace) -> None:
+    """Parse command line arguments for a backup recovery."""
+    if args.destination:
+        destination = Path(args.destination).resolve()
+        user_folder = None
+    else:
+        try:
+            user_folder = Path(args.user_folder).resolve(strict=True)
+            destination = user_folder
+        except FileNotFoundError:
+            raise CommandLineError(f"Could not find users folder: {args.user_folder}")
+
+    try:
+        backup_folder = Path(args.backup_folder).resolve(strict=True)
+    except FileNotFoundError:
+        raise CommandLineError(f"Could not find backup location: {args.backup_folder}")
+
+    if user_folder:
+        confirm_user_location_is_unchanged(user_folder, backup_folder)
+
+    if not args.delete_extra and not args.keep_extra:
+        raise CommandLineError("One of the following are required: "
+                               "--delete-new or --keep-new")
+    delete_extra_files = bool(args.delete_extra)
+
+    if not args.last_backup and not args.choose_backup:
+        raise CommandLineError("One of the following are required: "
+                               "--use-last-backup or --choose-backup")
+    choice = None if args.choice is None else int(args.choice)
+    restore_source = (find_previous_backup(backup_folder)
+                      if args.last_backup else
+                      choose_backup(backup_folder, choice))
+
+    if not restore_source:
+        raise CommandLineError(f"No backups found in {backup_folder}")
+
+    restore_backup(restore_source, destination, delete_extra_files=delete_extra_files)
+
+
 def argument_parser() -> argparse.ArgumentParser:
     """Create the parser for command line arguments."""
     user_input = argparse.ArgumentParser(add_help=False,
@@ -1557,42 +1596,8 @@ def main(argv: list[str]) -> int:
             action = "verification"
             start_verify_backup(args)
         elif args.restore:
-            if args.destination:
-                destination = Path(args.destination).resolve()
-                user_folder = None
-            else:
-                try:
-                    user_folder = Path(args.user_folder).resolve(strict=True)
-                    destination = user_folder
-                except FileNotFoundError:
-                    raise CommandLineError(f"Could not find users folder: {args.user_folder}")
-
-            try:
-                backup_folder = Path(args.backup_folder).resolve(strict=True)
-            except FileNotFoundError:
-                raise CommandLineError(f"Could not find backup location: {args.backup_folder}")
-
-            if user_folder:
-                confirm_user_location_is_unchanged(user_folder, backup_folder)
-
-            if not args.delete_extra and not args.keep_extra:
-                raise CommandLineError("One of the following are required: "
-                                       "--delete-new or --keep-new")
-            delete_extra_files = bool(args.delete_extra)
-
-            if not args.last_backup and not args.choose_backup:
-                raise CommandLineError("One of the following are required: "
-                                       "--use-last-backup or --choose-backup")
-            choice = None if args.choice is None else int(args.choice)
-            restore_source = (find_previous_backup(backup_folder)
-                              if args.last_backup else
-                              choose_backup(backup_folder, choice))
-
-            if not restore_source:
-                raise CommandLineError(f"No backups found in {backup_folder}")
-
             action = "restoration"
-            restore_backup(restore_source, destination, delete_extra_files=delete_extra_files)
+            start_backup_restore(args)
         else:
             if not args.user_folder:
                 raise CommandLineError("User's folder not specified.")
