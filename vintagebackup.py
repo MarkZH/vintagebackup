@@ -1127,7 +1127,7 @@ def toggle_is_set(args: argparse.Namespace, name: str) -> bool:
 
 def path_or_none(arg: str | None) -> Path | None:
     """Create a Path instance if the input string is valid."""
-    return Path(arg).absolute() if arg else None
+    return Path(arg).resolve() if arg else None
 
 
 def copy_probability_from_hard_link_count(hard_link_count: str | None) -> float:
@@ -1200,7 +1200,7 @@ def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
 def start_move_backups(args: argparse.Namespace) -> None:
     """Parse command line options to move backupos to another location."""
     old_backup_location = get_existing_path(args.backup_folder, "current backup location")
-    new_backup_location = Path(args.move_backup).absolute()
+    new_backup_location = Path(args.move_backup).resolve()
 
     if args.move_count:
         backups_to_move = last_n_backups(old_backup_location, args.move_count)
@@ -1276,7 +1276,7 @@ def start_backup(args: argparse.Namespace) -> Path:
     if not args.backup_folder:
         raise CommandLineError("Backup folder not specified.")
 
-    backup_folder = Path(args.backup_folder).absolute()
+    backup_folder = Path(args.backup_folder).resolve()
 
     print_run_title(args, "Starting new backup")
     create_new_backup(user_folder,
