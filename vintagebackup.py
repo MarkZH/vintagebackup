@@ -677,7 +677,7 @@ def delete_directory_tree(backup_path: Path) -> None:
     shutil.rmtree(backup_path, onexc=remove_readonly)
 
 
-def delete_oldest_backups_for_space(backup_location: Path, space_requirement: str) -> None:
+def delete_oldest_backups_for_space(backup_location: Path, space_requirement: str | None) -> None:
     """
     Delete backups--starting with the oldest--until enough space is free on the backup destination.
 
@@ -688,6 +688,9 @@ def delete_oldest_backups_for_space(backup_location: Path, space_requirement: st
     space_requirement: The amount of space that should be free after deleting backups. This may be
     expressed in bytes ("MB", "GB", etc.) or as a percentage ("%") of the total storage space.
     """
+    if not space_requirement:
+        return
+
     total_storage = shutil.disk_usage(backup_location).total
     free_storage_required = parse_storage_space(space_requirement, total_storage)
 
@@ -831,7 +834,7 @@ def fix_end_of_month(year: int, month: int, day: int,
             new_day -= 1
 
 
-def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
+def delete_backups_older_than(backup_folder: Path, time_span: str | None) -> None:
     """
     Delete backups older than a given timespan.
 
@@ -840,6 +843,9 @@ def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
     time_span: The maximum age of a backup to not be deleted. See parse_time_span_to_timepoint()
     for how the string is formatted.
     """
+    if not time_span:
+        return
+
     timestamp_to_keep = parse_time_span_to_timepoint(time_span)
 
     backups = all_backups(backup_folder)
@@ -1121,7 +1127,7 @@ def toggle_is_set(args: argparse.Namespace, name: str) -> bool:
 
 def path_or_none(arg: str | None) -> Path | None:
     """Create a Path instance if the input string is valid."""
-    return Path(arg).absolute() if arg else None
+    return Path(arg).resolve() if arg else None
 
 
 def copy_probability_from_hard_link_count(hard_link_count: str | None) -> float:
@@ -1160,6 +1166,128 @@ def print_run_title(command_line_args: argparse.Namespace, action_title: str) ->
         logger.info("Reading configuration from file: "
                     + os.path.abspath(command_line_args.config))
         logger.info("")
+
+
+def get_existing_path(path: str | None, folder_type: str) -> Path:
+    if not path:
+        raise CommandLineError(f"{folder_type.capitalize()} not specified.")
+
+    try:
+        backup_folder = Path(path).resolve(strict=True)
+    except FileNotFoundError:
+        raise CommandLineError(f"Could not find {folder_type.lower()}: {path}")
+    return backup_folder
+
+
+def start_recovery_from_backup(args: argparse.Namespace) -> None:
+    """Recover a file or folder from a backup according to the command line."""
+    backup_folder = get_existing_path(args.backup_folder, "backup folder")
+    choice = None if args.choice is None else int(args.choice)
+    print_run_title(args, "Recovering from backups")
+    recover_path(Path(args.recover).resolve(), backup_folder, choice)
+
+
+def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
+    """Choose what to recover a list of backed up files and folders."""
+    backup_folder = get_existing_path(args.backup_folder, "backup folder")
+    search_directory = Path(args.list).resolve()
+    print_run_title(args, "Listing recoverable files")
+    chosen_recovery_path = search_backups(search_directory, backup_folder)
+    if chosen_recovery_path is not None:
+        recover_path(chosen_recovery_path, backup_folder)
+
+
+def start_move_backups(args: argparse.Namespace) -> None:
+    """Parse command line options to move backupos to another location."""
+    old_backup_location = get_existing_path(args.backup_folder, "current backup location")
+    new_backup_location = Path(args.move_backup).resolve()
+
+    if args.move_count:
+        backups_to_move = last_n_backups(old_backup_location, args.move_count)
+    elif args.move_age:
+        oldest_backup_date = parse_time_span_to_timepoint(args.move_age)
+        backups_to_move = backups_since(oldest_backup_date, old_backup_location)
+    elif args.move_since:
+        oldest_backup_date = datetime.datetime.strptime(args.move_since, "%Y-%m-%d")
+        backups_to_move = backups_since(oldest_backup_date, old_backup_location)
+    else:
+        raise CommandLineError("Exactly one of --move-count, --move-age, or --move-since "
+                               "must be used when moving backups.")
+
+    print_run_title(args, "Moving backups")
+    move_backups(old_backup_location, new_backup_location, backups_to_move)
+
+
+def start_verify_backup(args: argparse.Namespace) -> None:
+    """Parse command line options for verifying backups."""
+    user_folder = get_existing_path(args.user_folder, "user's folder")
+    backup_folder = get_existing_path(args.backup_folder, "backup folder")
+    filter_file = path_or_none(args.filter)
+    result_folder = path_or_none(args.verify)
+    assert result_folder is not None
+    print_run_title(args, "Verifying last backup")
+    verify_last_backup(user_folder, backup_folder, filter_file, result_folder)
+
+
+def start_backup_restore(args: argparse.Namespace) -> None:
+    """Parse command line arguments for a backup recovery."""
+    if args.destination:
+        destination = Path(args.destination).resolve()
+        user_folder = None
+    else:
+        try:
+            user_folder = Path(args.user_folder).resolve(strict=True)
+            destination = user_folder
+        except FileNotFoundError:
+            raise CommandLineError(f"Could not find users folder: {args.user_folder}")
+
+    backup_folder = get_existing_path(args.backup_folder, "backup folder")
+
+    if user_folder:
+        confirm_user_location_is_unchanged(user_folder, backup_folder)
+
+    if not args.delete_extra and not args.keep_extra:
+        raise CommandLineError("One of the following are required: "
+                               "--delete-new or --keep-new")
+    delete_extra_files = bool(args.delete_extra)
+
+    if not args.last_backup and not args.choose_backup:
+        raise CommandLineError("One of the following are required: "
+                               "--use-last-backup or --choose-backup")
+    choice = None if args.choice is None else int(args.choice)
+    restore_source = (find_previous_backup(backup_folder)
+                      if args.last_backup else
+                      choose_backup(backup_folder, choice))
+
+    if not restore_source:
+        raise CommandLineError(f"No backups found in {backup_folder}")
+
+    restore_backup(restore_source, destination, delete_extra_files=delete_extra_files)
+
+
+def start_backup(args: argparse.Namespace) -> Path:
+    """
+    Parse command line arguments to start a backup.
+
+    Returns: the location of all backups
+    """
+    user_folder = get_existing_path(args.user_folder, "user's folder")
+
+    if not args.backup_folder:
+        raise CommandLineError("Backup folder not specified.")
+
+    backup_folder = Path(args.backup_folder).resolve()
+
+    print_run_title(args, "Starting new backup")
+    create_new_backup(user_folder,
+                      backup_folder,
+                      filter_file=path_or_none(args.filter),
+                      examine_whole_file=toggle_is_set(args, "whole_file"),
+                      force_copy=toggle_is_set(args, "force_copy"),
+                      max_average_hard_links=args.hard_link_count,
+                      timestamp=args.timestamp)
+
+    return backup_folder
 
 
 def argument_parser() -> argparse.ArgumentParser:
@@ -1466,143 +1594,29 @@ def main(argv: list[str]) -> int:
         logger.debug(args)
 
         if args.recover:
-            if not args.backup_folder:
-                raise CommandLineError("Backup folder needed to recover file.")
-
-            try:
-                backup_folder = Path(args.backup_folder).resolve(strict=True)
-            except FileNotFoundError:
-                raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
-
             action = "recovery"
-            choice = None if args.choice is None else int(args.choice)
-            print_run_title(args, "Recovering from backups")
-            recover_path(Path(args.recover).resolve(), backup_folder, choice)
+            start_recovery_from_backup(args)
         elif args.list:
-            if not args.backup_folder:
-                raise CommandLineError("Backup folder needed to list backed up items.")
-
-            try:
-                backup_folder = Path(args.backup_folder).resolve(strict=True)
-            except FileNotFoundError:
-                raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
             action = "backup listing"
-            search_directory = Path(args.list).resolve()
-            print_run_title(args, "Listing recoverable files")
-            chosen_recovery_path = search_backups(search_directory, backup_folder)
-            if chosen_recovery_path is not None:
-                recover_path(chosen_recovery_path, backup_folder)
+            choose_recovery_target_from_backups(args)
         elif args.move_backup:
-            if not args.backup_folder:
-                raise CommandLineError("Current backup folder location (--backup-folder) needed.")
-
-            try:
-                old_backup_location = Path(args.backup_folder).resolve(strict=True)
-            except FileNotFoundError:
-                raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
-
             action = "backup location move"
-            new_backup_location = Path(args.move_backup).absolute()
-
-            if args.move_count:
-                backups_to_move = last_n_backups(old_backup_location, args.move_count)
-            elif args.move_age:
-                oldest_backup_date = parse_time_span_to_timepoint(args.move_age)
-                backups_to_move = backups_since(oldest_backup_date, old_backup_location)
-            elif args.move_since:
-                oldest_backup_date = datetime.datetime.strptime(args.move_since, "%Y-%m-%d")
-                backups_to_move = backups_since(oldest_backup_date, old_backup_location)
-            else:
-                raise CommandLineError("Exactly one of --move-count, --move-age, or --move-since "
-                                       "must be used when moving backups.")
-
-            print_run_title(args, "Moving backups")
-            move_backups(old_backup_location, new_backup_location, backups_to_move)
+            start_move_backups(args)
         elif args.verify:
-            try:
-                user_folder = Path(args.user_folder).resolve(strict=True)
-            except FileNotFoundError:
-                raise CommandLineError(f"Could not find users folder: {args.user_folder}")
-
-            try:
-                backup_folder = Path(args.backup_folder).resolve(strict=True)
-            except FileNotFoundError:
-                raise CommandLineError(f"Could not find backup location: {args.backup_folder}")
-
             action = "verification"
-            filter_file = path_or_none(args.filter)
-            result_folder = path_or_none(args.verify)
-            assert result_folder is not None
-            print_run_title(args, "Verifying last backup")
-            verify_last_backup(user_folder, backup_folder, filter_file, result_folder)
+            start_verify_backup(args)
         elif args.restore:
-            if args.destination:
-                destination = Path(args.destination).resolve()
-                user_folder = None
-            else:
-                try:
-                    user_folder = Path(args.user_folder).resolve(strict=True)
-                    destination = user_folder
-                except FileNotFoundError:
-                    raise CommandLineError(f"Could not find users folder: {args.user_folder}")
-
-            try:
-                backup_folder = Path(args.backup_folder).resolve(strict=True)
-            except FileNotFoundError:
-                raise CommandLineError(f"Could not find backup location: {args.backup_folder}")
-
-            if user_folder:
-                confirm_user_location_is_unchanged(user_folder, backup_folder)
-
-            if not args.delete_extra and not args.keep_extra:
-                raise CommandLineError("One of the following are required: "
-                                       "--delete-new or --keep-new")
-            delete_extra_files = bool(args.delete_extra)
-
-            if not args.last_backup and not args.choose_backup:
-                raise CommandLineError("One of the following are required: "
-                                       "--use-last-backup or --choose-backup")
-            choice = None if args.choice is None else int(args.choice)
-            restore_source = (find_previous_backup(backup_folder)
-                              if args.last_backup else
-                              choose_backup(backup_folder, choice))
-
-            if not restore_source:
-                raise CommandLineError(f"No backups found in {backup_folder}")
-
             action = "restoration"
-            restore_backup(restore_source, destination, delete_extra_files=delete_extra_files)
+            start_backup_restore(args)
         else:
-            if not args.user_folder:
-                raise CommandLineError("User's folder not specified.")
-
-            try:
-                user_folder = Path(args.user_folder).resolve(strict=True)
-            except FileNotFoundError:
-                raise CommandLineError(f"Could not find user's folder: {args.user_folder}")
-
-            if not args.backup_folder:
-                raise CommandLineError("Backup folder not specified.")
-
-            backup_folder = Path(args.backup_folder).absolute()
-
             action = "backup"
-            print_run_title(args, "Starting new backup")
-            create_new_backup(user_folder,
-                              backup_folder,
-                              filter_file=path_or_none(args.filter),
-                              examine_whole_file=toggle_is_set(args, "whole_file"),
-                              force_copy=toggle_is_set(args, "force_copy"),
-                              max_average_hard_links=args.hard_link_count,
-                              timestamp=args.timestamp)
+            backup_folder = start_backup(args)
 
-            if args.free_up:
-                action = "deletions for freeing up space"
-                delete_oldest_backups_for_space(backup_folder, args.free_up)
+            action = "deletions for freeing up space"
+            delete_oldest_backups_for_space(backup_folder, args.free_up)
 
-            if args.delete_after:
-                action = "deletion of old backups"
-                delete_backups_older_than(backup_folder, args.delete_after)
+            action = "deletion of old backups"
+            delete_backups_older_than(backup_folder, args.delete_after)
 
             logger.info("")
             print_backup_storage_stats(args.backup_folder)
