@@ -1168,16 +1168,20 @@ def print_run_title(command_line_args: argparse.Namespace, action_title: str) ->
         logger.info("")
 
 
-def start_recovery_from_backup(args: argparse.Namespace) -> None:
-    """Recover a file or folder from a backup according to the command line."""
-    if not args.backup_folder:
-        raise CommandLineError("Backup folder needed to recover file.")
+def get_existing_path(path: str | None, folder_type: str) -> Path:
+    if not path:
+        raise CommandLineError(f"{folder_type.capitalize()} not specified.")
 
     try:
-        backup_folder = Path(args.backup_folder).resolve(strict=True)
+        backup_folder = Path(path).resolve(strict=True)
     except FileNotFoundError:
-        raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
+        raise CommandLineError(f"Could not find {folder_type.lower()}: {path}")
+    return backup_folder
 
+
+def start_recovery_from_backup(args: argparse.Namespace) -> None:
+    """Recover a file or folder from a backup according to the command line."""
+    backup_folder = get_existing_path(args.backup_folder, "backup folder")
     choice = None if args.choice is None else int(args.choice)
     print_run_title(args, "Recovering from backups")
     recover_path(Path(args.recover).resolve(), backup_folder, choice)
@@ -1185,14 +1189,7 @@ def start_recovery_from_backup(args: argparse.Namespace) -> None:
 
 def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
     """Choose what to recover a list of backed up files and folders."""
-    if not args.backup_folder:
-        raise CommandLineError("Backup folder needed to list backed up items.")
-
-    try:
-        backup_folder = Path(args.backup_folder).resolve(strict=True)
-    except FileNotFoundError:
-        raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
-
+    backup_folder = get_existing_path(args.backup_folder, "backup folder")
     search_directory = Path(args.list).resolve()
     print_run_title(args, "Listing recoverable files")
     chosen_recovery_path = search_backups(search_directory, backup_folder)
@@ -1202,14 +1199,7 @@ def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
 
 def start_move_backups(args: argparse.Namespace) -> None:
     """Parse command line options to move backupos to another location."""
-    if not args.backup_folder:
-        raise CommandLineError("Current backup folder location (--backup-folder) needed.")
-
-    try:
-        old_backup_location = Path(args.backup_folder).resolve(strict=True)
-    except FileNotFoundError:
-        raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
-
+    old_backup_location = get_existing_path(args.backup_folder, "current backup location")
     new_backup_location = Path(args.move_backup).absolute()
 
     if args.move_count:
@@ -1230,16 +1220,8 @@ def start_move_backups(args: argparse.Namespace) -> None:
 
 def start_verify_backup(args: argparse.Namespace) -> None:
     """Parse command line options for verifying backups."""
-    try:
-        user_folder = Path(args.user_folder).resolve(strict=True)
-    except FileNotFoundError:
-        raise CommandLineError(f"Could not find users folder: {args.user_folder}")
-
-    try:
-        backup_folder = Path(args.backup_folder).resolve(strict=True)
-    except FileNotFoundError:
-        raise CommandLineError(f"Could not find backup location: {args.backup_folder}")
-
+    user_folder = get_existing_path(args.user_folder, "user's folder")
+    backup_folder = get_existing_path(args.backup_folder, "backup folder")
     filter_file = path_or_none(args.filter)
     result_folder = path_or_none(args.verify)
     assert result_folder is not None
@@ -1259,10 +1241,7 @@ def start_backup_restore(args: argparse.Namespace) -> None:
         except FileNotFoundError:
             raise CommandLineError(f"Could not find users folder: {args.user_folder}")
 
-    try:
-        backup_folder = Path(args.backup_folder).resolve(strict=True)
-    except FileNotFoundError:
-        raise CommandLineError(f"Could not find backup location: {args.backup_folder}")
+    backup_folder = get_existing_path(args.backup_folder, "backup folder")
 
     if user_folder:
         confirm_user_location_is_unchanged(user_folder, backup_folder)
@@ -1292,13 +1271,7 @@ def start_backup(args: argparse.Namespace) -> Path:
 
     Returns: the location of all backups
     """
-    if not args.user_folder:
-        raise CommandLineError("User's folder not specified.")
-
-    try:
-        user_folder = Path(args.user_folder).resolve(strict=True)
-    except FileNotFoundError:
-        raise CommandLineError(f"Could not find user's folder: {args.user_folder}")
+    user_folder = get_existing_path(args.user_folder, "user's folder")
 
     if not args.backup_folder:
         raise CommandLineError("Backup folder not specified.")
