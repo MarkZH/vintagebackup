@@ -1280,6 +1280,37 @@ def start_backup_restore(args: argparse.Namespace) -> None:
     restore_backup(restore_source, destination, delete_extra_files=delete_extra_files)
 
 
+def start_backup(args: argparse.Namespace) -> Path:
+    """
+    Parse command line arguments to start a backup.
+
+    Returns: the location of all backups
+    """
+    if not args.user_folder:
+        raise CommandLineError("User's folder not specified.")
+
+    try:
+        user_folder = Path(args.user_folder).resolve(strict=True)
+    except FileNotFoundError:
+        raise CommandLineError(f"Could not find user's folder: {args.user_folder}")
+
+    if not args.backup_folder:
+        raise CommandLineError("Backup folder not specified.")
+
+    backup_folder = Path(args.backup_folder).absolute()
+
+    print_run_title(args, "Starting new backup")
+    create_new_backup(user_folder,
+                      backup_folder,
+                      filter_file=path_or_none(args.filter),
+                      examine_whole_file=toggle_is_set(args, "whole_file"),
+                      force_copy=toggle_is_set(args, "force_copy"),
+                      max_average_hard_links=args.hard_link_count,
+                      timestamp=args.timestamp)
+
+    return backup_folder
+
+
 def argument_parser() -> argparse.ArgumentParser:
     """Create the parser for command line arguments."""
     user_input = argparse.ArgumentParser(add_help=False,
@@ -1599,28 +1630,8 @@ def main(argv: list[str]) -> int:
             action = "restoration"
             start_backup_restore(args)
         else:
-            if not args.user_folder:
-                raise CommandLineError("User's folder not specified.")
-
-            try:
-                user_folder = Path(args.user_folder).resolve(strict=True)
-            except FileNotFoundError:
-                raise CommandLineError(f"Could not find user's folder: {args.user_folder}")
-
-            if not args.backup_folder:
-                raise CommandLineError("Backup folder not specified.")
-
-            backup_folder = Path(args.backup_folder).absolute()
-
             action = "backup"
-            print_run_title(args, "Starting new backup")
-            create_new_backup(user_folder,
-                              backup_folder,
-                              filter_file=path_or_none(args.filter),
-                              examine_whole_file=toggle_is_set(args, "whole_file"),
-                              force_copy=toggle_is_set(args, "force_copy"),
-                              max_average_hard_links=args.hard_link_count,
-                              timestamp=args.timestamp)
+            backup_folder = start_backup(args)
 
             if args.free_up:
                 action = "deletions for freeing up space"
