@@ -1162,6 +1162,21 @@ def print_run_title(command_line_args: argparse.Namespace, action_title: str) ->
         logger.info("")
 
 
+def start_recovery_from_backup(args: argparse.Namespace) -> None:
+    """Recover a file or folder from a backup according to the command line."""
+    if not args.backup_folder:
+        raise CommandLineError("Backup folder needed to recover file.")
+
+    try:
+        backup_folder = Path(args.backup_folder).resolve(strict=True)
+    except FileNotFoundError:
+        raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
+
+    choice = None if args.choice is None else int(args.choice)
+    print_run_title(args, "Recovering from backups")
+    recover_path(Path(args.recover).resolve(), backup_folder, choice)
+
+
 def argument_parser() -> argparse.ArgumentParser:
     """Create the parser for command line arguments."""
     user_input = argparse.ArgumentParser(add_help=False,
@@ -1466,18 +1481,8 @@ def main(argv: list[str]) -> int:
         logger.debug(args)
 
         if args.recover:
-            if not args.backup_folder:
-                raise CommandLineError("Backup folder needed to recover file.")
-
-            try:
-                backup_folder = Path(args.backup_folder).resolve(strict=True)
-            except FileNotFoundError:
-                raise CommandLineError(f"Could not find backup folder: {args.backup_folder}")
-
             action = "recovery"
-            choice = None if args.choice is None else int(args.choice)
-            print_run_title(args, "Recovering from backups")
-            recover_path(Path(args.recover).resolve(), backup_folder, choice)
+            start_recovery_from_backup(args)
         elif args.list:
             if not args.backup_folder:
                 raise CommandLineError("Backup folder needed to list backed up items.")
