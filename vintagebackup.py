@@ -677,7 +677,7 @@ def delete_directory_tree(backup_path: Path) -> None:
     shutil.rmtree(backup_path, onexc=remove_readonly)
 
 
-def delete_oldest_backups_for_space(backup_location: Path, space_requirement: str) -> None:
+def delete_oldest_backups_for_space(backup_location: Path, space_requirement: str | None) -> None:
     """
     Delete backups--starting with the oldest--until enough space is free on the backup destination.
 
@@ -688,6 +688,9 @@ def delete_oldest_backups_for_space(backup_location: Path, space_requirement: st
     space_requirement: The amount of space that should be free after deleting backups. This may be
     expressed in bytes ("MB", "GB", etc.) or as a percentage ("%") of the total storage space.
     """
+    if not space_requirement:
+        return
+
     total_storage = shutil.disk_usage(backup_location).total
     free_storage_required = parse_storage_space(space_requirement, total_storage)
 
@@ -831,7 +834,7 @@ def fix_end_of_month(year: int, month: int, day: int,
             new_day -= 1
 
 
-def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
+def delete_backups_older_than(backup_folder: Path, time_span: str | None) -> None:
     """
     Delete backups older than a given timespan.
 
@@ -840,6 +843,9 @@ def delete_backups_older_than(backup_folder: Path, time_span: str) -> None:
     time_span: The maximum age of a backup to not be deleted. See parse_time_span_to_timepoint()
     for how the string is formatted.
     """
+    if not time_span:
+        return
+
     timestamp_to_keep = parse_time_span_to_timepoint(time_span)
 
     backups = all_backups(backup_folder)
@@ -1633,13 +1639,11 @@ def main(argv: list[str]) -> int:
             action = "backup"
             backup_folder = start_backup(args)
 
-            if args.free_up:
-                action = "deletions for freeing up space"
-                delete_oldest_backups_for_space(backup_folder, args.free_up)
+            action = "deletions for freeing up space"
+            delete_oldest_backups_for_space(backup_folder, args.free_up)
 
-            if args.delete_after:
-                action = "deletion of old backups"
-                delete_backups_older_than(backup_folder, args.delete_after)
+            action = "deletion of old backups"
+            delete_backups_older_than(backup_folder, args.delete_after)
 
             logger.info("")
             print_backup_storage_stats(args.backup_folder)
