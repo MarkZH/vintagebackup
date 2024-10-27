@@ -1289,11 +1289,8 @@ def start_backup_restore(args: argparse.Namespace) -> None:
         destination = Path(args.destination).resolve()
         user_folder = None
     else:
-        try:
-            user_folder = Path(args.user_folder).resolve(strict=True)
-            destination = user_folder
-        except FileNotFoundError:
-            raise CommandLineError(f"Could not find users folder: {args.user_folder}")
+        user_folder = get_existing_path(args.user_folder, "user folder")
+        destination = user_folder
 
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
 
