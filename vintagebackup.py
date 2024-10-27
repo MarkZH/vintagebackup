@@ -994,6 +994,9 @@ def restore_backup(dated_backup_folder: Path, user_folder: Path,
     user_folder: The folder that will be restored to a previous state.
     delete_new_files: Whether to delete files and folders that are not present in the backup.
     """
+    logger.info(f"Restoring: {user_folder}")
+    logger.info(f"From     : {dated_backup_folder}")
+    logger.info(f"Deleting extra files: {delete_extra_files}")
     for current_backup_folder, folder_names, file_names in os.walk(dated_backup_folder):
         current_backup_path = Path(current_backup_folder)
         current_user_path = user_folder/current_backup_path.relative_to(dated_backup_folder)
