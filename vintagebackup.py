@@ -1277,8 +1277,7 @@ def start_verify_backup(args: argparse.Namespace) -> None:
     user_folder = get_existing_path(args.user_folder, "user's folder")
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     filter_file = path_or_none(args.filter)
-    result_folder = path_or_none(args.verify)
-    assert result_folder is not None  # Cannot happen due to argparse requirement
+    result_folder = Path(args.verify).resolve()
     with Lock_File(backup_folder, args.wait):
         print_run_title(args, "Verifying last backup")
         verify_last_backup(user_folder, backup_folder, filter_file, result_folder)
