@@ -221,8 +221,10 @@ def get_user_location_record(backup_location: Path) -> Path:
 def record_user_location(user_location: Path, backup_location: Path) -> None:
     """Write the user directory being backed up to a file in the base backup directory."""
     user_folder_record = get_user_location_record(backup_location)
+    resolved_user_location = user_location.resolve(strict=True)
+    logger.debug(f"Writing {resolved_user_location} to {user_folder_record}")
     with open(user_folder_record, "w") as user_record:
-        user_record.write(str(user_location.resolve(strict=True)) + "\n")
+        user_record.write(str(resolved_user_location) + "\n")
 
 
 def backup_source(backup_location: Path) -> Path:
@@ -1040,12 +1042,15 @@ def restore_backup(dated_backup_folder: Path, user_folder: Path,
     for current_backup_folder, folder_names, file_names in os.walk(dated_backup_folder):
         current_backup_path = Path(current_backup_folder)
         current_user_path = user_folder/current_backup_path.relative_to(dated_backup_folder)
+        logger.debug(f"Creating {current_user_path}")
         current_user_path.mkdir(parents=True, exist_ok=True)
 
         for file_name in file_names:
             try:
                 source = current_backup_path/file_name
                 destination = current_user_path/file_name
+                logger.debug(f"Copying {file_name} from {current_backup_path} "
+                             f"to {current_user_path}")
                 shutil.copy2(source, destination, follow_symlinks=False)
             except Exception as error:
                 logger.warning(f"Could not restore {destination} from {source}: {error}")
@@ -1055,6 +1060,7 @@ def restore_backup(dated_backup_folder: Path, user_folder: Path,
             user_paths = set(entry.name for entry in os.scandir(current_user_path))
             for new_name in user_paths - backed_up_paths:
                 new_path = current_user_path/new_name
+                logger.debug(f"Deleting extra file {new_path}")
                 if is_real_directory(new_path):
                     delete_directory_tree(new_path)
                 else:
