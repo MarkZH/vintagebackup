@@ -13,6 +13,7 @@ import textwrap
 import math
 import glob
 import random
+import time
 from collections import Counter
 from pathlib import Path
 from typing import Callable, Any
@@ -26,6 +27,45 @@ logger.setLevel(logging.INFO)
 
 class CommandLineError(ValueError):
     """An exception class to catch invalid command line parameters."""
+
+
+class ConcurrencyError(RuntimeError):
+    """An exception thrown when another process is using the same backup location."""
+
+
+class Lock_File:
+    """Lock out other Vintage Backup instances from accessing the same backup location."""
+
+    def __init__(self, backup_location: Path, wait: bool) -> None:
+        self.lock_file_path = backup_location/"vintagebackup.lock"
+        self.wait = wait
+
+    def __enter__(self) -> None:
+        print_waiting_message = True
+        while True:
+            try:
+                with open(self.lock_file_path, "x") as lock_file:
+                    lock_file.write(str(os.getpid()))
+                    break
+            except FileExistsError:
+                try:
+                    with open(self.lock_file_path) as lock_file:
+                        other_pid = lock_file.read()
+                except FileNotFoundError:
+                    continue
+
+                if self.wait:
+                    if print_waiting_message:
+                        logger.info(f"Waiting for another Vintage Backup process (PID: {other_pid})"
+                                    f" to end its work in {self.lock_file_path.parent} ...")
+                        print_waiting_message = False
+                    time.sleep(1)
+                else:
+                    raise ConcurrencyError("Vintage Backup already running on "
+                                           f"{self.lock_file_path.parent} (PID {other_pid})")
+
+    def __exit__(self, *_: Any) -> None:
+        self.lock_file_path.unlink()
 
 
 storage_prefixes = ["", "k", "M", "G", "T", "P", "E", "Z", "Y", "R", "Q"]
@@ -1182,19 +1222,21 @@ def get_existing_path(path: str | None, folder_type: str) -> Path:
 def start_recovery_from_backup(args: argparse.Namespace) -> None:
     """Recover a file or folder from a backup according to the command line."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
-    choice = None if args.choice is None else int(args.choice)
-    print_run_title(args, "Recovering from backups")
-    recover_path(Path(args.recover).resolve(), backup_folder, choice)
+    with Lock_File(backup_folder, args.wait):
+        choice = None if args.choice is None else int(args.choice)
+        print_run_title(args, "Recovering from backups")
+        recover_path(Path(args.recover).resolve(), backup_folder, choice)
 
 
 def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
     """Choose what to recover a list of backed up files and folders."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
-    search_directory = Path(args.list).resolve()
-    print_run_title(args, "Listing recoverable files")
-    chosen_recovery_path = search_backups(search_directory, backup_folder)
-    if chosen_recovery_path is not None:
-        recover_path(chosen_recovery_path, backup_folder)
+    with Lock_File(backup_folder, args.wait):
+        search_directory = Path(args.list).resolve()
+        print_run_title(args, "Listing recoverable files")
+        chosen_recovery_path = search_backups(search_directory, backup_folder)
+        if chosen_recovery_path is not None:
+            recover_path(chosen_recovery_path, backup_folder)
 
 
 def start_move_backups(args: argparse.Namespace) -> None:
@@ -1214,8 +1256,9 @@ def start_move_backups(args: argparse.Namespace) -> None:
         raise CommandLineError("Exactly one of --move-count, --move-age, or --move-since "
                                "must be used when moving backups.")
 
-    print_run_title(args, "Moving backups")
-    move_backups(old_backup_location, new_backup_location, backups_to_move)
+    with Lock_File(old_backup_location, args.wait):
+        print_run_title(args, "Moving backups")
+        move_backups(old_backup_location, new_backup_location, backups_to_move)
 
 
 def start_verify_backup(args: argparse.Namespace) -> None:
@@ -1224,9 +1267,10 @@ def start_verify_backup(args: argparse.Namespace) -> None:
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     filter_file = path_or_none(args.filter)
     result_folder = path_or_none(args.verify)
-    assert result_folder is not None
-    print_run_title(args, "Verifying last backup")
-    verify_last_backup(user_folder, backup_folder, filter_file, result_folder)
+    assert result_folder is not None  # Cannot happen due to argparse requirement
+    with Lock_File(backup_folder, args.wait):
+        print_run_title(args, "Verifying last backup")
+        verify_last_backup(user_folder, backup_folder, filter_file, result_folder)
 
 
 def start_backup_restore(args: argparse.Namespace) -> None:
@@ -1262,7 +1306,9 @@ def start_backup_restore(args: argparse.Namespace) -> None:
     if not restore_source:
         raise CommandLineError(f"No backups found in {backup_folder}")
 
-    restore_backup(restore_source, destination, delete_extra_files=delete_extra_files)
+    with Lock_File(backup_folder, args.wait):
+        print_run_title(args, "Restoring user data from backup")
+        restore_backup(restore_source, destination, delete_extra_files=delete_extra_files)
 
 
 def start_backup(args: argparse.Namespace) -> Path:
@@ -1278,14 +1324,15 @@ def start_backup(args: argparse.Namespace) -> Path:
 
     backup_folder = Path(args.backup_folder).resolve()
 
-    print_run_title(args, "Starting new backup")
-    create_new_backup(user_folder,
-                      backup_folder,
-                      filter_file=path_or_none(args.filter),
-                      examine_whole_file=toggle_is_set(args, "whole_file"),
-                      force_copy=toggle_is_set(args, "force_copy"),
-                      max_average_hard_links=args.hard_link_count,
-                      timestamp=args.timestamp)
+    with Lock_File(backup_folder, args.wait):
+        print_run_title(args, "Starting new backup")
+        create_new_backup(user_folder,
+                          backup_folder,
+                          filter_file=path_or_none(args.filter),
+                          examine_whole_file=toggle_is_set(args, "whole_file"),
+                          force_copy=toggle_is_set(args, "force_copy"),
+                          max_average_hard_links=args.hard_link_count,
+                          timestamp=args.timestamp)
 
     return backup_folder
 
@@ -1506,6 +1553,11 @@ is required when recovering from a backup."""))
 
     other_group = user_input.add_argument_group("Other options")
 
+    other_group.add_argument("--wait", action="store_true", help=format_help("""
+By default, if another Vintage Backup process is using the backup location, Vintage Backup will
+exit. With this parameter, the program will wait until the other process finishes before
+continuing."""))
+
     other_group.add_argument("-c", "--config", metavar="FILE_NAME", help=format_help(r"""
 Read options from a configuration file instead of command-line arguments. The format
 of the file should be one option per line with a colon separating the parameter name
@@ -1625,6 +1677,8 @@ def main(argv: list[str]) -> int:
     except CommandLineError as error:
         if __name__ == "__main__":
             user_input.print_usage()
+        logger.error(error)
+    except ConcurrencyError as error:
         logger.error(error)
     except Exception:
         if action:
