@@ -1222,8 +1222,8 @@ def get_existing_path(path: str | None, folder_type: str) -> Path:
 def start_recovery_from_backup(args: argparse.Namespace) -> None:
     """Recover a file or folder from a backup according to the command line."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
+    choice = None if args.choice is None else int(args.choice)
     with Lock_File(backup_folder, args.wait):
-        choice = None if args.choice is None else int(args.choice)
         print_run_title(args, "Recovering from backups")
         recover_path(Path(args.recover).resolve(), backup_folder, choice)
 
@@ -1231,8 +1231,8 @@ def start_recovery_from_backup(args: argparse.Namespace) -> None:
 def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
     """Choose what to recover a list of backed up files and folders."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
+    search_directory = Path(args.list).resolve()
     with Lock_File(backup_folder, args.wait):
-        search_directory = Path(args.list).resolve()
         print_run_title(args, "Listing recoverable files")
         chosen_recovery_path = search_backups(search_directory, backup_folder)
         if chosen_recovery_path is not None:
