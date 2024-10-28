@@ -318,11 +318,9 @@ def compare_to_backup(user_directory: Path,
             except Exception:
                 errors.append(file_name)
 
-        if randomly_copy_probability > 0:
-            for item in list(filter(lambda _: random.random() < randomly_copy_probability,
-                                    matches)):
-                matches.remove(item)
-                errors.append(item)
+        for item in list(filter(lambda _: random.random() < randomly_copy_probability, matches)):
+            matches.remove(item)
+            errors.append(item)
         return matches, mismatches, errors
 
 
