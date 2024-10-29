@@ -1088,20 +1088,17 @@ def backups_since(oldest_backup_date: datetime.datetime, backup_location: Path) 
 
 def print_backup_storage_stats(backup_location: str | Path) -> None:
     """Log information about the storage space of the backup medium."""
-    try:
-        backup_storage = shutil.disk_usage(backup_location)
-        percent_used = round(100*backup_storage.used/backup_storage.total)
-        percent_free = round(100*backup_storage.free/backup_storage.total)
-        logger.info("Backup storage space: "
-                    f"Total = {byte_units(backup_storage.total)}  "
-                    f"Used = {byte_units(backup_storage.used)} ({percent_used}%)  "
-                    f"Free = {byte_units(backup_storage.free)} ({percent_free}%)")
-        backup_folder = Path(backup_location)
-        backups = all_backups(backup_folder)
-        logger.info(f"Backups stored: {len(backups)}")
-        logger.info(f"Earliest backup: {backups[0].name}")
-    except Exception:
-        pass
+    backup_storage = shutil.disk_usage(backup_location)
+    percent_used = round(100*backup_storage.used/backup_storage.total)
+    percent_free = round(100*backup_storage.free/backup_storage.total)
+    logger.info("Backup storage space: "
+                f"Total = {byte_units(backup_storage.total)}  "
+                f"Used = {byte_units(backup_storage.used)} ({percent_used}%)  "
+                f"Free = {byte_units(backup_storage.free)} ({percent_free}%)")
+    backup_folder = Path(backup_location)
+    backups = all_backups(backup_folder)
+    logger.info(f"Backups stored: {len(backups)}")
+    logger.info(f"Earliest backup: {backups[0].name}")
 
 
 def read_configuation_file(config_file_name: str) -> list[str]:
