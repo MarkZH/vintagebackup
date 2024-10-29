@@ -638,16 +638,14 @@ class DeleteBackupTest(unittest.TestCase):
         for method in Invocation:
             with tempfile.TemporaryDirectory() as backup_folder:
                 backup_location = Path(backup_folder)
-                before_backup_space = shutil.disk_usage(backup_location).free
                 backups_created = 30
                 create_old_backups(backup_location, backups_created)
                 file_size = 10_000_000
                 create_large_files(backup_location, file_size)
-                after_backup_space = shutil.disk_usage(backup_location).free
                 backups_after_deletion = 10
-                backup_size = after_backup_space - before_backup_space
-                backup_size_after_deletion = backup_size*(backups_after_deletion/backups_created)
-                goal_space = before_backup_space + backup_size_after_deletion - file_size/2
+                size_of_deleted_backups = (backups_created - backups_after_deletion)*file_size
+                after_backup_space = shutil.disk_usage(backup_location).free
+                goal_space = after_backup_space + size_of_deleted_backups - file_size/2
                 goal_space_str = f"{goal_space}B"
                 if method == Invocation.function:
                     vintagebackup.delete_oldest_backups_for_space(backup_location, goal_space_str)
@@ -674,16 +672,14 @@ class DeleteBackupTest(unittest.TestCase):
         for method in Invocation:
             with tempfile.TemporaryDirectory() as backup_folder:
                 backup_location = Path(backup_folder)
-                before_backup_space = shutil.disk_usage(backup_location).free
                 backups_created = 30
                 create_old_backups(backup_location, backups_created)
                 file_size = 10_000_000
                 create_large_files(backup_location, file_size)
-                after_backup_space = shutil.disk_usage(backup_location).free
                 backups_after_deletion = 10
-                backup_size = after_backup_space - before_backup_space
-                backup_size_after_deletion = backup_size*(backups_after_deletion/backups_created)
-                goal_space = before_backup_space + backup_size_after_deletion - file_size/2
+                size_of_deleted_backups = file_size*(backups_created - backups_after_deletion)
+                after_backup_space = shutil.disk_usage(backup_location).free
+                goal_space = after_backup_space + size_of_deleted_backups - file_size/2
                 goal_space_percent = 100*goal_space/shutil.disk_usage(backup_location).total
                 goal_space_percent_str = f"{goal_space_percent}%"
                 if method == Invocation.function:
