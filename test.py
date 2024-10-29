@@ -750,10 +750,8 @@ class DeleteBackupTest(unittest.TestCase):
             backup_location = Path(backup_folder)
             max_space = shutil.disk_usage(backup_location).total
             too_much_space = 2*max_space
-            self.assertRaises(vintagebackup.CommandLineError,
-                              vintagebackup.delete_oldest_backups_for_space,
-                              backup_location,
-                              f"{too_much_space}B")
+            with self.assertRaises(vintagebackup.CommandLineError):
+                vintagebackup.delete_oldest_backups_for_space(backup_location, f"{too_much_space}B")
 
     def test_deleting_last_backup_in_year_folder_deletes_year_folder(self) -> None:
         """Test that deleting a backup leaves a year folder empty, that year folder is deleted."""
