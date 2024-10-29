@@ -1295,5 +1295,25 @@ class RestorationTest(unittest.TestCase):
             self.assertTrue(directories_have_identical_content(last_backup, destination_path))
 
 
+class LockFileTest(unittest.TestCase):
+    """Test that the lock file prevents simultaneous access to a backup location."""
+    def test_lock_file(self) -> None:
+        """Test basic locking with no waiting."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+            backup_path = Path(backup_folder)
+            with vintagebackup.Lock_File(backup_path, False):
+                exit_code = run_backup(Invocation.cli,
+                                       user_path,
+                                       backup_path,
+                                       filter_file=None,
+                                       examine_whole_file=False,
+                                       force_copy=False,
+                                       timestamp=unique_timestamp())
+                self.assertNotEqual(exit_code, 0)
+
+
 if __name__ == "__main__":
     unittest.main()
