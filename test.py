@@ -992,9 +992,8 @@ Debug:""")
             command_line_options = ["-b", actual_backup_folder,
                                     "-c", config_file.name,
                                     "-l", actual_log_file]
-            file_commands = vintagebackup.read_configuation_file(config_file.name)
             arg_parser = vintagebackup.argument_parser()
-            options = arg_parser.parse_args(file_commands + command_line_options)
+            options = vintagebackup.parse_command_line(command_line_options, arg_parser)
             self.assertEqual(options.backup_folder, actual_backup_folder)
             self.assertEqual(options.log, actual_log_file)
 
@@ -1013,9 +1012,8 @@ Debug:""")
             command_line_options = ["-c", config_file.name,
                                     "--no-whole-file",
                                     "--no-debug"]
-            file_commands = vintagebackup.read_configuation_file(config_file.name)
             arg_parser = vintagebackup.argument_parser()
-            options = arg_parser.parse_args(file_commands + command_line_options)
+            options = vintagebackup.parse_command_line(command_line_options, arg_parser)
             self.assertFalse(vintagebackup.toggle_is_set(options, "whole_file"))
             self.assertFalse(vintagebackup.toggle_is_set(options, "debug"))
 
