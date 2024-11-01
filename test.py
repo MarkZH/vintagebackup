@@ -1315,5 +1315,37 @@ class LockFileTest(unittest.TestCase):
                 self.assertNotEqual(exit_code, 0)
 
 
+class RandomCopyTest(unittest.TestCase):
+    """Test that specifying an average hard link count results in identical files being copied."""
+    def test_random_copy(self) -> None:
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+            backup_path = Path(backup_folder)
+
+            vintagebackup.create_new_backup(user_path,
+                                            backup_path,
+                                            filter_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False,
+                                            max_average_hard_links="1",
+                                            timestamp=unique_timestamp())
+
+            vintagebackup.create_new_backup(user_path,
+                                            backup_path,
+                                            filter_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False,
+                                            max_average_hard_links="1",
+                                            timestamp=unique_timestamp())
+
+            all_backups = vintagebackup.all_backups(backup_path)
+            self.assertEqual(len(all_backups), 2)
+            self.assertTrue(all_files_have_same_content(*all_backups))
+            self.assertFalse(all_files_are_hardlinked(*all_backups))
+            self.assertFalse(all_files_are_copies(*all_backups))
+
+
 if __name__ == "__main__":
     unittest.main()
