@@ -132,7 +132,7 @@ def backup_paths(user_folder: Path, filter_file: Path | None) -> list[tuple[Path
     """Return a list of all paths in a user's folder after filtering it with a filter file."""
     logger.info(f"Gathering items for backup in {user_folder} ...")
     backup_set: set[Path] = set()
-    for current_directory_name, dir_names, file_names in os.walk(user_folder):
+    for current_directory_name, dir_names, file_names in user_folder.walk():
         current_directory = Path(current_directory_name)
         backup_set.update(current_directory/name for name in file_names + dir_names
                           if not (current_directory/name).is_junction())
@@ -628,7 +628,7 @@ def recover_path(recovery_path: Path, backup_location: Path, choice: int | None 
     for backup in all_backups(backup_location):
         path = backup/recovery_relative_path
         if path.exists(follow_symlinks=False):
-            inode = os.stat(path, follow_symlinks=False).st_ino
+            inode = path.stat(follow_symlinks=False).st_ino
             unique_backups.setdefault(inode, path)
 
     if not unique_backups:
@@ -1038,7 +1038,7 @@ def restore_backup(dated_backup_folder: Path, user_folder: Path,
     logger.info(f"Restoring: {user_folder}")
     logger.info(f"From     : {dated_backup_folder}")
     logger.info(f"Deleting extra files: {delete_extra_files}")
-    for current_backup_folder, folder_names, file_names in os.walk(dated_backup_folder):
+    for current_backup_folder, folder_names, file_names in dated_backup_folder.walk():
         current_backup_path = Path(current_backup_folder)
         current_user_path = user_folder/current_backup_path.relative_to(dated_backup_folder)
         logger.debug(f"Creating {current_user_path}")
@@ -1209,8 +1209,7 @@ def print_run_title(command_line_args: argparse.Namespace, action_title: str) ->
     logger.info("")
 
     if command_line_args.config:
-        logger.info("Reading configuration from file: "
-                    + os.path.abspath(command_line_args.config))
+        logger.info("Reading configuration from file: {Path(command_line_args.config).absolute()}")
         logger.info("")
 
 
