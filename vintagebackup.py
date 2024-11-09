@@ -711,7 +711,7 @@ def delete_directory_tree(backup_path: Path) -> None:
 
         Copied from https://docs.python.org/3/library/shutil.html#rmtree-example
         """
-        os.chmod(path, stat.S_IWRITE, follow_symlinks=False)
+        os.chmod(path, stat.S_IWRITE)
         func(path)
 
     shutil.rmtree(backup_path, onexc=remove_readonly)
