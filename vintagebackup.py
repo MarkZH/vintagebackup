@@ -174,14 +174,13 @@ class Backup_Set:
     def passes(self, path: Path) -> bool:
         is_included = True
         for line_number, sign, pattern in self.entries:
-            if sign == "+" and is_included:
-                continue
-            if sign == "-" and not is_included:
+            should_include = (sign == "+")
+            if is_included == should_include:
                 continue
 
             if path.full_match(pattern):
                 self.lines_used.add(line_number)
-                is_included = (sign == "+")
+                is_included = should_include
 
         return is_included
 
