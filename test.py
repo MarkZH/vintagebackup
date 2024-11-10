@@ -332,10 +332,8 @@ class BackupTest(unittest.TestCase):
             directory_symlink_name = "directory_symlink"
             (user_data_path/directory_symlink_name).symlink_to(user_data_path/"sub_directory_1")
             file_symlink_name = "file_symlink.txt"
-            (user_data_path/file_symlink_name).symlink_to(user_data_path/
-                                                          "sub_directory_1"/
-                                                          "sub_sub_directory_1"/
-                                                          "file_2.txt")
+            file_link_target = user_data_path/"sub_directory_1"/"sub_sub_directory_1"/"file_2.txt"
+            (user_data_path/file_symlink_name).symlink_to(file_link_target)
 
             backup_path = Path(backup_location_folder)
             vintagebackup.create_new_backup(user_data_path,
@@ -411,9 +409,7 @@ class FilterTest(unittest.TestCase):
             expected_backup_paths.difference_update(path for path in user_paths
                                                     if "sub_sub_directory_0" in path.parts)
 
-            filter_file.write(str(Path("+ sub_directory_1")/
-                                       "sub_sub_directory_0"/
-                                       "file_1.txt\n\n"))
+            filter_file.write(str(Path("+ sub_directory_1")/"sub_sub_directory_0"/"file_1.txt\n\n"))
             expected_backup_paths.add(Path("sub_directory_1")/"sub_sub_directory_0")
             expected_backup_paths.add(Path("sub_directory_1")/"sub_sub_directory_0"/"file_1.txt")
 
