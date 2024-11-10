@@ -449,14 +449,15 @@ class FilterTest(unittest.TestCase):
             filter_file.close()
 
             with self.assertLogs() as log_assert:
-                vintagebackup.backup_paths(user_path, Path(filter_file.name))
+                for _ in vintagebackup.Backup_Set(user_path, Path(filter_file.name)):
+                    pass
 
             self.assertIn(f"INFO:vintagebackup:{filter_file.name}: line #3 "
-                          f"(- {user_data_location/ineffective_sub_directory}) "
+                          f"(- {user_data_location/ineffective_sub_directory/"**"}) "
                           "had no effect.",
                           log_assert.output)
             self.assertIn(f"INFO:vintagebackup:{filter_file.name}: line #4 "
-                          f"(+ {user_data_location/ineffective_directory}) had no effect.",
+                          f"(+ {user_data_location/ineffective_directory/"**"}) had no effect.",
                           log_assert.output)
             self.assertFalse(any("Ineffective" in message for message in log_assert.output))
 
@@ -899,7 +900,7 @@ class VerificationTest(unittest.TestCase):
             matching_path_set: set[Path] = set()
             mismatching_path_set: set[Path] = set()
             error_path_set: set[Path] = set()
-            user_paths = vintagebackup.backup_paths(user_location, None)
+            user_paths = vintagebackup.Backup_Set(user_location, None)
             for directory, file_names in user_paths:
                 for file_name in file_names:
                     path = (directory/file_name).relative_to(user_location)
