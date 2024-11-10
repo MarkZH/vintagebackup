@@ -79,7 +79,7 @@ def create_old_backups(backup_base_directory: Path, count: int) -> None:
 def directory_contents(base_directory: Path) -> set[Path]:
     """Return a set of all paths in a directory relative to that directory."""
     paths: set[Path] = set()
-    for directory, directories, files in os.walk(base_directory):
+    for directory, directories, files in base_directory.walk():
         for path in itertools.chain(directories, files):
             paths.add(Path(directory).relative_to(base_directory)/path)
     return paths
@@ -97,7 +97,7 @@ def all_files_have_same_content(standard_directory: Path,
     test_directory: This directory must possess every file in the standard directory in the same
     location and with the same contents. Extra files in this directory will not result in failure.
     """
-    for directory_name_1, _, file_names in os.walk(standard_directory):
+    for directory_name_1, _, file_names in standard_directory.walk():
         directory_1 = Path(directory_name_1)
         directory_2 = test_directory/(directory_1.relative_to(standard_directory))
         _, mismatches, errors = filecmp.cmpfiles(directory_1,
@@ -117,12 +117,12 @@ def directories_have_identical_content(base_directory_1: Path, base_directory_2:
 
 def all_files_are_hardlinked(standard_directory: Path, test_directory: Path) -> bool:
     """Test that every file in the standard directory is hardlinked in the test_directory."""
-    for directory_name_1, _, file_names in os.walk(standard_directory):
+    for directory_name_1, _, file_names in standard_directory.walk():
         directory_1 = Path(directory_name_1)
         directory_2 = test_directory/(directory_1.relative_to(standard_directory))
         for file_name in file_names:
-            inode_1 = os.stat(directory_1/file_name).st_ino
-            inode_2 = os.stat(directory_2/file_name).st_ino
+            inode_1 = (directory_1/file_name).stat().st_ino
+            inode_2 = (directory_2/file_name).stat().st_ino
             if inode_1 != inode_2:
                 return False
     return True
@@ -136,12 +136,12 @@ def directories_are_completely_hardlinked(base_directory_1: Path, base_directory
 
 def all_files_are_copies(base_directory_1: Path, base_directory_2: Path) -> bool:
     """Test that every file in the standard directory is copied in the test directory."""
-    for directory_name_1, _, file_names in os.walk(base_directory_1):
+    for directory_name_1, _, file_names in base_directory_1.walk():
         directory_1 = Path(directory_name_1)
         directory_2 = base_directory_2/(directory_1.relative_to(base_directory_1))
         for file_name in file_names:
-            inode_1 = os.stat(directory_1/file_name).st_ino
-            inode_2 = os.stat(directory_2/file_name).st_ino
+            inode_1 = (directory_1/file_name).stat().st_ino
+            inode_2 = (directory_2/file_name).stat().st_ino
             if inode_1 == inode_2:
                 return False
     return True
@@ -330,10 +330,12 @@ class BackupTest(unittest.TestCase):
             user_data_path = Path(user_data_folder)
             create_user_data(user_data_path)
             directory_symlink_name = "directory_symlink"
-            os.symlink(user_data_path/"sub_directory_1", user_data_path/directory_symlink_name)
+            (user_data_path/directory_symlink_name).symlink_to(user_data_path/"sub_directory_1")
             file_symlink_name = "file_symlink.txt"
-            os.symlink(user_data_path/"sub_directory_1"/"sub_sub_directory_1"/"file_2.txt",
-                       user_data_path/file_symlink_name)
+            (user_data_path/file_symlink_name).symlink_to(user_data_path/
+                                                          "sub_directory_1"/
+                                                          "sub_sub_directory_1"/
+                                                          "file_2.txt")
 
             backup_path = Path(backup_location_folder)
             vintagebackup.create_new_backup(user_data_path,
@@ -368,7 +370,7 @@ class FilterTest(unittest.TestCase):
                 expected_backups.difference_update(path for path in user_paths
                                                    if "sub_directory_2" in path.parts)
 
-                filter_file.write(os.path.join("- *", "sub_sub_directory_0\n\n"))
+                filter_file.write(str(Path("- *")/"sub_sub_directory_0\n\n"))
                 expected_backups.difference_update(path for path in user_paths
                                                    if "sub_sub_directory_0" in path.parts)
 
@@ -405,13 +407,13 @@ class FilterTest(unittest.TestCase):
             expected_backup_paths.difference_update(path for path in user_paths
                                                     if "sub_directory_2" in path.parts)
 
-            filter_file.write(os.path.join("- *", "sub_sub_directory_0\n\n"))
+            filter_file.write(str(Path("- *")/"sub_sub_directory_0\n\n"))
             expected_backup_paths.difference_update(path for path in user_paths
                                                     if "sub_sub_directory_0" in path.parts)
 
-            filter_file.write(os.path.join("+ sub_directory_1",
-                                           "sub_sub_directory_0",
-                                           "file_1.txt\n\n"))
+            filter_file.write(str(Path("+ sub_directory_1")/
+                                       "sub_sub_directory_0"/
+                                       "file_1.txt\n\n"))
             expected_backup_paths.add(Path("sub_directory_1")/"sub_sub_directory_0")
             expected_backup_paths.add(Path("sub_directory_1")/"sub_sub_directory_0"/"file_1.txt")
 
@@ -565,7 +567,7 @@ class RecoveryTest(unittest.TestCase):
 def create_large_files(backup_location: Path, file_size: int) -> None:
     """Create a file of a give size in every leaf subdirectory."""
     data = "A"*file_size
-    for directory_name, sub_directory_names, _ in os.walk(backup_location):
+    for directory_name, sub_directory_names, _ in backup_location.walk():
         if not sub_directory_names:
             with open(Path(directory_name)/"file.txt", "w") as file:
                 file.write(data)
@@ -591,7 +593,7 @@ class DeleteBackupTest(unittest.TestCase):
               tempfile.TemporaryDirectory() as backup_folder):
             user_data = Path(user_folder)
             create_user_data(user_data)
-            os.chmod(user_data/"sub_directory_1"/"sub_sub_directory_1"/"file_1.txt", stat.S_IRUSR)
+            (user_data/"sub_directory_1"/"sub_sub_directory_1"/"file_1.txt").chmod(stat.S_IRUSR)
 
             backup_location = Path(backup_folder)
             vintagebackup.create_new_backup(user_data,
@@ -615,7 +617,7 @@ class DeleteBackupTest(unittest.TestCase):
               tempfile.TemporaryDirectory() as backup_folder):
             user_data = Path(user_folder)
             create_user_data(user_data)
-            os.chmod(user_data/"sub_directory_1"/"sub_sub_directory_1", stat.S_IRUSR | stat.S_IXUSR)
+            (user_data/"sub_directory_1"/"sub_sub_directory_1").chmod(stat.S_IRUSR | stat.S_IXUSR)
 
             backup_location = Path(backup_folder)
             vintagebackup.create_new_backup(user_data,
