@@ -1424,7 +1424,7 @@ Filter the set of files that will be backed up. The value of this argument shoul
 a text file that contains lines specifying what files to include or exclude. These may contain
 wildcard characters like *, **, [], and ? to allow for matching multiple path names. If you want to
 match a single name that contains wildcards, put brackets around them: What Is Life[?].pdf, for
-example. If a line specifies a directory, the line must end with a "/**" or "\\\\*".
+example. If a line specifies a directory, the line must end with a "/**" or "\\**".
 
 Each line should begin with a minus (-), plus (+), or hash (#). Lines with minus signs specify
 files and folders to exclude. Lines with plus signs specify files and folders to include. Lines
