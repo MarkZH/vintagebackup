@@ -438,25 +438,28 @@ class FilterTest(unittest.TestCase):
             user_path = Path(user_data_location)
             create_user_data(user_path)
 
-            ineffective_sub_directory = Path("sub_directory_1/sub_sub_directory_0/**")
-            ineffective_directory = Path("sub_directory_0/**")
             filter_file.write("- sub_directory_1/**\n")
-            filter_file.write("# Ineffective line:\n")
-            filter_file.write(f"- {ineffective_sub_directory}\n")
-            filter_file.write(f"+ {ineffective_directory}\n")
+
+            bad_lines = [("-", "sub_directory_1/sub_sub_directory_0/**"),  # redundant exclusion
+                         ("+", "sub_directory_0/**"),  # redundant inclusion
+                         ("-", "does_not_exist.txt"),  # excluding non-existent file
+                         ("-", "sub_directory_0"),  # ineffective exclusion of folder
+                         ("-", "sub_directory_1/*")]  # ineffective exlusion of folder
+
+            filter_file.write("# Ineffective lines:\n")
+            for sign, line in bad_lines:
+                filter_file.write(f"{sign} {line}\n")
             filter_file.close()
 
             with self.assertLogs() as log_assert:
                 for _ in vintagebackup.Backup_Set(user_path, Path(filter_file.name)):
                     pass
 
-            self.assertIn(f"INFO:vintagebackup:{filter_file.name}: line #3 "
-                          f"(- {user_data_location/ineffective_sub_directory}) "
-                          "had no effect.",
-                          log_assert.output)
-            self.assertIn(f"INFO:vintagebackup:{filter_file.name}: line #4 "
-                          f"(+ {user_data_location/ineffective_directory}) had no effect.",
-                          log_assert.output)
+            for line_number, (sign, path) in enumerate(bad_lines, 3):
+                self.assertIn(f"INFO:vintagebackup:{filter_file.name}: line #{line_number} "
+                              f"({sign} {user_path/path}) had no effect.",
+                              log_assert.output)
+
             self.assertFalse(any("Ineffective" in message for message in log_assert.output))
 
     def test_bad_filter_lines(self) -> None:
@@ -471,13 +474,6 @@ class FilterTest(unittest.TestCase):
                 with self.assertRaises(ValueError) as error:
                     vintagebackup.Backup_Set(user_path, Path(filter_file.name))
                 self.assertTrue("The first symbol of each line" in error.exception.args[0])
-
-            with tempfile.NamedTemporaryFile("w", delete_on_close=False) as filter_file:
-                filter_file.write("- sub_directory_0")
-                filter_file.close()
-                with self.assertRaises(ValueError) as error:
-                    vintagebackup.Backup_Set(user_path, Path(filter_file.name))
-                self.assertTrue("that resolve to directories" in error.exception.args[0])
 
             with tempfile.NamedTemporaryFile("w", delete_on_close=False) as filter_file:
                 filter_file.write("- /other_place/sub_directory_0")

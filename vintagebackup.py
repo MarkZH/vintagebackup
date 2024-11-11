@@ -11,7 +11,6 @@ import stat
 import itertools
 import textwrap
 import math
-import glob
 import random
 import time
 from collections import Counter
@@ -156,15 +155,7 @@ class Backup_Set:
                         raise ValueError(f"Line #{line_number} ({line}): Filter looks at paths "
                                          "outside user folder.")
 
-                    if pattern.name == "**":
-                        self.entries.append((line_number, sign, pattern))
-                    elif any(Path(d).is_dir(follow_symlinks=False)
-                             for d in glob.iglob(str(pattern), recursive=True)):
-                        raise ValueError(f"Bad filter line: {line} (line# {line_number})"
-                                         "\nlines that resolve to directories must end with"
-                                         " /** or \\\\**.")
-                    else:
-                        self.entries.append((line_number, sign, pattern))
+                    self.entries.append((line_number, sign, pattern))
 
     def __iter__(self) -> Iterator[tuple[Path, list[str]]]:
         return self.filtered_paths()
@@ -1343,6 +1334,8 @@ more capabilities.
 
 Technical notes:
 
+- If a folder is completely empty, it will not appear in the backup.
+
 - Symbolic links are not followed and are always copied as symbolic links. On Windows, symbolic
 links cannot be created or copied without elevated privileges. Symbolic links will be missing from
 backups if not run in administrator mode. Backups will be complete for all other files, so an
@@ -1424,7 +1417,8 @@ Filter the set of files that will be backed up. The value of this argument shoul
 a text file that contains lines specifying what files to include or exclude. These may contain
 wildcard characters like *, **, [], and ? to allow for matching multiple path names. If you want to
 match a single name that contains wildcards, put brackets around them: What Is Life[?].pdf, for
-example. If a line specifies a directory, the line must end with a "/**" or "\\**".
+example. Only files will be matched against each line in this file. If you want to include or
+exclude an entire directory, the line must end with a "/**" or "\\**" to match all of its contents.
 
 Each line should begin with a minus (-), plus (+), or hash (#). Lines with minus signs specify
 files and folders to exclude. Lines with plus signs specify files and folders to include. Lines
@@ -1438,7 +1432,21 @@ with hash signs are ignored. All paths must reside within the directory tree of 
 will exclude everything in C:\\Users\\Alice\\AppData\\ except the
 Roaming\\Mozilla\\Firefox subfolder. The order of the lines matters. If the - and + lines above
 were reversed, the Firefox folder would be included and then excluded by the following - Appdata
-line."""))
+line.
+
+Because each line only matches to files, some glob patterns may not do what the user expects. Here
+are some examples of such patters:
+
+    # Assume that dir1 is a folder in the user's --user-folder and dir2 is a folder inside dir1.
+
+    # This line does nothing.
+    - dir1
+
+    # This line will exclude all files in dir1, but not folders. dir1/dir2 is still included.
+    - dir1/*
+
+    # This line will exclude dir1 and all of its contents.
+    - dir1/**"""))
 
     backup_group.add_argument("-w", "--whole-file", action="store_true", help=format_help("""
 Examine the entire contents of a file to determine if it has
