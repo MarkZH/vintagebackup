@@ -459,6 +459,33 @@ class FilterTest(unittest.TestCase):
                           log_assert.output)
             self.assertFalse(any("Ineffective" in message for message in log_assert.output))
 
+    def test_bad_filter_lines(self) -> None:
+        """Test that malformed lines raise exceptions."""
+        with tempfile.TemporaryDirectory() as user_folder:
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+
+            with tempfile.NamedTemporaryFile("w", delete_on_close=False) as filter_file:
+                filter_file.write("* invalid_sign\n")
+                filter_file.close()
+                with self.assertRaises(ValueError) as error:
+                    vintagebackup.Backup_Set(user_path, Path(filter_file.name))
+                self.assertTrue("The first symbol of each line" in error.exception.args[0])
+
+            with tempfile.NamedTemporaryFile("w", delete_on_close=False) as filter_file:
+                filter_file.write("- sub_directory_0")
+                filter_file.close()
+                with self.assertRaises(ValueError) as error:
+                    vintagebackup.Backup_Set(user_path, Path(filter_file.name))
+                self.assertTrue("that resolve to directories" in error.exception.args[0])
+
+            with tempfile.NamedTemporaryFile("w", delete_on_close=False) as filter_file:
+                filter_file.write("- /other_place/sub_directory_0")
+                filter_file.close()
+                with self.assertRaises(ValueError) as error:
+                    vintagebackup.Backup_Set(user_path, Path(filter_file.name))
+                self.assertTrue("outside user folder" in error.exception.args[0])
+
 
 def run_recovery(method: Invocation, backup_location: Path, file_path: Path) -> int:
     """Test file recovery through a direct function call or a CLI invocation."""
