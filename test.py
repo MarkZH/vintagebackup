@@ -364,11 +364,11 @@ class FilterTest(unittest.TestCase):
                 user_paths = directory_contents(user_data)
 
                 expected_backups = user_paths.copy()
-                filter_file.write("- sub_directory_2\n\n")
+                filter_file.write("- sub_directory_2/**\n\n")
                 expected_backups.difference_update(path for path in user_paths
                                                    if "sub_directory_2" in path.parts)
 
-                filter_file.write(str(Path("- *")/"sub_sub_directory_0\n\n"))
+                filter_file.write(str(Path("- *")/"sub_sub_directory_0/**\n\n"))
                 expected_backups.difference_update(path for path in user_paths
                                                    if "sub_sub_directory_0" in path.parts)
 
@@ -401,11 +401,11 @@ class FilterTest(unittest.TestCase):
             user_paths = directory_contents(user_data)
 
             expected_backup_paths = user_paths.copy()
-            filter_file.write("- sub_directory_2\n\n")
+            filter_file.write("- sub_directory_2/**\n\n")
             expected_backup_paths.difference_update(path for path in user_paths
                                                     if "sub_directory_2" in path.parts)
 
-            filter_file.write(str(Path("- *")/"sub_sub_directory_0\n\n"))
+            filter_file.write(str(Path("- *")/"sub_sub_directory_0/**\n\n"))
             expected_backup_paths.difference_update(path for path in user_paths
                                                     if "sub_sub_directory_0" in path.parts)
 
@@ -438,9 +438,9 @@ class FilterTest(unittest.TestCase):
             user_path = Path(user_data_location)
             create_user_data(user_path)
 
-            ineffective_sub_directory = Path("sub_directory_1/sub_sub_directory_0")
-            ineffective_directory = Path("sub_directory_0")
-            filter_file.write("- sub_directory_1\n")
+            ineffective_sub_directory = Path("sub_directory_1/sub_sub_directory_0/**")
+            ineffective_directory = Path("sub_directory_0/**")
+            filter_file.write("- sub_directory_1/**\n")
             filter_file.write("# Ineffective line:\n")
             filter_file.write(f"- {ineffective_sub_directory}\n")
             filter_file.write(f"+ {ineffective_directory}\n")
@@ -451,11 +451,11 @@ class FilterTest(unittest.TestCase):
                     pass
 
             self.assertIn(f"INFO:vintagebackup:{filter_file.name}: line #3 "
-                          f"(- {user_data_location/ineffective_sub_directory/"**"}) "
+                          f"(- {user_data_location/ineffective_sub_directory}) "
                           "had no effect.",
                           log_assert.output)
             self.assertIn(f"INFO:vintagebackup:{filter_file.name}: line #4 "
-                          f"(+ {user_data_location/ineffective_directory/"**"}) had no effect.",
+                          f"(+ {user_data_location/ineffective_directory}) had no effect.",
                           log_assert.output)
             self.assertFalse(any("Ineffective" in message for message in log_assert.output))
 

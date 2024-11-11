@@ -156,10 +156,15 @@ class Backup_Set:
                         raise ValueError(f"Line #{line_number} ({line}): Filter looks at paths "
                                          "outside user folder.")
 
-                    self.entries.append((line_number, sign, pattern))
-                    if any(Path(d).is_dir(follow_symlinks=False)
-                           for d in glob.iglob(str(pattern), recursive=True)):
-                        self.entries.append((line_number, sign, pattern/"**"))
+                    if pattern.name == "**":
+                        self.entries.append((line_number, sign, pattern))
+                    elif (not any(Path(d).is_dir(follow_symlinks=False)
+                                  for d in glob.iglob(str(pattern), recursive=True))):
+                        self.entries.append((line_number, sign, pattern))
+                    else:
+                        raise ValueError(f"Bad filter line: {line} (line# {line_number})"
+                                         "\nlines that resolve to directories must end with"
+                                         " /** or \\\\**.")
 
     def __iter__(self) -> Iterator[tuple[Path, list[str]]]:
         return self.filtered_paths()
@@ -1417,10 +1422,9 @@ folder and all subfolders will be backed up recursively."""))
     backup_group.add_argument("-f", "--filter", metavar="FILTER_FILE_NAME", help=format_help("""
 Filter the set of files that will be backed up. The value of this argument should be the name of
 a text file that contains lines specifying what files to include or exclude. These may contain
-wildcard characters like *, **, [], and ? to allow for matching multiple file names. If you want to
+wildcard characters like *, **, [], and ? to allow for matching multiple path names. If you want to
 match a single name that contains wildcards, put brackets around them: What Is Life[?].pdf, for
-example. If a line specifies a directory, the entire directory tree is include/excluded as if it
-ended with a "/**".
+example. If a line specifies a directory, the line must end with a "/**" or "\\\\*".
 
 Each line should begin with a minus (-), plus (+), or hash (#). Lines with minus signs specify
 files and folders to exclude. Lines with plus signs specify files and folders to include. Lines
@@ -1428,8 +1432,8 @@ with hash signs are ignored. All paths must reside within the directory tree of 
 --user-folder. For example, if backing up C:\\Users\\Alice, the following filter file:
 
     # Ignore AppData except Firefox
-    - AppData
-    + AppData/Roaming/Mozilla/Firefox/
+    - AppData/**
+    + AppData/Roaming/Mozilla/Firefox/**
 
 will exclude everything in C:\\Users\\Alice\\AppData\\ except the
 Roaming\\Mozilla\\Firefox subfolder. The order of the lines matters. If the - and + lines above
