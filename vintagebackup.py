@@ -146,7 +146,7 @@ class Backup_Set:
 
                     if sign not in "-+#":
                         raise ValueError(f"Line #{line_number} ({line}): The first symbol "
-                                        "of each line in the filter file must be -, +, or #.")
+                                         "of each line in the filter file must be -, +, or #.")
 
                     if sign == "#":
                         continue
@@ -154,10 +154,11 @@ class Backup_Set:
                     pattern = user_folder/line[1:].lstrip()
                     if not pattern.is_relative_to(user_folder):
                         raise ValueError(f"Line #{line_number} ({line}): Filter looks at paths "
-                                        "outside user folder.")
+                                         "outside user folder.")
 
                     self.entries.append((line_number, sign, pattern))
-                    if any(Path(d).is_dir(follow_symlinks=False) for d in glob.iglob(str(pattern), recursive=True)):
+                    if any(Path(d).is_dir(follow_symlinks=False)
+                           for d in glob.iglob(str(pattern), recursive=True)):
                         self.entries.append((line_number, sign, pattern/"**"))
 
     def __iter__(self) -> Iterator[tuple[Path, list[str]]]:
