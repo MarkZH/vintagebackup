@@ -479,6 +479,10 @@ def create_new_backup(user_data_location: Path,
                          copy_probability,
                          action_counter)
 
+    report_backup_file_counts(action_counter)
+
+
+def report_backup_file_counts(action_counter: Counter[str]) -> None:
     logger.info("")
     total_files = sum(count for action, count in action_counter.items()
                       if not action.startswith("failed"))
