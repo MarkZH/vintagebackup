@@ -165,7 +165,7 @@ class Backup_Set:
         return self.filtered_paths()
 
     def filtered_paths(self) -> Iterator[tuple[Path, list[str]]]:
-        for current_directory, directories, files in self.user_folder.walk():
+        for current_directory, _, files in self.user_folder.walk():
             good_files = list(filter(self.passes, (current_directory/file for file in files)))
             if good_files:
                 yield (current_directory, [file.name for file in good_files])
