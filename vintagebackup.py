@@ -1597,7 +1597,8 @@ Log information on all actions during a program run."""))
     add_no_option(other_group, "debug")
 
     default_log_file_name = Path.home()/"vintagebackup.log"
-    other_group.add_argument("-l", "--log", default=default_log_file_name, help=format_help(f"""
+    other_group.add_argument("-l", "--log", default=str(default_log_file_name),
+                             help=format_help(f"""
 Where to log the activity of this program. The default is
 {default_log_file_name.name} in the user's home folder. If no
 log file is desired, use the file name {os.devnull}."""))
