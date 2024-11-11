@@ -158,13 +158,13 @@ class Backup_Set:
 
                     if pattern.name == "**":
                         self.entries.append((line_number, sign, pattern))
-                    elif (not any(Path(d).is_dir(follow_symlinks=False)
-                                  for d in glob.iglob(str(pattern), recursive=True))):
-                        self.entries.append((line_number, sign, pattern))
-                    else:
+                    elif any(Path(d).is_dir(follow_symlinks=False)
+                             for d in glob.iglob(str(pattern), recursive=True)):
                         raise ValueError(f"Bad filter line: {line} (line# {line_number})"
                                          "\nlines that resolve to directories must end with"
                                          " /** or \\\\**.")
+                    else:
+                        self.entries.append((line_number, sign, pattern))
 
     def __iter__(self) -> Iterator[tuple[Path, list[str]]]:
         return self.filtered_paths()
