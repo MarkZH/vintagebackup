@@ -169,7 +169,7 @@ class Backup_Set:
         self.log_unused_lines()
 
     def passes(self, path: Path) -> bool:
-        is_included = True
+        is_included = not path.is_junction()
         for line_number, sign, pattern in self.entries:
             should_include = (sign == "+")
             if is_included == should_include:
