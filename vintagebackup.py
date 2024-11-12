@@ -938,17 +938,6 @@ def move_backups(old_backup_location: Path,
                           is_backup_move=True,
                           timestamp=backup_datetime(backup))
 
-        dated_backup_path = all_backups(new_backup_location)[-1]
-        backup_year_folder = dated_backup_path.parent.parent/backup.parent.name
-        correct_backup_path = backup_year_folder/backup.name
-        backup_year_folder.mkdir(parents=True, exist_ok=True)
-
-        logger.info("")
-        logger.info(f"Renaming {dated_backup_path}")
-        logger.info(f"to       {correct_backup_path}")
-
-        dated_backup_path.rename(correct_backup_path)
-
         backup_source_file = get_user_location_record(new_backup_location)
         backup_source_file.unlink()
         logger.info("---------------------")
