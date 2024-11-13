@@ -1202,7 +1202,7 @@ def print_run_title(command_line_args: argparse.Namespace, action_title: str) ->
     logger.info("")
 
     if command_line_args.config:
-        logger.info("Reading configuration from file: {Path(command_line_args.config).absolute()}")
+        logger.info(f"Reading configuration from file: {Path(command_line_args.config).absolute()}")
         logger.info("")
 
 
