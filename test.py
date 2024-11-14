@@ -364,11 +364,11 @@ class FilterTest(unittest.TestCase):
                 user_paths = directory_contents(user_data)
 
                 expected_backups = user_paths.copy()
-                filter_file.write("- sub_directory_2\n\n")
+                filter_file.write("- sub_directory_2/**\n\n")
                 expected_backups.difference_update(path for path in user_paths
                                                    if "sub_directory_2" in path.parts)
 
-                filter_file.write(str(Path("- *")/"sub_sub_directory_0\n\n"))
+                filter_file.write(str(Path("- *")/"sub_sub_directory_0/**\n\n"))
                 expected_backups.difference_update(path for path in user_paths
                                                    if "sub_sub_directory_0" in path.parts)
 
@@ -401,11 +401,11 @@ class FilterTest(unittest.TestCase):
             user_paths = directory_contents(user_data)
 
             expected_backup_paths = user_paths.copy()
-            filter_file.write("- sub_directory_2\n\n")
+            filter_file.write("- sub_directory_2/**\n\n")
             expected_backup_paths.difference_update(path for path in user_paths
                                                     if "sub_directory_2" in path.parts)
 
-            filter_file.write(str(Path("- *")/"sub_sub_directory_0\n\n"))
+            filter_file.write(str(Path("- *")/"sub_sub_directory_0/**\n\n"))
             expected_backup_paths.difference_update(path for path in user_paths
                                                     if "sub_sub_directory_0" in path.parts)
 
@@ -438,25 +438,49 @@ class FilterTest(unittest.TestCase):
             user_path = Path(user_data_location)
             create_user_data(user_path)
 
-            ineffective_sub_directory = Path("sub_directory_1/sub_sub_directory_0")
-            ineffective_directory = Path("sub_directory_0")
-            filter_file.write("- sub_directory_1\n")
-            filter_file.write("# Ineffective line:\n")
-            filter_file.write(f"- {ineffective_sub_directory}\n")
-            filter_file.write(f"+ {ineffective_directory}\n")
+            filter_file.write("- sub_directory_1/**\n")
+
+            bad_lines = [("-", "sub_directory_1/sub_sub_directory_0/**"),  # redundant exclusion
+                         ("+", "sub_directory_0/**"),  # redundant inclusion
+                         ("-", "does_not_exist.txt"),  # excluding non-existent file
+                         ("-", "sub_directory_0"),  # ineffective exclusion of folder
+                         ("-", "sub_directory_1/*")]  # ineffective exlusion of folder
+
+            filter_file.write("# Ineffective lines:\n")
+            for sign, line in bad_lines:
+                filter_file.write(f"{sign} {line}\n")
             filter_file.close()
 
             with self.assertLogs() as log_assert:
-                vintagebackup.backup_paths(user_path, Path(filter_file.name))
+                for _ in vintagebackup.Backup_Set(user_path, Path(filter_file.name)):
+                    pass
 
-            self.assertIn(f"INFO:vintagebackup:{filter_file.name}: line #3 "
-                          f"(- {user_data_location/ineffective_sub_directory}) "
-                          "had no effect.",
-                          log_assert.output)
-            self.assertIn(f"INFO:vintagebackup:{filter_file.name}: line #4 "
-                          f"(+ {user_data_location/ineffective_directory}) had no effect.",
-                          log_assert.output)
+            for line_number, (sign, path) in enumerate(bad_lines, 3):
+                self.assertIn(f"INFO:vintagebackup:{filter_file.name}: line #{line_number} "
+                              f"({sign} {user_path/path}) had no effect.",
+                              log_assert.output)
+
             self.assertFalse(any("Ineffective" in message for message in log_assert.output))
+
+    def test_bad_filter_lines(self) -> None:
+        """Test that malformed lines raise exceptions."""
+        with tempfile.TemporaryDirectory() as user_folder:
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+
+            with tempfile.NamedTemporaryFile("w", delete_on_close=False) as filter_file:
+                filter_file.write("* invalid_sign\n")
+                filter_file.close()
+                with self.assertRaises(ValueError) as error:
+                    vintagebackup.Backup_Set(user_path, Path(filter_file.name))
+                self.assertTrue("The first symbol of each line" in error.exception.args[0])
+
+            with tempfile.NamedTemporaryFile("w", delete_on_close=False) as filter_file:
+                filter_file.write("- /other_place/sub_directory_0")
+                filter_file.close()
+                with self.assertRaises(ValueError) as error:
+                    vintagebackup.Backup_Set(user_path, Path(filter_file.name))
+                self.assertTrue("outside user folder" in error.exception.args[0])
 
 
 def run_recovery(method: Invocation, backup_location: Path, file_path: Path) -> int:
@@ -897,7 +921,7 @@ class VerificationTest(unittest.TestCase):
             matching_path_set: set[Path] = set()
             mismatching_path_set: set[Path] = set()
             error_path_set: set[Path] = set()
-            user_paths = vintagebackup.backup_paths(user_location, None)
+            user_paths = vintagebackup.Backup_Set(user_location, None)
             for directory, file_names in user_paths:
                 for file_name in file_names:
                     path = (directory/file_name).relative_to(user_location)

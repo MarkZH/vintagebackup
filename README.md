@@ -1,7 +1,7 @@
 # Vintage Backup
 
 Vintage Backup is a backup utility that uses hard links to unchanged (vintage) files to create full backups with the storage savings of incremental backups.
-It is written in Python and requires Python 3.12 or later to be installed to run.
+It is written in Python and requires Python 3.13 or later to be installed to run.
 
 Why "Vintage" Backup?
 When something old is still of good quality--whether cars, wines, books, or art--they are brought forward into the present instead of being replaced with something new.

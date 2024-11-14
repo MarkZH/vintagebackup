@@ -11,12 +11,11 @@ import stat
 import itertools
 import textwrap
 import math
-import glob
 import random
 import time
 from collections import Counter
 from pathlib import Path
-from typing import Callable, Any
+from typing import Callable, Any, Iterator
 
 backup_date_format = "%Y-%m-%d %H-%M-%S"
 
@@ -125,92 +124,74 @@ def find_previous_backup(backup_location: Path) -> Path | None:
 
 def is_real_directory(path: Path | os.DirEntry[str]) -> bool:
     """Return True if path is a directory and not a symlink."""
-    return path.is_dir() and not path.is_symlink()
+    return path.is_dir(follow_symlinks=False)
 
 
-def backup_paths(user_folder: Path, filter_file: Path | None) -> list[tuple[Path, list[str]]]:
-    """Return a list of all paths in a user's folder after filtering it with a filter file."""
-    logger.info(f"Gathering items for backup in {user_folder} ...")
-    backup_set: set[Path] = set()
-    for current_directory_name, dir_names, file_names in user_folder.walk():
-        current_directory = Path(current_directory_name)
-        backup_set.update(current_directory/name for name in file_names + dir_names
-                          if not (current_directory/name).is_junction())
+class Backup_Set:
+    def __init__(self, user_folder: Path, filter_file: Path | None) -> None:
+        self.entries: list[tuple[int, str, Path]] = []
+        self.lines_used: set[int] = set()
+        self.user_folder = user_folder
+        self.filter_file = filter_file
 
-    original_backup_set = frozenset(backup_set)
+        if filter_file:
+            logger.info(f"Filtering items according to {filter_file} ...")
+            with open(filter_file) as filters:
+                for line_number, line in enumerate(filters, 1):
+                    line = line.lstrip().rstrip("\n")
+                    if not line:
+                        continue
+                    sign = line[0]
 
-    for line_number, sign, pattern in filter_file_patterns(user_folder, filter_file):
-        path_count_before = len(backup_set)
-        change_set: set[Path] = set()
-        for filter_path_str in glob.iglob(str(pattern), include_hidden=True, recursive=True):
-            filter_path = Path(filter_path_str)
-            if is_real_directory(filter_path):
-                change_set.update(filter(lambda p: p.is_relative_to(filter_path),
-                                         original_backup_set))
-            else:
-                change_set.add(filter_path)
+                    if sign not in "-+#":
+                        raise ValueError(f"Line #{line_number} ({line}): The first symbol "
+                                         "of each line in the filter file must be -, +, or #.")
 
-        if sign == "+":
-            backup_set.update(change_set)
-        else:
-            backup_set.difference_update(change_set)
-        path_count_after = len(backup_set)
+                    if sign == "#":
+                        continue
 
-        if path_count_before == path_count_after:
-            logger.info(f"{filter_file}: line #{line_number} ({sign} {pattern}) had no effect.")
+                    pattern = user_folder/line[1:].lstrip()
+                    if not pattern.is_relative_to(user_folder):
+                        raise ValueError(f"Line #{line_number} ({line}): Filter looks at paths "
+                                         "outside user folder.")
 
-    backup_tree: dict[Path, list[str]] = {}
-    for path in backup_set:
-        if is_real_directory(path):
-            backup_tree.setdefault(path, [])
-        else:
-            backup_tree.setdefault(path.parent, []).append(path.name)
+                    self.entries.append((line_number, sign, pattern))
 
-    return sorted(backup_tree.items())
+    def __iter__(self) -> Iterator[tuple[Path, list[str]]]:
+        return self.filtered_paths()
 
+    def filtered_paths(self) -> Iterator[tuple[Path, list[str]]]:
+        for current_directory, _, files in self.user_folder.walk():
+            good_files = list(filter(self.passes, (current_directory/file for file in files)))
+            if good_files:
+                yield (current_directory, [file.name for file in good_files])
 
-PATTERN_ENTRY = tuple[int, str, Path]
+        self.log_unused_lines()
 
-
-def filter_file_patterns(user_folder: Path, filter_file: Path | None) -> list[PATTERN_ENTRY]:
-    """
-    Read filter patterns from the given filter file.
-
-    Parameters:
-    user_folder: The base folder of the user's data.
-    filter_file: The file containing filters to the data being backed up.
-
-    Returns:
-    A list of tuples of (line number, filter file line, path) where the path may contain glob
-    wildcard characters.
-    """
-    if not filter_file:
-        return []
-
-    logger.info(f"Filtering items according to {filter_file} ...")
-    with open(filter_file) as filters:
-        entries: list[PATTERN_ENTRY] = []
-        for line_number, line in enumerate(filters, 1):
-            line = line.lstrip().rstrip("\n")
-            if not line:
-                continue
-            sign = line[0]
-
-            if sign not in "-+#":
-                raise ValueError(f"Line #{line_number} ({line}): The first symbol "
-                                 "of each line in the filter file must be -, +, or #.")
-
-            if sign == "#":
+    def passes(self, path: Path) -> bool:
+        is_included = not path.is_junction()
+        for line_number, sign, pattern in self.entries:
+            should_include = (sign == "+")
+            if is_included == should_include:
                 continue
 
-            pattern = user_folder/line[1:].lstrip()
-            if not pattern.is_relative_to(user_folder):
-                raise ValueError(f"Line #{line_number} ({line}): Filter looks at paths "
-                                 "outside user folder.")
+            if path.full_match(pattern):
+                self.lines_used.add(line_number)
+                is_included = should_include
+                logger.debug("File: {} {} by line {}: {} {}",
+                             path,
+                             "included" if is_included else "excluded",
+                             line_number,
+                             sign,
+                             pattern)
 
-            entries.append((line_number, sign, pattern))
+        return is_included
 
-    return entries
+    def log_unused_lines(self) -> None:
+        for line_number, sign, pattern in self.entries:
+            if line_number not in self.lines_used:
+                logger.info(f"{self.filter_file}: line #{line_number}"
+                            f" ({sign} {pattern}) had no effect.")
 
 
 def get_user_location_record(backup_location: Path) -> Path:
@@ -491,7 +472,7 @@ def create_new_backup(user_data_location: Path,
     logger.info(f"Reading file contents = {examine_whole_file}")
 
     action_counter: Counter[str] = Counter()
-    paths_to_backup = backup_paths(user_data_location, filter_file)
+    paths_to_backup = Backup_Set(user_data_location, filter_file)
     copy_probability = copy_probability_from_hard_link_count(max_average_hard_links)
     logger.info("Running backup ...")
     for current_user_path, user_file_names in paths_to_backup:
@@ -715,7 +696,7 @@ def delete_directory_tree(backup_path: Path) -> None:
 
         Copied from https://docs.python.org/3/library/shutil.html#rmtree-example
         """
-        os.chmod(path, stat.S_IWRITE)
+        os.chmod(path, stat.S_IWRITE, follow_symlinks=False)
         func(path)
 
     shutil.rmtree(backup_path, onexc=remove_readonly)
@@ -999,7 +980,7 @@ def verify_last_backup(user_folder: Path,
         for file in (matching_file, mismatching_file, error_file):
             file.write(f"Comparison: {user_folder} <---> {backup_folder}\n")
 
-        for directory, file_names in backup_paths(user_folder, filter_file):
+        for directory, file_names in Backup_Set(user_folder, filter_file):
             relative_directory = directory.relative_to(user_folder)
             backup_directory = last_backup_folder/relative_directory
             matches, mismatches, errors = filecmp.cmpfiles(directory,
@@ -1352,6 +1333,8 @@ more capabilities.
 
 Technical notes:
 
+- If a folder is completely empty, it will not appear in the backup.
+
 - Symbolic links are not followed and are always copied as symbolic links. On Windows, symbolic
 links cannot be created or copied without elevated privileges. Symbolic links will be missing from
 backups if not run in administrator mode. Backups will be complete for all other files, so an
@@ -1431,21 +1414,38 @@ folder and all subfolders will be backed up recursively."""))
     backup_group.add_argument("-f", "--filter", metavar="FILTER_FILE_NAME", help=format_help("""
 Filter the set of files that will be backed up. The value of this argument should be the name of
 a text file that contains lines specifying what files to include or exclude. These may contain
-wildcard characters like *, **, and ? to allow for matching multiple file names.
+wildcard characters like *, **, [], and ? to allow for matching multiple path names. If you want to
+match a single name that contains wildcards, put brackets around them: What Is Life[?].pdf, for
+example. Only files will be matched against each line in this file. If you want to include or
+exclude an entire directory, the line must end with a "/**" or "\\**" to match all of its contents.
 
 Each line should begin with a minus (-), plus (+), or hash (#). Lines with minus signs specify
 files and folders to exclude. Lines with plus signs specify files and folders to include. Lines
-with hash signs are ignored. All included files must reside within the directory tree of the
+with hash signs are ignored. All paths must reside within the directory tree of the
 --user-folder. For example, if backing up C:\\Users\\Alice, the following filter file:
 
     # Ignore AppData except Firefox
-    - AppData
-    + AppData/Roaming/Mozilla/Firefox/
+    - AppData/**
+    + AppData/Roaming/Mozilla/Firefox/**
 
 will exclude everything in C:\\Users\\Alice\\AppData\\ except the
 Roaming\\Mozilla\\Firefox subfolder. The order of the lines matters. If the - and + lines above
 were reversed, the Firefox folder would be included and then excluded by the following - Appdata
-line."""))
+line.
+
+Because each line only matches to files, some glob patterns may not do what the user expects. Here
+are some examples of such patters:
+
+    # Assume that dir1 is a folder in the user's --user-folder and dir2 is a folder inside dir1.
+
+    # This line does nothing.
+    - dir1
+
+    # This line will exclude all files in dir1, but not folders. dir1/dir2 is still included.
+    - dir1/*
+
+    # This line will exclude dir1 and all of its contents.
+    - dir1/**"""))
 
     backup_group.add_argument("-w", "--whole-file", action="store_true", help=format_help("""
 Examine the entire contents of a file to determine if it has
