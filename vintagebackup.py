@@ -1594,11 +1594,11 @@ log file is desired, use the file name {os.devnull}."""))
 
     # The following arguments are only used for testing.
 
-    # Bypass keyboard input when testing functions that ask for a choice from a menu
+    # Bypass keyboard input when testing functions that ask for a choice from a menu.
     user_input.add_argument("--choice", help=argparse.SUPPRESS)
 
     # Allow for backups to be created more quickly by providing a timestamp instead of using
-    # datetime.datetime.now()
+    # datetime.datetime.now().
     user_input.add_argument("--timestamp", help=argparse.SUPPRESS)
 
     return user_input
