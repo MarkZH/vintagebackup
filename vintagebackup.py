@@ -1283,7 +1283,24 @@ def start_backup_restore(args: argparse.Namespace) -> None:
 
     with Lock_File(backup_folder, args.wait):
         print_run_title(args, "Restoring user data from backup")
-        restore_backup(restore_source, destination, delete_extra_files=delete_extra_files)
+
+        required_response = "yes"
+        if args.skip_prompt:
+            response = required_response
+        else:
+            logger.info(f"This will overwrite all files in {user_folder} and subfolders with files "
+                        f"in {restore_source}.")
+            if delete_extra_files:
+                logger.info("Any files that were not backed up, including newly created files and "
+                            "files not backed up because of --filter, will be deleted.")
+            response = input(f'Do you want to continue? Type "{required_response}" to proceed '
+                             'or press Ctrl-C to cancel: ')
+
+        if response.strip("'").strip('"').lower() == required_response:
+            restore_backup(restore_source, destination, delete_extra_files=delete_extra_files)
+        else:
+            logger.info(f'The response was "{response}" and not "{required_response}", '
+                        'so the restoration is cancelled.')
 
 
 def start_backup(args: argparse.Namespace) -> Path:
@@ -1600,6 +1617,9 @@ log file is desired, use the file name {os.devnull}."""))
     # Allow for backups to be created more quickly by providing a timestamp instead of using
     # datetime.datetime.now().
     user_input.add_argument("--timestamp", help=argparse.SUPPRESS)
+
+    # Skip confirmation prompt for backup restorations.
+    user_input.add_argument("--skip-prompt", action="store_true", help=argparse.SUPPRESS)
 
     return user_input
 

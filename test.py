@@ -1128,7 +1128,8 @@ class RestorationTest(unittest.TestCase):
                                             "--user-folder", user_folder,
                                             "--backup-folder", backup_folder,
                                             "--last-backup", "--delete-extra",
-                                            "--log", os.devnull])
+                                            "--log", os.devnull,
+                                            "--skip-prompt"])
 
             self.assertEqual(exit_code, 0)
             last_backup = vintagebackup.find_previous_backup(backup_path)
@@ -1175,7 +1176,8 @@ class RestorationTest(unittest.TestCase):
                                             "--user-folder", user_folder,
                                             "--backup-folder", backup_folder,
                                             "--last-backup", "--keep-extra",
-                                            "--log", os.devnull])
+                                            "--log", os.devnull,
+                                            "--skip-prompt"])
 
             self.assertEqual(exit_code, 0)
             last_backup = vintagebackup.find_previous_backup(backup_path)
@@ -1225,7 +1227,8 @@ class RestorationTest(unittest.TestCase):
                                             "--backup-folder", backup_folder,
                                             "--choose-backup", "--delete-extra",
                                             "--log", os.devnull,
-                                            "--choice", str(choice)])
+                                            "--choice", str(choice),
+                                            "--skip-prompt"])
 
             self.assertEqual(exit_code, 0)
             restored_backup = vintagebackup.all_backups(backup_path)[choice]
@@ -1274,7 +1277,8 @@ class RestorationTest(unittest.TestCase):
                                             "--backup-folder", backup_folder,
                                             "--choose-backup", "--keep-extra",
                                             "--log", os.devnull,
-                                            "--choice", str(choice)])
+                                            "--choice", str(choice),
+                                            "--skip-prompt"])
 
             self.assertEqual(exit_code, 0)
             restored_backup = vintagebackup.all_backups(backup_path)[choice]
@@ -1306,7 +1310,8 @@ class RestorationTest(unittest.TestCase):
                                             "--backup-folder", backup_folder,
                                             "--last-backup", "--delete-extra",
                                             "--log", os.devnull,
-                                            "--destination", destination_folder])
+                                            "--destination", destination_folder,
+                                            "--skip-prompt"])
 
             self.assertEqual(exit_code, 0)
             destination_path = Path(destination_folder)
