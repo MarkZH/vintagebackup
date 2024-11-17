@@ -1267,12 +1267,12 @@ def start_backup_restore(args: argparse.Namespace) -> None:
 
     if not args.delete_extra and not args.keep_extra:
         raise CommandLineError("One of the following are required: "
-                               "--delete-new or --keep-new")
+                               "--delete-extra or --keep-extra")
     delete_extra_files = bool(args.delete_extra)
 
     if not args.last_backup and not args.choose_backup:
         raise CommandLineError("One of the following are required: "
-                               "--use-last-backup or --choose-backup")
+                               "--last-backup or --choose-backup")
     choice = None if args.choice is None else int(args.choice)
     restore_source = (find_previous_backup(backup_folder)
                       if args.last_backup else
