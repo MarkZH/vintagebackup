@@ -1534,8 +1534,8 @@ Specify the maximum age of backups to move. See --delete-after for the time span
 Move all backups made on or after the specified date (YYYY-MM-DD)."""))
 
     restore_group = user_input.add_argument_group("Restore Options", format_help("""
-Exactly one of each of the following option pairs(--use-last-backup/--choose-backup and
---delete-new/--keep-new) is required when restoring a backup. The --destination option is
+Exactly one of each of the following option pairs(--last-backup/--choose-backup and
+--delete-extra/--keep-extra) is required when restoring a backup. The --destination option is
 optional."""))
 
     choose_restore_backup_group = restore_group.add_mutually_exclusive_group()
