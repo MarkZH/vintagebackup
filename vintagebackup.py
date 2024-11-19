@@ -1647,10 +1647,6 @@ def main(argv: list[str]) -> int:
     user_input = argument_parser()
     args = parse_command_line(argv, user_input)
 
-    if args.help:
-        user_input.print_help()
-        return 0
-
     exit_code = 1
     action = ""
 
@@ -1675,6 +1671,8 @@ def main(argv: list[str]) -> int:
         elif args.restore:
             action = "restoration"
             start_backup_restore(args)
+        elif args.help:
+            user_input.print_help()
         else:
             action = "backup"
             backup_folder = start_backup(args)
