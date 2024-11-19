@@ -1652,8 +1652,7 @@ def main(argv: list[str]) -> int:
 
     try:
         setup_log_file(logger, args.log)
-        if toggle_is_set(args, "debug"):
-            logger.setLevel(logging.DEBUG)
+        logger.setLevel(logging.DEBUG if toggle_is_set(args, "debug") else logging.INFO)
         logger.debug(args)
 
         if args.recover:
