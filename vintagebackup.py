@@ -1,4 +1,4 @@
-"""A backup utility that uses hardlinks to save space when making fulll backups."""
+"""A backup utility that uses hardlinks to save space when making full backups."""
 import os
 import shutil
 import datetime
