@@ -1694,10 +1694,8 @@ def main(argv: list[str]) -> int:
     except ConcurrencyError as error:
         logger.error(error)
     except Exception:
-        if action:
-            logger.error(f"An error prevented the {action} from completing.")
-        else:
-            logger.error("An error occurred before any action could take place.")
+        logger.error(f"An error prevented the {action} from completing." if action else
+                     "An error occurred before any action could take place.")
         logger.exception("Error:")
         if __name__ == "__main__":
             print_backup_storage_stats(args.backup_folder)
