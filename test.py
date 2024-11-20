@@ -925,12 +925,10 @@ class VerificationTest(unittest.TestCase):
             for directory, file_names in user_paths:
                 for file_name in file_names:
                     path = (directory/file_name).relative_to(user_location)
-                    if path == mismatch_file:
-                        mismatching_path_set.add(path)
-                    elif path == error_file:
-                        error_path_set.add(path)
-                    else:
-                        matching_path_set.add(path)
+                    path_set = (mismatching_path_set if path == mismatch_file
+                                else error_path_set if path == error_file
+                                else matching_path_set)
+                    path_set.add(path)
 
             for method in Invocation:
                 with tempfile.TemporaryDirectory() as verification_folder:
