@@ -1691,13 +1691,10 @@ def main(argv: list[str]) -> int:
         user_input.print_usage(text)
         print(text if __name__ == "__main__" else "", end="")
         logger.error(error)
-    except ConcurrencyError as error:
-        logger.error(error)
-    except Exception:
+    except Exception as error:
         logger.error(f"An error prevented the {action} from completing." if action else
                      "An error occurred before any action could take place.")
-        logger.exception("Error:")
-        print_backup_storage_stats(args.backup_folder)
+        logger.error(error)
     finally:
         return exit_code
 
