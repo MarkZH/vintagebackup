@@ -1696,8 +1696,7 @@ def main(argv: list[str]) -> int:
         logger.error(f"An error prevented the {action} from completing." if action else
                      "An error occurred before any action could take place.")
         logger.exception("Error:")
-        if __name__ == "__main__":
-            print_backup_storage_stats(args.backup_folder)
+        print_backup_storage_stats(args.backup_folder)
     finally:
         return exit_code
 
