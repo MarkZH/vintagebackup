@@ -543,19 +543,7 @@ def search_backups(search_directory: Path,
     Returns:
     The path to a file or folder that will then be searched for among backups.
     """
-    if not is_real_directory(search_directory):
-        raise CommandLineError(f"The given search path is not a directory: {search_directory}")
-
-    try:
-        user_data_location = backup_source(backup_folder)
-    except FileNotFoundError:
-        raise CommandLineError(f"There are no backups in {backup_folder}")
-
-    try:
-        target_relative_path = search_directory.relative_to(user_data_location)
-    except ValueError:
-        raise CommandLineError(f"The path {search_directory} is not in the backup at"
-                               f" {backup_folder}, which contains {user_data_location}")
+    target_relative_path = directory_relative_to_backup(search_directory, backup_folder)
 
     all_paths: set[tuple[str, str]] = set()
     for backup in all_backups(backup_folder):
@@ -583,6 +571,14 @@ def search_backups(search_directory: Path,
     return search_directory/menu_list[choice][0]
 
 
+def directory_relative_to_backup(search_directory: Path, backup_folder: Path) -> Path:
+    """Returns a path to user's folder relative to the backups folder."""
+    if not is_real_directory(search_directory):
+        raise CommandLineError(f"The given search path is not a directory: {search_directory}")
+
+    return path_relative_to_backups(search_directory, backup_folder)
+
+
 def recover_path(recovery_path: Path, backup_location: Path, choice: int | None = None) -> None:
     """
     Decide which version of a file to restore to its previous location.
@@ -598,17 +594,8 @@ def recover_path(recovery_path: Path, backup_location: Path, choice: int | None 
     backup_location: The folder containing all backups.
     choice: Pre-selected choice of which file to recover (used for testing).
     """
-    try:
-        user_data_location = backup_source(backup_location)
-    except FileNotFoundError:
-        raise CommandLineError(f"No backups found at {backup_location}")
-
-    if not recovery_path.is_relative_to(user_data_location):
-        raise CommandLineError(f"{recovery_path} is not contained in the backup set "
-                               f"{backup_location}, which contains {user_data_location}.")
-
+    recovery_relative_path = path_relative_to_backups(recovery_path, backup_location)
     unique_backups: dict[int, Path] = {}
-    recovery_relative_path = recovery_path.relative_to(user_data_location)
     for backup in all_backups(backup_location):
         path = backup/recovery_relative_path
         if path.exists(follow_symlinks=False):
@@ -644,6 +631,20 @@ def recover_path(recovery_path: Path, backup_location: Path, choice: int | None 
         shutil.copy2(chosen_path, recovered_path, follow_symlinks=False)
     else:
         shutil.copytree(chosen_path, recovered_path, symlinks=True)
+
+
+def path_relative_to_backups(user_path: Path, backup_location: Path) -> Path:
+    """Returns a path user's file or folder relative to the backups folder."""
+    try:
+        user_data_location = backup_source(backup_location)
+    except FileNotFoundError:
+        raise CommandLineError(f"No backups found at {backup_location}")
+
+    try:
+        return user_path.relative_to(user_data_location)
+    except ValueError:
+        raise CommandLineError(f"{user_path} is not contained in the backup set "
+                               f"{backup_location}, which contains {user_data_location}.")
 
 
 def choose_from_menu(menu_choices: list[str], prompt: str) -> int:
