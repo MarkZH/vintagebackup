@@ -15,6 +15,7 @@ import random
 import time
 from collections import Counter
 from pathlib import Path
+from io import StringIO
 from typing import Callable, Any, Iterator
 
 backup_date_format = "%Y-%m-%d %H-%M-%S"
@@ -1687,8 +1688,9 @@ def main(argv: list[str]) -> int:
 
         exit_code = 0
     except CommandLineError as error:
-        if __name__ == "__main__":
-            user_input.print_usage()
+        text = StringIO()
+        user_input.print_usage(text)
+        print(text if __name__ == "__main__" else "", end="")
         logger.error(error)
     except ConcurrencyError as error:
         logger.error(error)
