@@ -293,10 +293,8 @@ def compare_to_backup(user_directory: Path,
             try:
                 user_file_stats = shallow_stats(user_files[file_name])
                 backup_file_stats = shallow_stats(backup_files[file_name])
-                if user_file_stats == backup_file_stats:
-                    matches.append(file_name)
-                else:
-                    mismatches.append(file_name)
+                file_set = matches if user_file_stats == backup_file_stats else mismatches
+                file_set.append(file_name)
             except Exception:
                 errors.append(file_name)
 
