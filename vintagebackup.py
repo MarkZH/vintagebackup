@@ -138,8 +138,8 @@ class Backup_Set:
         if not filter_file:
             return
 
-        logger.info(f"Filtering items according to {filter_file} ...")
         with open(filter_file) as filters:
+            logger.info(f"Filtering items according to {filter_file} ...")
             for line_number, line in enumerate(filters, 1):
                 line = line.lstrip().rstrip("\n")
                 if not line:
