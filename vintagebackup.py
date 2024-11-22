@@ -1644,12 +1644,12 @@ def main(argv: list[str]) -> int:
 
     argv: A list of command line arguments as from sys.argv
     """
-    user_input = argument_parser()
-    args = parse_command_line(argv, user_input)
-
     exit_code = 1
 
     try:
+        user_input = argument_parser()
+        args = parse_command_line(argv, user_input)
+
         setup_log_file(logger, args.log)
         logger.setLevel(logging.DEBUG if toggle_is_set(args, "debug") else logging.INFO)
         logger.debug(args)
