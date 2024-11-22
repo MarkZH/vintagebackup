@@ -1233,10 +1233,9 @@ def get_existing_path(path: str | None, folder_type: str) -> Path:
         raise CommandLineError(f"{folder_type.capitalize()} not specified.")
 
     try:
-        backup_folder = Path(path).resolve(strict=True)
+        return Path(path).resolve(strict=True)
     except FileNotFoundError:
         raise CommandLineError(f"Could not find {folder_type.lower()}: {path}")
-    return backup_folder
 
 
 def start_recovery_from_backup(args: argparse.Namespace) -> None:
