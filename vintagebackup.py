@@ -260,7 +260,7 @@ def compare_to_backup(user_directory: Path,
 
     Parameters:
     user_directory: The subfolder of the user's data currently being walked through
-    backup_direcotry: The backup folder that corresponds with the user_directory
+    backup_directory: The backup folder that corresponds with the user_directory
     file_names: A list of regular files (not symlinks) in the user directory.
     examine_whole_file: Whether the contents of the file should be examined, or just file
     attributes.
