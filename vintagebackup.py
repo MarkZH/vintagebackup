@@ -1089,7 +1089,7 @@ def read_configuation_file(config_file_name: str) -> list[str]:
                 parameter, value = line.split(":", maxsplit=1)
                 if parameter.lower() == "config":
                     raise CommandLineError("The parameter `config` within a configuration file"
-                                        " has no effect.")
+                                           " has no effect.")
                 arguments.append(f"--{"-".join(parameter.lower().split())}")
                 arguments.append(value.strip())
     except FileNotFoundError:
