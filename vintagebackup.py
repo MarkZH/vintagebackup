@@ -251,7 +251,7 @@ def shallow_stats(stats: os.stat_result) -> tuple[int, int, int]:
 
 
 def random_filter(probability: float) -> Callable[[Any], bool]:
-    """Create a filter that randomly chooses items with a given probability."""
+    """Create a filter that chooses items with a given probability."""
     def actual_random_filter(_: Any) -> bool:
         return random.random() < probability
     return actual_random_filter
@@ -261,7 +261,7 @@ def compare_to_backup(user_directory: Path,
                       backup_directory: Path | None,
                       file_names: list[str],
                       examine_whole_file: bool,
-                      randomly_copy_probability: float) -> tuple[list[str], list[str], list[str]]:
+                      copy_probability: float) -> tuple[list[str], list[str], list[str]]:
     """
     Sort a list of files according to whether they have changed since the last backup.
 
@@ -271,7 +271,7 @@ def compare_to_backup(user_directory: Path,
     file_names: A list of regular files (not symlinks) in the user directory.
     examine_whole_file: Whether the contents of the file should be examined, or just file
     attributes.
-    randomly_copy_probability: Instead of hard-linking a file that hasn't changed since the last
+    copy_probability: Instead of hard-linking a file that hasn't changed since the last
     backup, copy it anyway with a given probability.
 
     The file names will be sorted into three lists and returned in this order: (1) matching files
@@ -308,7 +308,7 @@ def compare_to_backup(user_directory: Path,
             except Exception:
                 errors.append(file_name)
 
-        for item in list(filter(random_filter(randomly_copy_probability), matches)):
+        for item in list(filter(random_filter(copy_probability), matches)):
             matches.remove(item)
             errors.append(item)
         return matches, mismatches, errors
@@ -355,7 +355,7 @@ def backup_directory(user_data_location: Path,
                      current_user_path: Path,
                      user_file_names: list[str],
                      examine_whole_file: bool,
-                     randomly_copy_probability: float,
+                     copy_probability: float,
                      action_counter: Counter[str]) -> None:
     """
     Backup the files in a subfolder in the user's directory.
@@ -367,7 +367,7 @@ def backup_directory(user_data_location: Path,
     current_user_path: The user directory currently being walked through
     user_file_names: The names of files contained in the current_user_path
     examine_whole_file: Whether to examine file contents to check for changes since the last backup
-    randomly_copy_probability: Probability of copying a file when it would normally be hard-linked
+    copy_probability: Probability of copying a file when it would normally be hard-linked
     action_counter: A counter to track how many files have been linked, copied, or failed for both
     """
     if not is_real_directory(current_user_path):
@@ -384,7 +384,7 @@ def backup_directory(user_data_location: Path,
                                                       previous_backup_directory,
                                                       user_file_names,
                                                       examine_whole_file,
-                                                      randomly_copy_probability)
+                                                      copy_probability)
 
     for file_name in matching:
         assert previous_backup_directory
