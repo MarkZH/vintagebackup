@@ -250,6 +250,13 @@ def shallow_stats(stats: os.stat_result) -> tuple[int, int, int]:
     return (stats.st_size, stat.S_IFMT(stats.st_mode), stats.st_mtime_ns)
 
 
+def random_filter(probability: float) -> Callable[[Any], bool]:
+    """Create a filter that randomly chooses items with a given probability."""
+    def actual_random_filter(_: Any) -> bool:
+        return random.random() < probability
+    return actual_random_filter
+
+
 def compare_to_backup(user_directory: Path,
                       backup_directory: Path | None,
                       file_names: list[str],
@@ -301,7 +308,7 @@ def compare_to_backup(user_directory: Path,
             except Exception:
                 errors.append(file_name)
 
-        for item in list(filter(lambda _: random.random() < randomly_copy_probability, matches)):
+        for item in list(filter(random_filter(randomly_copy_probability), matches)):
             matches.remove(item)
             errors.append(item)
         return matches, mismatches, errors
