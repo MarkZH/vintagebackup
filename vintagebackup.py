@@ -135,28 +135,30 @@ class Backup_Set:
         self.user_folder = user_folder
         self.filter_file = filter_file
 
-        if filter_file:
-            logger.info(f"Filtering items according to {filter_file} ...")
-            with open(filter_file) as filters:
-                for line_number, line in enumerate(filters, 1):
-                    line = line.lstrip().rstrip("\n")
-                    if not line:
-                        continue
-                    sign = line[0]
+        if not filter_file:
+            return
 
-                    if sign not in "-+#":
-                        raise ValueError(f"Line #{line_number} ({line}): The first symbol "
-                                         "of each line in the filter file must be -, +, or #.")
+        logger.info(f"Filtering items according to {filter_file} ...")
+        with open(filter_file) as filters:
+            for line_number, line in enumerate(filters, 1):
+                line = line.lstrip().rstrip("\n")
+                if not line:
+                    continue
+                sign = line[0]
 
-                    if sign == "#":
-                        continue
+                if sign not in "-+#":
+                    raise ValueError(f"Line #{line_number} ({line}): The first symbol "
+                                        "of each line in the filter file must be -, +, or #.")
 
-                    pattern = user_folder/line[1:].lstrip()
-                    if not pattern.is_relative_to(user_folder):
-                        raise ValueError(f"Line #{line_number} ({line}): Filter looks at paths "
-                                         "outside user folder.")
+                if sign == "#":
+                    continue
 
-                    self.entries.append((line_number, sign, pattern))
+                pattern = user_folder/line[1:].lstrip()
+                if not pattern.is_relative_to(user_folder):
+                    raise ValueError(f"Line #{line_number} ({line}): Filter looks at paths "
+                                        "outside user folder.")
+
+                self.entries.append((line_number, sign, pattern))
 
     def __iter__(self) -> Iterator[tuple[Path, list[str]]]:
         return self.filtered_paths()
