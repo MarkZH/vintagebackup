@@ -251,7 +251,7 @@ def shallow_stats(stats: os.stat_result) -> tuple[int, int, int]:
 
 
 def random_filter(probability: float) -> Callable[[Any], bool]:
-    """Create a filter that chooses items with a given probability."""
+    """Create a filter that chooses items with the given probability."""
     def actual_random_filter(_: Any) -> bool:
         return random.random() < probability
     return actual_random_filter
@@ -1232,7 +1232,7 @@ def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
 
 
 def start_move_backups(args: argparse.Namespace) -> None:
-    """Parse command line options to move backupos to another location."""
+    """Parse command line options to move backups to another location."""
     old_backup_location = get_existing_path(args.backup_folder, "current backup location")
     new_backup_location = Path(args.move_backup).resolve()
 
