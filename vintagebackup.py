@@ -158,6 +158,7 @@ class Backup_Set:
                     raise ValueError(f"Line #{line_number} ({line}): Filter looks at paths "
                                      "outside user folder.")
 
+                logger.debug(f"Filter added: {line} --> {sign} {pattern}")
                 self.entries.append((line_number, sign, pattern))
 
     def __iter__(self) -> Iterator[tuple[Path, list[str]]]:
