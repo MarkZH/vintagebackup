@@ -1680,8 +1680,7 @@ def main(argv: list[str]) -> int:
     except CommandLineError as error:
         text = StringIO()
         user_input.print_usage(text)
-        text.seek(0)
-        print(text.read() if __name__ == "__main__" else "", end="")
+        print(text.getvalue() if __name__ == "__main__" else "", end="")
         logger.error(error)
     except Exception as error:
         logger.error(error)
