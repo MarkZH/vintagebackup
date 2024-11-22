@@ -37,10 +37,16 @@ class Lock_File:
     """Lock out other Vintage Backup instances from accessing the same backup location."""
 
     def __init__(self, backup_location: Path, wait: bool) -> None:
+        """Setup the lock."""
         self.lock_file_path = backup_location/"vintagebackup.lock"
         self.wait = wait
 
     def __enter__(self) -> None:
+        """
+        Attempt to take possession of the file lock.
+
+        If unsuccessful, wait or fail out according to the --wait choice.
+        """
         print_waiting_message = True
         while True:
             try:
@@ -65,6 +71,7 @@ class Lock_File:
                                            f"{self.lock_file_path.parent} (PID {other_pid})")
 
     def __exit__(self, *_: Any) -> None:
+        """Release the file lock."""
         self.lock_file_path.unlink()
 
 
@@ -129,7 +136,16 @@ def is_real_directory(path: Path | os.DirEntry[str]) -> bool:
 
 
 class Backup_Set:
+    """Generate the list of all paths to be backed up after filtering."""
+
     def __init__(self, user_folder: Path, filter_file: Path | None) -> None:
+        """
+        Prepare the path generator by parsing the filter file.
+
+        Parameters:
+        user_folder: The folder to be backed up.
+        filter_file: The path of the filter file that edits the paths to backup.
+        """
         self.entries: list[tuple[int, str, Path]] = []
         self.lines_used: set[int] = set()
         self.user_folder = user_folder
@@ -162,9 +178,11 @@ class Backup_Set:
                 self.entries.append((line_number, sign, pattern))
 
     def __iter__(self) -> Iterator[tuple[Path, list[str]]]:
+        """Generate the paths to backup when used in, for example, a for-loop."""
         return self.filtered_paths()
 
     def filtered_paths(self) -> Iterator[tuple[Path, list[str]]]:
+        """Create the iterator that yields the paths to backup."""
         for current_directory, _, files in self.user_folder.walk():
             good_files = list(filter(self.passes, (current_directory/file for file in files)))
             if good_files:
@@ -173,6 +191,7 @@ class Backup_Set:
         self.log_unused_lines()
 
     def passes(self, path: Path) -> bool:
+        """Determine if a path should be included in the backup according to the filter file."""
         is_included = not path.is_junction()
         for line_number, sign, pattern in self.entries:
             should_include = (sign == "+")
@@ -192,6 +211,7 @@ class Backup_Set:
         return is_included
 
     def log_unused_lines(self) -> None:
+        """Warn the user if any of the lines in the filter file had no effect on the backup."""
         for line_number, sign, pattern in self.entries:
             if line_number not in self.lines_used:
                 logger.info(f"{self.filter_file}: line #{line_number}"
@@ -497,6 +517,7 @@ def create_new_backup(user_data_location: Path,
 
 
 def report_backup_file_counts(action_counter: Counter[str]) -> None:
+    """Log the number of files that were backed up, hardlinked, copied, and failed to copy."""
     logger.info("")
     total_files = sum(count for action, count in action_counter.items()
                       if not action.startswith("failed"))
@@ -1201,6 +1222,11 @@ def print_run_title(command_line_args: argparse.Namespace, action_title: str) ->
 
 
 def get_existing_path(path: str | None, folder_type: str) -> Path:
+    """
+    Return the absolute version of the given existing path.
+
+    Raise an exception if the path does not exist.
+    """
     if not path:
         raise CommandLineError(f"{folder_type.capitalize()} not specified.")
 
