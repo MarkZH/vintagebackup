@@ -1155,7 +1155,7 @@ def path_or_none(arg: str | None) -> Path | None:
 
 def copy_probability_from_hard_link_count(hard_link_count: str | None) -> float:
     """
-    Convert an expected avergae hard link count into a copy probability.
+    Convert an expected average hard link count into a copy probability.
 
     In order to prevent the slow increase in time required to make a backup on Windows, this
     function returns a probability of copying an unchanged file instead of hard linking. The
