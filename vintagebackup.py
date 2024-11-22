@@ -1065,6 +1065,7 @@ def print_backup_storage_stats(backup_location: str | Path) -> None:
     backup_storage = shutil.disk_usage(backup_location)
     percent_used = round(100*backup_storage.used/backup_storage.total)
     percent_free = round(100*backup_storage.free/backup_storage.total)
+    logger.info("")
     logger.info("Backup storage space: "
                 f"Total = {byte_units(backup_storage.total)}  "
                 f"Used = {byte_units(backup_storage.used)} ({percent_used}%)  "
@@ -1673,8 +1674,6 @@ def main(argv: list[str]) -> int:
             backup_folder = start_backup(args)
             delete_oldest_backups_for_space(backup_folder, args.free_up)
             delete_backups_older_than(backup_folder, args.delete_after)
-
-            logger.info("")
             print_backup_storage_stats(args.backup_folder)
 
         exit_code = 0
