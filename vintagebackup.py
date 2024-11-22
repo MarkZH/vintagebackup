@@ -1079,17 +1079,20 @@ def read_configuation_file(config_file_name: str) -> list[str]:
     """Parse a configuration file into command line arguments."""
     arguments: list[str] = []
 
-    with open(config_file_name) as file:
-        for line in file:
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-            parameter, value = line.split(":", maxsplit=1)
-            if parameter.lower() == "config":
-                raise CommandLineError("The parameter `config` within a configuration file"
-                                       " has no effect.")
-            arguments.append(f"--{"-".join(parameter.lower().split())}")
-            arguments.append(value.strip())
+    try:
+        with open(config_file_name) as file:
+            for line in file:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                parameter, value = line.split(":", maxsplit=1)
+                if parameter.lower() == "config":
+                    raise CommandLineError("The parameter `config` within a configuration file"
+                                        " has no effect.")
+                arguments.append(f"--{"-".join(parameter.lower().split())}")
+                arguments.append(value.strip())
+    except FileNotFoundError:
+        raise CommandLineError(f"Configuation file does not exist: {config_file_name}")
 
     return list(filter(None, arguments))
 
