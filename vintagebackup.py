@@ -1027,8 +1027,10 @@ def verify_last_backup(user_folder: Path,
             error_file.writelines(map(file_name_line, errors))
 
 
-def restore_backup(dated_backup_folder: Path, user_folder: Path,
-                   *, delete_extra_files: bool) -> None:
+def restore_backup(dated_backup_folder: Path,
+                   user_folder: Path,
+                   *,
+                   delete_extra_files: bool) -> None:
     """
     Return a user's folder to a previously backed up state.
 
