@@ -1683,8 +1683,8 @@ def main(argv: list[str]) -> int:
         logger.error(error)
     except Exception as error:
         logger.error(error)
-    finally:
-        return exit_code
+
+    return exit_code
 
 
 if __name__ == "__main__":
