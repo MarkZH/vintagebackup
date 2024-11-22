@@ -446,11 +446,10 @@ def create_new_backup(user_data_location: Path,
     Parameters:
     user_data_location: The folder containing the data to be backed up
     backup_location: The base directory of the backup destination
-    exclude_file: A file containg a list of path glob patterns to exclude from the backup
-    include_file: A file containg a list of path glob patterns to include in the backup.
+    filter_file: A file containg a list of path glob patterns to exclude/include from the backup
     examine_whole_file: Whether to examine file contents to check for changes since the last backup
     force_copy: Whether to always copy files, regardless of whether a previous backup exists.
-    randomly_copy_probability: Specify probability that an unchanged file will be copied anyway.
+    max_average_hard_links: How many times on average a file will be hardlinked before being copied.
     timestamp: Manually set timestamp of new backup. Used for debugging.
     is_backup_move: Used to customize log messages when moving a backup to a new location.
     """
@@ -1015,9 +1014,9 @@ def restore_backup(dated_backup_folder: Path, user_folder: Path,
     Existing files that were backed up will be overwritten with the backup.
 
     Parameters:
-    backup_folder: The backup from which to restore files and folders
+    dated_backup_folder: The backup from which to restore files and folders
     user_folder: The folder that will be restored to a previous state.
-    delete_new_files: Whether to delete files and folders that are not present in the backup.
+    delete_extra_files: Whether to delete files and folders that are not present in the backup.
     """
     logger.info(f"Restoring: {user_folder}")
     logger.info(f"From     : {dated_backup_folder}")
