@@ -1648,7 +1648,6 @@ def main(argv: list[str]) -> int:
     args = parse_command_line(argv, user_input)
 
     exit_code = 1
-    action = ""
 
     try:
         setup_log_file(logger, args.log)
@@ -1656,30 +1655,20 @@ def main(argv: list[str]) -> int:
         logger.debug(args)
 
         if args.recover:
-            action = "recovery"
             start_recovery_from_backup(args)
         elif args.list:
-            action = "backup listing"
             choose_recovery_target_from_backups(args)
         elif args.move_backup:
-            action = "backup location move"
             start_move_backups(args)
         elif args.verify:
-            action = "verification"
             start_verify_backup(args)
         elif args.restore:
-            action = "restoration"
             start_backup_restore(args)
         elif args.help:
             user_input.print_help()
         else:
-            action = "backup"
             backup_folder = start_backup(args)
-
-            action = "deletions for freeing up space"
             delete_oldest_backups_for_space(backup_folder, args.free_up)
-
-            action = "deletion of old backups"
             delete_backups_older_than(backup_folder, args.delete_after)
 
             logger.info("")
@@ -1692,8 +1681,6 @@ def main(argv: list[str]) -> int:
         print(text if __name__ == "__main__" else "", end="")
         logger.error(error)
     except Exception as error:
-        logger.error(f"An error prevented the {action} from completing." if action else
-                     "An error occurred before any action could take place.")
         logger.error(error)
     finally:
         return exit_code
