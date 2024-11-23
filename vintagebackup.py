@@ -1720,12 +1720,13 @@ def main(argv: list[str]) -> int:
         logger.error(error)
     except Exception as error:
         logger.error(error)
-    except KeyboardInterrupt:
-        pass
 
     return exit_code
 
 
 if __name__ == "__main__":
-    logger.addHandler(logging.StreamHandler(sys.stdout))
-    sys.exit(main(sys.argv))
+    try:
+        logger.addHandler(logging.StreamHandler(sys.stdout))
+        sys.exit(main(sys.argv))
+    except KeyboardInterrupt:
+        sys.exit(1)
