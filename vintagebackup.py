@@ -1252,7 +1252,7 @@ def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     search_directory = Path(args.list).resolve()
     with Lock_File(backup_folder, args.wait):
-        print_run_title(args, "Listing recoverable files")
+        print_run_title(args, "Listing recoverable files and directories")
         chosen_recovery_path = search_backups(search_directory, backup_folder)
         if chosen_recovery_path is not None:
             recover_path(chosen_recovery_path, backup_folder)
