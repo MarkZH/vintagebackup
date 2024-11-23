@@ -1720,6 +1720,8 @@ def main(argv: list[str]) -> int:
         logger.error(error)
     except Exception as error:
         logger.error(error)
+    except KeyboardInterrupt:
+        pass
 
     return exit_code
 
