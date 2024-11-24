@@ -1430,8 +1430,7 @@ backup location to search."""))
     only_one_action_group.add_argument("--list", metavar="DIRECTORY", help=format_help("""
 Recover a file or folder in the directory specified by the argument
 by first choosing what to recover from a list of everything that's
-ever been backed up. If no argument is given, the current directory
-is used. The backup location argument --backup-folder is required."""))
+ever been backed up. The backup location argument --backup-folder is required."""))
 
     only_one_action_group.add_argument("--move-backup", metavar="NEW_BACKUP_LOCATION",
                                        help=format_help("""
