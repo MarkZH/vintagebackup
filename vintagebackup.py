@@ -1253,6 +1253,7 @@ def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
     search_directory = Path(args.list).resolve()
     with Lock_File(backup_folder, args.wait):
         print_run_title(args, "Listing recoverable files and directories")
+        logger.info(f"Searching for everything backed up from {search_directory} ...")
         chosen_recovery_path = search_backups(search_directory, backup_folder)
         if chosen_recovery_path is not None:
             recover_path(chosen_recovery_path, backup_folder)
@@ -1427,10 +1428,12 @@ recovered, then all available backup dates will be options.
 This option requires the --backup-folder option to specify which
 backup location to search."""))
 
-    only_one_action_group.add_argument("--list", metavar="DIRECTORY", help=format_help("""
-Recover a file or folder in the directory specified by the argument
-by first choosing what to recover from a list of everything that's
-ever been backed up. The backup location argument --backup-folder is required."""))
+    only_one_action_group.add_argument("--list", metavar="DIRECTORY", nargs="?", const=".",
+                                       help=format_help("""
+Recover a file or folder in the directory specified by the argument by first choosing what to
+recover from a list of everything that's ever been backed up. If there is no folder specified
+after --list, then the current directory is used. The backup location argument --backup-folder
+is required."""))
 
     only_one_action_group.add_argument("--move-backup", metavar="NEW_BACKUP_LOCATION",
                                        help=format_help("""
