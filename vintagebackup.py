@@ -1391,10 +1391,11 @@ more capabilities.
 
 Technical notes:
 
-- If a folder is completely empty, it will not appear in the backup.
+- If a folder is completely empty, either because it was already empty or everything inside was
+filtered out, it will not appear in the backup.
 
 - Symbolic links are not followed and are always copied as symbolic links. On Windows, symbolic
-links cannot be created or copied without elevated privileges. Symbolic links will be missing from
+links cannot be created or copied without elevated privileges, so they will be missing from
 backups if not run in administrator mode. Backups will be complete for all other files, so an
 unprivileged user may user this program and use the logs to restore symbolic links after restoring a
 backup.
