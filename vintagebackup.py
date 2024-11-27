@@ -1391,7 +1391,7 @@ more capabilities.
 
 Technical notes:
 
-- If a folder is completely empty, either because it was already empty or everything inside was
+- If a folder is completely empty, whether because it was already empty or everything inside was
 filtered out, it will not appear in the backup.
 
 - Symbolic links are not followed and are always copied as symbolic links. On Windows, symbolic
@@ -1494,7 +1494,7 @@ were reversed, the Firefox folder would be included and then excluded by the fol
 line.
 
 Because each line only matches to files, some glob patterns may not do what the user expects. Here
-are some examples of such patters:
+are some examples of such patterns:
 
     # Assume that dir1 is a folder in the user's --user-folder and dir2 is a folder inside dir1.
 
