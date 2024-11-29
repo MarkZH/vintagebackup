@@ -303,35 +303,51 @@ def compare_to_backup(user_directory: Path,
 
     if not backup_directory:
         return [], [], file_names
-    elif examine_whole_file:
-        return filecmp.cmpfiles(user_directory, backup_directory, file_names, shallow=False)
+
+    if examine_whole_file:
+        matches, mismatches, errors = filecmp.cmpfiles(user_directory,
+                                                       backup_directory,
+                                                       file_names,
+                                                       shallow=False)
     else:
-        def scan_directory(directory: Path) -> dict[str, os.stat_result]:
-            with os.scandir(directory) as scan:
-                return {entry.name: entry.stat() for entry in scan}
+        matches, mismatches, errors = shallow_comparison(user_directory,
+                                                         backup_directory,
+                                                         file_names)
 
+    for item in list(filter(random_filter(copy_probability), matches)):
+        matches.remove(item)
+        errors.append(item)
+
+    return matches, mismatches, errors
+
+
+def shallow_comparison(user_directory: Path,
+                       backup_directory: Path,
+                       file_names: list[str]) -> tuple[list[str], list[str], list[str]]:
+    """Decide which files match the previous backup based on quick stat information."""
+    def scan_directory(directory: Path) -> dict[str, os.stat_result]:
+        with os.scandir(directory) as scan:
+            return {entry.name: entry.stat() for entry in scan}
+
+    try:
+        backup_files = scan_directory(backup_directory)
+    except OSError:
+        return [], [], file_names
+
+    matches: list[str] = []
+    mismatches: list[str] = []
+    errors: list[str] = []
+    user_files = scan_directory(user_directory)
+    for file_name in file_names:
         try:
-            backup_files = scan_directory(backup_directory)
-        except OSError:
-            return [], [], file_names
+            user_file_stats = shallow_stats(user_files[file_name])
+            backup_file_stats = shallow_stats(backup_files[file_name])
+            file_set = matches if user_file_stats == backup_file_stats else mismatches
+            file_set.append(file_name)
+        except Exception:
+            errors.append(file_name)
 
-        matches: list[str] = []
-        mismatches: list[str] = []
-        errors: list[str] = []
-        user_files = scan_directory(user_directory)
-        for file_name in file_names:
-            try:
-                user_file_stats = shallow_stats(user_files[file_name])
-                backup_file_stats = shallow_stats(backup_files[file_name])
-                file_set = matches if user_file_stats == backup_file_stats else mismatches
-                file_set.append(file_name)
-            except Exception:
-                errors.append(file_name)
-
-        for item in list(filter(random_filter(copy_probability), matches)):
-            matches.remove(item)
-            errors.append(item)
-        return matches, mismatches, errors
+    return matches, mismatches, errors
 
 
 def create_hard_link(previous_backup: Path, new_backup: Path) -> bool:
