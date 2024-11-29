@@ -305,15 +305,11 @@ def compare_to_backup(user_directory: Path,
         return [], [], file_names
 
     if examine_whole_file:
-        matches, mismatches, errors = filecmp.cmpfiles(user_directory,
-                                                       backup_directory,
-                                                       file_names,
-                                                       shallow=False)
+        comparisons = filecmp.cmpfiles(user_directory, backup_directory, file_names, shallow=False)
     else:
-        matches, mismatches, errors = shallow_comparison(user_directory,
-                                                         backup_directory,
-                                                         file_names)
+        comparisons = shallow_comparison(user_directory, backup_directory, file_names)
 
+    matches, mismatches, errors = comparisons
     for item in list(filter(random_filter(copy_probability), matches)):
         matches.remove(item)
         errors.append(item)
