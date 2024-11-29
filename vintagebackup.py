@@ -304,17 +304,20 @@ def compare_to_backup(user_directory: Path,
     if not backup_directory:
         return [], [], file_names
 
-    if examine_whole_file:
-        comparisons = filecmp.cmpfiles(user_directory, backup_directory, file_names, shallow=False)
-    else:
-        comparisons = shallow_comparison(user_directory, backup_directory, file_names)
-
-    matches, mismatches, errors = comparisons
+    comparison_function = deep_comparison if examine_whole_file else shallow_comparison
+    matches, mismatches, errors = comparison_function(user_directory, backup_directory, file_names)
     for item in list(filter(random_filter(copy_probability), matches)):
         matches.remove(item)
         errors.append(item)
 
     return matches, mismatches, errors
+
+
+def deep_comparison(user_directory: Path,
+                    backup_directory: Path,
+                    file_names: list[str]) -> tuple[list[str], list[str], list[str]]:
+    """Inspect file contents to determine if files match the most recent backup."""
+    return filecmp.cmpfiles(user_directory, backup_directory, file_names, shallow=False)
 
 
 def shallow_comparison(user_directory: Path,
