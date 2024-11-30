@@ -1316,6 +1316,7 @@ class RestorationTest(unittest.TestCase):
             last_backup = vintagebackup.find_previous_backup(backup_path)
             assert last_backup
             self.assertTrue(directories_have_identical_content(last_backup, destination_path))
+            self.assertTrue(directories_have_identical_content(user_path, destination_path))
 
 
 class LockFileTest(unittest.TestCase):
