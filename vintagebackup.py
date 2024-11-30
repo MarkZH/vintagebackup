@@ -1324,26 +1324,20 @@ def start_verify_backup(args: argparse.Namespace) -> None:
 
 def start_backup_restore(args: argparse.Namespace) -> None:
     """Parse command line arguments for a backup recovery."""
+    backup_folder = get_existing_path(args.backup_folder, "backup folder")
+
     if args.destination:
         destination = Path(args.destination).resolve()
         user_folder = None
     else:
         user_folder = get_existing_path(args.user_folder, "user folder")
+        confirm_user_location_is_unchanged(user_folder, backup_folder)
         destination = user_folder
 
-    backup_folder = get_existing_path(args.backup_folder, "backup folder")
-
-    if user_folder:
-        confirm_user_location_is_unchanged(user_folder, backup_folder)
-
-    if not args.delete_extra and not args.keep_extra:
-        raise CommandLineError("One of the following are required: "
-                               "--delete-extra or --keep-extra")
+    confirm_choice_made(args, "delete_extra", "keep_extra")
     delete_extra_files = bool(args.delete_extra)
 
-    if not args.last_backup and not args.choose_backup:
-        raise CommandLineError("One of the following are required: "
-                               "--last-backup or --choose-backup")
+    confirm_choice_made(args, "last_backup", "choose_backup")
     choice = None if args.choice is None else int(args.choice)
     restore_source = (find_previous_backup(backup_folder)
                       if args.last_backup else
@@ -1372,6 +1366,14 @@ def start_backup_restore(args: argparse.Namespace) -> None:
         else:
             logger.info(f'The response was "{response}" and not "{required_response}", '
                         'so the restoration is cancelled.')
+
+
+def confirm_choice_made(args: argparse.Namespace, option1: str, option2: str) -> None:
+    """Make sure that at least one of two argument parameters are present."""
+    args_dict = vars(args)
+    if not args_dict.get(option1) and not args_dict.get(option2):
+        raise CommandLineError("One of the following are required: "
+                               f"--{option1.replace("_", "-")} or --{option2.replace("_", "-")}")
 
 
 def start_backup(args: argparse.Namespace) -> Path:
