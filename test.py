@@ -1318,6 +1318,41 @@ class RestorationTest(unittest.TestCase):
             self.assertTrue(directories_have_identical_content(last_backup, destination_path))
             self.assertTrue(directories_have_identical_content(user_path, destination_path))
 
+    def test_restore_errors(self) -> None:
+        """Test error states in restore function."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+            backup_path = Path(backup_folder)
+            vintagebackup.create_new_backup(user_path,
+                                            backup_path,
+                                            filter_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False,
+                                            max_average_hard_links=None,
+                                            timestamp=unique_timestamp())
+
+            with self.assertLogs(level=logging.ERROR) as no_extra_log:
+                exit_code = vintagebackup.main(["--restore",
+                                                "--user-folder", user_folder,
+                                                "--backup-folder", backup_folder,
+                                                "--last-backup"])
+            self.assertEqual(exit_code, 1)
+            self.assertEqual(["ERROR:vintagebackup:One of the following are required: "
+                              "--delete-extra or --keep-extra"],
+                             no_extra_log.output)
+
+            with self.assertLogs(level=logging.ERROR) as no_backup_choice_log:
+                exit_code = vintagebackup.main(["--restore",
+                                                "--user-folder", user_folder,
+                                                "--backup-folder", backup_folder,
+                                                "--keep-extra"])
+            self.assertEqual(exit_code, 1)
+            self.assertEqual(["ERROR:vintagebackup:One of the following are required: "
+                              "--last-backup or --choose-backup"],
+                             no_backup_choice_log.output)
+
 
 class LockFileTest(unittest.TestCase):
     """Test that the lock file prevents simultaneous access to a backup location."""
