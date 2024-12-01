@@ -1339,7 +1339,8 @@ class RestorationTest(unittest.TestCase):
                 exit_code = vintagebackup.main(["--restore",
                                                 "--user-folder", user_folder,
                                                 "--backup-folder", backup_folder,
-                                                "--last-backup"])
+                                                "--last-backup",
+                                                "--log", os.devnull])
             self.assertEqual(exit_code, 1)
             self.assertEqual(["ERROR:vintagebackup:One of the following are required: "
                               "--delete-extra or --keep-extra"],
@@ -1349,7 +1350,8 @@ class RestorationTest(unittest.TestCase):
                 exit_code = vintagebackup.main(["--restore",
                                                 "--user-folder", user_folder,
                                                 "--backup-folder", backup_folder,
-                                                "--keep-extra"])
+                                                "--keep-extra",
+                                                "--log", os.devnull])
             self.assertEqual(exit_code, 1)
             self.assertEqual(["ERROR:vintagebackup:One of the following are required: "
                               "--last-backup or --choose-backup"],
