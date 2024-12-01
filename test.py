@@ -1016,6 +1016,8 @@ Debug:""")
             options = vintagebackup.parse_command_line(command_line_options, arg_parser)
             self.assertEqual(options.backup_folder, actual_backup_folder)
             self.assertEqual(options.log, actual_log_file)
+            self.assertTrue(options.whole_file)
+            self.assertTrue(options.debug)
 
     def test_negating_config_file_with_command_line(self) -> None:
         """Test that command line options override file configurations."""
