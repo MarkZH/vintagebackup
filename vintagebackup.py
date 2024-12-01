@@ -16,7 +16,7 @@ import time
 from collections import Counter
 from pathlib import Path
 from io import StringIO
-from typing import Callable, Any, Iterator
+from typing import Callable, Any, Iterator, Iterable
 
 backup_date_format = "%Y-%m-%d %H-%M-%S"
 
@@ -303,35 +303,49 @@ def compare_to_backup(user_directory: Path,
 
     if not backup_directory:
         return [], [], file_names
-    elif examine_whole_file:
-        return filecmp.cmpfiles(user_directory, backup_directory, file_names, shallow=False)
-    else:
-        def scan_directory(directory: Path) -> dict[str, os.stat_result]:
-            with os.scandir(directory) as scan:
-                return {entry.name: entry.stat() for entry in scan}
 
+    comparison_function = deep_comparison if examine_whole_file else shallow_comparison
+    matches, mismatches, errors = comparison_function(user_directory, backup_directory, file_names)
+    move_to_errors, matches = separate(matches, random_filter(copy_probability))
+    errors.extend(move_to_errors)
+
+    return matches, mismatches, errors
+
+
+def deep_comparison(user_directory: Path,
+                    backup_directory: Path,
+                    file_names: list[str]) -> tuple[list[str], list[str], list[str]]:
+    """Inspect file contents to determine if files match the most recent backup."""
+    return filecmp.cmpfiles(user_directory, backup_directory, file_names, shallow=False)
+
+
+def shallow_comparison(user_directory: Path,
+                       backup_directory: Path,
+                       file_names: list[str]) -> tuple[list[str], list[str], list[str]]:
+    """Decide which files match the previous backup based on quick stat information."""
+    def scan_directory(directory: Path) -> dict[str, os.stat_result]:
+        with os.scandir(directory) as scan:
+            return {entry.name: entry.stat() for entry in scan}
+
+    try:
+        backup_files = scan_directory(backup_directory)
+    except OSError:
+        return [], [], file_names
+
+    matches: list[str] = []
+    mismatches: list[str] = []
+    errors: list[str] = []
+    user_files = scan_directory(user_directory)
+    for file_name in file_names:
         try:
-            backup_files = scan_directory(backup_directory)
-        except OSError:
-            return [], [], file_names
+            user_file_stats = shallow_stats(user_files[file_name])
+            backup_file_stats = shallow_stats(backup_files[file_name])
+            file_set = matches if user_file_stats == backup_file_stats else mismatches
+            file_set.append(file_name)
+        except Exception:
+            errors.append(file_name)
 
-        matches: list[str] = []
-        mismatches: list[str] = []
-        errors: list[str] = []
-        user_files = scan_directory(user_directory)
-        for file_name in file_names:
-            try:
-                user_file_stats = shallow_stats(user_files[file_name])
-                backup_file_stats = shallow_stats(backup_files[file_name])
-                file_set = matches if user_file_stats == backup_file_stats else mismatches
-                file_set.append(file_name)
-            except Exception:
-                errors.append(file_name)
-
-        for item in list(filter(random_filter(copy_probability), matches)):
-            matches.remove(item)
-            errors.append(item)
-        return matches, mismatches, errors
+    return matches, mismatches, errors
 
 
 def create_hard_link(previous_backup: Path, new_backup: Path) -> bool:
@@ -363,10 +377,26 @@ def separate_links(directory: Path, path_names: list[str]) -> tuple[list[str], l
     Returns:
     Two lists: the first a list of regular files, the second a list of symlinks.
     """
-    def is_link(name: str) -> bool:
-        return (directory/name).is_symlink()
+    def is_not_link(name: str) -> bool:
+        return not (directory/name).is_symlink()
 
-    return list(itertools.filterfalse(is_link, path_names)), list(filter(is_link, path_names))
+    return separate(path_names, is_not_link)
+
+
+def separate[T](items: Iterable[T], predicate: Callable[[T], bool]) -> tuple[list[T], list[T]]:
+    """
+    Separate a sequence of items into two lists according to a predicate.
+
+    The first list are items where the predicate is True, the second where the predicate is False.
+    """
+    true_items: list[T] = []
+    false_items: list[T] = []
+    for item in items:
+        if predicate(item):
+            true_items.append(item)
+        else:
+            false_items.append(item)
+    return true_items, false_items
 
 
 def backup_directory(user_data_location: Path,
