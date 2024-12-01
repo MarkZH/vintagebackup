@@ -47,7 +47,7 @@ class Lock_File:
 
         If unsuccessful, wait or fail out according to the --wait choice.
         """
-        print_waiting_message = True
+        last_pid = None
         while True:
             try:
                 with open(self.lock_file_path, "x") as lock_file:
@@ -60,15 +60,15 @@ class Lock_File:
                 except FileNotFoundError:
                     continue
 
-                if self.wait:
-                    if print_waiting_message:
-                        logger.info(f"Waiting for another Vintage Backup process (PID: {other_pid})"
-                                    f" to end its work in {self.lock_file_path.parent} ...")
-                        print_waiting_message = False
-                    time.sleep(1)
-                else:
+                if not self.wait:
                     raise ConcurrencyError("Vintage Backup already running on "
                                            f"{self.lock_file_path.parent} (PID {other_pid})")
+
+                if last_pid != other_pid:
+                    logger.info(f"Waiting for another Vintage Backup process (PID: {other_pid})"
+                                f" to end its work in {self.lock_file_path.parent} ...")
+                    last_pid = other_pid
+                time.sleep(1)
 
     def __exit__(self, *_: Any) -> None:
         """Release the file lock."""
