@@ -352,7 +352,7 @@ def create_hard_link(previous_backup: Path, new_backup: Path) -> bool:
     """
     Create a hard link between unchanged backup files.
 
-    Return True if successful, False if hard linked failed.
+    Return True if successful, False if linking failed.
     """
     try:
         os.link(previous_backup, new_backup, follow_symlinks=False)
