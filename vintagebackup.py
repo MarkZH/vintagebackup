@@ -410,9 +410,11 @@ def backup_directory(user_data_location: Path,
     :param last_backup_path: The base directory of the previous dated backup
     :param current_user_path: The user directory currently being walked through
     :param user_file_names: The names of files contained in the current_user_path
-    :param examine_whole_file: Whether to examine file contents to check for changes since the last backup
+    :param examine_whole_file: Whether to examine file contents to check for changes since the last
+    backup
     :param copy_probability: Probability of copying a file when it would normally be hard-linked
-    :param action_counter: A counter to track how many files have been linked, copied, or failed for both
+    :param action_counter: A counter to track how many files have been linked, copied, or failed for
+    both
     """
     if not is_real_directory(current_user_path):
         logger.warning(f"Folder disappeared during backup: {current_user_path}")
@@ -489,10 +491,13 @@ def create_new_backup(user_data_location: Path,
 
     :param user_data_location: The folder containing the data to be backed up
     :param backup_location: The base directory of the backup destination
-    :param filter_file: A file containg a list of path glob patterns to exclude/include from the backup
-    :param examine_whole_file: Whether to examine file contents to check for changes since the last backup
+    :param filter_file: A file containg a list of path glob patterns to exclude/include from the
+    backup
+    :param examine_whole_file: Whether to examine file contents to check for changes since the last
+    backup
     :param force_copy: Whether to always copy files, regardless of whether a previous backup exists.
-    :param max_average_hard_links: How many times on average a file will be hardlinked before being copied.
+    :param max_average_hard_links: How many times on average a file will be hardlinked before being
+    copied.
     :param timestamp: Manually set timestamp of new backup. Used for debugging.
     :param is_backup_move: Used to customize log messages when moving a backup to a new location.
     """
@@ -704,8 +709,9 @@ def choose_from_menu(menu_choices: list[str], prompt: str) -> int:
     :param menu_choices: List of choices
     :param prompt: Message to show user prior to the prompt for a choice.
 
-    :returns int: The returned number is an index into the input list. Note that the user interface has the user
-    choose a number from 1 to len(menu_list), but returns a number from 0 to len(menu_list) - 1.
+    :returns int: The returned number is an index into the input list. Note that the user interface
+    has the user choose a number from 1 to len(menu_list), but returns a number from 0 to
+    len(menu_list) - 1.
     """
     number_column_size = len(str(len(menu_choices)))
     for number, choice in enumerate(menu_choices, 1):
@@ -757,8 +763,9 @@ def delete_oldest_backups_for_space(backup_location: Path, space_requirement: st
     The most recent backup will never be deleted.
 
     :param backup_location: The folder containing all backups
-    :param space_requirement: The amount of space that should be free after deleting backups. This may be
-    expressed in bytes with a unit ("MB", "GB", etc.) or as a percentage ("%") of the total storage space.
+    :param space_requirement: The amount of space that should be free after deleting backups. This
+    may be expressed in bytes with a unit ("MB", "GB", etc.) or as a percentage ("%") of the total
+    storage space.
     """
     if not space_requirement:
         return
@@ -794,9 +801,11 @@ def parse_storage_space(space_requirement: str, total_storage: int) -> float:
     """
     Parse a string into a number of bytes of storage space.
 
-    :param space_requirement: A string indicating an amount of space, either as an absolute number of bytes
-    or a percentage of the total storage. Byte units and prefixes are allowed. Percents require a percent sign.
-    :param total_storage: The total storage space in bytes on the device. Used with percentage values.
+    :param space_requirement: A string indicating an amount of space, either as an absolute number
+    of bytes or a percentage of the total storage. Byte units and prefixes are allowed. Percents
+    require a percent sign.
+    :param total_storage: The total storage space in bytes on the device. Used with percentage
+    values.
 
     >>> parse_storage_space("152 kB", 0)
     152000.0
@@ -841,8 +850,8 @@ def parse_time_span_to_timepoint(time_span: str) -> datetime.datetime:
 
     For example, if time_span is "6m", the result is a date six calendar months ago.
 
-    :param time_span: A string consisting of a positive integer followed by a single letter: "d" for days,
-    "w" for weeks, "m" for calendar months, and "y" for calendar years.
+    :param time_span: A string consisting of a positive integer followed by a single letter: "d"
+    for days, "w" for weeks, "m" for calendar months, and "y" for calendar years.
 
     >>> import datetime
     >>> today = datetime.date.today()
@@ -910,8 +919,8 @@ def delete_backups_older_than(backup_folder: Path, time_span: str | None) -> Non
     Delete backups older than a given timespan.
 
     :param backup_folder: The folder containing all backups
-    :param time_span: The maximum age of a backup to not be deleted. See parse_time_span_to_timepoint()
-    for how the string is formatted.
+    :param time_span: The maximum age of a backup to not be deleted. See
+    parse_time_span_to_timepoint() for how the string is formatted.
     """
     if not time_span:
         return
@@ -1051,7 +1060,8 @@ def restore_backup(dated_backup_folder: Path,
 
     :param dated_backup_folder: The backup from which to restore files and folders
     :param user_folder: The folder that will be restored to a previous state.
-    :param delete_extra_files: Whether to delete files and folders that are not present in the backup.
+    :param delete_extra_files: Whether to delete files and folders that are not present in the
+    backup.
     """
     logger.info(f"Restoring: {user_folder}")
     logger.info(f"From     : {dated_backup_folder}")
@@ -1146,11 +1156,13 @@ def format_paragraphs(lines: str, line_length: int) -> str:
     """
     Format multiparagraph text in when printing --help.
 
-    :param lines: A string of text with paragraphs are separated by at least two newlines. Indented lines
-    will be preserved as-is.
-    :param line_length: The length of the line for word wrapping. Indented lines will not be word wrapped.
+    :param lines: A string of text with paragraphs are separated by at least two newlines. Indented
+    lines will be preserved as-is.
+    :param line_length: The length of the line for word wrapping. Indented lines will not be word
+    wrapped.
 
-    :returns string: A single string with word-wrapped lines and paragraphs separated by exactly two newlines.
+    :returns string: A single string with word-wrapped lines and paragraphs separated by exactly two
+    newlines.
     """
     paragraphs: list[str] = []
     for paragraph in lines.split("\n\n"):
