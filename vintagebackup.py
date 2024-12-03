@@ -142,9 +142,8 @@ class Backup_Set:
         """
         Prepare the path generator by parsing the filter file.
 
-        Parameters:
-        user_folder: The folder to be backed up.
-        filter_file: The path of the filter file that edits the paths to backup.
+        :param user_folder: The folder to be backed up.
+        :param filter_file: The path of the filter file that edits the paths to backup.
         """
         self.entries: list[tuple[int, str, Path]] = []
         self.lines_used: set[int] = set()
@@ -264,8 +263,7 @@ def shallow_stats(stats: os.stat_result) -> tuple[int, int, int]:
     When not inspecting file contents, only look at the file size, type, and modification time--in
     that order.
 
-    Parameter:
-    stats: File information retrieved from a DirEntry.stat() call.
+    :param stats: File information retrieved from a DirEntry.stat() call.
     """
     return (stats.st_size, stat.S_IFMT(stats.st_mode), stats.st_mtime_ns)
 
@@ -285,13 +283,12 @@ def compare_to_backup(user_directory: Path,
     """
     Sort a list of files according to whether they have changed since the last backup.
 
-    Parameters:
-    user_directory: The subfolder of the user's data currently being walked through
-    backup_directory: The backup folder that corresponds with the user_directory
-    file_names: A list of regular files (not symlinks) in the user directory.
-    examine_whole_file: Whether the contents of the file should be examined, or just file
+    :param user_directory: The subfolder of the user's data currently being walked through
+    :param backup_directory: The backup folder that corresponds with the user_directory
+    :param file_names: A list of regular files (not symlinks) in the user directory.
+    :param examine_whole_file: Whether the contents of the file should be examined, or just file
     attributes.
-    copy_probability: Instead of hard-linking a file that hasn't changed since the last
+    :param copy_probability: Instead of hard-linking a file that hasn't changed since the last
     backup, copy it anyway with a given probability.
 
     The file names will be sorted into three lists and returned in this order: (1) matching files
@@ -370,12 +367,10 @@ def separate_links(directory: Path, path_names: list[str]) -> tuple[list[str], l
 
     Directories within the given directory are not traversed.
 
-    Parameters:
-    directory: The directory containing all the files.
-    path_names: A list of names in the directory.
+    :param directory: The directory containing all the files.
+    :param path_names: A list of names in the directory.
 
-    Returns:
-    Two lists: the first a list of regular files, the second a list of symlinks.
+    :returns Two lists: the first a list of regular files, the second a list of symlinks.
     """
     def is_not_link(name: str) -> bool:
         return not (directory/name).is_symlink()
@@ -410,15 +405,14 @@ def backup_directory(user_data_location: Path,
     """
     Backup the files in a subfolder in the user's directory.
 
-    Parameters:
-    user_data_location: The base directory that is being backed up
-    new_backup_path: The base directory of the new dated backup
-    last_backup_path: The base directory of the previous dated backup
-    current_user_path: The user directory currently being walked through
-    user_file_names: The names of files contained in the current_user_path
-    examine_whole_file: Whether to examine file contents to check for changes since the last backup
-    copy_probability: Probability of copying a file when it would normally be hard-linked
-    action_counter: A counter to track how many files have been linked, copied, or failed for both
+    :param user_data_location: The base directory that is being backed up
+    :param new_backup_path: The base directory of the new dated backup
+    :param last_backup_path: The base directory of the previous dated backup
+    :param current_user_path: The user directory currently being walked through
+    :param user_file_names: The names of files contained in the current_user_path
+    :param examine_whole_file: Whether to examine file contents to check for changes since the last backup
+    :param copy_probability: Probability of copying a file when it would normally be hard-linked
+    :param action_counter: A counter to track how many files have been linked, copied, or failed for both
     """
     if not is_real_directory(current_user_path):
         logger.warning(f"Folder disappeared during backup: {current_user_path}")
@@ -493,15 +487,14 @@ def create_new_backup(user_data_location: Path,
     """
     Create a new dated backup.
 
-    Parameters:
-    user_data_location: The folder containing the data to be backed up
-    backup_location: The base directory of the backup destination
-    filter_file: A file containg a list of path glob patterns to exclude/include from the backup
-    examine_whole_file: Whether to examine file contents to check for changes since the last backup
-    force_copy: Whether to always copy files, regardless of whether a previous backup exists.
-    max_average_hard_links: How many times on average a file will be hardlinked before being copied.
-    timestamp: Manually set timestamp of new backup. Used for debugging.
-    is_backup_move: Used to customize log messages when moving a backup to a new location.
+    :param user_data_location: The folder containing the data to be backed up
+    :param backup_location: The base directory of the backup destination
+    :param filter_file: A file containg a list of path glob patterns to exclude/include from the backup
+    :param examine_whole_file: Whether to examine file contents to check for changes since the last backup
+    :param force_copy: Whether to always copy files, regardless of whether a previous backup exists.
+    :param max_average_hard_links: How many times on average a file will be hardlinked before being copied.
+    :param timestamp: Manually set timestamp of new backup. Used for debugging.
+    :param is_backup_move: Used to customize log messages when moving a backup to a new location.
     """
     check_paths_for_validity(user_data_location, backup_location, filter_file)
 
@@ -595,13 +588,11 @@ def search_backups(search_directory: Path,
     The user will pick from a list of all files and folders in search_directory that have ever been
     backed up.
 
-    Parameters:
-    search_directory: The directory from which backed up files and folders will be listed
-    backup_folder: The backup destination
-    choice: Pre-selected choice of which file to recover (used for testing).
+    :param search_directory: The directory from which backed up files and folders will be listed
+    :param backup_folder: The backup destination
+    :param choice: Pre-selected choice of which file to recover (used for testing).
 
-    Returns:
-    The path to a file or folder that will then be searched for among backups.
+    :returns Path: The path to a file or folder that will then be searched for among backups.
     """
     target_relative_path = directory_relative_to_backup(search_directory, backup_folder)
 
@@ -649,10 +640,9 @@ def recover_path(recovery_path: Path, backup_location: Path, choice: int | None 
     corresponding location in the user's data. The copy from the backup will be renamed with a
     number so as to not overwrite any existing file with the same name.
 
-    Parameters:
-    recovery_path: The file or folder that is to be restored.
-    backup_location: The folder containing all backups.
-    choice: Pre-selected choice of which file to recover (used for testing).
+    :param recovery_path: The file or folder that is to be restored.
+    :param backup_location: The folder containing all backups.
+    :param choice: Pre-selected choice of which file to recover (used for testing).
     """
     recovery_relative_path = path_relative_to_backups(recovery_path, backup_location)
     unique_backups: dict[int, Path] = {}
@@ -711,12 +701,10 @@ def choose_from_menu(menu_choices: list[str], prompt: str) -> int:
     """
     Let user choose from options presented a numbered list in a terminal.
 
-    Parameters:
-    menu_choices: List of choices
-    prompt: Message to show user prior to the prompt for a choice.
+    :param menu_choices: List of choices
+    :param prompt: Message to show user prior to the prompt for a choice.
 
-    Returns:
-    The returned number is an index into the input list. Note that the user interface has the user
+    :returns int: The returned number is an index into the input list. Note that the user interface has the user
     choose a number from 1 to len(menu_list), but returns a number from 0 to len(menu_list) - 1.
     """
     number_column_size = len(str(len(menu_choices)))
@@ -768,10 +756,9 @@ def delete_oldest_backups_for_space(backup_location: Path, space_requirement: st
 
     The most recent backup will never be deleted.
 
-    Parameters:
-    backup_location: The folder containing all backups
-    space_requirement: The amount of space that should be free after deleting backups. This may be
-    expressed in bytes ("MB", "GB", etc.) or as a percentage ("%") of the total storage space.
+    :param backup_location: The folder containing all backups
+    :param space_requirement: The amount of space that should be free after deleting backups. This may be
+    expressed in bytes with a unit ("MB", "GB", etc.) or as a percentage ("%") of the total storage space.
     """
     if not space_requirement:
         return
@@ -807,11 +794,9 @@ def parse_storage_space(space_requirement: str, total_storage: int) -> float:
     """
     Parse a string into a number of bytes of storage space.
 
-    Parameters:
-    space_requirement: A string indicating an amount of space, either as an absolute number of bytes
-    or a percentage of the total storage. Byte units and prefixes are allowed. Percents require a
-    percent sign.
-    total_storage: The total storage space in bytes on the device. Used with percentage values.
+    :param space_requirement: A string indicating an amount of space, either as an absolute number of bytes
+    or a percentage of the total storage. Byte units and prefixes are allowed. Percents require a percent sign.
+    :param total_storage: The total storage space in bytes on the device. Used with percentage values.
 
     >>> parse_storage_space("152 kB", 0)
     152000.0
@@ -856,7 +841,7 @@ def parse_time_span_to_timepoint(time_span: str) -> datetime.datetime:
 
     For example, if time_span is "6m", the result is a date six calendar months ago.
 
-    time_span: A string consisting of a positive integer followed by a single letter: "d" for days,
+    :param time_span: A string consisting of a positive integer followed by a single letter: "d" for days,
     "w" for weeks, "m" for calendar months, and "y" for calendar years.
 
     >>> import datetime
@@ -924,9 +909,8 @@ def delete_backups_older_than(backup_folder: Path, time_span: str | None) -> Non
     """
     Delete backups older than a given timespan.
 
-    Parameters:
-    backup_folder: The folder containing all backups
-    time_span: The maximum age of a backup to not be deleted. See parse_time_span_to_timepoint()
+    :param backup_folder: The folder containing all backups
+    :param time_span: The maximum age of a backup to not be deleted. See parse_time_span_to_timepoint()
     for how the string is formatted.
     """
     if not time_span:
@@ -1011,13 +995,12 @@ def verify_last_backup(user_folder: Path,
                        filter_file: Path | None,
                        result_folder: Path) -> None:
     """
-    Verify the most recent backup by comparing with the users files.
+    Verify the most recent backup by comparing with the user's files.
 
-    Parameters:
-    user_folder: The source of the backed up data.
-    backup_folder: The location of the backed up data.
-    filter_file: The file that filters which files are backed up.
-    result_folder: Where the results files will be saved.
+    :param user_folder: The source of the backed up data.
+    :param backup_folder: The location of the backed up data.
+    :param filter_file: The file that filters which files are backed up.
+    :param result_folder: Where the resulting files will be saved.
     """
     confirm_user_location_is_unchanged(user_folder, backup_folder)
     last_backup_folder = find_previous_backup(backup_folder)
@@ -1066,10 +1049,9 @@ def restore_backup(dated_backup_folder: Path,
 
     Existing files that were backed up will be overwritten with the backup.
 
-    Parameters:
-    dated_backup_folder: The backup from which to restore files and folders
-    user_folder: The folder that will be restored to a previous state.
-    delete_extra_files: Whether to delete files and folders that are not present in the backup.
+    :param dated_backup_folder: The backup from which to restore files and folders
+    :param user_folder: The folder that will be restored to a previous state.
+    :param delete_extra_files: Whether to delete files and folders that are not present in the backup.
     """
     logger.info(f"Restoring: {user_folder}")
     logger.info(f"From     : {dated_backup_folder}")
@@ -1107,8 +1089,8 @@ def last_n_backups(backup_location: Path, n: str | int) -> list[Path]:
     """
     Return a list of the paths of the last n backups.
 
-    backup_location: The location of the backup set.
-    n: A positive integer to get the last n backups, or "all" to get all backups.
+    :param backup_location: The location of the backup set.
+    :param n: A positive integer to get the last n backups, or "all" to get all backups.
     """
     backups = all_backups(backup_location)
     return backups if n == "all" else backups[-int(n):]
@@ -1164,13 +1146,11 @@ def format_paragraphs(lines: str, line_length: int) -> str:
     """
     Format multiparagraph text in when printing --help.
 
-    Arguments:
-    lines: A string of text with paragraphs are separated by at least two newlines. Indented lines
+    :param lines: A string of text with paragraphs are separated by at least two newlines. Indented lines
     will be preserved as-is.
-    line_length: The length of the line for word wrapping. Indented lines will not be word wrapped.
+    :param line_length: The length of the line for word wrapping. Indented lines will not be word wrapped.
 
-    Returns:
-    A single string with word-wrapped lines and paragraphs separated by exactly two newlines.
+    :returns string: A single string with word-wrapped lines and paragraphs separated by exactly two newlines.
     """
     paragraphs: list[str] = []
     for paragraph in lines.split("\n\n"):
@@ -1380,7 +1360,7 @@ def start_backup(args: argparse.Namespace) -> Path:
     """
     Parse command line arguments to start a backup.
 
-    Returns: the location of all backups
+    :returns Path: The base directory where all backups are stored.
     """
     user_folder = get_existing_path(args.user_folder, "user's folder")
 
@@ -1717,7 +1697,7 @@ def main(argv: list[str]) -> int:
     """
     Start the main program.
 
-    argv: A list of command line arguments as from sys.argv
+    :param argv: A list of command line arguments as from sys.argv
     """
     exit_code = 1
 
