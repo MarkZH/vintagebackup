@@ -294,7 +294,7 @@ def compare_to_backup(user_directory: Path,
     The file names will be sorted into three lists and returned in this order: (1) matching files
     that have not changed since the last backup, (2) mismatched files that have changed, (3) error
     files that could not be compared for some reason (usually because it is a new file with no
-    previous backup). This is the same behavior as filecmp.cmpfiles().
+    previous backup). Files that are symbolic links will be put in the errors list for copying.
     """
     if not backup_directory:
         return [], [], file_names
