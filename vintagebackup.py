@@ -285,7 +285,7 @@ def compare_to_backup(user_directory: Path,
 
     :param user_directory: The subfolder of the user's data currently being walked through
     :param backup_directory: The backup folder that corresponds with the user_directory
-    :param file_names: A list of regular files (not symlinks) in the user directory.
+    :param file_names: A list of files in the user directory.
     :param examine_whole_file: Whether the contents of the file should be examined, or just file
     attributes.
     :param copy_probability: Instead of hard-linking a file that hasn't changed since the last
@@ -296,15 +296,15 @@ def compare_to_backup(user_directory: Path,
     files that could not be compared for some reason (usually because it is a new file with no
     previous backup). This is the same behavior as filecmp.cmpfiles().
     """
-    assert all(not (user_directory/file_name).is_symlink() for file_name in file_names)
-
     if not backup_directory:
         return [], [], file_names
 
+    file_names, links = separate_links(user_directory, file_names)
     comparison_function = deep_comparison if examine_whole_file else shallow_comparison
     matches, mismatches, errors = comparison_function(user_directory, backup_directory, file_names)
     move_to_errors, matches = separate(matches, random_filter(copy_probability))
     errors.extend(move_to_errors)
+    errors.extend(links)
 
     return matches, mismatches, errors
 
@@ -424,8 +424,6 @@ def backup_directory(user_data_location: Path,
     new_backup_directory = new_backup_path/relative_path
     new_backup_directory.mkdir(parents=True)
     previous_backup_directory = last_backup_path/relative_path if last_backup_path else None
-
-    user_file_names, user_links = separate_links(current_user_path, user_file_names)
     matching, mismatching, errors = compare_to_backup(current_user_path,
                                                       previous_backup_directory,
                                                       user_file_names,
@@ -443,7 +441,7 @@ def backup_directory(user_data_location: Path,
         else:
             errors.append(file_name)
 
-    for file_name in itertools.chain(mismatching, errors, user_links):
+    for file_name in itertools.chain(mismatching, errors):
         new_backup_file = new_backup_directory/file_name
         user_file = current_user_path/file_name
         try:
