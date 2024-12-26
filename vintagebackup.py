@@ -753,7 +753,9 @@ def delete_directory_tree(backup_path: Path) -> None:
     shutil.rmtree(backup_path, onexc=remove_readonly)
 
 
-def delete_oldest_backups_for_space(backup_location: Path, space_requirement: str | None) -> None:
+def delete_oldest_backups_for_space(backup_location: Path,
+                                    space_requirement: str | None,
+                                    max_deletions: int | None) -> None:
     """
     Delete backups--starting with the oldest--until enough space is free on the backup destination.
 
@@ -775,12 +777,13 @@ def delete_oldest_backups_for_space(backup_location: Path, space_requirement: st
                                f" than exists at {backup_location} ({byte_units(total_storage)})")
 
     backups = all_backups(backup_location)
-    for deletion_count, backup in enumerate(backups[:-1]):
+    reached_max_deletions = False
+    for deletion_count, backup in enumerate(backups[:-1], 1):
         current_free_space = shutil.disk_usage(backup_location).free
         if current_free_space > free_storage_required:
             break
 
-        if deletion_count == 0:
+        if deletion_count == 1:
             logger.info("")
             logger.info(f"Deleting old backups to free up {byte_units(free_storage_required)},"
                         f" ({byte_units(current_free_space)} currently free).")
@@ -789,7 +792,12 @@ def delete_oldest_backups_for_space(backup_location: Path, space_requirement: st
         delete_directory_tree(backup)
         logger.info(f"Free space: {byte_units(shutil.disk_usage(backup_location).free)}")
 
-    if shutil.disk_usage(backup_location).free < free_storage_required:
+        if max_deletions and deletion_count >= max_deletions:
+            reached_max_deletions = True
+            break
+
+    final_free_space = shutil.disk_usage(backup_location).free
+    if not reached_max_deletions and final_free_space < free_storage_required:
         logger.warning(f"Could not free up {byte_units(free_storage_required)} of storage"
                        " without deleting most recent backup.")
 
@@ -911,7 +919,9 @@ def fix_end_of_month(year: int, month: int, day: int,
             new_day -= 1
 
 
-def delete_backups_older_than(backup_folder: Path, time_span: str | None) -> None:
+def delete_backups_older_than(backup_folder: Path,
+                              time_span: str | None,
+                              max_deletions: int | None) -> None:
     """
     Delete backups older than a given timespan.
 
@@ -925,12 +935,12 @@ def delete_backups_older_than(backup_folder: Path, time_span: str | None) -> Non
     timestamp_to_keep = parse_time_span_to_timepoint(time_span)
 
     backups = all_backups(backup_folder)
-    for deletion_count, backup in enumerate(backups[:-1]):
+    for deletion_count, backup in enumerate(backups[:-1], 1):
         backup_timestamp = backup_datetime(backup)
         if backup_timestamp >= timestamp_to_keep:
             break
 
-        if deletion_count == 0:
+        if deletion_count == 1:
             logger.info("")
             logger.info("Deleting backups prior to"
                         f" {timestamp_to_keep.strftime('%Y-%m-%d %H:%M:%S')}.")
@@ -943,6 +953,9 @@ def delete_backups_older_than(backup_folder: Path, time_span: str | None) -> Non
             logger.info(f"Deleted empty year folder {year_folder}")
         except OSError:
             pass
+
+        if max_deletions and deletion_count >= max_deletions:
+            break
 
 
 def backup_datetime(backup: Path) -> datetime.datetime:
@@ -1365,7 +1378,7 @@ def confirm_choice_made(args: argparse.Namespace, option1: str, option2: str) ->
                                f"--{option1.replace("_", "-")} or --{option2.replace("_", "-")}")
 
 
-def start_backup(args: argparse.Namespace) -> Path:
+def start_backup(args: argparse.Namespace) -> None:
     """
     Parse command line arguments to start a backup.
 
@@ -1388,7 +1401,19 @@ def start_backup(args: argparse.Namespace) -> Path:
                           max_average_hard_links=args.hard_link_count,
                           timestamp=args.timestamp)
 
-    return backup_folder
+
+def delete_old_backups(args: argparse.Namespace) -> None:
+    """Delete the oldest backups by various criteria in the command line options."""
+    backup_folder = get_existing_path(args.backup_folder, "backup folder")
+    backup_count = len(all_backups(backup_folder))
+    max_deletions = None if args.max_deletions is None else int(args.max_deletions)
+    delete_oldest_backups_for_space(backup_folder, args.free_up, max_deletions)
+
+    new_backup_count = len(all_backups(backup_folder))
+    backups_deleted = backup_count - new_backup_count
+    new_max_deletions = None if max_deletions is None else (max_deletions - backups_deleted)
+    delete_backups_older_than(backup_folder, args.delete_after, new_max_deletions)
+    print_backup_storage_stats(args.backup_folder)
 
 
 def argument_parser() -> argparse.ArgumentParser:
@@ -1565,6 +1590,9 @@ and letter.
 
 No matter what, the most recent backup will not be deleted."""))
 
+    backup_group.add_argument("--max-deletions", help=format_help("""
+Specify the maximum number of deletions per program run."""))
+
     backup_group.add_argument("--force-copy", action="store_true", help=format_help("""
 Copy all files instead of linking to files previous backups. The
 new backup will contain new copies of all of the user's files,
@@ -1731,10 +1759,8 @@ def main(argv: list[str]) -> int:
         elif args.help:
             user_input.print_help()
         else:
-            backup_folder = start_backup(args)
-            delete_oldest_backups_for_space(backup_folder, args.free_up)
-            delete_backups_older_than(backup_folder, args.delete_after)
-            print_backup_storage_stats(args.backup_folder)
+            start_backup(args)
+            delete_old_backups(args)
 
         exit_code = 0
     except CommandLineError as error:
