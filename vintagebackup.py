@@ -776,22 +776,15 @@ def delete_oldest_backups_for_space(backup_location: Path,
         raise CommandLineError(f"Cannot free more storage ({byte_units(free_storage_required)})"
                                f" than exists at {backup_location} ({byte_units(total_storage)})")
 
-    min_backups_remaining = 1 if not min_backups_remaining else min_backups_remaining
-    assert min_backups_remaining >= 1
-    backups = all_backups(backup_location)[:-min_backups_remaining]
-    for deletion_count, backup in enumerate(backups, 1):
-        current_free_space = shutil.disk_usage(backup_location).free
-        if current_free_space > free_storage_required:
-            break
+    current_free_space = shutil.disk_usage(backup_location).free
+    first_deletion_message = ("Deleting old backups to free up "
+                              f"{byte_units(free_storage_required)},"
+                              f" ({byte_units(current_free_space)} currently free).")
 
-        if deletion_count == 1:
-            logger.info("")
-            logger.info(f"Deleting old backups to free up {byte_units(free_storage_required)},"
-                        f" ({byte_units(current_free_space)} currently free).")
+    def stop(backup: Path) -> bool:
+        return shutil.disk_usage(backup).free > free_storage_required
 
-        logger.info(f"Deleting backup: {backup}")
-        delete_directory_tree(backup)
-        logger.info(f"Free space: {byte_units(shutil.disk_usage(backup_location).free)}")
+    delete_backups(backup_location, min_backups_remaining, first_deletion_message, stop)
 
     final_free_space = shutil.disk_usage(backup_location).free
     if final_free_space < free_storage_required:
@@ -930,28 +923,52 @@ def delete_backups_older_than(backup_folder: Path,
         return
 
     timestamp_to_keep = parse_time_span_to_timepoint(time_span)
+    first_deletion_message = ("Deleting backups prior to "
+                              f"{timestamp_to_keep.strftime('%Y-%m-%d %H:%M:%S')}.")
 
+    def stop(backup: Path) -> bool:
+        return backup_datetime(backup) >= timestamp_to_keep
+
+    delete_backups(backup_folder, min_backups_remaining, first_deletion_message, stop)
+
+
+def delete_backups(backup_folder: Path,
+                   min_backups_remaining: int | None,
+                   first_deletion_message: str,
+                   stop_deletion_condition: Callable[[Path], bool]) -> None:
+    """
+    Delete backups until a condition is met.
+
+    :param backup_folder: The base folder containing all backups.
+    :param min_backups_remaining: The minimum number of backups that should remain after deletions.
+    Defaults to 1 if value is None or less than 1 (at least one backup will always remain).
+    :param first_deletion_message: A message to print/log prior to the first deletion if any
+    deletions will take place.
+    :param stop_deletion_condition: A function that, if it returns True, stops deletions.
+    """
     min_backups_remaining = 1 if not min_backups_remaining else min_backups_remaining
-    assert min_backups_remaining >= 1
-    backups = all_backups(backup_folder)[:-min_backups_remaining]
-    for deletion_count, backup in enumerate(backups, 1):
-        backup_timestamp = backup_datetime(backup)
-        if backup_timestamp >= timestamp_to_keep:
+    min_backups_remaining = max(1, min_backups_remaining)
+
+    backups_to_delete = all_backups(backup_folder)[:-min_backups_remaining]
+    for deletion_count, backup in enumerate(backups_to_delete, 1):
+        if stop_deletion_condition(backup):
             break
 
         if deletion_count == 1:
             logger.info("")
-            logger.info("Deleting backups prior to"
-                        f" {timestamp_to_keep.strftime('%Y-%m-%d %H:%M:%S')}.")
+            logger.info(first_deletion_message)
 
         logger.info(f"Deleting oldest backup: {backup}")
         delete_directory_tree(backup)
+
         try:
             year_folder = backup.parent
             year_folder.rmdir()
             logger.info(f"Deleted empty year folder {year_folder}")
         except OSError:
             pass
+
+        logger.info(f"Free space: {byte_units(shutil.disk_usage(backup_folder).free)}")
 
 
 def backup_datetime(backup: Path) -> datetime.datetime:
