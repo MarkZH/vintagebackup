@@ -752,7 +752,7 @@ class DeleteBackupTest(unittest.TestCase):
                 create_old_backups(backup_location, 30)
                 max_age = "1y"
                 if method == Invocation.function:
-                    vintagebackup.delete_backups_older_than(backup_location, max_age, None)
+                    vintagebackup.delete_backups_older_than(backup_location, max_age)
                 elif method == Invocation.cli:
                     with tempfile.TemporaryDirectory() as user_folder:
                         user_data = Path(user_folder)
