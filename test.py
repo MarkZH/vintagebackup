@@ -772,9 +772,7 @@ class DeleteBackupTest(unittest.TestCase):
                 self.assertEqual(len(vintagebackup.last_n_backups(backup_location, "all")), 12)
 
     def test_date_deletion_with_max_backup_deletion(self) -> None:
-        """
-        Test that the no more than the maximum number of backups are deleted when deleting by date.
-        """
+        """Test that no more than the max number of backups are deleted when deleting by date."""
         with tempfile.TemporaryDirectory() as backup_folder:
             backup_location = Path(backup_folder)
             backups_created = 30
