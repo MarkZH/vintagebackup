@@ -14,8 +14,9 @@ import math
 import random
 import time
 from collections import Counter
+from collections.abc import Callable, Iterator, Iterable
 from pathlib import Path
-from typing import Callable, Any, Iterator, Iterable
+from typing import Any
 
 backup_date_format = "%Y-%m-%d %H-%M-%S"
 
