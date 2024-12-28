@@ -156,8 +156,8 @@ class Backup_Set:
 
         with filter_file.open() as filters:
             logger.info(f"Filtering items according to {filter_file} ...")
-            for line_number, line in enumerate(filters, 1):
-                line = line.lstrip().rstrip("\n")
+            for line_number, line_raw in enumerate(filters, 1):
+                line = line_raw.lstrip().rstrip("\n")
                 if not line:
                     continue
                 sign = line[0]
@@ -1138,8 +1138,8 @@ def read_configuation_file(config_file_name: str) -> list[str]:
 
     try:
         with open(config_file_name) as file:
-            for line in file:
-                line = line.strip()
+            for line_raw in file:
+                line = line_raw.strip()
                 if not line or line.startswith("#"):
                     continue
                 parameter, value = line.split(":", maxsplit=1)
@@ -1167,8 +1167,8 @@ def format_paragraphs(lines: str, line_length: int) -> str:
     newlines.
     """
     paragraphs: list[str] = []
-    for paragraph in lines.split("\n\n"):
-        paragraph = paragraph.strip("\n")
+    for paragraph_raw in lines.split("\n\n"):
+        paragraph = paragraph_raw.strip("\n")
         if not paragraph:
             continue
 
