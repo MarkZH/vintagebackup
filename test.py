@@ -1360,6 +1360,7 @@ class RestorationTest(unittest.TestCase):
 
 class LockFileTest(unittest.TestCase):
     """Test that the lock file prevents simultaneous access to a backup location."""
+
     def test_lock_file(self) -> None:
         """Test basic locking with no waiting."""
         with (tempfile.TemporaryDirectory() as user_folder,
@@ -1380,7 +1381,9 @@ class LockFileTest(unittest.TestCase):
 
 class RandomCopyTest(unittest.TestCase):
     """Test that specifying an average hard link count results in identical files being copied."""
+
     def test_random_copy(self) -> None:
+        """Test some files are copied instead of linked when max_average_hard_links is non-zero."""
         with (tempfile.TemporaryDirectory() as user_folder,
               tempfile.TemporaryDirectory() as backup_folder):
             user_path = Path(user_folder)

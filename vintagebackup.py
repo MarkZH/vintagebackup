@@ -36,7 +36,7 @@ class Lock_File:
     """Lock out other Vintage Backup instances from accessing the same backup location."""
 
     def __init__(self, backup_location: Path, wait: bool) -> None:
-        """Setup the lock."""
+        """Set up the lock."""
         self.lock_file_path = backup_location/"vintagebackup.lock"
         self.wait = wait
 
@@ -381,7 +381,10 @@ def separate[T](items: Iterable[T], predicate: Callable[[T], bool]) -> tuple[lis
     """
     Separate a sequence of items into two lists according to a predicate.
 
-    The first list are items where the predicate is True, the second where the predicate is False.
+    :param items: A sequence of items to be separated.
+    :param predicate: A function returning True or False for each item.
+    :returns: Two lists. The first list are items where the predicate is True, the second where the
+    predicate is False.
     """
     true_items: list[T] = []
     false_items: list[T] = []
@@ -625,7 +628,7 @@ def search_backups(search_directory: Path,
 
 
 def directory_relative_to_backup(search_directory: Path, backup_folder: Path) -> Path:
-    """Returns a path to user's folder relative to the backups folder."""
+    """Return a path to a user's folder relative to the backups folder."""
     if not is_real_directory(search_directory):
         raise CommandLineError(f"The given search path is not a directory: {search_directory}")
 
@@ -686,7 +689,7 @@ def recover_path(recovery_path: Path, backup_location: Path, choice: int | None 
 
 
 def path_relative_to_backups(user_path: Path, backup_location: Path) -> Path:
-    """Returns a path user's file or folder relative to the backups folder."""
+    """Return a path to a user's file or folder relative to the backups folder."""
     try:
         user_data_location = backup_source(backup_location)
     except FileNotFoundError:
