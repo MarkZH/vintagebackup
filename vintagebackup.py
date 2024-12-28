@@ -830,7 +830,7 @@ def parse_storage_space(space_requirement: str, total_storage: int) -> float:
 
         return total_storage*free_fraction_required
     elif space_text[-1].isalpha():
-        space_text = space_text.rstrip('B')
+        space_text = space_text.rstrip("B")
         number, prefix = ((space_text[:-1], space_text[-1])
                           if space_text[-1].isalpha() else
                           (space_text, ""))
