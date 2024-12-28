@@ -951,7 +951,7 @@ class VerificationTest(unittest.TestCase):
                             path_set = error_path_set
                         else:
                             # Should be unreachable
-                            self.assertEqual(file_name, "")
+                            raise AssertionError
 
                         verify_file_path = verification_location/file_name
                         with open(verify_file_path) as verify_file:
