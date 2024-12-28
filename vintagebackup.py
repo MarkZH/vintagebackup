@@ -103,11 +103,11 @@ def all_backups(backup_location: Path) -> list[Path]:
     year_pattern = "%Y"
     backup_pattern = backup_date_format
 
-    def is_valid_directory(dir: os.DirEntry[str], pattern: str) -> bool:
-        name = dir.name.split(" (")[0] if pattern == backup_pattern else dir.name
+    def is_valid_directory(directory: os.DirEntry[str], pattern: str) -> bool:
+        name = directory.name.split(" (")[0] if pattern == backup_pattern else directory.name
         try:
             datetime.datetime.strptime(name, pattern)
-            return is_real_directory(dir)
+            return is_real_directory(directory)
         except ValueError:
             return False
 
