@@ -1085,7 +1085,7 @@ def restore_backup(dated_backup_folder: Path,
         if delete_extra_files:
             backed_up_paths = set(folder_names) | set(file_names)
             with os.scandir(current_user_path) as user_data_scan:
-                user_paths = set(entry.name for entry in user_data_scan)
+                user_paths = {entry.name for entry in user_data_scan}
             for new_name in user_paths - backed_up_paths:
                 new_path = current_user_path/new_name
                 logger.debug(f"Deleting extra file {new_path}")
