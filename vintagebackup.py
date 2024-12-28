@@ -88,12 +88,13 @@ def byte_units(size: float) -> str:
     >>> byte_units(12)
     '12.00 B'
     """
-    for index, prefix in enumerate(storage_prefixes):
+    for index in range(len(storage_prefixes)):
         prefix_size = 10**(3*index)
         size_in_units = size/prefix_size
         if size_in_units < 1000:
             break
 
+    prefix = storage_prefixes[index]
     decimal_digits = 4 - math.floor(math.log10(size_in_units) + 1)
     return f"{size_in_units:.{decimal_digits}f} {prefix}B"
 
