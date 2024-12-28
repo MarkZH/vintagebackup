@@ -881,34 +881,32 @@ def parse_time_span_to_timepoint(time_span: str) -> datetime.datetime:
             new_month += 12
             new_year -= 1
 
-        return fix_end_of_month(new_year, new_month, now.day,
-                                now.hour, now.minute, now.second, now.microsecond)
+        new_date = fix_end_of_month(new_year, new_month, now.day)
+        return datetime.datetime.combine(new_date, now.time())
     elif letter == "y":
-        return fix_end_of_month(now.year - number, now.month, now.day,
-                                now.hour, now.minute, now.second, now.microsecond)
+        new_date = fix_end_of_month(now.year - number, now.month, now.day)
+        return datetime.datetime.combine(new_date, now.time())
     else:
         raise CommandLineError(f"Invalid time (valid units: {list("dwmy")}): {time_span}")
 
 
-def fix_end_of_month(year: int, month: int, day: int,
-                     hour: int, minute: int, second: int, microsecond: int) -> datetime.datetime:
+def fix_end_of_month(year: int, month: int, day: int) -> datetime.date:
     """
     Fix day if it is past then end of the month (e.g., Feb. 31).
 
-    >>> fix_end_of_month(2023, 2, 31, 0, 0, 0, 0)
-    datetime.datetime(2023, 2, 28, 0, 0)
+    >>> fix_end_of_month(2023, 2, 31)
+    datetime.date(2023, 2, 28)
 
-    >>> fix_end_of_month(2024, 2, 31, 0, 0, 0, 0)
-    datetime.datetime(2024, 2, 29, 0, 0)
+    >>> fix_end_of_month(2024, 2, 31)
+    datetime.date(2024, 2, 29)
 
-    >>> fix_end_of_month(2025, 4, 31, 0, 0, 0, 0)
-    datetime.datetime(2025, 4, 30, 0, 0)
+    >>> fix_end_of_month(2025, 4, 31)
+    datetime.date(2025, 4, 30)
     """
     new_day = day
     while True:
         try:
-            return datetime.datetime(year, month, new_day,
-                                     hour, minute, second, microsecond)
+            return datetime.date(year, month, new_day)
         except ValueError:
             new_day -= 1
 

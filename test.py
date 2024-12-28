@@ -66,9 +66,8 @@ def create_old_backups(backup_base_directory: Path, count: int) -> None:
         while new_month < 1:
             new_month += 12
             new_year -= 1
-        backup_timestamp = vintagebackup.fix_end_of_month(new_year, new_month, now.day,
-                                                          now.hour, now.minute, now.second,
-                                                          now.microsecond)
+        backup_date = vintagebackup.fix_end_of_month(new_year, new_month, now.day)
+        backup_timestamp = datetime.datetime.combine(backup_date, now.time())
         backup_name = f"{backup_timestamp.strftime(vintagebackup.backup_date_format)} (Testing)"
         (backup_base_directory/str(new_year)/backup_name).mkdir(parents=True)
 
