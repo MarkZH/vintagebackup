@@ -551,7 +551,7 @@ def report_backup_file_counts(action_counter: Counter[str]) -> None:
     total_files = sum(count for action, count in action_counter.items()
                       if not action.startswith("failed"))
     action_counter["Backed up files"] = total_files
-    name_column_size = max(len(name) for name in action_counter.keys())
+    name_column_size = max(len(name) for name in action_counter)
     count_column_size = len(str(max(action_counter.values())))
     for action, count in action_counter.items():
         logger.info(f"{action.capitalize():<{name_column_size}} : {count:>{count_column_size}}")
