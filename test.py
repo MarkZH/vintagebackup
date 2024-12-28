@@ -670,9 +670,7 @@ class DeleteBackupTest(unittest.TestCase):
                 goal_space = after_backup_space + size_of_deleted_backups - file_size/2
                 goal_space_str = f"{goal_space}B"
                 if method == Invocation.function:
-                    vintagebackup.delete_oldest_backups_for_space(backup_location,
-                                                                  goal_space_str,
-                                                                  None)
+                    vintagebackup.delete_oldest_backups_for_space(backup_location, goal_space_str)
                 elif method == Invocation.cli:
                     with tempfile.TemporaryDirectory() as user_folder:
                         user_data = Path(user_folder)
@@ -708,7 +706,7 @@ class DeleteBackupTest(unittest.TestCase):
             expected_backups_count = backups_created - maximum_deletions
             vintagebackup.delete_oldest_backups_for_space(backup_location,
                                                           goal_space_str,
-                                                          maximum_deletions)
+                                                          expected_backups_count)
             all_backups_after_deletion = vintagebackup.all_backups(backup_location)
             self.assertEqual(len(all_backups_after_deletion), expected_backups_count)
 
@@ -729,8 +727,7 @@ class DeleteBackupTest(unittest.TestCase):
                 goal_space_percent_str = f"{goal_space_percent}%"
                 if method == Invocation.function:
                     vintagebackup.delete_oldest_backups_for_space(backup_location,
-                                                                  goal_space_percent_str,
-                                                                  None)
+                                                                  goal_space_percent_str)
                 elif method == Invocation.cli:
                     with tempfile.TemporaryDirectory() as user_folder:
                         user_data = Path(user_folder)
@@ -785,7 +782,7 @@ class DeleteBackupTest(unittest.TestCase):
             max_age = "1y"
             max_deletions = 10
             expected_backup_count = backups_created - max_deletions
-            vintagebackup.delete_backups_older_than(backup_location, max_age, max_deletions)
+            vintagebackup.delete_backups_older_than(backup_location, max_age, expected_backup_count)
             backups_left = vintagebackup.all_backups(backup_location)
             self.assertEqual(len(backups_left), expected_backup_count)
 
@@ -795,14 +792,14 @@ class DeleteBackupTest(unittest.TestCase):
             backup_location = Path(backup_folder)
             create_old_backups(backup_location, 30)
             delete_last_backup(backup_location)
-            vintagebackup.delete_backups_older_than(backup_location, "1d", None)
+            vintagebackup.delete_backups_older_than(backup_location, "1d")
             self.assertEqual(len(vintagebackup.last_n_backups(backup_location, "all")), 1)
 
         with tempfile.TemporaryDirectory() as backup_folder:
             backup_location = Path(backup_folder)
             create_old_backups(backup_location, 30)
             total_space = shutil.disk_usage(backup_location).total
-            vintagebackup.delete_oldest_backups_for_space(backup_location, f"{total_space}B", None)
+            vintagebackup.delete_oldest_backups_for_space(backup_location, f"{total_space}B")
             self.assertEqual(len(vintagebackup.last_n_backups(backup_location, "all")), 1)
 
     def test_deleting_backups_for_too_much_space(self) -> None:
@@ -812,9 +809,7 @@ class DeleteBackupTest(unittest.TestCase):
             max_space = shutil.disk_usage(backup_location).total
             too_much_space = 2*max_space
             with self.assertRaises(vintagebackup.CommandLineError):
-                vintagebackup.delete_oldest_backups_for_space(backup_location,
-                                                              f"{too_much_space}B",
-                                                              None)
+                vintagebackup.delete_oldest_backups_for_space(backup_location, f"{too_much_space}B")
 
     def test_deleting_last_backup_in_year_folder_deletes_year_folder(self) -> None:
         """Test that deleting a backup leaves a year folder empty, that year folder is deleted."""
@@ -825,7 +820,7 @@ class DeleteBackupTest(unittest.TestCase):
             oldest_backup_year_folder = backup_location/f"{today.year - 1}"
             self.assertTrue(oldest_backup_year_folder.is_dir())
             self.assertEqual(len(os.listdir(oldest_backup_year_folder)), 1)
-            vintagebackup.delete_backups_older_than(backup_location, f"{today.month}m", None)
+            vintagebackup.delete_backups_older_than(backup_location, f"{today.month}m")
             self.assertFalse(oldest_backup_year_folder.is_dir())
 
 

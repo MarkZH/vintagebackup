@@ -755,7 +755,7 @@ def delete_directory_tree(backup_path: Path) -> None:
 
 def delete_oldest_backups_for_space(backup_location: Path,
                                     space_requirement: str | None,
-                                    max_deletions: int | None) -> None:
+                                    min_backups_remaining: int | None = None) -> None:
     """
     Delete backups--starting with the oldest--until enough space is free on the backup destination.
 
@@ -776,9 +776,10 @@ def delete_oldest_backups_for_space(backup_location: Path,
         raise CommandLineError(f"Cannot free more storage ({byte_units(free_storage_required)})"
                                f" than exists at {backup_location} ({byte_units(total_storage)})")
 
-    backups = all_backups(backup_location)
-    reached_max_deletions = False
-    for deletion_count, backup in enumerate(backups[:-1], 1):
+    min_backups_remaining = 1 if not min_backups_remaining else min_backups_remaining
+    assert min_backups_remaining >= 1
+    backups = all_backups(backup_location)[:-min_backups_remaining]
+    for deletion_count, backup in enumerate(backups, 1):
         current_free_space = shutil.disk_usage(backup_location).free
         if current_free_space > free_storage_required:
             break
@@ -792,12 +793,8 @@ def delete_oldest_backups_for_space(backup_location: Path,
         delete_directory_tree(backup)
         logger.info(f"Free space: {byte_units(shutil.disk_usage(backup_location).free)}")
 
-        if max_deletions and deletion_count >= max_deletions:
-            reached_max_deletions = True
-            break
-
     final_free_space = shutil.disk_usage(backup_location).free
-    if not reached_max_deletions and final_free_space < free_storage_required:
+    if final_free_space < free_storage_required:
         logger.warning(f"Could not free up {byte_units(free_storage_required)} of storage"
                        " without deleting most recent backup.")
 
@@ -921,7 +918,7 @@ def fix_end_of_month(year: int, month: int, day: int,
 
 def delete_backups_older_than(backup_folder: Path,
                               time_span: str | None,
-                              max_deletions: int | None) -> None:
+                              min_backups_remaining: int | None = None) -> None:
     """
     Delete backups older than a given timespan.
 
@@ -934,8 +931,10 @@ def delete_backups_older_than(backup_folder: Path,
 
     timestamp_to_keep = parse_time_span_to_timepoint(time_span)
 
-    backups = all_backups(backup_folder)
-    for deletion_count, backup in enumerate(backups[:-1], 1):
+    min_backups_remaining = 1 if not min_backups_remaining else min_backups_remaining
+    assert min_backups_remaining >= 1
+    backups = all_backups(backup_folder)[:-min_backups_remaining]
+    for deletion_count, backup in enumerate(backups, 1):
         backup_timestamp = backup_datetime(backup)
         if backup_timestamp >= timestamp_to_keep:
             break
@@ -953,9 +952,6 @@ def delete_backups_older_than(backup_folder: Path,
             logger.info(f"Deleted empty year folder {year_folder}")
         except OSError:
             pass
-
-        if max_deletions and deletion_count >= max_deletions:
-            break
 
 
 def backup_datetime(backup: Path) -> datetime.datetime:
@@ -1407,12 +1403,9 @@ def delete_old_backups(args: argparse.Namespace) -> None:
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     backup_count = len(all_backups(backup_folder))
     max_deletions = None if args.max_deletions is None else int(args.max_deletions)
-    delete_oldest_backups_for_space(backup_folder, args.free_up, max_deletions)
-
-    new_backup_count = len(all_backups(backup_folder))
-    backups_deleted = backup_count - new_backup_count
-    new_max_deletions = None if max_deletions is None else (max_deletions - backups_deleted)
-    delete_backups_older_than(backup_folder, args.delete_after, new_max_deletions)
+    min_backups_remaining = None if max_deletions is None else max(backup_count - max_deletions, 1)
+    delete_oldest_backups_for_space(backup_folder, args.free_up, min_backups_remaining)
+    delete_backups_older_than(backup_folder, args.delete_after, min_backups_remaining)
     print_backup_storage_stats(args.backup_folder)
 
 
