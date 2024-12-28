@@ -8,3 +8,4 @@
 temp_*
 *.pyc
 .coverage
+*.toml

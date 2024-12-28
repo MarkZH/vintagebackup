@@ -14,8 +14,9 @@ import math
 import random
 import time
 from collections import Counter
+from collections.abc import Callable, Iterator, Iterable
 from pathlib import Path
-from typing import Callable, Any, Iterator, Iterable
+from typing import Any
 
 backup_date_format = "%Y-%m-%d %H-%M-%S"
 
@@ -35,7 +36,7 @@ class ConcurrencyError(RuntimeError):
 class Lock_File:
     """Lock out other Vintage Backup instances from accessing the same backup location."""
 
-    def __init__(self, backup_location: Path, wait: bool) -> None:
+    def __init__(self, backup_location: Path, *, wait: bool) -> None:
         """Set up the lock."""
         self.lock_file_path = backup_location/"vintagebackup.lock"
         self.wait = wait
@@ -49,12 +50,12 @@ class Lock_File:
         last_pid = None
         while True:
             try:
-                with open(self.lock_file_path, "x") as lock_file:
+                with self.lock_file_path.open("x") as lock_file:
                     lock_file.write(str(os.getpid()))
                     break
             except FileExistsError:
                 try:
-                    with open(self.lock_file_path) as lock_file:
+                    with self.lock_file_path.open() as lock_file:
                         other_pid = lock_file.read()
                 except FileNotFoundError:
                     continue
@@ -69,7 +70,7 @@ class Lock_File:
                     last_pid = other_pid
                 time.sleep(1)
 
-    def __exit__(self, *_: Any) -> None:
+    def __exit__(self, *_: object) -> None:
         """Release the file lock."""
         self.lock_file_path.unlink()
 
@@ -87,12 +88,13 @@ def byte_units(size: float) -> str:
     >>> byte_units(12)
     '12.00 B'
     """
-    for index, prefix in enumerate(storage_prefixes):
+    for index in range(len(storage_prefixes)):
         prefix_size = 10**(3*index)
         size_in_units = size/prefix_size
         if size_in_units < 1000:
             break
 
+    prefix = storage_prefixes[index]
     decimal_digits = 4 - math.floor(math.log10(size_in_units) + 1)
     return f"{size_in_units:.{decimal_digits}f} {prefix}B"
 
@@ -102,11 +104,11 @@ def all_backups(backup_location: Path) -> list[Path]:
     year_pattern = "%Y"
     backup_pattern = backup_date_format
 
-    def is_valid_directory(dir: os.DirEntry[str], pattern: str) -> bool:
-        name = dir.name.split(" (")[0] if pattern == backup_pattern else dir.name
+    def is_valid_directory(directory: os.DirEntry[str], pattern: str) -> bool:
+        name = directory.name.split(" (")[0] if pattern == backup_pattern else directory.name
         try:
             datetime.datetime.strptime(name, pattern)
-            return is_real_directory(dir)
+            return is_real_directory(directory)
         except ValueError:
             return False
 
@@ -152,10 +154,10 @@ class Backup_Set:
         if not filter_file:
             return
 
-        with open(filter_file) as filters:
+        with filter_file.open() as filters:
             logger.info(f"Filtering items according to {filter_file} ...")
-            for line_number, line in enumerate(filters, 1):
-                line = line.lstrip().rstrip("\n")
+            for line_number, line_raw in enumerate(filters, 1):
+                line = line_raw.lstrip().rstrip("\n")
                 if not line:
                     continue
                 sign = line[0]
@@ -199,7 +201,7 @@ class Backup_Set:
             if path.full_match(pattern):
                 self.lines_used.add(line_number)
                 is_included = should_include
-                logger.debug("File: {} {} by line {}: {} {}",
+                logger.debug("File: %s %s by line %d: %s %s",
                              path,
                              "included" if is_included else "excluded",
                              line_number,
@@ -226,14 +228,14 @@ def record_user_location(user_location: Path, backup_location: Path) -> None:
     user_folder_record = get_user_location_record(backup_location)
     resolved_user_location = user_location.resolve(strict=True)
     logger.debug(f"Writing {resolved_user_location} to {user_folder_record}")
-    with open(user_folder_record, "w") as user_record:
+    with user_folder_record.open("w") as user_record:
         user_record.write(str(resolved_user_location) + "\n")
 
 
 def backup_source(backup_location: Path) -> Path:
     """Read the user directory that was backed up to the given backup location."""
     user_folder_record = get_user_location_record(backup_location)
-    with open(user_folder_record) as user_record:
+    with user_folder_record.open() as user_record:
         return Path(user_record.readline().rstrip("\n")).resolve()
 
 
@@ -462,8 +464,7 @@ def backup_name(backup_datetime: datetime.datetime | str | None) -> Path:
            else (backup_datetime or datetime.datetime.now()))
     backup_date = now.strftime(backup_date_format)
     backup_name = f"{backup_date} ({os_name()})".removesuffix("()").strip()
-    new_backup_path = Path(str(now.year))/backup_name
-    return new_backup_path
+    return Path(str(now.year))/backup_name
 
 
 def os_name() -> str:
@@ -550,7 +551,7 @@ def report_backup_file_counts(action_counter: Counter[str]) -> None:
     total_files = sum(count for action, count in action_counter.items()
                       if not action.startswith("failed"))
     action_counter["Backed up files"] = total_files
-    name_column_size = max(len(name) for name in action_counter.keys())
+    name_column_size = max(len(name) for name in action_counter)
     count_column_size = len(str(max(action_counter.values())))
     for action, count in action_counter.items():
         logger.info(f"{action.capitalize():<{name_column_size}} : {count:>{count_column_size}}")
@@ -827,7 +828,7 @@ def parse_storage_space(space_requirement: str, total_storage: int) -> float:
 
         return total_storage*free_fraction_required
     elif space_text[-1].isalpha():
-        space_text = space_text.rstrip('B')
+        space_text = space_text.rstrip("B")
         number, prefix = ((space_text[:-1], space_text[-1])
                           if space_text[-1].isalpha() else
                           (space_text, ""))
@@ -977,8 +978,7 @@ def delete_backups(backup_folder: Path,
 def backup_datetime(backup: Path) -> datetime.datetime:
     """Get the timestamp of a backup from the backup folder name."""
     timestamp_portion = " ".join(backup.name.split()[:2])
-    backup_timestamp = datetime.datetime.strptime(timestamp_portion, backup_date_format)
-    return backup_timestamp
+    return datetime.datetime.strptime(timestamp_portion, backup_date_format)
 
 
 def plural_noun(count: int, word: str) -> str:
@@ -1051,9 +1051,9 @@ def verify_last_backup(user_folder: Path,
     mismatching_file_name = result_folder/f"{prefix} mismatching files.txt"
     error_file_name = result_folder/f"{prefix} error files.txt"
 
-    with (open(matching_file_name, "w", encoding="utf8") as matching_file,
-          open(mismatching_file_name, "w", encoding="utf8") as mismatching_file,
-          open(error_file_name, "w", encoding="utf8") as error_file):
+    with (matching_file_name.open("w", encoding="utf8") as matching_file,
+          mismatching_file_name.open("w", encoding="utf8") as mismatching_file,
+          error_file_name.open("w", encoding="utf8") as error_file):
 
         for file in (matching_file, mismatching_file, error_file):
             file.write(f"Comparison: {user_folder} <---> {backup_folder}\n")
@@ -1111,7 +1111,7 @@ def restore_backup(dated_backup_folder: Path,
         if delete_extra_files:
             backed_up_paths = set(folder_names) | set(file_names)
             with os.scandir(current_user_path) as user_data_scan:
-                user_paths = set(entry.name for entry in user_data_scan)
+                user_paths = {entry.name for entry in user_data_scan}
             for new_name in user_paths - backed_up_paths:
                 new_path = current_user_path/new_name
                 logger.debug(f"Deleting extra file {new_path}")
@@ -1162,8 +1162,8 @@ def read_configuation_file(config_file_name: str) -> list[str]:
 
     try:
         with open(config_file_name) as file:
-            for line in file:
-                line = line.strip()
+            for line_raw in file:
+                line = line_raw.strip()
                 if not line or line.startswith("#"):
                     continue
                 parameter, value = line.split(":", maxsplit=1)
@@ -1191,8 +1191,8 @@ def format_paragraphs(lines: str, line_length: int) -> str:
     newlines.
     """
     paragraphs: list[str] = []
-    for paragraph in lines.split("\n\n"):
-        paragraph = paragraph.strip("\n")
+    for paragraph_raw in lines.split("\n\n"):
+        paragraph = paragraph_raw.strip("\n")
         if not paragraph:
             continue
 
@@ -1290,7 +1290,7 @@ def start_recovery_from_backup(args: argparse.Namespace) -> None:
     """Recover a file or folder from a backup according to the command line."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     choice = None if args.choice is None else int(args.choice)
-    with Lock_File(backup_folder, args.wait):
+    with Lock_File(backup_folder, wait=args.wait):
         print_run_title(args, "Recovering from backups")
         recover_path(Path(args.recover).resolve(), backup_folder, choice)
 
@@ -1299,7 +1299,7 @@ def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
     """Choose what to recover a list of backed up files and folders."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     search_directory = Path(args.list).resolve()
-    with Lock_File(backup_folder, args.wait):
+    with Lock_File(backup_folder, wait=args.wait):
         print_run_title(args, "Listing recoverable files and directories")
         logger.info(f"Searching for everything backed up from {search_directory} ...")
         chosen_recovery_path = search_backups(search_directory, backup_folder)
@@ -1324,7 +1324,7 @@ def start_move_backups(args: argparse.Namespace) -> None:
         raise CommandLineError("Exactly one of --move-count, --move-age, or --move-since "
                                "must be used when moving backups.")
 
-    with Lock_File(old_backup_location, args.wait):
+    with Lock_File(old_backup_location, wait=args.wait):
         print_run_title(args, "Moving backups")
         move_backups(old_backup_location, new_backup_location, backups_to_move)
 
@@ -1335,7 +1335,7 @@ def start_verify_backup(args: argparse.Namespace) -> None:
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     filter_file = path_or_none(args.filter)
     result_folder = Path(args.verify).resolve()
-    with Lock_File(backup_folder, args.wait):
+    with Lock_File(backup_folder, wait=args.wait):
         print_run_title(args, "Verifying last backup")
         verify_last_backup(user_folder, backup_folder, filter_file, result_folder)
 
@@ -1364,7 +1364,7 @@ def start_backup_restore(args: argparse.Namespace) -> None:
     if not restore_source:
         raise CommandLineError(f"No backups found in {backup_folder}")
 
-    with Lock_File(backup_folder, args.wait):
+    with Lock_File(backup_folder, wait=args.wait):
         print_run_title(args, "Restoring user data from backup")
 
         required_response = "yes"
@@ -1407,7 +1407,7 @@ def start_backup(args: argparse.Namespace) -> None:
 
     backup_folder = Path(args.backup_folder).resolve()
 
-    with Lock_File(backup_folder, args.wait):
+    with Lock_File(backup_folder, wait=args.wait):
         print_run_title(args, "Starting new backup")
         create_new_backup(user_folder,
                           backup_folder,
