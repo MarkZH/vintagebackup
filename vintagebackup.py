@@ -201,7 +201,7 @@ class Backup_Set:
             if path.full_match(pattern):
                 self.lines_used.add(line_number)
                 is_included = should_include
-                logger.debug("File: {} {} by line {}: {} {}",
+                logger.debug("File: %s %s by line %d: %s %s",
                              path,
                              "included" if is_included else "excluded",
                              line_number,
