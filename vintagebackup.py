@@ -950,7 +950,7 @@ def delete_backups(backup_folder: Path,
     deletions will take place.
     :param stop_deletion_condition: A function that, if it returns True, stops deletions.
     """
-    min_backups_remaining = 1 if not min_backups_remaining else min_backups_remaining
+    min_backups_remaining = min_backups_remaining if min_backups_remaining else 1
     min_backups_remaining = max(1, min_backups_remaining)
 
     backups_to_delete = all_backups(backup_folder)[:-min_backups_remaining]
