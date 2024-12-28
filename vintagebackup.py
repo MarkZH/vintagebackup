@@ -50,12 +50,12 @@ class Lock_File:
         last_pid = None
         while True:
             try:
-                with open(self.lock_file_path, "x") as lock_file:
+                with self.lock_file_path.open("x") as lock_file:
                     lock_file.write(str(os.getpid()))
                     break
             except FileExistsError:
                 try:
-                    with open(self.lock_file_path) as lock_file:
+                    with self.lock_file_path.open() as lock_file:
                         other_pid = lock_file.read()
                 except FileNotFoundError:
                     continue
@@ -153,7 +153,7 @@ class Backup_Set:
         if not filter_file:
             return
 
-        with open(filter_file) as filters:
+        with filter_file.open() as filters:
             logger.info(f"Filtering items according to {filter_file} ...")
             for line_number, line in enumerate(filters, 1):
                 line = line.lstrip().rstrip("\n")
@@ -227,14 +227,14 @@ def record_user_location(user_location: Path, backup_location: Path) -> None:
     user_folder_record = get_user_location_record(backup_location)
     resolved_user_location = user_location.resolve(strict=True)
     logger.debug(f"Writing {resolved_user_location} to {user_folder_record}")
-    with open(user_folder_record, "w") as user_record:
+    with user_folder_record.open("w") as user_record:
         user_record.write(str(resolved_user_location) + "\n")
 
 
 def backup_source(backup_location: Path) -> Path:
     """Read the user directory that was backed up to the given backup location."""
     user_folder_record = get_user_location_record(backup_location)
-    with open(user_folder_record) as user_record:
+    with user_folder_record.open() as user_record:
         return Path(user_record.readline().rstrip("\n")).resolve()
 
 
@@ -1026,9 +1026,9 @@ def verify_last_backup(user_folder: Path,
     mismatching_file_name = result_folder/f"{prefix} mismatching files.txt"
     error_file_name = result_folder/f"{prefix} error files.txt"
 
-    with (open(matching_file_name, "w", encoding="utf8") as matching_file,
-          open(mismatching_file_name, "w", encoding="utf8") as mismatching_file,
-          open(error_file_name, "w", encoding="utf8") as error_file):
+    with (matching_file_name.open("w", encoding="utf8") as matching_file,
+          mismatching_file_name.open("w", encoding="utf8") as mismatching_file,
+          error_file_name.open("w", encoding="utf8") as error_file):
 
         for file in (matching_file, mismatching_file, error_file):
             file.write(f"Comparison: {user_folder} <---> {backup_folder}\n")
