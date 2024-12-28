@@ -70,7 +70,7 @@ class Lock_File:
                     last_pid = other_pid
                 time.sleep(1)
 
-    def __exit__(self, *_: Any) -> None:
+    def __exit__(self, *_: object) -> None:
         """Release the file lock."""
         self.lock_file_path.unlink()
 
