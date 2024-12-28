@@ -38,8 +38,7 @@ def create_user_data(base_directory: Path) -> None:
 
     This creates a set of user data to test backups.
 
-    Parameters:
-    base_directory: The directory into which all created files and folders go.
+    :param base_directory: The directory into which all created files and folders go.
     """
     for sub_num in range(3):
         subfolder = base_directory/f"sub_directory_{sub_num}"
@@ -57,9 +56,8 @@ def create_old_backups(backup_base_directory: Path, count: int) -> None:
     """
     Create a set of empty monthly backups.
 
-    Parameters:
-    backup_base_directory: The directory that will contain the backup folders.
-    count: The number of backups to create. The oldest will be (count - 1) months old.
+    :param backup_base_directory: The directory that will contain the backup folders.
+    :param count: The number of backups to create. The oldest will be (count - 1) months old.
     """
     now = datetime.datetime.now()
     for months_back in range(count):
@@ -91,10 +89,10 @@ def all_files_have_same_content(standard_directory: Path,
 
     Corresponding files will also be checked for identical contents.
 
-    Parameters:
-    standard_directory: The base directory that will serve as the standard of comparison.
-    test_directory: This directory must possess every file in the standard directory in the same
-    location and with the same contents. Extra files in this directory will not result in failure.
+    :param standard_directory: The base directory that will serve as the standard of comparison.
+    :param test_directory: This directory must possess every file in the standard directory in the
+    same location and with the same contents. Extra files in this directory will not result in
+    failure.
     """
     for directory_name_1, _, file_names in standard_directory.walk():
         directory_1 = Path(directory_name_1)
