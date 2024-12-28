@@ -464,8 +464,7 @@ def backup_name(backup_datetime: datetime.datetime | str | None) -> Path:
            else (backup_datetime or datetime.datetime.now()))
     backup_date = now.strftime(backup_date_format)
     backup_name = f"{backup_date} ({os_name()})".removesuffix("()").strip()
-    new_backup_path = Path(str(now.year))/backup_name
-    return new_backup_path
+    return Path(str(now.year))/backup_name
 
 
 def os_name() -> str:
@@ -953,8 +952,7 @@ def delete_backups_older_than(backup_folder: Path, time_span: str | None) -> Non
 def backup_datetime(backup: Path) -> datetime.datetime:
     """Get the timestamp of a backup from the backup folder name."""
     timestamp_portion = " ".join(backup.name.split()[:2])
-    backup_timestamp = datetime.datetime.strptime(timestamp_portion, backup_date_format)
-    return backup_timestamp
+    return datetime.datetime.strptime(timestamp_portion, backup_date_format)
 
 
 def plural_noun(count: int, word: str) -> str:
