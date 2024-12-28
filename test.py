@@ -704,7 +704,7 @@ class DeleteBackupTest(unittest.TestCase):
                                                           goal_space_str,
                                                           expected_backups_count)
             all_backups_after_deletion = vintagebackup.all_backups(backup_location)
-            self.assertEqual(len(all_backups_after_deletion), expected_backups_count)
+            assert len(all_backups_after_deletion) == expected_backups_count
 
     def test_space_percent_deletion(self) -> None:
         """Test deleting backups until there is a given percent of free space."""
@@ -778,7 +778,7 @@ class DeleteBackupTest(unittest.TestCase):
             expected_backup_count = backups_created - max_deletions
             vintagebackup.delete_backups_older_than(backup_location, max_age, expected_backup_count)
             backups_left = vintagebackup.all_backups(backup_location)
-            self.assertEqual(len(backups_left), expected_backup_count)
+            assert len(backups_left) == expected_backup_count
 
     def test_deleting_all_backups_leaves_one(self) -> None:
         """Test that trying to delete all backups actually leaves the last one."""
