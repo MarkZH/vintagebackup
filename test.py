@@ -20,7 +20,7 @@ testing_timestamp = datetime.datetime.now()
 
 def unique_timestamp() -> datetime.datetime:
     """Create a unique timestamp backups in testing so that backups can be made more rapidly."""
-    global testing_timestamp
+    global testing_timestamp  # noqa:PLW0603
     testing_timestamp += datetime.timedelta(seconds=10)
     return testing_timestamp
 
