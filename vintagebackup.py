@@ -88,10 +88,11 @@ def byte_units(size: float) -> str:
     >>> byte_units(12)
     '12.00 B'
     """
+    prefix_step = 1000
     for index in range(len(storage_prefixes)):
-        prefix_size = 10**(3*index)
+        prefix_size = prefix_step**index
         size_in_units = size/prefix_size
-        if size_in_units < 1000:
+        if size_in_units < prefix_step:
             break
 
     prefix = storage_prefixes[index]
