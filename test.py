@@ -705,7 +705,8 @@ class DeleteBackupTest(unittest.TestCase):
                 vintagebackup.delete_oldest_backups_for_space(backup_location,
                                                             goal_space_str,
                                                             expected_backups_count)
-            self.assertIn("INFO:vintagebackup:Stopped after reaching maximum number of deletions.", log_check.output)
+            self.assertIn("INFO:vintagebackup:Stopped after reaching maximum number of deletions.",
+                          log_check.output)
             all_backups_after_deletion = vintagebackup.all_backups(backup_location)
             assert len(all_backups_after_deletion) == expected_backups_count
 
@@ -780,8 +781,11 @@ class DeleteBackupTest(unittest.TestCase):
             max_deletions = 10
             expected_backup_count = backups_created - max_deletions
             with self.assertLogs(level=logging.INFO) as log_check:
-                vintagebackup.delete_backups_older_than(backup_location, max_age, expected_backup_count)
-            self.assertIn("INFO:vintagebackup:Stopped after reaching maximum number of deletions.", log_check.output)
+                vintagebackup.delete_backups_older_than(backup_location,
+                                                        max_age,
+                                                        expected_backup_count)
+            self.assertIn("INFO:vintagebackup:Stopped after reaching maximum number of deletions.",
+                          log_check.output)
             backups_left = vintagebackup.all_backups(backup_location)
             assert len(backups_left) == expected_backup_count
 
