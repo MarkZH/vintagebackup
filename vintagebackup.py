@@ -866,11 +866,11 @@ def parse_time_span_to_timepoint(time_span: str) -> datetime.datetime:
     time_span = "".join(time_span.lower().split())
     try:
         number = int(time_span[:-1])
-        if number < 1:
-            raise ValueError()
     except ValueError:
-        raise CommandLineError("Invalid number in time span"
-                               f" (must be a positive whole number): {time_span}")
+        raise CommandLineError(f"Invalid number in time span (must be a whole number): {time_span}")
+
+    if number < 1:
+        raise CommandLineError(f"Invalid number in time span (must be positive): {time_span}")
 
     letter = time_span[-1]
     now = datetime.datetime.now()
