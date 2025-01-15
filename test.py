@@ -490,6 +490,8 @@ def run_recovery(method: Invocation, backup_location: Path, file_path: Path) -> 
                 "--choice", "0",
                 "--log", os.devnull]
         return vintagebackup.main(argv)
+    else:
+        raise NotImplementedError(f"Backup test with {method} not implemented.")
 
 
 class RecoveryTest(unittest.TestCase):
