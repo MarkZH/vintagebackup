@@ -792,8 +792,12 @@ def delete_oldest_backups_for_space(backup_location: Path,
 
     final_free_space = shutil.disk_usage(backup_location).free
     if final_free_space < free_storage_required:
-        logger.warning(f"Could not free up {byte_units(free_storage_required)} of storage"
-                       " without deleting most recent backup.")
+        backups_remaining = len(all_backups(backup_location))
+        if backups_remaining == 1:
+            logger.warning(f"Could not free up {byte_units(free_storage_required)} of storage"
+                           " without deleting most recent backup.")
+        else:
+            logger.info("Stopped after reaching maximum number of deletions.")
 
 
 def parse_storage_space(space_requirement: str, total_storage: int) -> float:
@@ -932,6 +936,14 @@ def delete_backups_older_than(backup_folder: Path,
         return backup_datetime(backup) >= timestamp_to_keep
 
     delete_backups(backup_folder, min_backups_remaining, first_deletion_message, stop)
+    oldest_backup_date = backup_datetime(all_backups(backup_folder)[0])
+    if oldest_backup_date < timestamp_to_keep:
+        backups_remaining = len(all_backups(backup_folder))
+        if backups_remaining == 1:
+            logger.warning(f"Could not delete all backups older than {timestamp_to_keep} without"
+                           " deleting most recent backup.")
+        else:
+            logger.info("Stopped after reaching maximum number of deletions.")
 
 
 def delete_backups(backup_folder: Path,
