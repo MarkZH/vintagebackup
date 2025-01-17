@@ -1389,7 +1389,7 @@ def start_backup_restore(args: argparse.Namespace) -> None:
                     else input(f'Do you want to continue? Type "{required_response}" to proceed '
                                'or press Ctrl-C to cancel: '))
 
-        if response.strip("'").strip('"').lower() == required_response:
+        if response.strip().lower() == required_response:
             restore_backup(restore_source, destination, delete_extra_files=delete_extra_files)
         else:
             logger.info(f'The response was "{response}" and not "{required_response}", '
