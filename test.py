@@ -1404,6 +1404,20 @@ class RestorationTest(unittest.TestCase):
                              "--last-backup or --choose-backup"]
             self.assertEqual(expected_logs, no_backup_choice_log.output)
 
+            with self.assertLogs(level=logging.INFO) as bad_prompt_log:
+                vintagebackup.main(["--restore",
+                                    "--user-folder", user_folder,
+                                    "--backup-folder", backup_folder,
+                                    "--choose-backup",
+                                    "--delete-extra",
+                                    "--log", os.devnull,
+                                    "--skip-prompt",
+                                    "--bad-input",
+                                    "--choice", "0"])
+            rejection_line = ('INFO:vintagebackup:The response was "no" and not "yes", so the '
+                              'restoration is cancelled.')
+            self.assertIn(rejection_line, bad_prompt_log.output)
+
 
 class LockFileTest(unittest.TestCase):
     """Test that the lock file prevents simultaneous access to a backup location."""

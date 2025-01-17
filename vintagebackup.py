@@ -1384,7 +1384,8 @@ def start_backup_restore(args: argparse.Namespace) -> None:
         if delete_extra_files:
             logger.info("Any files that were not backed up, including newly created files and "
                         "files not backed up because of --filter, will be deleted.")
-        response = (required_response if args.skip_prompt
+        automatic_response = "no" if args.bad_input else required_response
+        response = (automatic_response if args.skip_prompt
                     else input(f'Do you want to continue? Type "{required_response}" to proceed '
                                'or press Ctrl-C to cancel: '))
 
@@ -1734,6 +1735,9 @@ log file is desired, use the file name {os.devnull}."""))
 
     # Skip confirmation prompt for backup restorations.
     user_input.add_argument("--skip-prompt", action="store_true", help=argparse.SUPPRESS)
+
+    # Give user input that causes errors.
+    user_input.add_argument("--bad-input", action="store_true", help=argparse.SUPPRESS)
 
     return user_input
 
