@@ -1379,16 +1379,14 @@ def start_backup_restore(args: argparse.Namespace) -> None:
         print_run_title(args, "Restoring user data from backup")
 
         required_response = "yes"
-        if args.skip_prompt:
-            response = required_response
-        else:
-            logger.info(f"This will overwrite all files in {user_folder} and subfolders with files "
-                        f"in {restore_source}.")
-            if delete_extra_files:
-                logger.info("Any files that were not backed up, including newly created files and "
-                            "files not backed up because of --filter, will be deleted.")
-            response = input(f'Do you want to continue? Type "{required_response}" to proceed '
-                             'or press Ctrl-C to cancel: ')
+        logger.info(f"This will overwrite all files in {user_folder} and subfolders with files "
+                    f"in {restore_source}.")
+        if delete_extra_files:
+            logger.info("Any files that were not backed up, including newly created files and "
+                        "files not backed up because of --filter, will be deleted.")
+        response = (required_response if args.skip_prompt
+                    else input(f'Do you want to continue? Type "{required_response}" to proceed '
+                               'or press Ctrl-C to cancel: '))
 
         if response.strip("'").strip('"').lower() == required_response:
             restore_backup(restore_source, destination, delete_extra_files=delete_extra_files)
