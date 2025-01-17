@@ -340,6 +340,7 @@ class BackupTest(unittest.TestCase):
                                             max_average_hard_links=None,
                                             timestamp=unique_timestamp())
             last_backup = vintagebackup.find_previous_backup(backup_path)
+            self.assertTrue(last_backup)
             assert last_backup
             self.assertTrue((last_backup/directory_symlink_name).is_symlink())
             self.assertTrue((last_backup/file_symlink_name).is_symlink())
@@ -380,6 +381,7 @@ class FilterTest(unittest.TestCase):
                 self.assertEqual(exit_code, 0)
 
                 last_backup = vintagebackup.find_previous_backup(backup_location)
+                self.assertTrue(last_backup)
                 assert last_backup
 
                 self.assertEqual(directory_contents(last_backup), expected_backups)
@@ -421,6 +423,7 @@ class FilterTest(unittest.TestCase):
 
             self.assertEqual(len(vintagebackup.last_n_backups(backup_location, "all")), 1)
             last_backup = vintagebackup.find_previous_backup(backup_location)
+            self.assertTrue(last_backup)
             assert last_backup
 
             self.assertEqual(directory_contents(last_backup), expected_backup_paths)
@@ -573,6 +576,7 @@ class RecoveryTest(unittest.TestCase):
                                             timestamp=unique_timestamp())
             folder_path = (user_data/"sub_directory_1"/"sub_sub_directory_1").resolve()
             chosen_file = vintagebackup.search_backups(folder_path, backup_location, 1)
+            self.assertTrue(chosen_file)
             assert chosen_file
             self.assertEqual(chosen_file, folder_path/"file_1.txt")
             vintagebackup.recover_path(chosen_file, backup_location, 0)
@@ -952,6 +956,7 @@ class VerificationTest(unittest.TestCase):
 
             error_file = Path("sub_directory_2")/"sub_sub_directory_0"/"file_1.txt"
             last_backup = vintagebackup.find_previous_backup(backup_location)
+            self.assertTrue(last_backup)
             assert last_backup
             (last_backup/error_file).unlink()
 
@@ -1170,6 +1175,7 @@ class RestorationTest(unittest.TestCase):
 
             self.assertEqual(exit_code, 0)
             last_backup = vintagebackup.find_previous_backup(backup_path)
+            self.assertTrue(last_backup)
             assert last_backup
             self.assertTrue(first_extra_file.exists(follow_symlinks=False))
             self.assertFalse(second_extra_file.exists(follow_symlinks=False))
@@ -1218,6 +1224,7 @@ class RestorationTest(unittest.TestCase):
 
             self.assertEqual(exit_code, 0)
             last_backup = vintagebackup.find_previous_backup(backup_path)
+            self.assertTrue(last_backup)
             assert last_backup
             self.assertTrue(first_extra_file.exists(follow_symlinks=False))
             self.assertTrue(second_extra_file.exists(follow_symlinks=False))
@@ -1269,6 +1276,7 @@ class RestorationTest(unittest.TestCase):
 
             self.assertEqual(exit_code, 0)
             restored_backup = vintagebackup.all_backups(backup_path)[choice]
+            self.assertTrue(restored_backup)
             assert restored_backup
             self.assertFalse(first_extra_file.exists(follow_symlinks=False))
             self.assertFalse(second_extra_file.exists(follow_symlinks=False))
@@ -1319,6 +1327,7 @@ class RestorationTest(unittest.TestCase):
 
             self.assertEqual(exit_code, 0)
             restored_backup = vintagebackup.all_backups(backup_path)[choice]
+            self.assertTrue(restored_backup)
             assert restored_backup
             self.assertTrue(first_extra_file.exists(follow_symlinks=False))
             self.assertTrue(second_extra_file.exists(follow_symlinks=False))
@@ -1353,6 +1362,7 @@ class RestorationTest(unittest.TestCase):
             self.assertEqual(exit_code, 0)
             destination_path = Path(destination_folder)
             last_backup = vintagebackup.find_previous_backup(backup_path)
+            self.assertTrue(last_backup)
             assert last_backup
             self.assertTrue(directories_have_identical_content(last_backup, destination_path))
             self.assertTrue(directories_have_identical_content(user_path, destination_path))
