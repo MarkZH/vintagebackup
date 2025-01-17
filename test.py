@@ -1128,6 +1128,35 @@ class ErrorTest(unittest.TestCase):
             expected_logs = [f"ERROR:vintagebackup:Could not find user's folder: {user_folder}"]
             self.assertEqual(log_check.output, expected_logs)
 
+    def test_user_folder_changed(self) -> None:
+        """Check that error is raised when attempted to change the source of a backup."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as other_user_folder,
+              tempfile.TemporaryDirectory() as backup_folder,
+              self.assertRaises(RuntimeError) as error):
+            user_path = Path(user_folder)
+            backup_path = Path(backup_folder)
+            vintagebackup.create_new_backup(user_path,
+                                            backup_path,
+                                            filter_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False,
+                                            max_average_hard_links=None,
+                                            timestamp=unique_timestamp())
+
+            other_user_path = Path(other_user_folder)
+            vintagebackup.create_new_backup(other_user_path,
+                                            backup_path,
+                                            filter_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False,
+                                            max_average_hard_links=None,
+                                            timestamp=unique_timestamp())
+
+        expected_error_message = ("Previous backup stored a different user folder. Previously: "
+                                  f"{user_path.resolve()}; Now: {other_user_path.resolve()}")
+        self.assertEqual(error.exception.args, (expected_error_message,))
+
 
 class RestorationTest(unittest.TestCase):
     """Test that restoring backups works correctly."""

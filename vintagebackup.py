@@ -252,7 +252,8 @@ def confirm_user_location_is_unchanged(user_data_location: Path, backup_location
         recorded_user_folder = backup_source(backup_location)
         if not recorded_user_folder.samefile(user_data_location):
             raise RuntimeError("Previous backup stored a different user folder."
-                               f" Previously: {recorded_user_folder}; Now: {user_data_location}")
+                               f" Previously: {recorded_user_folder.resolve()};"
+                               f" Now: {user_data_location.resolve()}")
     except FileNotFoundError:
         # This is probably the first backup, hence no user folder record.
         pass
