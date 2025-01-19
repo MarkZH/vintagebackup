@@ -493,7 +493,8 @@ def create_new_backup(user_data_location: Path,
     Create a new dated backup.
 
     :param user_data_location: The folder containing the data to be backed up
-    :param backup_location: The base directory of the backup destination
+    :param backup_location: The base directory of the backup destination. This directory should
+    already exist.
     :param filter_file: A file containg a list of path glob patterns to exclude/include from the
     backup
     :param examine_whole_file: Whether to examine file contents to check for changes since the last
@@ -506,7 +507,6 @@ def create_new_backup(user_data_location: Path,
     """
     check_paths_for_validity(user_data_location, backup_location, filter_file)
 
-    backup_location.mkdir(parents=True, exist_ok=True)
     new_backup_path = backup_location/backup_name(timestamp)
 
     confirm_user_location_is_unchanged(user_data_location, backup_location)
@@ -1336,7 +1336,9 @@ def start_move_backups(args: argparse.Namespace) -> None:
         raise CommandLineError("Exactly one of --move-count, --move-age, or --move-since "
                                "must be used when moving backups.")
 
-    with Lock_File(old_backup_location, wait=args.wait):
+    new_backup_location.mkdir(parents=True, exist_ok=True)
+    with (Lock_File(old_backup_location, wait=args.wait),
+          Lock_File(new_backup_location, wait=args.wait)):
         print_run_title(args, "Moving backups")
         move_backups(old_backup_location, new_backup_location, backups_to_move)
 
@@ -1417,6 +1419,7 @@ def start_backup(args: argparse.Namespace) -> None:
         raise CommandLineError("Backup folder not specified.")
 
     backup_folder = Path(args.backup_folder).resolve()
+    backup_folder.mkdir(parents=True, exist_ok=True)
 
     with Lock_File(backup_folder, wait=args.wait):
         print_run_title(args, "Starting new backup")
