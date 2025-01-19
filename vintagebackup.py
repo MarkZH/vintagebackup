@@ -1768,33 +1768,28 @@ def main(argv: list[str]) -> int:
 
     :param argv: A list of command line arguments as from sys.argv
     """
-    exit_code = 1
-
     try:
         user_input = argument_parser()
         args = parse_command_line(argv, user_input)
+        if args.help:
+            user_input.print_help()
+            return 0
 
         setup_log_file(logger, args.log)
         logger.setLevel(logging.DEBUG if toggle_is_set(args, "debug") else logging.INFO)
         logger.debug(args)
 
-        if args.recover:
-            start_recovery_from_backup(args)
-        elif args.list:
-            choose_recovery_target_from_backups(args)
-        elif args.move_backup:
-            start_move_backups(args)
-        elif args.verify:
-            start_verify_backup(args)
-        elif args.restore:
-            start_backup_restore(args)
-        elif args.help:
-            user_input.print_help()
-        else:
-            start_backup(args)
-            delete_old_backups(args)
+        actions = ([start_recovery_from_backup] if args.recover
+                   else [choose_recovery_target_from_backups] if args.list
+                   else [start_move_backups] if args.move_backup
+                   else [start_verify_backup] if args.verify
+                   else [start_backup_restore] if args.restore
+                   else [start_backup, delete_old_backups])
 
-        exit_code = 0
+        for action in actions:
+            action(args)
+
+        return 0
     except CommandLineError as error:
         if __name__ == "__main__":
             user_input.print_usage()
@@ -1802,7 +1797,7 @@ def main(argv: list[str]) -> int:
     except Exception as error:
         logger.error(error)
 
-    return exit_code
+    return 1
 
 
 if __name__ == "__main__":
