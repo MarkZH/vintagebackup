@@ -1435,12 +1435,14 @@ def start_backup(args: argparse.Namespace) -> None:
 def delete_old_backups(args: argparse.Namespace) -> None:
     """Delete the oldest backups by various criteria in the command line options."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
-    backup_count = len(all_backups(backup_folder))
-    max_deletions = None if args.max_deletions is None else int(args.max_deletions)
-    min_backups_remaining = None if max_deletions is None else max(backup_count - max_deletions, 1)
-    delete_oldest_backups_for_space(backup_folder, args.free_up, min_backups_remaining)
-    delete_backups_older_than(backup_folder, args.delete_after, min_backups_remaining)
-    print_backup_storage_stats(args.backup_folder)
+    with Lock_File(backup_folder, wait=True):
+        backup_count = len(all_backups(backup_folder))
+        max_deletions = None if args.max_deletions is None else int(args.max_deletions)
+        min_backups_remaining = (None if max_deletions is None
+                                 else max(backup_count - max_deletions, 1))
+        delete_oldest_backups_for_space(backup_folder, args.free_up, min_backups_remaining)
+        delete_backups_older_than(backup_folder, args.delete_after, min_backups_remaining)
+        print_backup_storage_stats(args.backup_folder)
 
 
 def argument_parser() -> argparse.ArgumentParser:
