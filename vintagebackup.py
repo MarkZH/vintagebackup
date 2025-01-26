@@ -33,7 +33,7 @@ class ConcurrencyError(RuntimeError):
     """An exception thrown when another process is using the same backup location."""
 
 
-class Lock_File:
+class Backup_Lock:
     """
     Lock out other Vintage Backup instances from accessing the same backup location.
 
@@ -1311,7 +1311,7 @@ def start_recovery_from_backup(args: argparse.Namespace) -> None:
     """Recover a file or folder from a backup according to the command line."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     choice = None if args.choice is None else int(args.choice)
-    with Lock_File(backup_folder, wait=args.wait):
+    with Backup_Lock(backup_folder, wait=args.wait):
         print_run_title(args, "Recovering from backups")
         recover_path(Path(args.recover).resolve(), backup_folder, choice)
 
@@ -1320,7 +1320,7 @@ def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
     """Choose what to recover a list of backed up files and folders."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     search_directory = Path(args.list).resolve()
-    with Lock_File(backup_folder, wait=args.wait):
+    with Backup_Lock(backup_folder, wait=args.wait):
         print_run_title(args, "Listing recoverable files and directories")
         logger.info(f"Searching for everything backed up from {search_directory} ...")
         chosen_recovery_path = search_backups(search_directory, backup_folder)
@@ -1346,8 +1346,8 @@ def start_move_backups(args: argparse.Namespace) -> None:
                                "must be used when moving backups.")
 
     new_backup_location.mkdir(parents=True, exist_ok=True)
-    with (Lock_File(old_backup_location, wait=args.wait),
-          Lock_File(new_backup_location, wait=args.wait)):
+    with (Backup_Lock(old_backup_location, wait=args.wait),
+          Backup_Lock(new_backup_location, wait=args.wait)):
         print_run_title(args, "Moving backups")
         move_backups(old_backup_location, new_backup_location, backups_to_move)
 
@@ -1358,7 +1358,7 @@ def start_verify_backup(args: argparse.Namespace) -> None:
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     filter_file = path_or_none(args.filter)
     result_folder = Path(args.verify).resolve()
-    with Lock_File(backup_folder, wait=args.wait):
+    with Backup_Lock(backup_folder, wait=args.wait):
         print_run_title(args, "Verifying last backup")
         verify_last_backup(user_folder, backup_folder, filter_file, result_folder)
 
@@ -1387,7 +1387,7 @@ def start_backup_restore(args: argparse.Namespace) -> None:
     if not restore_source:
         raise CommandLineError(f"No backups found in {backup_folder}")
 
-    with Lock_File(backup_folder, wait=args.wait):
+    with Backup_Lock(backup_folder, wait=args.wait):
         print_run_title(args, "Restoring user data from backup")
 
         required_response = "yes"
@@ -1430,7 +1430,7 @@ def start_backup(args: argparse.Namespace) -> None:
     backup_folder = Path(args.backup_folder).resolve()
     backup_folder.mkdir(parents=True, exist_ok=True)
 
-    with Lock_File(backup_folder, wait=args.wait):
+    with Backup_Lock(backup_folder, wait=args.wait):
         print_run_title(args, "Starting new backup")
         create_new_backup(user_folder,
                           backup_folder,
@@ -1444,7 +1444,7 @@ def start_backup(args: argparse.Namespace) -> None:
 def delete_old_backups(args: argparse.Namespace) -> None:
     """Delete the oldest backups by various criteria in the command line options."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
-    with Lock_File(backup_folder, wait=True):
+    with Backup_Lock(backup_folder, wait=True):
         backup_count = len(all_backups(backup_folder))
         max_deletions = None if args.max_deletions is None else int(args.max_deletions)
         min_backups_remaining = (None if max_deletions is None

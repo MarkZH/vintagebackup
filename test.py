@@ -1458,7 +1458,7 @@ class LockFileTest(unittest.TestCase):
             user_path = Path(user_folder)
             create_user_data(user_path)
             backup_path = Path(backup_folder)
-            with vintagebackup.Lock_File(backup_path, wait=False):
+            with vintagebackup.Backup_Lock(backup_path, wait=False):
                 exit_code = run_backup(Invocation.cli,
                                        user_path,
                                        backup_path,
