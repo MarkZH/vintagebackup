@@ -1453,12 +1453,12 @@ class LockFileTest(unittest.TestCase):
     """Test that the lock file prevents simultaneous access to a backup location."""
 
     def test_sane_heartbeat_values(self) -> None:
-        """Test that the Lock_File time periods have sane values."""
-        period = vintagebackup.Lock_File.heartbeat_period
-        timeout = vintagebackup.Lock_File.stale_timeout
+        """Test that the Backup_Lock time periods have sane values."""
+        period = vintagebackup.Backup_Lock.heartbeat_period
+        timeout = vintagebackup.Backup_Lock.stale_timeout
         self.assertGreaterEqual(timeout, 2*period)
 
-    def test_lock_file(self) -> None:
+    def test_lock(self) -> None:
         """Test basic locking with no waiting."""
         with (tempfile.TemporaryDirectory() as user_folder,
               tempfile.TemporaryDirectory() as backup_folder):
@@ -1475,11 +1475,11 @@ class LockFileTest(unittest.TestCase):
                                        timestamp=unique_timestamp())
                 self.assertNotEqual(exit_code, 0)
 
-    def test_lock_file_heartbeat(self) -> None:
+    def test_lock_heartbeat(self) -> None:
         """Test that a lock file is constantly updated with heartbeat information."""
         with tempfile.TemporaryDirectory() as backup_folder:
             backup_path = Path(backup_folder)
-            with vintagebackup.Lock_File(backup_path, wait=False):
+            with vintagebackup.Backup_Lock(backup_path, wait=False):
                 lock_path = backup_path/"vintagebackup.lock"
                 with lock_path.open() as lock_file:
                     pid_1, counter_1 = (s.strip() for s in lock_file)
@@ -1487,7 +1487,7 @@ class LockFileTest(unittest.TestCase):
                 self.assertTrue(pid_1)
                 self.assertTrue(counter_1)
 
-                time.sleep(2*vintagebackup.Lock_File.heartbeat_period.total_seconds())
+                time.sleep(2*vintagebackup.Backup_Lock.heartbeat_period.total_seconds())
 
                 with lock_path.open() as lock_file:
                     pid_2, counter_2 = (s.strip() for s in lock_file)
@@ -1508,10 +1508,10 @@ class LockFileTest(unittest.TestCase):
                 lock_file.write("0\n")
 
             start = datetime.datetime.now()
-            with vintagebackup.Lock_File(backup_path, wait=False):
+            with vintagebackup.Backup_Lock(backup_path, wait=False):
                 pass
             end = datetime.datetime.now()
-            self.assertGreaterEqual(end - start, vintagebackup.Lock_File.stale_timeout)
+            self.assertGreaterEqual(end - start, vintagebackup.Backup_Lock.stale_timeout)
 
 
 class RandomCopyTest(unittest.TestCase):
