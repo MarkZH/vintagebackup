@@ -34,7 +34,15 @@ class ConcurrencyError(RuntimeError):
 
 
 class Lock_File:
-    """Lock out other Vintage Backup instances from accessing the same backup location."""
+    """
+    Lock out other Vintage Backup instances from accessing the same backup location.
+
+    This class should be used as a context manager like so:
+    ```
+    with Lock_File(backup_path):
+        # Code that uses backup path
+    ```
+    """
 
     def __init__(self, backup_location: Path, *, wait: bool) -> None:
         """Set up the lock."""
@@ -45,7 +53,8 @@ class Lock_File:
         """
         Attempt to take possession of the file lock.
 
-        If unsuccessful, wait or fail out according to the --wait choice.
+        If unsuccessful, wait or fail out according to the --wait choice. Failure is indicated by a
+        ConcurrencyError exception.
         """
         last_pid = None
         while True:
