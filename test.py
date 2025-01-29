@@ -1450,7 +1450,7 @@ class RestorationTest(unittest.TestCase):
 
 
 class LockTest(unittest.TestCase):
-    """Test that the lock file prevents simultaneous access to a backup location."""
+    """Test that the lock prevents simultaneous access to a backup location."""
 
     def test_sane_heartbeat_values(self) -> None:
         """Test that the Backup_Lock time periods have sane values."""
