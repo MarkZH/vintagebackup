@@ -1449,7 +1449,7 @@ class RestorationTest(unittest.TestCase):
             self.assertIn(rejection_line, bad_prompt_log.output)
 
 
-class LockFileTest(unittest.TestCase):
+class LockTest(unittest.TestCase):
     """Test that the lock file prevents simultaneous access to a backup location."""
 
     def test_sane_heartbeat_values(self) -> None:
