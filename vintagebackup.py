@@ -16,7 +16,8 @@ import time
 from collections import Counter
 from collections.abc import Callable, Iterator, Iterable
 from pathlib import Path
-from typing import Any
+from multiprocessing import Process
+from typing import Any, Literal
 
 backup_date_format = "%Y-%m-%d %H-%M-%S"
 
@@ -44,10 +45,16 @@ class Backup_Lock:
     ```
     """
 
+    heartbeat_period = datetime.timedelta(seconds=1)
+    stale_timeout = datetime.timedelta(seconds=3)
+
     def __init__(self, backup_location: Path, *, wait: bool) -> None:
         """Set up the lock."""
         self.lock_file_path = backup_location/"vintagebackup.lock"
         self.wait = wait
+        self.pid = str(os.getpid())
+        self.heartbeat_counter = 0
+        self.heartbeat = Process(target=self.heartbeat_writer)
 
     def __enter__(self) -> None:
         """
@@ -57,31 +64,78 @@ class Backup_Lock:
         ConcurrencyError exception.
         """
         last_pid = None
-        while True:
+        while not self.acquire_lock():
             try:
-                with self.lock_file_path.open("x") as lock_file:
-                    lock_file.write(str(os.getpid()))
-                    break
-            except FileExistsError:
-                try:
-                    with self.lock_file_path.open() as lock_file:
-                        other_pid = lock_file.read()
-                except FileNotFoundError:
+                if self.lock_is_stale():
+                    logger.info(f"Deleting stale lock file: {self.lock_file_path}")
+                    self.lock_file_path.unlink()
                     continue
 
-                if not self.wait:
-                    raise ConcurrencyError("Vintage Backup already running on "
-                                           f"{self.lock_file_path.parent} (PID {other_pid})")
+                other_pid = self.read_blocking_pid()
+            except FileNotFoundError:
+                continue
 
-                if last_pid != other_pid:
-                    logger.info(f"Waiting for another Vintage Backup process (PID: {other_pid})"
-                                f" to end its work in {self.lock_file_path.parent} ...")
-                    last_pid = other_pid
-                time.sleep(1)
+            if not self.wait:
+                raise ConcurrencyError("Vintage Backup already running on "
+                                       f"{self.lock_file_path.parent} (PID {other_pid})")
+
+            if last_pid != other_pid:
+                logger.info(f"Waiting for another Vintage Backup process (PID: {other_pid})"
+                            f" to end its work in {self.lock_file_path.parent} ...")
+                last_pid = other_pid
+
+        self.heartbeat.start()
 
     def __exit__(self, *_: object) -> None:
         """Release the file lock."""
+        self.heartbeat.terminate()
+        self.heartbeat.join()
         self.lock_file_path.unlink()
+
+    def acquire_lock(self) -> bool:
+        """
+        Attempt to create the lock file.
+
+        Returns whether locking was successful.
+        """
+        try:
+            self.write_heartbeat("x")
+            return True
+        except FileExistsError:
+            return False
+
+    def heartbeat_writer(self) -> None:
+        """Write PID and heartbeat counter periodically to file to indicate lock is still valid."""
+        while True:
+            self.heartbeat_counter += 1
+            self.write_heartbeat("w")
+            time.sleep(self.heartbeat_period.total_seconds())
+
+    def write_heartbeat(self, mode: Literal["x", "w"]) -> None:
+        """
+        Write PID and heartbeat counter to the lock file.
+
+        :param mode: Whether to open the file in exclusive mode ("x") or write mode ("w").
+        """
+        with self.lock_file_path.open(mode) as lock_file:
+            lock_file.write(f"{self.pid}\n")
+            lock_file.write(f"{self.heartbeat_counter}\n")
+
+    def lock_is_stale(self) -> bool:
+        """Return True if information in the lock file has not changed in a long time."""
+        heartbeat_data_1 = self.read_heartbeat_data()
+        time.sleep(self.stale_timeout.total_seconds())
+        heartbeat_data_2 = self.read_heartbeat_data()
+        return heartbeat_data_1 == heartbeat_data_2
+
+    def read_heartbeat_data(self) -> list[str]:
+        """Get all data from lock file."""
+        with self.lock_file_path.open() as lock_file:
+            return [s.strip() for s in lock_file]
+
+    def read_blocking_pid(self) -> str:
+        """Get the PID of the other Vintage Backup process."""
+        return self.read_heartbeat_data()[0]
 
 
 storage_prefixes = ["", "k", "M", "G", "T", "P", "E", "Z", "Y", "R", "Q"]

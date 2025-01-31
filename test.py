@@ -14,6 +14,7 @@ import enum
 import random
 import string
 import platform
+import time
 
 testing_timestamp = datetime.datetime.now()
 
@@ -1448,10 +1449,16 @@ class RestorationTest(unittest.TestCase):
             self.assertIn(rejection_line, bad_prompt_log.output)
 
 
-class LockFileTest(unittest.TestCase):
-    """Test that the lock file prevents simultaneous access to a backup location."""
+class LockTest(unittest.TestCase):
+    """Test that the lock prevents simultaneous access to a backup location."""
 
-    def test_lock_file(self) -> None:
+    def test_sane_heartbeat_values(self) -> None:
+        """Test that the Backup_Lock time periods have sane values."""
+        period = vintagebackup.Backup_Lock.heartbeat_period
+        timeout = vintagebackup.Backup_Lock.stale_timeout
+        self.assertGreaterEqual(timeout, 2*period)
+
+    def test_lock(self) -> None:
         """Test basic locking with no waiting."""
         with (tempfile.TemporaryDirectory() as user_folder,
               tempfile.TemporaryDirectory() as backup_folder):
@@ -1467,6 +1474,53 @@ class LockFileTest(unittest.TestCase):
                                        force_copy=False,
                                        timestamp=unique_timestamp())
                 self.assertNotEqual(exit_code, 0)
+
+                with self.assertRaises(vintagebackup.ConcurrencyError):
+                    options = vintagebackup.argument_parser()
+                    args = options.parse_args(["--user-folder", user_folder,
+                                               "--backup-folder", backup_folder])
+                    vintagebackup.start_backup(args)
+
+    def test_lock_heartbeat(self) -> None:
+        """Test that a lock file is constantly updated with heartbeat information."""
+        with tempfile.TemporaryDirectory() as backup_folder:
+            backup_path = Path(backup_folder)
+            with vintagebackup.Backup_Lock(backup_path, wait=False):
+                lock_path = backup_path/"vintagebackup.lock"
+                with lock_path.open() as lock_file:
+                    pid_1, counter_1 = (s.strip() for s in lock_file)
+
+                self.assertTrue(pid_1)
+                self.assertTrue(counter_1)
+
+                time.sleep(2*vintagebackup.Backup_Lock.heartbeat_period.total_seconds())
+
+                with lock_path.open() as lock_file:
+                    pid_2, counter_2 = (s.strip() for s in lock_file)
+
+                self.assertTrue(pid_2)
+                self.assertTrue(counter_2)
+
+                self.assertEqual(pid_1, pid_2)
+                self.assertNotEqual(counter_1, counter_2)
+
+            self.assertFalse(lock_path.is_file(follow_symlinks=False))
+
+    def test_stale_lock(self) -> None:
+        """Test that a stale lock is deleted and claimed by new process."""
+        with tempfile.TemporaryDirectory() as backup_folder:
+            backup_path = Path(backup_folder)
+            stale_lock_path = backup_path/"vintagebackup.lock"
+            with stale_lock_path.open("w") as lock_file:
+                lock_file.write("0\n")
+                lock_file.write("0\n")
+
+            start = datetime.datetime.now()
+            with vintagebackup.Backup_Lock(backup_path, wait=False):
+                pass
+            end = datetime.datetime.now()
+            self.assertFalse(stale_lock_path.is_file(follow_symlinks=False))
+            self.assertGreaterEqual(end - start, vintagebackup.Backup_Lock.stale_timeout)
 
 
 class RandomCopyTest(unittest.TestCase):
