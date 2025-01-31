@@ -1761,14 +1761,14 @@ and value. The parameter names have the same names as the double-dashed command 
 leave the value blank. Any line starting with a # will be ignored. As an example:
 
     # Ignored comment
-    user-folder: C:\Users\Alice Eve Roberts\
+    user-folder: C:\Users\Alice\
     backup-folder: E:\Backups
     delete-on-error:
 
 The parameter names may also be spelled with spaces instead of the dashes and with mixed case:
 
     # Ignored comment
-    User Folder: C:\Users\Alice Eve Roberts\
+    User Folder: C:\Users\Alice\
     Backup Folder: E:\Backups
     Delete on error:
 
