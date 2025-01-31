@@ -1475,6 +1475,12 @@ class LockTest(unittest.TestCase):
                                        timestamp=unique_timestamp())
                 self.assertNotEqual(exit_code, 0)
 
+                with self.assertRaises(vintagebackup.ConcurrencyError):
+                    options = vintagebackup.argument_parser()
+                    args = options.parse_args(["--user-folder", user_folder,
+                                               "--backup-folder", backup_folder])
+                    vintagebackup.start_backup(args)
+
     def test_lock_heartbeat(self) -> None:
         """Test that a lock file is constantly updated with heartbeat information."""
         with tempfile.TemporaryDirectory() as backup_folder:
