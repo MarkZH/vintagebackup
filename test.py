@@ -1072,15 +1072,18 @@ Backup Folder: temp_back
 filter: filter.txt
 log: temp_log.txt
 whole file:
-Debug:""")
+Debug:
+wait:""")
             config_file.close()
             command_line_options = ["-c", config_file.name,
                                     "--no-whole-file",
-                                    "--no-debug"]
+                                    "--no-debug",
+                                    "--no-wait"]
             arg_parser = vintagebackup.argument_parser()
             options = vintagebackup.parse_command_line(command_line_options, arg_parser)
             self.assertFalse(vintagebackup.toggle_is_set(options, "whole_file"))
             self.assertFalse(vintagebackup.toggle_is_set(options, "debug"))
+            self.assertFalse(vintagebackup.toggle_is_set(options, "wait"))
 
     def test_error_on_recursive_config_file(self) -> None:
         """Test that putting a config parameter in a configuration file raises an exception."""
