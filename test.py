@@ -1498,6 +1498,8 @@ class LockTest(unittest.TestCase):
                 self.assertEqual(pid_1, pid_2)
                 self.assertNotEqual(counter_1, counter_2)
 
+            self.assertFalse(lock_path.is_file(follow_symlinks=False))
+
     def test_stale_lock(self) -> None:
         """Test that a stale lock is deleted and claimed by new process."""
         with tempfile.TemporaryDirectory() as backup_folder:
