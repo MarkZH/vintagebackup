@@ -1365,7 +1365,7 @@ def start_recovery_from_backup(args: argparse.Namespace) -> None:
     """Recover a file or folder from a backup according to the command line."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     choice = None if args.choice is None else int(args.choice)
-    with Backup_Lock(backup_folder, wait=args.wait):
+    with Backup_Lock(backup_folder, wait=toggle_is_set(args, "wait")):
         print_run_title(args, "Recovering from backups")
         recover_path(Path(args.recover).resolve(), backup_folder, choice)
 
@@ -1374,7 +1374,7 @@ def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
     """Choose what to recover a list of backed up files and folders."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     search_directory = Path(args.list).resolve()
-    with Backup_Lock(backup_folder, wait=args.wait):
+    with Backup_Lock(backup_folder, wait=toggle_is_set(args, "wait")):
         print_run_title(args, "Listing recoverable files and directories")
         logger.info(f"Searching for everything backed up from {search_directory} ...")
         chosen_recovery_path = search_backups(search_directory, backup_folder)
@@ -1400,8 +1400,8 @@ def start_move_backups(args: argparse.Namespace) -> None:
                                "must be used when moving backups.")
 
     new_backup_location.mkdir(parents=True, exist_ok=True)
-    with (Backup_Lock(old_backup_location, wait=args.wait),
-          Backup_Lock(new_backup_location, wait=args.wait)):
+    with (Backup_Lock(old_backup_location, wait=toggle_is_set(args, "wait")),
+          Backup_Lock(new_backup_location, wait=toggle_is_set(args, "wait"))):
         print_run_title(args, "Moving backups")
         move_backups(old_backup_location, new_backup_location, backups_to_move)
 
@@ -1412,7 +1412,7 @@ def start_verify_backup(args: argparse.Namespace) -> None:
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     filter_file = path_or_none(args.filter)
     result_folder = Path(args.verify).resolve()
-    with Backup_Lock(backup_folder, wait=args.wait):
+    with Backup_Lock(backup_folder, wait=toggle_is_set(args, "wait")):
         print_run_title(args, "Verifying last backup")
         verify_last_backup(user_folder, backup_folder, filter_file, result_folder)
 
@@ -1441,7 +1441,7 @@ def start_backup_restore(args: argparse.Namespace) -> None:
     if not restore_source:
         raise CommandLineError(f"No backups found in {backup_folder}")
 
-    with Backup_Lock(backup_folder, wait=args.wait):
+    with Backup_Lock(backup_folder, wait=toggle_is_set(args, "wait")):
         print_run_title(args, "Restoring user data from backup")
 
         required_response = "yes"
@@ -1484,7 +1484,7 @@ def start_backup(args: argparse.Namespace) -> None:
     backup_folder = Path(args.backup_folder).resolve()
     backup_folder.mkdir(parents=True, exist_ok=True)
 
-    with Backup_Lock(backup_folder, wait=args.wait):
+    with Backup_Lock(backup_folder, wait=toggle_is_set(args, "wait")):
         print_run_title(args, "Starting new backup")
         create_new_backup(user_folder,
                           backup_folder,
@@ -1752,6 +1752,8 @@ is required when recovering from a backup."""))
 By default, if another Vintage Backup process is using the backup location, Vintage Backup will
 exit. With this parameter, the program will wait until the other process finishes before
 continuing."""))
+
+    add_no_option(other_group, "wait")
 
     other_group.add_argument("-c", "--config", metavar="FILE_NAME", help=format_help(r"""
 Read options from a configuration file instead of command-line arguments. The format
