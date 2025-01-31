@@ -1511,6 +1511,7 @@ class LockTest(unittest.TestCase):
             with vintagebackup.Backup_Lock(backup_path, wait=False):
                 pass
             end = datetime.datetime.now()
+            self.assertFalse(stale_lock_path.is_file(follow_symlinks=False))
             self.assertGreaterEqual(end - start, vintagebackup.Backup_Lock.stale_timeout)
 
 
