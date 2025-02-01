@@ -128,10 +128,12 @@ class Backup_Lock:
         heartbeat_data_2 = self.read_heartbeat_data()
         return heartbeat_data_1 == heartbeat_data_2
 
-    def read_heartbeat_data(self) -> list[str]:
+    def read_heartbeat_data(self) -> tuple[str, str]:
         """Get all data from lock file."""
         with self.lock_file_path.open() as lock_file:
-            return [s.strip() for s in lock_file]
+            pid = lock_file.readline().strip()
+            heartbeat_counter = lock_file.readline().strip()
+            return (pid, heartbeat_counter)
 
     def read_blocking_pid(self) -> str:
         """Get the PID of the other Vintage Backup process."""
