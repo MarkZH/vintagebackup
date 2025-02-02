@@ -48,13 +48,14 @@ class Backup_Lock:
     heartbeat_period = datetime.timedelta(seconds=1)
     stale_timeout = datetime.timedelta(seconds=3)
 
-    def __init__(self, backup_location: Path, *, wait: bool) -> None:
+    def __init__(self, backup_location: Path, operation: str, *, wait: bool) -> None:
         """Set up the lock."""
         self.lock_file_path = backup_location/"vintagebackup.lock"
         self.wait = wait
         self.pid = str(os.getpid())
         self.heartbeat_counter = 0
         self.heartbeat = Process(target=self.heartbeat_writer)
+        self.operation = operation
 
     def __enter__(self) -> None:
         """
@@ -72,16 +73,17 @@ class Backup_Lock:
                     continue
 
                 other_pid = self.read_blocking_pid()
+                other_operation = self.read_blocking_operation()
             except FileNotFoundError:
                 continue
 
             if not self.wait:
-                raise ConcurrencyError("Vintage Backup already running on "
+                raise ConcurrencyError(f"Vintage Backup already running {other_operation} on "
                                        f"{self.lock_file_path.parent} (PID {other_pid})")
 
             if last_pid != other_pid:
                 logger.info(f"Waiting for another Vintage Backup process (PID: {other_pid})"
-                            f" to end its work in {self.lock_file_path.parent} ...")
+                            f" to finish {other_operation} in {self.lock_file_path.parent} ...")
                 last_pid = other_pid
 
         self.heartbeat.start()
@@ -120,6 +122,7 @@ class Backup_Lock:
         with self.lock_file_path.open(mode) as lock_file:
             lock_file.write(f"{self.pid}\n")
             lock_file.write(f"{self.heartbeat_counter}\n")
+            lock_file.write(f"{self.operation}\n")
 
     def lock_is_stale(self) -> bool:
         """Return True if information in the lock file has not changed in a long time."""
@@ -128,14 +131,21 @@ class Backup_Lock:
         heartbeat_data_2 = self.read_heartbeat_data()
         return heartbeat_data_1 == heartbeat_data_2
 
-    def read_heartbeat_data(self) -> list[str]:
+    def read_heartbeat_data(self) -> tuple[str, str, str]:
         """Get all data from lock file."""
         with self.lock_file_path.open() as lock_file:
-            return [s.strip() for s in lock_file]
+            pid = lock_file.readline().strip()
+            heartbeat_counter = lock_file.readline().strip()
+            operation = lock_file.readline().strip()
+            return (pid, heartbeat_counter, operation)
 
     def read_blocking_pid(self) -> str:
         """Get the PID of the other Vintage Backup process."""
         return self.read_heartbeat_data()[0]
+
+    def read_blocking_operation(self) -> str:
+        """Get the name of the operation that is blocking this run of Vintage Backup."""
+        return self.read_heartbeat_data()[2]
 
 
 storage_prefixes = ["", "k", "M", "G", "T", "P", "E", "Z", "Y", "R", "Q"]
@@ -1365,7 +1375,7 @@ def start_recovery_from_backup(args: argparse.Namespace) -> None:
     """Recover a file or folder from a backup according to the command line."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     choice = None if args.choice is None else int(args.choice)
-    with Backup_Lock(backup_folder, wait=toggle_is_set(args, "wait")):
+    with Backup_Lock(backup_folder, "recovery from backup", wait=toggle_is_set(args, "wait")):
         print_run_title(args, "Recovering from backups")
         recover_path(Path(args.recover).resolve(), backup_folder, choice)
 
@@ -1374,7 +1384,7 @@ def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
     """Choose what to recover a list of backed up files and folders."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     search_directory = Path(args.list).resolve()
-    with Backup_Lock(backup_folder, wait=toggle_is_set(args, "wait")):
+    with Backup_Lock(backup_folder, "recovery from backup", wait=toggle_is_set(args, "wait")):
         print_run_title(args, "Listing recoverable files and directories")
         logger.info(f"Searching for everything backed up from {search_directory} ...")
         chosen_recovery_path = search_backups(search_directory, backup_folder)
@@ -1400,8 +1410,8 @@ def start_move_backups(args: argparse.Namespace) -> None:
                                "must be used when moving backups.")
 
     new_backup_location.mkdir(parents=True, exist_ok=True)
-    with (Backup_Lock(old_backup_location, wait=toggle_is_set(args, "wait")),
-          Backup_Lock(new_backup_location, wait=toggle_is_set(args, "wait"))):
+    with (Backup_Lock(old_backup_location, "backup move", wait=toggle_is_set(args, "wait")),
+          Backup_Lock(new_backup_location, "backup move", wait=toggle_is_set(args, "wait"))):
         print_run_title(args, "Moving backups")
         move_backups(old_backup_location, new_backup_location, backups_to_move)
 
@@ -1412,7 +1422,7 @@ def start_verify_backup(args: argparse.Namespace) -> None:
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     filter_file = path_or_none(args.filter)
     result_folder = Path(args.verify).resolve()
-    with Backup_Lock(backup_folder, wait=toggle_is_set(args, "wait")):
+    with Backup_Lock(backup_folder, "backup verification", wait=toggle_is_set(args, "wait")):
         print_run_title(args, "Verifying last backup")
         verify_last_backup(user_folder, backup_folder, filter_file, result_folder)
 
@@ -1441,7 +1451,7 @@ def start_backup_restore(args: argparse.Namespace) -> None:
     if not restore_source:
         raise CommandLineError(f"No backups found in {backup_folder}")
 
-    with Backup_Lock(backup_folder, wait=toggle_is_set(args, "wait")):
+    with Backup_Lock(backup_folder, "restoration from backup", wait=toggle_is_set(args, "wait")):
         print_run_title(args, "Restoring user data from backup")
 
         required_response = "yes"
@@ -1484,7 +1494,7 @@ def start_backup(args: argparse.Namespace) -> None:
     backup_folder = Path(args.backup_folder).resolve()
     backup_folder.mkdir(parents=True, exist_ok=True)
 
-    with Backup_Lock(backup_folder, wait=toggle_is_set(args, "wait")):
+    with Backup_Lock(backup_folder, "backup", wait=toggle_is_set(args, "wait")):
         print_run_title(args, "Starting new backup")
         create_new_backup(user_folder,
                           backup_folder,
@@ -1498,7 +1508,7 @@ def start_backup(args: argparse.Namespace) -> None:
 def delete_old_backups(args: argparse.Namespace) -> None:
     """Delete the oldest backups by various criteria in the command line options."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
-    with Backup_Lock(backup_folder, wait=True):
+    with Backup_Lock(backup_folder, "backup deletion", wait=True):
         backup_count = len(all_backups(backup_folder))
         max_deletions = None if args.max_deletions is None else int(args.max_deletions)
         min_backups_remaining = (None if max_deletions is None

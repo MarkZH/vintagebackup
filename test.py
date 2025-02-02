@@ -1468,7 +1468,7 @@ class LockTest(unittest.TestCase):
             user_path = Path(user_folder)
             create_user_data(user_path)
             backup_path = Path(backup_folder)
-            with vintagebackup.Backup_Lock(backup_path, wait=False):
+            with vintagebackup.Backup_Lock(backup_path, "no wait test", wait=False):
                 exit_code = run_backup(Invocation.cli,
                                        user_path,
                                        backup_path,
@@ -1488,24 +1488,27 @@ class LockTest(unittest.TestCase):
         """Test that a lock file is constantly updated with heartbeat information."""
         with tempfile.TemporaryDirectory() as backup_folder:
             backup_path = Path(backup_folder)
-            with vintagebackup.Backup_Lock(backup_path, wait=False):
+            with vintagebackup.Backup_Lock(backup_path, "heartbeat test", wait=False):
                 lock_path = backup_path/"vintagebackup.lock"
                 with lock_path.open() as lock_file:
-                    pid_1, counter_1 = (s.strip() for s in lock_file)
+                    pid_1, counter_1, operation_1 = (s.strip() for s in lock_file)
 
                 self.assertTrue(pid_1)
                 self.assertTrue(counter_1)
+                self.assertTrue(operation_1)
 
                 time.sleep(2*vintagebackup.Backup_Lock.heartbeat_period.total_seconds())
 
                 with lock_path.open() as lock_file:
-                    pid_2, counter_2 = (s.strip() for s in lock_file)
+                    pid_2, counter_2, operation_2 = (s.strip() for s in lock_file)
 
                 self.assertTrue(pid_2)
                 self.assertTrue(counter_2)
+                self.assertTrue(operation_2)
 
                 self.assertEqual(pid_1, pid_2)
                 self.assertNotEqual(counter_1, counter_2)
+                self.assertEqual(operation_1, operation_2)
 
             self.assertFalse(lock_path.is_file(follow_symlinks=False))
 
@@ -1519,7 +1522,7 @@ class LockTest(unittest.TestCase):
                 lock_file.write("0\n")
 
             start = datetime.datetime.now()
-            with vintagebackup.Backup_Lock(backup_path, wait=False):
+            with vintagebackup.Backup_Lock(backup_path, "stale test", wait=False):
                 pass
             end = datetime.datetime.now()
             self.assertFalse(stale_lock_path.is_file(follow_symlinks=False))
