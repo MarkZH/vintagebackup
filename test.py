@@ -824,8 +824,8 @@ class DeleteBackupTest(unittest.TestCase):
             backups_left = vintagebackup.all_backups(backup_location)
             self.assertEqual(len(backups_left), expected_backup_count)
 
-    def test_most_recent_backup_is_never_deleted(self) -> None:
-        """Test that trying to delete all backups actually leaves the last one."""
+    def test_delete_after_never_deletes_most_recent_backup(self) -> None:
+        """Test that deleting all backups with --delete_after actually leaves the last one."""
         with tempfile.TemporaryDirectory() as backup_folder:
             backup_location = Path(backup_folder)
             create_old_backups(backup_location, 30)
@@ -835,6 +835,8 @@ class DeleteBackupTest(unittest.TestCase):
             vintagebackup.delete_backups_older_than(backup_location, "1d")
             self.assertEqual(vintagebackup.last_n_backups(backup_location, "all"), [last_backup])
 
+    def test_free_up_never_deletes_most_recent_backup(self) -> None:
+        """Test that deleting all backups with --free-up actually leaves the last one."""
         with tempfile.TemporaryDirectory() as backup_folder:
             backup_location = Path(backup_folder)
             create_old_backups(backup_location, 30)
