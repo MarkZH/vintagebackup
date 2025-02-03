@@ -379,7 +379,7 @@ class BackupTest(unittest.TestCase):
 class FilterTest(unittest.TestCase):
     """Test that filter files work properly."""
 
-    def test_exclusions(self) -> None:
+    def test_paths_excluded_in_filter_file_do_not_appear_in_backup(self) -> None:
         """Test that filter files with only exclusions result in the right files being excluded."""
         for method in Invocation:
             with (tempfile.TemporaryDirectory() as user_data_location,
@@ -418,7 +418,7 @@ class FilterTest(unittest.TestCase):
                 self.assertEqual(directory_contents(last_backup), expected_backups)
                 self.assertNotEqual(directory_contents(user_data), expected_backups)
 
-    def test_inclusions(self) -> None:
+    def test_paths_included_after_exclusions_appear_in_backup(self) -> None:
         """Test that filter files with inclusions and exclusions work properly."""
         with (tempfile.TemporaryDirectory() as user_data_location,
               tempfile.TemporaryDirectory() as backup_folder,
@@ -460,7 +460,7 @@ class FilterTest(unittest.TestCase):
             self.assertEqual(directory_contents(last_backup), expected_backup_paths)
             self.assertNotEqual(directory_contents(user_data), expected_backup_paths)
 
-    def test_ineffective_filter_line_detection(self) -> None:
+    def test_filter_lines_that_have_no_effect_are_logged(self) -> None:
         """Test that filter lines with no effect on the backup files are detected."""
         with (tempfile.TemporaryDirectory() as user_data_location,
               tempfile.NamedTemporaryFile("w+", delete_on_close=False) as filter_file):
