@@ -203,7 +203,7 @@ class BackupTest(unittest.TestCase):
                                        force_copy=False,
                                        timestamp=unique_timestamp())
                 self.assertEqual(exit_code, 0)
-                backups = vintagebackup.last_n_backups(backup_location, "all")
+                backups = vintagebackup.all_backups(backup_location)
                 self.assertEqual(len(backups), 1)
                 self.assertEqual(backups[0], vintagebackup.find_previous_backup(backup_location))
                 self.assertTrue(directories_are_completely_copied(user_data, backups[0]))
@@ -225,7 +225,7 @@ class BackupTest(unittest.TestCase):
                                            force_copy=False,
                                            timestamp=unique_timestamp())
                     self.assertEqual(exit_code, 0)
-                backups = vintagebackup.last_n_backups(backup_location, "all")
+                backups = vintagebackup.all_backups(backup_location)
                 self.assertEqual(len(backups), 2)
                 self.assertEqual(backups[1], vintagebackup.find_previous_backup(backup_location))
                 self.assertTrue(directories_are_completely_hardlinked(*backups))
@@ -247,7 +247,7 @@ class BackupTest(unittest.TestCase):
                                            force_copy=True,
                                            timestamp=unique_timestamp())
                     self.assertEqual(exit_code, 0)
-                backups = vintagebackup.last_n_backups(backup_location, "all")
+                backups = vintagebackup.all_backups(backup_location)
                 self.assertEqual(len(backups), 2)
                 self.assertEqual(backups[1], vintagebackup.find_previous_backup(backup_location))
                 self.assertTrue(directories_are_completely_copied(user_data, backups[-1]))
@@ -278,7 +278,7 @@ class BackupTest(unittest.TestCase):
                         for file in files:
                             (current_directory/file).touch()  # update timestamps
 
-                backups = vintagebackup.last_n_backups(backup_location, "all")
+                backups = vintagebackup.all_backups(backup_location)
                 self.assertEqual(len(backups), 2)
                 self.assertEqual(backups[-1], vintagebackup.find_previous_backup(backup_location))
                 self.assertTrue(directories_are_completely_hardlinked(*backups))
@@ -300,7 +300,7 @@ class BackupTest(unittest.TestCase):
                                            force_copy=True,
                                            timestamp=unique_timestamp())
                     self.assertEqual(exit_code, 0)
-                backups = vintagebackup.last_n_backups(backup_location, "all")
+                backups = vintagebackup.all_backups(backup_location)
                 self.assertEqual(len(backups), 2)
                 self.assertEqual(backups[-1], vintagebackup.find_previous_backup(backup_location))
                 self.assertTrue(directories_are_completely_copied(*backups))
@@ -331,7 +331,7 @@ class BackupTest(unittest.TestCase):
                                             force_copy=False,
                                             max_average_hard_links=None,
                                             timestamp=unique_timestamp())
-            backup_1, backup_2 = vintagebackup.last_n_backups(backup_location, "all")
+            backup_1, backup_2 = vintagebackup.all_backups(backup_location)
             contents_1 = directory_contents(backup_1)
             contents_2 = directory_contents(backup_2)
             self.assertEqual(contents_1, contents_2)
@@ -445,7 +445,7 @@ class FilterTest(unittest.TestCase):
                                             max_average_hard_links=None,
                                             timestamp=unique_timestamp())
 
-            self.assertEqual(len(vintagebackup.last_n_backups(backup_location, "all")), 1)
+            self.assertEqual(len(vintagebackup.all_backups(backup_location)), 1)
             last_backup = vintagebackup.find_previous_backup(backup_location)
             self.assertTrue(last_backup)
             assert last_backup
@@ -626,10 +626,10 @@ class DeleteBackupTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as backup_folder:
             backup_location = Path(backup_folder)
             create_old_backups(backup_location, 10)
-            all_backups = vintagebackup.last_n_backups(backup_location, "all")
+            all_backups = vintagebackup.all_backups(backup_location)
             vintagebackup.delete_directory_tree(all_backups[0])
             expected_remaining_backups = all_backups[1:]
-            all_backups_left = vintagebackup.last_n_backups(backup_location, "all")
+            all_backups_left = vintagebackup.all_backups(backup_location)
             self.assertEqual(expected_remaining_backups, all_backups_left)
 
     def test_deleting_backup_with_read_only_file(self) -> None:
@@ -649,11 +649,11 @@ class DeleteBackupTest(unittest.TestCase):
                                             max_average_hard_links=None,
                                             timestamp=unique_timestamp())
 
-            backups = vintagebackup.last_n_backups(backup_location, "all")
+            backups = vintagebackup.all_backups(backup_location)
             self.assertEqual(len(backups), 1)
 
             vintagebackup.delete_directory_tree(backups[0])
-            backup_count_after = len(vintagebackup.last_n_backups(backup_location, "all"))
+            backup_count_after = len(vintagebackup.all_backups(backup_location))
             self.assertEqual(backup_count_after, 0)
 
     def test_deleting_backup_with_read_only_folder(self) -> None:
@@ -673,11 +673,11 @@ class DeleteBackupTest(unittest.TestCase):
                                             max_average_hard_links=None,
                                             timestamp=unique_timestamp())
 
-            backups = vintagebackup.last_n_backups(backup_location, "all")
+            backups = vintagebackup.all_backups(backup_location)
             self.assertEqual(len(backups), 1)
 
             vintagebackup.delete_directory_tree(backups[0])
-            backup_count_after = len(vintagebackup.last_n_backups(backup_location, "all"))
+            backup_count_after = len(vintagebackup.all_backups(backup_location))
             self.assertEqual(backup_count_after, 0)
 
     def test_free_up_option_with_absolute_size_deletes_backups_to_free_storage_space(self) -> None:
@@ -711,7 +711,7 @@ class DeleteBackupTest(unittest.TestCase):
                     backups_after_deletion -= 1
                 else:
                     raise NotImplementedError(f"Delete backup test not implemented for {method}")
-                backups_left = len(vintagebackup.last_n_backups(backup_location, "all"))
+                backups_left = len(vintagebackup.all_backups(backup_location))
                 self.assertEqual(backups_left, backups_after_deletion)
 
     def test_max_deletions_limits_the_number_of_backup_deletions(self) -> None:
@@ -773,7 +773,7 @@ class DeleteBackupTest(unittest.TestCase):
                     raise NotImplementedError("Delete backup percent test "
                                               f"not implemented for {method}")
 
-                backups_left = len(vintagebackup.last_n_backups(backup_location, "all"))
+                backups_left = len(vintagebackup.all_backups(backup_location))
                 self.assertEqual(backups_left, backups_after_deletion)
 
     def test_delete_after_deletes_all_backups_prior_to_given_date(self) -> None:
@@ -802,7 +802,7 @@ class DeleteBackupTest(unittest.TestCase):
                         self.assertEqual(exit_code, 0)
                 else:
                     raise NotImplementedError("Delete old backup test not implemented for {method}")
-                backups = vintagebackup.last_n_backups(backup_location, "all")
+                backups = vintagebackup.all_backups(backup_location)
                 self.assertEqual(len(backups), 12)
                 self.assertLessEqual(earliest_backup, vintagebackup.backup_datetime(backups[0]))
 
@@ -833,7 +833,7 @@ class DeleteBackupTest(unittest.TestCase):
             last_backup = vintagebackup.last_n_backups(backup_location, 2)[0]
             vintagebackup.delete_directory_tree(most_recent_backup)
             vintagebackup.delete_backups_older_than(backup_location, "1d")
-            self.assertEqual(vintagebackup.last_n_backups(backup_location, "all"), [last_backup])
+            self.assertEqual(vintagebackup.all_backups(backup_location), [last_backup])
 
     def test_free_up_never_deletes_most_recent_backup(self) -> None:
         """Test that deleting all backups with --free-up actually leaves the last one."""
@@ -843,7 +843,7 @@ class DeleteBackupTest(unittest.TestCase):
             last_backup = vintagebackup.last_n_backups(backup_location, 1)[0]
             total_space = shutil.disk_usage(backup_location).total
             vintagebackup.delete_oldest_backups_for_space(backup_location, f"{total_space}B")
-            self.assertEqual(vintagebackup.last_n_backups(backup_location, "all"), [last_backup])
+            self.assertEqual(vintagebackup.all_backups(backup_location), [last_backup])
 
     def test_attempt_to_free_more_space_than_capacity_of_backup_location_is_an_error(self) -> None:
         """Test that error is thrown when trying to free too much space."""
@@ -893,7 +893,7 @@ class MoveBackupsTest(unittest.TestCase):
                 with tempfile.TemporaryDirectory() as new_backup_folder:
                     new_backup_location = Path(new_backup_folder)
                     if method == Invocation.function:
-                        backups_to_move = vintagebackup.last_n_backups(backup_location, "all")
+                        backups_to_move = vintagebackup.all_backups(backup_location)
                         self.assertEqual(len(backups_to_move), backup_count)
                         vintagebackup.move_backups(backup_location,
                                                    new_backup_location,
@@ -947,15 +947,13 @@ class MoveBackupsTest(unittest.TestCase):
                     else:
                         raise NotImplementedError(f"Move backup test not implemented for {method}")
 
-                    backups_at_new_location = vintagebackup.last_n_backups(new_backup_location,
-                                                                           "all")
+                    backups_at_new_location = vintagebackup.all_backups(new_backup_location)
                     self.assertEqual(len(backups_at_new_location), move_count)
                     old_backups = [p.relative_to(backup_location)
                                    for p in vintagebackup.last_n_backups(backup_location,
                                                                          move_count)]
                     new_backups = [p.relative_to(new_backup_location)
-                                   for p in vintagebackup.last_n_backups(new_backup_location,
-                                                                         "all")]
+                                   for p in vintagebackup.all_backups(new_backup_location)]
                     self.assertEqual(old_backups, new_backups)
                     self.assertEqual(vintagebackup.backup_source(backup_location),
                                      vintagebackup.backup_source(new_backup_location))
