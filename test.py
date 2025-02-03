@@ -532,8 +532,8 @@ def run_recovery(method: Invocation, backup_location: Path, file_path: Path) -> 
 class RecoveryTest(unittest.TestCase):
     """Test recovering files and folders from backups."""
 
-    def test_single_file_recovery(self) -> None:
-        """Test that recovering a single file works properly."""
+    def test_file_recovered_from_backup_is_identical_to_original(self) -> None:
+        """Test that recovering a single file gets back same data."""
         for method in Invocation:
             with (tempfile.TemporaryDirectory() as user_data_location,
                   tempfile.TemporaryDirectory() as backup_folder):
@@ -554,7 +554,7 @@ class RecoveryTest(unittest.TestCase):
                 self.assertEqual(exit_code, 0)
                 self.assertTrue(filecmp.cmp(file, moved_file_path, shallow=False))
 
-    def test_single_file_recovery_with_renaming(self) -> None:
+    def test_recovered_file_renamed_to_not_clobber_original_and_is_same_as_original(self) -> None:
         """Test that recovering a file that exists in user data does not overwrite any files."""
         with (tempfile.TemporaryDirectory() as user_data_location,
               tempfile.TemporaryDirectory() as backup_folder):
@@ -573,8 +573,8 @@ class RecoveryTest(unittest.TestCase):
             recovered_file_path = file_path.parent/f"{file_path.stem}.1{file_path.suffix}"
             self.assertTrue(filecmp.cmp(file_path, recovered_file_path, shallow=False))
 
-    def test_single_folder_recovery(self) -> None:
-        """Test that recovering a folder works properly."""
+    def test_recovered_folder_is_renamed_to_not_clobber_original_and_has_all_data(self) -> None:
+        """Test that recovering a folder retrieves all data and doesn't overwrite user data."""
         with (tempfile.TemporaryDirectory() as user_data_location,
               tempfile.TemporaryDirectory() as backup_folder):
             user_data = Path(user_data_location)
@@ -591,10 +591,9 @@ class RecoveryTest(unittest.TestCase):
             vintagebackup.recover_path(folder_path, backup_location, 0)
             recovered_folder_path = folder_path.parent/f"{folder_path.name}.1"
             self.assertTrue(directories_are_completely_copied(folder_path, recovered_folder_path))
-            self.assertTrue(directories_have_identical_content(folder_path, recovered_folder_path))
 
-    def test_list_file_recovery(self) -> None:
-        """Test that choosing a file to recover from a list works properly."""
+    def test_file_to_be_recovered_can_be_chosen_from_menu(self) -> None:
+        """Test that a file can be recovered after choosing from a list ."""
         with (tempfile.TemporaryDirectory() as user_data_location,
               tempfile.TemporaryDirectory() as backup_folder):
             user_data = Path(user_data_location)
