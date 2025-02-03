@@ -131,11 +131,11 @@ def directories_are_completely_hardlinked(base_directory_1: Path, base_directory
             and all_files_are_hardlinked(base_directory_2, base_directory_1))
 
 
-def all_files_are_copies(base_directory_1: Path, base_directory_2: Path) -> bool:
-    """Test that every file in the standard directory is copied in the test directory."""
-    for directory_name_1, _, file_names in base_directory_1.walk():
+def no_files_are_hardlinks(standard_directory: Path, test_directory: Path) -> bool:
+    """Test files in standard directory are not hard linked to counterparts in test directory."""
+    for directory_name_1, _, file_names in standard_directory.walk():
         directory_1 = Path(directory_name_1)
-        directory_2 = base_directory_2/(directory_1.relative_to(base_directory_1))
+        directory_2 = test_directory/(directory_1.relative_to(standard_directory))
         for file_name in file_names:
             inode_1 = (directory_1/file_name).stat().st_ino
             inode_2 = (directory_2/file_name).stat().st_ino
@@ -146,8 +146,9 @@ def all_files_are_copies(base_directory_1: Path, base_directory_2: Path) -> bool
 
 def directories_are_completely_copied(base_directory_1: Path, base_directory_2: Path) -> bool:
     """Check that both directories have same tree and all files are copies."""
-    return (all_files_are_copies(base_directory_1, base_directory_2)
-            and all_files_are_copies(base_directory_2, base_directory_1))
+    return (no_files_are_hardlinks(base_directory_1, base_directory_2)
+            and no_files_are_hardlinks(base_directory_2, base_directory_1)
+            and directories_have_identical_content(base_directory_1, base_directory_2))
 
 
 class Invocation(enum.StrEnum):
@@ -214,7 +215,7 @@ class BackupTest(unittest.TestCase):
                 first_backup = first_backups[0]
                 self.assertEqual(first_backup, vintagebackup.find_previous_backup(backup_location))
                 self.assertTrue(directories_have_identical_content(user_data, first_backup))
-                self.assertTrue(all_files_are_copies(user_data, first_backup))
+                self.assertTrue(directories_are_completely_copied(user_data, first_backup))
 
                 exit_code = run_backup(method,
                                        user_data,
@@ -1559,8 +1560,8 @@ class RandomCopyTest(unittest.TestCase):
             all_backups = vintagebackup.all_backups(backup_path)
             self.assertEqual(len(all_backups), 2)
             self.assertTrue(all_files_have_same_content(*all_backups))
-            self.assertFalse(all_files_are_hardlinked(*all_backups))
-            self.assertFalse(all_files_are_copies(*all_backups))
+            self.assertFalse(directories_are_completely_hardlinked(*all_backups))
+            self.assertFalse(directories_are_completely_copied(*all_backups))
 
 
 if __name__ == "__main__":
