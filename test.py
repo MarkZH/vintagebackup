@@ -491,18 +491,20 @@ class FilterTest(unittest.TestCase):
 
             self.assertTrue(all("Ineffective" not in message for message in log_assert.output))
 
-    def test_bad_filter_lines(self) -> None:
-        """Test that malformed lines raise exceptions."""
+    def test_invalid_filter_symbol_raises_exception(self) -> None:
+        """Test that a filter symbol not in "+-#" raises an exceptions."""
+        with tempfile.NamedTemporaryFile("w", delete_on_close=False) as filter_file:
+            filter_file.write("* invalid_sign\n")
+            filter_file.close()
+            with self.assertRaises(ValueError) as error:
+                vintagebackup.Backup_Set(Path(), Path(filter_file.name))
+            self.assertIn("The first symbol of each line", error.exception.args[0])
+
+    def test_path_outside_user_folder_in_filter_file_raises_exception(self) -> None:
+        """Test that adding a path outside the user folder (--user-folder) raises an exception."""
         with tempfile.TemporaryDirectory() as user_folder:
             user_path = Path(user_folder)
             create_user_data(user_path)
-
-            with tempfile.NamedTemporaryFile("w", delete_on_close=False) as filter_file:
-                filter_file.write("* invalid_sign\n")
-                filter_file.close()
-                with self.assertRaises(ValueError) as error:
-                    vintagebackup.Backup_Set(user_path, Path(filter_file.name))
-                self.assertIn("The first symbol of each line", error.exception.args[0])
 
             with tempfile.NamedTemporaryFile("w", delete_on_close=False) as filter_file:
                 filter_file.write("- /other_place/sub_directory_0")
