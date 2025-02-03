@@ -312,7 +312,7 @@ class BackupTest(unittest.TestCase):
                 self.assertEqual(backups[-1], vintagebackup.find_previous_backup(backup_location))
                 self.assertTrue(directories_are_completely_copied(*backups))
 
-    def test_file_changing_between_backup(self) -> None:
+    def test_file_that_changed_between_backups_is_copied(self) -> None:
         """Check that a file changed between backups is copied with others are hardlinked."""
         with (tempfile.TemporaryDirectory() as user_data_folder,
               tempfile.TemporaryDirectory() as backup_location_folder):
@@ -347,7 +347,7 @@ class BackupTest(unittest.TestCase):
                 self.assertEqual((file != relative_changed_file),
                                  ((backup_1/file).stat().st_ino == (backup_2/file).stat().st_ino))
 
-    def test_backup_with_symlinks(self) -> None:
+    def test_symlinks_are_always_copied_as_symlinks(self) -> None:
         """Test that backups correctly handle symbolic links in user data."""
         if platform.system() == "Windows":
             self.skipTest("Cannot create symlinks on Windows without elevated privileges.")
