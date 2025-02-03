@@ -194,8 +194,8 @@ def run_backup(run_method: Invocation,
 class BackupTest(unittest.TestCase):
     """Test the main backup procedure."""
 
-    def test_backups(self) -> None:
-        """Test basic backups with no include/exclude files."""
+    def test_first_backup_copies_all_user_data(self) -> None:
+        """Test that the first default backup copies everything in user data."""
         for method in Invocation:
             with (tempfile.TemporaryDirectory() as user_data_folder,
                   tempfile.TemporaryDirectory() as backup_location_folder):
@@ -210,78 +210,107 @@ class BackupTest(unittest.TestCase):
                                        force_copy=False,
                                        timestamp=unique_timestamp())
                 self.assertEqual(exit_code, 0)
-                first_backups = vintagebackup.last_n_backups(backup_location, "all")
-                self.assertEqual(len(first_backups), 1)
-                first_backup = first_backups[0]
-                self.assertEqual(first_backup, vintagebackup.find_previous_backup(backup_location))
-                self.assertTrue(directories_have_identical_content(user_data, first_backup))
-                self.assertTrue(directories_are_completely_copied(user_data, first_backup))
+                backups = vintagebackup.last_n_backups(backup_location, "all")
+                self.assertEqual(len(backups), 1)
+                self.assertEqual(backups[0], vintagebackup.find_previous_backup(backup_location))
+                self.assertTrue(directories_are_completely_copied(user_data, backups[0]))
 
-                exit_code = run_backup(method,
-                                       user_data,
-                                       backup_location,
-                                       filter_file=None,
-                                       examine_whole_file=False,
-                                       force_copy=False,
-                                       timestamp=unique_timestamp())
-                self.assertEqual(exit_code, 0)
-                second_backups = vintagebackup.last_n_backups(backup_location, "all")
-                self.assertEqual(len(second_backups), 2)
-                self.assertEqual(second_backups[0], first_backup)
-                second_backup = second_backups[1]
-                self.assertEqual(second_backup, vintagebackup.find_previous_backup(backup_location))
-                self.assertTrue(directories_are_completely_hardlinked(first_backup, second_backup))
+    def test_second_backup_with_unchanged_data_hardlinks_everything_in_first_backup(self) -> None:
+        """Test that second default backup with same data hard links everything in first backup."""
+        for method in Invocation:
+            with (tempfile.TemporaryDirectory() as user_data_folder,
+                  tempfile.TemporaryDirectory() as backup_location_folder):
+                user_data = Path(user_data_folder)
+                backup_location = Path(backup_location_folder)
+                create_user_data(user_data)
+                for _ in range(2):
+                    exit_code = run_backup(method,
+                                           user_data,
+                                           backup_location,
+                                           filter_file=None,
+                                           examine_whole_file=False,
+                                           force_copy=False,
+                                           timestamp=unique_timestamp())
+                    self.assertEqual(exit_code, 0)
+                backups = vintagebackup.last_n_backups(backup_location, "all")
+                self.assertEqual(len(backups), 2)
+                self.assertEqual(backups[1], vintagebackup.find_previous_backup(backup_location))
+                self.assertTrue(directories_are_completely_hardlinked(*backups))
 
-                exit_code = run_backup(method,
-                                       user_data,
-                                       backup_location,
-                                       filter_file=None,
-                                       examine_whole_file=False,
-                                       force_copy=True,
-                                       timestamp=unique_timestamp())
-                self.assertEqual(exit_code, 0)
-                third_backups = vintagebackup.last_n_backups(backup_location, "all")
-                self.assertEqual(len(third_backups), 3)
-                self.assertEqual(third_backups[0], first_backup)
-                self.assertEqual(third_backups[1], second_backup)
-                third_backup = third_backups[2]
-                self.assertEqual(third_backup, vintagebackup.find_previous_backup(backup_location))
-                self.assertTrue(directories_are_completely_copied(second_backup, third_backup))
+    def test_force_copy_results_in_backup_with_copied_user_data(self) -> None:
+        """Test that latest backup is a copy of user data with --force-copy option."""
+        for method in Invocation:
+            with (tempfile.TemporaryDirectory() as user_data_folder,
+                  tempfile.TemporaryDirectory() as backup_location_folder):
+                user_data = Path(user_data_folder)
+                backup_location = Path(backup_location_folder)
+                create_user_data(user_data)
+                for _ in range(2):
+                    exit_code = run_backup(method,
+                                           user_data,
+                                           backup_location,
+                                           filter_file=None,
+                                           examine_whole_file=False,
+                                           force_copy=True,
+                                           timestamp=unique_timestamp())
+                    self.assertEqual(exit_code, 0)
+                backups = vintagebackup.last_n_backups(backup_location, "all")
+                self.assertEqual(len(backups), 2)
+                self.assertEqual(backups[1], vintagebackup.find_previous_backup(backup_location))
+                self.assertTrue(directories_are_completely_copied(user_data, backups[-1]))
+                self.assertTrue(directories_are_completely_copied(*backups))
 
-                exit_code = run_backup(method,
-                                       user_data,
-                                       backup_location,
-                                       filter_file=None,
-                                       examine_whole_file=True,
-                                       force_copy=False,
-                                       timestamp=unique_timestamp())
-                self.assertEqual(exit_code, 0)
-                fourth_backups = vintagebackup.last_n_backups(backup_location, "all")
-                self.assertEqual(len(fourth_backups), 4)
-                self.assertEqual(fourth_backups[0], first_backup)
-                self.assertEqual(fourth_backups[1], second_backup)
-                self.assertEqual(fourth_backups[2], third_backup)
-                fourth_backup = fourth_backups[3]
-                self.assertEqual(fourth_backup, vintagebackup.find_previous_backup(backup_location))
-                self.assertTrue(directories_are_completely_hardlinked(third_backup, fourth_backup))
+    def test_examining_whole_files_still_hardlinks_identical_files(self) -> None:
+        """
+        Test that examining whole files results in hardlinks to identical files in new backup.
 
-                exit_code = run_backup(method,
-                                       user_data,
-                                       backup_location,
-                                       filter_file=None,
-                                       examine_whole_file=True,
-                                       force_copy=True,
-                                       timestamp=unique_timestamp())
-                self.assertEqual(exit_code, 0)
-                fifth_backups = vintagebackup.last_n_backups(backup_location, "all")
-                self.assertEqual(len(fifth_backups), 5)
-                self.assertEqual(fifth_backups[0], first_backup)
-                self.assertEqual(fifth_backups[1], second_backup)
-                self.assertEqual(fifth_backups[2], third_backup)
-                self.assertEqual(fifth_backups[3], fourth_backup)
-                fifth_backup = fifth_backups[4]
-                self.assertEqual(fifth_backup, vintagebackup.find_previous_backup(backup_location))
-                self.assertTrue(directories_are_completely_copied(fourth_backup, fifth_backup))
+        Even if the timestamp has changed, --whole-file will hard link files with the same data.
+        """
+        for method in Invocation:
+            with (tempfile.TemporaryDirectory() as user_data_folder,
+                  tempfile.TemporaryDirectory() as backup_location_folder):
+                user_data = Path(user_data_folder)
+                backup_location = Path(backup_location_folder)
+                create_user_data(user_data)
+                for _ in range(2):
+                    exit_code = run_backup(method,
+                                           user_data,
+                                           backup_location,
+                                           filter_file=None,
+                                           examine_whole_file=True,
+                                           force_copy=False,
+                                           timestamp=unique_timestamp())
+                    self.assertEqual(exit_code, 0)
+                    for current_directory, _, files in user_data.walk():
+                        for file in files:
+                            (current_directory/file).touch()  # update timestamps
+
+                backups = vintagebackup.last_n_backups(backup_location, "all")
+                self.assertEqual(len(backups), 2)
+                self.assertEqual(backups[-1], vintagebackup.find_previous_backup(backup_location))
+                self.assertTrue(directories_are_completely_hardlinked(*backups))
+
+    def test_force_copy_overrides_examine_whole_file(self) -> None:
+        """Test that --force-copy results in a copy backup even if --whole-file is present."""
+        for method in Invocation:
+            with (tempfile.TemporaryDirectory() as user_data_folder,
+                  tempfile.TemporaryDirectory() as backup_location_folder):
+                user_data = Path(user_data_folder)
+                backup_location = Path(backup_location_folder)
+                create_user_data(user_data)
+                for _ in range(2):
+                    exit_code = run_backup(method,
+                                           user_data,
+                                           backup_location,
+                                           filter_file=None,
+                                           examine_whole_file=True,
+                                           force_copy=True,
+                                           timestamp=unique_timestamp())
+                    self.assertEqual(exit_code, 0)
+                backups = vintagebackup.last_n_backups(backup_location, "all")
+                self.assertEqual(len(backups), 2)
+                self.assertEqual(backups[-1], vintagebackup.find_previous_backup(backup_location))
+                self.assertTrue(directories_are_completely_copied(*backups))
 
     def test_file_changing_between_backup(self) -> None:
         """Check that a file changed between backups is copied with others are hardlinked."""
