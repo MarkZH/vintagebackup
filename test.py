@@ -873,8 +873,8 @@ class DeleteBackupTest(unittest.TestCase):
 class MoveBackupsTest(unittest.TestCase):
     """Test moving backup sets to a different location."""
 
-    def test_move_all_backups(self) -> None:
-        """Test that moving all backups works."""
+    def test_moving_all_backups_preserves_structure_and_hardlinks_of_original(self) -> None:
+        """Test that moving backups preserves the names and hardlinks of the original."""
         with (tempfile.TemporaryDirectory() as user_data_folder,
               tempfile.TemporaryDirectory() as backup_folder):
             user_data = Path(user_data_folder)
@@ -913,8 +913,16 @@ class MoveBackupsTest(unittest.TestCase):
                     self.assertEqual(vintagebackup.backup_source(backup_location),
                                      vintagebackup.backup_source(new_backup_location))
 
-    def test_move_n_backups(self) -> None:
-        """Test that moving N backups works."""
+                    original_backups = vintagebackup.all_backups(backup_location)
+                    original_names = [p.relative_to(backup_location) for p in original_backups]
+                    moved_backups = vintagebackup.all_backups(new_backup_location)
+                    moved_names = [p.relative_to(new_backup_location) for p in moved_backups]
+                    self.assertEqual(original_names, moved_names)
+                    for backup_1, backup_2 in itertools.pairwise(moved_backups):
+                        self.assertTrue(directories_are_completely_hardlinked(backup_1, backup_2))
+
+    def test_move_n_backups_moves_subset_and_preserves_structure_and_hardlinks(self) -> None:
+        """Test that moving N backups moves correct number of backups and correctly links files."""
         with (tempfile.TemporaryDirectory() as user_data_folder,
               tempfile.TemporaryDirectory() as backup_folder):
             user_data = Path(user_data_folder)
@@ -950,16 +958,17 @@ class MoveBackupsTest(unittest.TestCase):
 
                     backups_at_new_location = vintagebackup.all_backups(new_backup_location)
                     self.assertEqual(len(backups_at_new_location), move_count)
-                    old_backups = [p.relative_to(backup_location)
-                                   for p in vintagebackup.last_n_backups(backup_location,
-                                                                         move_count)]
-                    new_backups = [p.relative_to(new_backup_location)
-                                   for p in vintagebackup.all_backups(new_backup_location)]
-                    self.assertEqual(old_backups, new_backups)
+                    old_backups = vintagebackup.last_n_backups(backup_location, move_count)
+                    old_backup_names = [p.relative_to(backup_location) for p in old_backups]
+                    new_backups = vintagebackup.all_backups(new_backup_location)
+                    new_backup_names = [p.relative_to(new_backup_location) for p in new_backups]
+                    self.assertEqual(old_backup_names, new_backup_names)
                     self.assertEqual(vintagebackup.backup_source(backup_location),
                                      vintagebackup.backup_source(new_backup_location))
+                    for backup_1, backup_2 in itertools.pairwise(new_backups):
+                        self.assertTrue(directories_are_completely_hardlinked(backup_1, backup_2))
 
-    def test_move_age_backups(self) -> None:
+    def test_move_age_backups_moves_only_backups_within_given_timespan(self) -> None:
         """Test that moving backups based on a time span works."""
         with tempfile.TemporaryDirectory() as backup_folder:
             backup_location = Path(backup_folder)
@@ -968,6 +977,8 @@ class MoveBackupsTest(unittest.TestCase):
             backups_to_move = vintagebackup.backups_since(six_months_ago, backup_location)
             self.assertEqual(len(backups_to_move), 6)
             self.assertEqual(vintagebackup.last_n_backups(backup_location, 6), backups_to_move)
+            oldest_backup_timestamp = vintagebackup.backup_datetime(backups_to_move[0])
+            self.assertLessEqual(six_months_ago, oldest_backup_timestamp)
 
 
 class VerificationTest(unittest.TestCase):
