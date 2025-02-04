@@ -1549,8 +1549,8 @@ class BackupLockTest(unittest.TestCase):
 
             self.assertFalse(lock_path.is_file(follow_symlinks=False))
 
-    def test_stale_lock_file_is_deleted_by_another_lock(self) -> None:
-        """Test that a stale lock is deleted and claimed by new process."""
+    def test_stale_lock_file_is_deleted_by_another_lock_after_delay(self) -> None:
+        """Test that a stale lock is deleted and claimed by new process after sufficient delay."""
         with tempfile.TemporaryDirectory() as backup_folder:
             backup_path = Path(backup_folder)
             stale_lock_path = backup_path/"vintagebackup.lock"
