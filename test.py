@@ -1488,17 +1488,17 @@ class RestorationTest(unittest.TestCase):
             self.assertIn(rejection_line, bad_prompt_log.output)
 
 
-class LockTest(unittest.TestCase):
+class BackupLockTest(unittest.TestCase):
     """Test that the lock prevents simultaneous access to a backup location."""
 
-    def test_sane_heartbeat_values(self) -> None:
-        """Test that the Backup_Lock time periods have sane values."""
+    def test_stale_lock_check_period_is_much_longer_than_heartbeat_writing_period(self) -> None:
+        """Test that the stale lock checker cannot finish check between two heartbeat writings."""
         period = vintagebackup.Backup_Lock.heartbeat_period
         timeout = vintagebackup.Backup_Lock.stale_timeout
         self.assertGreaterEqual(timeout, 2*period)
 
-    def test_lock(self) -> None:
-        """Test basic locking with no waiting."""
+    def test_backup_with_no_wait_while_lock_is_present_raises_concurrency_error(self) -> None:
+        """Test that basic locking with no waiting raises an error when the lock is present."""
         with (tempfile.TemporaryDirectory() as user_folder,
               tempfile.TemporaryDirectory() as backup_folder):
             user_path = Path(user_folder)
@@ -1520,8 +1520,8 @@ class LockTest(unittest.TestCase):
                                                "--backup-folder", backup_folder])
                     vintagebackup.start_backup(args)
 
-    def test_lock_heartbeat(self) -> None:
-        """Test that a lock file is constantly updated with heartbeat information."""
+    def test_lock_writes_changing_heartbeat_info_to_lock_file_and_deletes_on_exit(self) -> None:
+        """Test that lock file has constantly changing heartbeat info and is deleted unlocked."""
         with tempfile.TemporaryDirectory() as backup_folder:
             backup_path = Path(backup_folder)
             with vintagebackup.Backup_Lock(backup_path, "heartbeat test", wait=False):
@@ -1548,7 +1548,7 @@ class LockTest(unittest.TestCase):
 
             self.assertFalse(lock_path.is_file(follow_symlinks=False))
 
-    def test_stale_lock(self) -> None:
+    def test_stale_lock_file_is_deleted_by_another_lock(self) -> None:
         """Test that a stale lock is deleted and claimed by new process."""
         with tempfile.TemporaryDirectory() as backup_folder:
             backup_path = Path(backup_folder)
