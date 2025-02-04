@@ -1665,6 +1665,33 @@ class MaxAverageHardLinksTest(unittest.TestCase):
             self.assertFalse(directories_are_completely_hardlinked(*all_backups))
             self.assertFalse(directories_are_completely_copied(*all_backups))
 
+    def test_hard_link_count_must_be_a_positive_number(self) -> None:
+        """Test that all inputs to --hard-link-count besides positive whole numbers are errors."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_path = Path(user_folder)
+            backup_path = Path(backup_folder)
+            with self.assertRaises(vintagebackup.CommandLineError) as error:
+                vintagebackup.create_new_backup(user_path,
+                                                backup_path,
+                                                filter_file=None,
+                                                examine_whole_file=False,
+                                                force_copy=False,
+                                                max_average_hard_links="Z",
+                                                timestamp=unique_timestamp())
+            self.assertEqual(error.exception.args[0], "Invalid value for hard link count: Z")
+
+            with self.assertRaises(vintagebackup.CommandLineError) as error:
+                vintagebackup.create_new_backup(user_path,
+                                                backup_path,
+                                                filter_file=None,
+                                                examine_whole_file=False,
+                                                force_copy=False,
+                                                max_average_hard_links="0",
+                                                timestamp=unique_timestamp())
+            self.assertEqual(error.exception.args[0],
+                             "Hard link count must be a positive whole number. Got: 0")
+
 
 if __name__ == "__main__":
     unittest.main()

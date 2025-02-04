@@ -1338,7 +1338,8 @@ def copy_probability_from_hard_link_count(hard_link_count: str | None) -> float:
         raise CommandLineError(f"Invalid value for hard link count: {hard_link_count}")
 
     if average_hard_link_count < 1:
-        raise CommandLineError("Hard link count must be a positive whole number.")
+        raise CommandLineError("Hard link count must be a positive whole number. "
+                               f"Got: {hard_link_count}")
 
     logger.info(f"Maximum average hard link count = {average_hard_link_count}")
     return 1/(average_hard_link_count + 1)
