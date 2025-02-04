@@ -1250,16 +1250,19 @@ def read_configuation_file(config_file_name: str) -> list[str]:
                 line = line_raw.strip()
                 if not line or line.startswith("#"):
                     continue
-                parameter, value = line.split(":", maxsplit=1)
-                if parameter.lower() == "config":
+                parameter_raw, value_raw = line.split(":", maxsplit=1)
+                parameter = parameter_raw.strip().lower()
+                value = value_raw.strip()
+                if parameter == "config":
                     raise CommandLineError("The parameter `config` within a configuration file"
                                            " has no effect.")
-                arguments.append(f"--{"-".join(parameter.lower().split())}")
-                arguments.append(value.strip())
+                arguments.append(f"--{"-".join(parameter.split())}")
+                if value:
+                    arguments.append(value)
     except FileNotFoundError:
         raise CommandLineError(f"Configuation file does not exist: {config_file_name}")
 
-    return list(filter(None, arguments))
+    return arguments
 
 
 def format_paragraphs(lines: str, line_length: int) -> str:
