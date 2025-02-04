@@ -1565,10 +1565,10 @@ class LockTest(unittest.TestCase):
             self.assertGreaterEqual(end - start, vintagebackup.Backup_Lock.stale_timeout)
 
 
-class RandomCopyTest(unittest.TestCase):
+class MaxAverageHardLinksTest(unittest.TestCase):
     """Test that specifying an average hard link count results in identical files being copied."""
 
-    def test_random_copy(self) -> None:
+    def test_max_average_hard_links_causes_some_unchanged_files_to_be_copied(self) -> None:
         """Test some files are copied instead of linked when max_average_hard_links is non-zero."""
         with (tempfile.TemporaryDirectory() as user_folder,
               tempfile.TemporaryDirectory() as backup_folder):
