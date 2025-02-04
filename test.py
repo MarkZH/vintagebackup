@@ -1462,6 +1462,20 @@ class RestorationTest(unittest.TestCase):
                              "--delete-extra or --keep-extra"]
             self.assertEqual(expected_logs, no_extra_log.output)
 
+    def test_restore_without_last_backup_or_choose_backup_is_an_error(self) -> None:
+        """Test that missing --last-backup and --choose-backup results in an error."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+            backup_path = Path(backup_folder)
+            vintagebackup.create_new_backup(user_path,
+                                            backup_path,
+                                            filter_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False,
+                                            max_average_hard_links=None,
+                                            timestamp=unique_timestamp())
             with self.assertLogs(level=logging.ERROR) as no_backup_choice_log:
                 exit_code = vintagebackup.main(["--restore",
                                                 "--user-folder", user_folder,
@@ -1473,6 +1487,20 @@ class RestorationTest(unittest.TestCase):
                              "--last-backup or --choose-backup"]
             self.assertEqual(expected_logs, no_backup_choice_log.output)
 
+    def test_restore_with_bad_response_to_overwrite_confirmation_is_an_error(self) -> None:
+        """Test that wrong response to overwrite confirmation ends program with error code."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+            backup_path = Path(backup_folder)
+            vintagebackup.create_new_backup(user_path,
+                                            backup_path,
+                                            filter_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False,
+                                            max_average_hard_links=None,
+                                            timestamp=unique_timestamp())
             with self.assertLogs(level=logging.INFO) as bad_prompt_log:
                 vintagebackup.main(["--restore",
                                     "--user-folder", user_folder,
