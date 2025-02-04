@@ -1436,6 +1436,44 @@ class RestorationTest(unittest.TestCase):
             self.assertTrue(directories_have_identical_content(last_backup, destination_path))
             self.assertTrue(directories_have_identical_content(user_path, destination_path))
 
+    def test_restore_backup_with_destination_keep_extra_preserves_extra_files(self) -> None:
+        """Test restoring with --destination and --keep-extra keeps extra files in new location."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder,
+              tempfile.TemporaryDirectory() as destination_folder):
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+            backup_path = Path(backup_folder)
+            vintagebackup.create_new_backup(user_path,
+                                            backup_path,
+                                            filter_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False,
+                                            max_average_hard_links=None,
+                                            timestamp=unique_timestamp())
+
+            destination_path = Path(destination_folder)
+            extra_file = destination_path/"extra_file1.txt"
+            with extra_file.open("w") as file1:
+                file1.write("extra 1\n")
+
+            exit_code = vintagebackup.main(["--restore",
+                                            "--user-folder", user_folder,
+                                            "--backup-folder", backup_folder,
+                                            "--last-backup", "--keep-extra",
+                                            "--log", os.devnull,
+                                            "--destination", destination_folder,
+                                            "--skip-prompt"])
+
+            self.assertEqual(exit_code, 0)
+            self.assertTrue(extra_file.is_file(follow_symlinks=False))
+            last_backup = vintagebackup.find_previous_backup(backup_path)
+            self.assertTrue(last_backup)
+            last_backup = cast(Path, last_backup)
+            extra_file.unlink()
+            self.assertTrue(directories_have_identical_content(last_backup, destination_path))
+            self.assertTrue(directories_have_identical_content(user_path, destination_path))
+
     def test_restore_without_delete_extra_or_keep_extra_is_an_error(self) -> None:
         """Test that missing --delete-extra and --keep-extra results in an error."""
         with (tempfile.TemporaryDirectory() as user_folder,
