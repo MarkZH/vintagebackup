@@ -1495,7 +1495,7 @@ class BackupLockTest(unittest.TestCase):
         """Test that the stale lock checker cannot finish check between two heartbeat writings."""
         period = vintagebackup.Backup_Lock.heartbeat_period
         timeout = vintagebackup.Backup_Lock.stale_timeout
-        self.assertGreaterEqual(timeout, 2*period)
+        self.assertGreaterEqual(timeout, 3*period)
 
     def test_backup_with_no_wait_while_lock_is_present_raises_concurrency_error(self) -> None:
         """Test that basic locking with no waiting raises an error when the lock is present."""
