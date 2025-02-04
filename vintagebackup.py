@@ -17,7 +17,7 @@ from collections import Counter
 from collections.abc import Callable, Iterator, Iterable
 from pathlib import Path
 from multiprocessing import Process
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 backup_date_format = "%Y-%m-%d %H-%M-%S"
 
@@ -510,8 +510,7 @@ def backup_directory(user_data_location: Path,
                                                       copy_probability)
 
     for file_name in matching:
-        assert previous_backup_directory
-        previous_backup = previous_backup_directory/file_name
+        previous_backup = cast(Path, previous_backup_directory)/file_name
         new_backup = new_backup_directory/file_name
 
         if create_hard_link(previous_backup, new_backup):
