@@ -1151,7 +1151,7 @@ class ErrorTest(unittest.TestCase):
     def test_no_user_folder_specified_for_backup_is_an_error(self) -> None:
         """Test that omitting the user folder prints the correct error message."""
         with self.assertLogs(level=logging.ERROR) as log_check:
-            exit_code = vintagebackup.main(["-l", os.devnull])
+            exit_code = vintagebackup.main(["-b", "backup_folder", "-l", os.devnull])
             self.assertEqual(exit_code, 1)
             self.assertEqual(log_check.output, ["ERROR:vintagebackup:User's folder not specified."])
 
