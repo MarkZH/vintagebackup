@@ -1058,19 +1058,25 @@ class VerificationTest(unittest.TestCase):
 class ConfigurationFileTest(unittest.TestCase):
     """Test configuration file functionality."""
 
-    def test_configuration_file(self) -> None:
-        """Test that a properly formatted configuration file is accepted."""
+    def test_configuration_file_reading_is_insensitive_to_variant_writings(self) -> None:
+        """
+        Test that configuration file reading is insensitive to variations in writing.
+
+        These include:
+        1. Upper vs. lowercase vs. mixed
+        2. Spacing
+        3. Parameters spelled with dashes (as on command line) or spaces
+        """
         with tempfile.NamedTemporaryFile("w+", delete_on_close=False) as config_file:
             user_folder = r"C:\Files"
             backup_folder = r"D:\Backup"
             filter_file = "filter_file.txt"
             config_file.write(rf"""
-User Folder:     {user_folder}
-Backup Folder:   {backup_folder}
-
-# Extra options
-FiLteR:           {filter_file}
-force-copy:
+USER FOLDER:     {user_folder}
+backup folder:   {backup_folder}
+  FiLteR    :    {filter_file}
+  force-copy:
+  whole    file :
 """)
             config_file.close()
             command_line = vintagebackup.read_configuation_file(config_file.name)
@@ -1078,7 +1084,8 @@ force-copy:
                              ["--user-folder", user_folder,
                              "--backup-folder", backup_folder,
                              "--filter", filter_file,
-                             "--force-copy"])
+                             "--force-copy",
+                             "--whole-file"])
             arg_parser = vintagebackup.argument_parser()
             args = arg_parser.parse_args(command_line)
             self.assertEqual(args.user_folder, user_folder)
@@ -1086,12 +1093,12 @@ force-copy:
             self.assertEqual(args.filter, filter_file)
             self.assertTrue(args.force_copy)
 
-    def test_override_config_file_with_command_line(self) -> None:
-        """Test that command line options override file configurations."""
+    def test_command_line_options_override_config_file_options(self) -> None:
+        """Test that command line options override file configurations and leave others alone."""
         with tempfile.NamedTemporaryFile("w+", delete_on_close=False) as config_file:
-            config_file.write(r"""
-# Test configuration file
-User Folder : C:\Users\Test User\
+            user_folder = r"C:\Users\Test User"
+            config_file.write(rf"""
+User Folder : {user_folder}
 Backup Folder: temp_back
 filter: filter.txt
 log: temp_log.txt
@@ -1105,20 +1112,16 @@ Debug:""")
                                     "-l", actual_log_file]
             arg_parser = vintagebackup.argument_parser()
             options = vintagebackup.parse_command_line(command_line_options, arg_parser)
+            self.assertEqual(options.user_folder, user_folder)
             self.assertEqual(options.backup_folder, actual_backup_folder)
             self.assertEqual(options.log, actual_log_file)
             self.assertTrue(options.whole_file)
             self.assertTrue(options.debug)
 
-    def test_negating_config_file_with_command_line(self) -> None:
-        """Test that command line options override file configurations."""
+    def test_negating_command_line_parameters_override_config_file(self) -> None:
+        """Test that command line options like --no-X override file configurations."""
         with tempfile.NamedTemporaryFile("w+", delete_on_close=False) as config_file:
             config_file.write(r"""
-# Test configuration file
-User Folder : C:\Users\Test User\
-Backup Folder: temp_back
-filter: filter.txt
-log: temp_log.txt
 whole file:
 Debug:
 wait:""")
@@ -1133,21 +1136,10 @@ wait:""")
             self.assertFalse(vintagebackup.toggle_is_set(options, "debug"))
             self.assertFalse(vintagebackup.toggle_is_set(options, "wait"))
 
-    def test_error_on_recursive_config_file(self) -> None:
+    def test_recursive_config_files_are_not_allowed(self) -> None:
         """Test that putting a config parameter in a configuration file raises an exception."""
         with tempfile.NamedTemporaryFile("w+", delete_on_close=False) as config_file:
-            user_folder = r"C:\Files"
-            backup_folder = r"D:\Backup"
-            filter_file = "filter_file.txt"
-            config_file.write(rf"""
-User Folder:     {user_folder}
-Backup Folder:   {backup_folder}
-
-# Extra options
-FiLteR:           {filter_file}
-force-copy:
-config: config_file_2.txt
-""")
+            config_file.write("config: config_file_2.txt")
             config_file.close()
             with self.assertRaises(vintagebackup.CommandLineError):
                 vintagebackup.read_configuation_file(config_file.name)
