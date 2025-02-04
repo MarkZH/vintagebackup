@@ -1205,8 +1205,8 @@ class ErrorTest(unittest.TestCase):
 class RestorationTest(unittest.TestCase):
     """Test that restoring backups works correctly."""
 
-    def test_restore_last_backup_delete_new_files(self) -> None:
-        """Test restoring the last backup while deleting new files."""
+    def test_restore_last_backup_with_delete_extra_option_deletes_new_files(self) -> None:
+        """Test that restoring with --delete-extra deletes new files since last backup."""
         with (tempfile.TemporaryDirectory() as user_folder,
               tempfile.TemporaryDirectory() as backup_folder):
             user_path = Path(user_folder)
@@ -1254,8 +1254,8 @@ class RestorationTest(unittest.TestCase):
             self.assertFalse(second_extra_file.exists(follow_symlinks=False))
             self.assertTrue(directories_have_identical_content(user_path, last_backup))
 
-    def test_restore_last_backup_keep_new_files(self) -> None:
-        """Test restoring the last backup while keeping new files."""
+    def test_restore_last_backup_with_keep_extra_preserves_new_files(self) -> None:
+        """Test that restoring with --keep-extra does not delete new files since the last backup."""
         with (tempfile.TemporaryDirectory() as user_folder,
               tempfile.TemporaryDirectory() as backup_folder):
             user_path = Path(user_folder)
@@ -1304,8 +1304,8 @@ class RestorationTest(unittest.TestCase):
             second_extra_file.unlink()
             self.assertTrue(directories_have_identical_content(user_path, last_backup))
 
-    def test_restore_choose_backup_delete_new_files(self) -> None:
-        """Test restoring a chosen backup while deleting new files."""
+    def test_restore_backup_from_menu_choice_and_delete_extra_deletes_new_files(self) -> None:
+        """Test restoring a chosen backup from a menu with --delete-extra deletes new files."""
         with (tempfile.TemporaryDirectory() as user_folder,
               tempfile.TemporaryDirectory() as backup_folder):
             user_path = Path(user_folder)
@@ -1353,8 +1353,8 @@ class RestorationTest(unittest.TestCase):
             self.assertFalse(second_extra_file.exists(follow_symlinks=False))
             self.assertTrue(directories_have_identical_content(user_path, restored_backup))
 
-    def test_restore_choose_backup_keep_new_files(self) -> None:
-        """Test restoring a chosen backup while keeping new files."""
+    def test_restore_backup_from_menu_choice_and_keep_extra_preserves_new_files(self) -> None:
+        """Test restoring a chosen backup from a menu with --keep-extra preserves new files."""
         with (tempfile.TemporaryDirectory() as user_folder,
               tempfile.TemporaryDirectory() as backup_folder):
             user_path = Path(user_folder)
@@ -1404,8 +1404,8 @@ class RestorationTest(unittest.TestCase):
             second_extra_file.unlink()
             self.assertTrue(directories_have_identical_content(user_path, restored_backup))
 
-    def test_restore_backup_to_alternate_location(self) -> None:
-        """Test restoring to a destination different from the user folder."""
+    def test_restore_backup_with_destination_delete_extra_restores_to_new_location(self) -> None:
+        """Test restoring with --destination and --delete-extra recreates backup in new location."""
         with (tempfile.TemporaryDirectory() as user_folder,
               tempfile.TemporaryDirectory() as backup_folder,
               tempfile.TemporaryDirectory() as destination_folder):
@@ -1436,8 +1436,8 @@ class RestorationTest(unittest.TestCase):
             self.assertTrue(directories_have_identical_content(last_backup, destination_path))
             self.assertTrue(directories_have_identical_content(user_path, destination_path))
 
-    def test_restore_errors(self) -> None:
-        """Test error states in restore function."""
+    def test_restore_without_delete_extra_or_keep_extra_is_an_error(self) -> None:
+        """Test that missing --delete-extra and --keep-extra results in an error."""
         with (tempfile.TemporaryDirectory() as user_folder,
               tempfile.TemporaryDirectory() as backup_folder):
             user_path = Path(user_folder)
