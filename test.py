@@ -1524,14 +1524,15 @@ class BackupLockTest(unittest.TestCase):
         """Test that lock file has constantly changing heartbeat info and is deleted unlocked."""
         with tempfile.TemporaryDirectory() as backup_folder:
             backup_path = Path(backup_folder)
-            with vintagebackup.Backup_Lock(backup_path, "heartbeat test", wait=False):
+            test_operation = "heartbeat test"
+            with vintagebackup.Backup_Lock(backup_path, test_operation, wait=False):
                 lock_path = backup_path/"vintagebackup.lock"
                 with lock_path.open() as lock_file:
                     pid_1, counter_1, operation_1 = (s.strip() for s in lock_file)
 
                 self.assertTrue(pid_1)
                 self.assertTrue(counter_1)
-                self.assertTrue(operation_1)
+                self.assertEqual(operation_1, test_operation)
 
                 time.sleep(2*vintagebackup.Backup_Lock.heartbeat_period.total_seconds())
 
@@ -1540,7 +1541,7 @@ class BackupLockTest(unittest.TestCase):
 
                 self.assertTrue(pid_2)
                 self.assertTrue(counter_2)
-                self.assertTrue(operation_2)
+                self.assertEqual(operation_2, test_operation)
 
                 self.assertEqual(pid_1, pid_2)
                 self.assertNotEqual(counter_1, counter_2)
