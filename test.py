@@ -984,8 +984,8 @@ class MoveBackupsTest(unittest.TestCase):
 class VerificationTest(unittest.TestCase):
     """Test backup verification."""
 
-    def test_backup_verification(self) -> None:
-        """Test that backups correctly verify."""
+    def test_backup_verification_sorts_files_into_matching_mismatching_and_errors(self) -> None:
+        """Test that verification sorts files into matching, mismatching, and error lists."""
         with (tempfile.TemporaryDirectory() as user_folder,
               tempfile.TemporaryDirectory() as backup_folder):
             user_location = Path(user_folder)
