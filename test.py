@@ -1148,14 +1148,14 @@ wait:""")
 class ErrorTest(unittest.TestCase):
     """Test that bad user inputs raise correct exceptions."""
 
-    def test_no_user_folder_error(self) -> None:
+    def test_no_user_folder_specified_for_backup_is_an_error(self) -> None:
         """Test that omitting the user folder prints the correct error message."""
         with self.assertLogs(level=logging.ERROR) as log_check:
             exit_code = vintagebackup.main(["-l", os.devnull])
             self.assertEqual(exit_code, 1)
             self.assertEqual(log_check.output, ["ERROR:vintagebackup:User's folder not specified."])
 
-    def test_no_backup_folder_error(self) -> None:
+    def test_no_backup_folder_specified_for_backup_error(self) -> None:
         """Test that omitting the backup folder prints the correct error message."""
         with (tempfile.TemporaryDirectory() as user_folder,
               self.assertLogs(level=logging.ERROR) as log_check):
@@ -1163,7 +1163,7 @@ class ErrorTest(unittest.TestCase):
             self.assertEqual(exit_code, 1)
             self.assertEqual(log_check.output, ["ERROR:vintagebackup:Backup folder not specified."])
 
-    def test_non_existent_user_folder(self) -> None:
+    def test_non_existent_user_folder_in_a_backup_is_an_error(self) -> None:
         """Test that non-existent user folder prints correct error message."""
         user_folder = "".join(random.choices(string.ascii_letters, k=50))
         with self.assertLogs(level=logging.ERROR) as log_check:
@@ -1172,8 +1172,8 @@ class ErrorTest(unittest.TestCase):
             expected_logs = [f"ERROR:vintagebackup:Could not find user's folder: {user_folder}"]
             self.assertEqual(log_check.output, expected_logs)
 
-    def test_user_folder_changed(self) -> None:
-        """Check that error is raised when attempted to change the source of a backup."""
+    def test_backing_up_different_user_folders_to_same_backup_location_is_an_error(self) -> None:
+        """Check that error is raised when attempted to change the source of a backup set."""
         with (tempfile.TemporaryDirectory() as user_folder,
               tempfile.TemporaryDirectory() as other_user_folder,
               tempfile.TemporaryDirectory() as backup_folder,
