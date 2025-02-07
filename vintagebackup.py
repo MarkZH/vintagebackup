@@ -635,6 +635,9 @@ def report_backup_file_counts(action_counter: Counter[str]) -> None:
     for action, count in action_counter.items():
         logger.info(f"{action.capitalize():<{name_column_size}} : {count:>{count_column_size}}")
 
+    if total_files == 0:
+        logger.warning("No files were backed up!")
+
 
 def check_paths_for_validity(user_data_location: Path,
                              backup_location: Path,

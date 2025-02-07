@@ -1201,6 +1201,48 @@ class ErrorTest(unittest.TestCase):
                                   f"{user_path.resolve()}; Now: {other_user_path.resolve()}")
         self.assertEqual(error.exception.args, (expected_error_message,))
 
+    def test_warning_printed_if_no_user_data_is_backed_up(self) -> None:
+        """Make sure a warning is printed if no files are backed up."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_path = Path(user_folder)
+            backup_path = Path(backup_folder)
+            with self.assertLogs(level=logging.WARNING) as assert_log:
+                vintagebackup.create_new_backup(user_path,
+                                                backup_path,
+                                                filter_file=None,
+                                                examine_whole_file=False,
+                                                force_copy=False,
+                                                max_average_hard_links=None,
+                                                timestamp=unique_timestamp())
+            self.assertIn("WARNING:vintagebackup:No files were backed up!", assert_log.output)
+            self.assertEqual(os.listdir(backup_path), ["vintagebackup.source.txt"])
+
+
+    def test_warning_printed_if_all_user_files_filtered_out(self) -> None:
+        """Make sure the user is warned if a filter file removes all files from the backup set."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder,
+              tempfile.NamedTemporaryFile(delete_on_close=False) as filter_file_name):
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+            filter_path = Path(filter_file_name.name)
+            with filter_path.open("w") as filter_file:
+                filter_file.write("- **/*.txt\n")
+            filter_file_name.close()
+            backup_path = Path(backup_folder)
+
+            with self.assertLogs(level=logging.WARNING) as assert_log:
+                vintagebackup.create_new_backup(user_path,
+                                                backup_path,
+                                                filter_file=filter_path,
+                                                examine_whole_file=False,
+                                                force_copy=False,
+                                                max_average_hard_links=None,
+                                                timestamp=unique_timestamp())
+            self.assertIn("WARNING:vintagebackup:No files were backed up!", assert_log.output)
+            self.assertEqual(os.listdir(backup_path), ["vintagebackup.source.txt"])
+
 
 class RestorationTest(unittest.TestCase):
     """Test that restoring backups works correctly."""
