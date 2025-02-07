@@ -16,7 +16,7 @@ import time
 from collections import Counter
 from collections.abc import Callable, Iterator, Iterable
 from pathlib import Path
-from multiprocessing import Process
+from multiprocessing import Process, set_start_method, freeze_support
 from typing import Any, Literal, cast
 
 backup_date_format = "%Y-%m-%d %H-%M-%S"
@@ -1899,6 +1899,8 @@ def main(argv: list[str]) -> int:
 
 if __name__ == "__main__":
     try:
+        set_start_method("spawn")
+        freeze_support()
         logger.addHandler(logging.StreamHandler(sys.stdout))
         sys.exit(main(sys.argv))
     except KeyboardInterrupt:

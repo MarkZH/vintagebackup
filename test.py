@@ -16,6 +16,7 @@ import string
 import platform
 import time
 from typing import cast
+from multiprocessing import set_start_method, freeze_support
 
 testing_timestamp = datetime.datetime.now()
 
@@ -1738,4 +1739,6 @@ class MaxAverageHardLinksTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    set_start_method("spawn")
+    freeze_support()
     unittest.main()
