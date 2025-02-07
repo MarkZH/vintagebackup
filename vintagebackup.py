@@ -56,6 +56,7 @@ class Backup_Lock:
         self.heartbeat_counter = 0
         self.heartbeat = Process(target=self.heartbeat_writer)
         self.operation = operation
+        self.previous_heartbeat_data: tuple[str, str, str] | None = None
 
     def __enter__(self) -> None:
         """
@@ -126,7 +127,7 @@ class Backup_Lock:
 
     def lock_is_stale(self) -> bool:
         """Return True if information in the lock file has not changed in a long time."""
-        heartbeat_data_1 = self.read_heartbeat_data()
+        heartbeat_data_1 = self.recall_heartbeat_data()
         time.sleep(self.stale_timeout.total_seconds())
         heartbeat_data_2 = self.read_heartbeat_data()
         return heartbeat_data_1 == heartbeat_data_2
@@ -137,15 +138,20 @@ class Backup_Lock:
             pid = lock_file.readline().strip()
             heartbeat_counter = lock_file.readline().strip()
             operation = lock_file.readline().strip()
-            return (pid, heartbeat_counter, operation)
+            self.previous_heartbeat_data = (pid, heartbeat_counter, operation)
+            return self.previous_heartbeat_data
 
     def read_blocking_pid(self) -> str:
         """Get the PID of the other Vintage Backup process."""
-        return self.read_heartbeat_data()[0]
+        return self.recall_heartbeat_data()[0]
 
     def read_blocking_operation(self) -> str:
         """Get the name of the operation that is blocking this run of Vintage Backup."""
-        return self.read_heartbeat_data()[2]
+        return self.recall_heartbeat_data()[2]
+
+    def recall_heartbeat_data(self) -> tuple[str, str, str]:
+        """Return data from previous lock file read if available or read the lock file."""
+        return self.previous_heartbeat_data or self.read_heartbeat_data()
 
 
 storage_prefixes = ["", "k", "M", "G", "T", "P", "E", "Z", "Y", "R", "Q"]
