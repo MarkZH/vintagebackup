@@ -881,14 +881,15 @@ class MoveBackupsTest(unittest.TestCase):
             create_user_data(user_data)
             backup_location = Path(backup_folder)
             backup_count = 10
-            for _ in range(backup_count):
+            for number in range(backup_count):
                 vintagebackup.create_new_backup(user_data,
                                                 backup_location,
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
                                                 max_average_hard_links=None,
-                                                timestamp=unique_timestamp())
+                                                timestamp=unique_timestamp(),
+                                                name=f"Backup {number}")
 
             for method in Invocation:
                 with tempfile.TemporaryDirectory() as new_backup_folder:
@@ -928,14 +929,15 @@ class MoveBackupsTest(unittest.TestCase):
             user_data = Path(user_data_folder)
             create_user_data(user_data)
             backup_location = Path(backup_folder)
-            for _ in range(10):
+            for number in range(10):
                 vintagebackup.create_new_backup(user_data,
                                                 backup_location,
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
                                                 max_average_hard_links=None,
-                                                timestamp=unique_timestamp())
+                                                timestamp=unique_timestamp(),
+                                                name=f"Backup ({number})")
 
             move_count = 5
             for method in Invocation:
