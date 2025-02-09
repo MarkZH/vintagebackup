@@ -596,6 +596,11 @@ def create_new_backup(user_data_location: Path,
 
     new_backup_path = backup_location/backup_name(timestamp, name)
     staging_backup_path = backup_location/"Staging"
+    if staging_backup_path.exists():
+        raise RuntimeError(f"The folder {staging_backup_path} already exists. This means that "
+                           "another backup is already running or this is leftover from a previous "
+                           "failed backup. Wait for the other backup to complete or delete the "
+                           "folder before retrying the backup.")
 
     confirm_user_location_is_unchanged(user_data_location, backup_location)
     record_user_location(user_data_location, backup_location)
