@@ -1408,21 +1408,19 @@ def start_recovery_from_backup(args: argparse.Namespace) -> None:
     """Recover a file or folder from a backup according to the command line."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     choice = None if args.choice is None else int(args.choice)
-    with Backup_Lock(backup_folder, "recovery from backup", wait=toggle_is_set(args, "wait")):
-        print_run_title(args, "Recovering from backups")
-        recover_path(Path(args.recover).resolve(), backup_folder, choice)
+    print_run_title(args, "Recovering from backups")
+    recover_path(Path(args.recover).resolve(), backup_folder, choice)
 
 
 def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
     """Choose what to recover a list of backed up files and folders."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     search_directory = Path(args.list).resolve()
-    with Backup_Lock(backup_folder, "recovery from backup", wait=toggle_is_set(args, "wait")):
-        print_run_title(args, "Listing recoverable files and directories")
-        logger.info(f"Searching for everything backed up from {search_directory} ...")
-        chosen_recovery_path = search_backups(search_directory, backup_folder)
-        if chosen_recovery_path is not None:
-            recover_path(chosen_recovery_path, backup_folder)
+    print_run_title(args, "Listing recoverable files and directories")
+    logger.info(f"Searching for everything backed up from {search_directory} ...")
+    chosen_recovery_path = search_backups(search_directory, backup_folder)
+    if chosen_recovery_path is not None:
+        recover_path(chosen_recovery_path, backup_folder)
 
 
 def start_move_backups(args: argparse.Namespace) -> None:
@@ -1443,8 +1441,7 @@ def start_move_backups(args: argparse.Namespace) -> None:
                                "must be used when moving backups.")
 
     new_backup_location.mkdir(parents=True, exist_ok=True)
-    with (Backup_Lock(old_backup_location, "backup move", wait=toggle_is_set(args, "wait")),
-          Backup_Lock(new_backup_location, "backup move", wait=toggle_is_set(args, "wait"))):
+    with Backup_Lock(new_backup_location, "backup move", wait=toggle_is_set(args, "wait")):
         print_run_title(args, "Moving backups")
         move_backups(old_backup_location, new_backup_location, backups_to_move)
 
@@ -1455,9 +1452,8 @@ def start_verify_backup(args: argparse.Namespace) -> None:
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     filter_file = path_or_none(args.filter)
     result_folder = Path(args.verify).resolve()
-    with Backup_Lock(backup_folder, "backup verification", wait=toggle_is_set(args, "wait")):
-        print_run_title(args, "Verifying last backup")
-        verify_last_backup(user_folder, backup_folder, filter_file, result_folder)
+    print_run_title(args, "Verifying last backup")
+    verify_last_backup(user_folder, backup_folder, filter_file, result_folder)
 
 
 def start_backup_restore(args: argparse.Namespace) -> None:
@@ -1484,25 +1480,24 @@ def start_backup_restore(args: argparse.Namespace) -> None:
     if not restore_source:
         raise CommandLineError(f"No backups found in {backup_folder}")
 
-    with Backup_Lock(backup_folder, "restoration from backup", wait=toggle_is_set(args, "wait")):
-        print_run_title(args, "Restoring user data from backup")
+    print_run_title(args, "Restoring user data from backup")
 
-        required_response = "yes"
-        logger.info(f"This will overwrite all files in {user_folder} and subfolders with files "
-                    f"in {restore_source}.")
-        if delete_extra_files:
-            logger.info("Any files that were not backed up, including newly created files and "
-                        "files not backed up because of --filter, will be deleted.")
-        automatic_response = "no" if args.bad_input else required_response
-        response = (automatic_response if args.skip_prompt
-                    else input(f'Do you want to continue? Type "{required_response}" to proceed '
-                               'or press Ctrl-C to cancel: '))
+    required_response = "yes"
+    logger.info(f"This will overwrite all files in {user_folder} and subfolders with files "
+                f"in {restore_source}.")
+    if delete_extra_files:
+        logger.info("Any files that were not backed up, including newly created files and "
+                    "files not backed up because of --filter, will be deleted.")
+    automatic_response = "no" if args.bad_input else required_response
+    response = (automatic_response if args.skip_prompt
+                else input(f'Do you want to continue? Type "{required_response}" to proceed '
+                           'or press Ctrl-C to cancel: '))
 
-        if response.strip().lower() == required_response:
-            restore_backup(restore_source, destination, delete_extra_files=delete_extra_files)
-        else:
-            logger.info(f'The response was "{response}" and not "{required_response}", '
-                        'so the restoration is cancelled.')
+    if response.strip().lower() == required_response:
+        restore_backup(restore_source, destination, delete_extra_files=delete_extra_files)
+    else:
+        logger.info(f'The response was "{response}" and not "{required_response}", '
+                    'so the restoration is cancelled.')
 
 
 def confirm_choice_made(args: argparse.Namespace, option1: str, option2: str) -> None:
