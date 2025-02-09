@@ -595,6 +595,7 @@ def create_new_backup(user_data_location: Path,
     check_paths_for_validity(user_data_location, backup_location, filter_file)
 
     new_backup_path = backup_location/backup_name(timestamp, name)
+    staging_backup_path = backup_location/"Staging"
 
     confirm_user_location_is_unchanged(user_data_location, backup_location)
     record_user_location(user_data_location, backup_location)
@@ -605,6 +606,7 @@ def create_new_backup(user_data_location: Path,
     else:
         logger.info(f"User's data      : {user_data_location}")
         logger.info(f"Backup location  : {new_backup_path}")
+    logger.info(f"Staging area     : {staging_backup_path}")
 
     last_backup_path = None if force_copy else find_previous_backup(backup_location)
     if last_backup_path:
@@ -623,13 +625,17 @@ def create_new_backup(user_data_location: Path,
     logger.info("Running backup ...")
     for current_user_path, user_file_names in paths_to_backup:
         backup_directory(user_data_location,
-                         new_backup_path,
+                         staging_backup_path,
                          last_backup_path,
                          current_user_path,
                          user_file_names,
                          examine_whole_file,
                          copy_probability,
                          action_counter)
+
+    if staging_backup_path.is_dir():
+        new_backup_path.parent.mkdir(parents=True, exist_ok=True)
+        staging_backup_path.rename(new_backup_path)
 
     report_backup_file_counts(action_counter)
 
