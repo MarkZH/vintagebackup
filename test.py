@@ -1738,6 +1738,45 @@ class MaxAverageHardLinksTest(unittest.TestCase):
                              "Hard link count must be a positive whole number. Got: 0")
 
 
+class AtomicBackupTests(unittest.TestCase):
+    """Test atomicity of backups."""
+
+    def test_existence_of_staging_folder_before_backup_is_an_error(self) -> None:
+        """Test that the existence of the staging folder prevents other backups from running."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_path = Path(user_folder)
+            backup_path = Path(backup_folder)
+            (backup_path/"Staging").mkdir()
+            with self.assertRaises(RuntimeError) as error:
+                vintagebackup.create_new_backup(user_path,
+                                                backup_path,
+                                                filter_file=None,
+                                                examine_whole_file=False,
+                                                force_copy=False,
+                                                max_average_hard_links=None,
+                                                timestamp=unique_timestamp())
+            error_message, = error.exception.args
+            self.assertIn("Staging", error_message)
+
+    def test_staging_folder_does_not_exist_after_successful_backup(self) -> None:
+        """Test that the staging folder is deleted after a successful backup."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+            backup_path = Path(backup_folder)
+            staging_path = backup_path/"Staging"
+            vintagebackup.create_new_backup(user_path,
+                                            backup_path,
+                                            filter_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False,
+                                            max_average_hard_links=None,
+                                            timestamp=unique_timestamp())
+            self.assertFalse(staging_path.exists())
+
+
 if __name__ == "__main__":
     set_start_method("spawn")
     freeze_support()
