@@ -1525,19 +1525,18 @@ def start_backup(args: argparse.Namespace) -> None:
                           force_copy=toggle_is_set(args, "force_copy"),
                           max_average_hard_links=args.hard_link_count,
                           timestamp=args.timestamp)
+        delete_old_backups(args)
 
 
 def delete_old_backups(args: argparse.Namespace) -> None:
     """Delete the oldest backups by various criteria in the command line options."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
-    with Backup_Lock(backup_folder, "backup deletion", wait=True):
-        backup_count = len(all_backups(backup_folder))
-        max_deletions = None if args.max_deletions is None else int(args.max_deletions)
-        min_backups_remaining = (None if max_deletions is None
-                                 else max(backup_count - max_deletions, 1))
-        delete_oldest_backups_for_space(backup_folder, args.free_up, min_backups_remaining)
-        delete_backups_older_than(backup_folder, args.delete_after, min_backups_remaining)
-        print_backup_storage_stats(args.backup_folder)
+    backup_count = len(all_backups(backup_folder))
+    max_deletions = None if args.max_deletions is None else int(args.max_deletions)
+    min_backups_remaining = None if max_deletions is None else max(backup_count - max_deletions, 1)
+    delete_oldest_backups_for_space(backup_folder, args.free_up, min_backups_remaining)
+    delete_backups_older_than(backup_folder, args.delete_after, min_backups_remaining)
+    print_backup_storage_stats(args.backup_folder)
 
 
 def argument_parser() -> argparse.ArgumentParser:
@@ -1876,16 +1875,13 @@ def main(argv: list[str]) -> int:
         logger.setLevel(logging.DEBUG if toggle_is_set(args, "debug") else logging.INFO)
         logger.debug(args)
 
-        actions = ([start_recovery_from_backup] if args.recover
-                   else [choose_recovery_target_from_backups] if args.list
-                   else [start_move_backups] if args.move_backup
-                   else [start_verify_backup] if args.verify
-                   else [start_backup_restore] if args.restore
-                   else [start_backup, delete_old_backups])
-
-        for action in actions:
-            action(args)
-
+        action = (start_recovery_from_backup if args.recover
+                  else choose_recovery_target_from_backups if args.list
+                  else start_move_backups if args.move_backup
+                  else start_verify_backup if args.verify
+                  else start_backup_restore if args.restore
+                  else start_backup)
+        action(args)
         return 0
     except CommandLineError as error:
         if __name__ == "__main__":
