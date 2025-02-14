@@ -1243,7 +1243,7 @@ def backups_since(oldest_backup_date: datetime.datetime, backup_location: Path) 
     return list(filter(recent_enough, all_backups(backup_location)))
 
 
-def print_backup_storage_stats(backup_location: str | Path) -> None:
+def print_backup_storage_stats(backup_location: Path) -> None:
     """Log information about the storage space of the backup medium."""
     backup_storage = shutil.disk_usage(backup_location)
     percent_used = round(100*backup_storage.used/backup_storage.total)
@@ -1253,8 +1253,7 @@ def print_backup_storage_stats(backup_location: str | Path) -> None:
                 f"Total = {byte_units(backup_storage.total)}  "
                 f"Used = {byte_units(backup_storage.used)} ({percent_used}%)  "
                 f"Free = {byte_units(backup_storage.free)} ({percent_free}%)")
-    backup_folder = Path(backup_location)
-    backups = all_backups(backup_folder)
+    backups = all_backups(backup_location)
     logger.info(f"Backups stored: {len(backups)}")
     logger.info(f"Earliest backup: {backups[0].name}")
 
@@ -1536,7 +1535,7 @@ def delete_old_backups(args: argparse.Namespace) -> None:
     min_backups_remaining = None if max_deletions is None else max(backup_count - max_deletions, 1)
     delete_oldest_backups_for_space(backup_folder, args.free_up, min_backups_remaining)
     delete_backups_older_than(backup_folder, args.delete_after, min_backups_remaining)
-    print_backup_storage_stats(args.backup_folder)
+    print_backup_storage_stats(backup_folder)
 
 
 def argument_parser() -> argparse.ArgumentParser:
