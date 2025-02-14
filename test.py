@@ -1221,6 +1221,20 @@ class ErrorTest(unittest.TestCase):
             self.assertIn("WARNING:vintagebackup:No files were backed up!", assert_log.output)
             self.assertEqual(os.listdir(backup_path), ["vintagebackup.source.txt"])
 
+    def test_no_dated_backup_folder_created_if_no_data_backed_up(self) -> None:
+        """Test that a dated backup folder is not created if there is no data to back up."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_path = Path(user_folder)
+            backup_path = Path(backup_folder)
+            vintagebackup.create_new_backup(user_path,
+                                            backup_path,
+                                            filter_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False,
+                                            max_average_hard_links=None,
+                                            timestamp=unique_timestamp())
+            self.assertEqual(os.listdir(backup_path), ["vintagebackup.source.txt"])
 
     def test_warning_printed_if_all_user_files_filtered_out(self) -> None:
         """Make sure the user is warned if a filter file removes all files from the backup set."""
