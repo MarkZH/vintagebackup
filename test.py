@@ -14,9 +14,7 @@ import enum
 import random
 import string
 import platform
-import time
 from typing import cast
-from multiprocessing import set_start_method, freeze_support
 
 testing_timestamp = datetime.datetime.now()
 
@@ -1616,12 +1614,6 @@ class RestorationTest(unittest.TestCase):
 class BackupLockTest(unittest.TestCase):
     """Test that the lock prevents simultaneous access to a backup location."""
 
-    def test_stale_lock_check_period_is_much_longer_than_heartbeat_writing_period(self) -> None:
-        """Test that the stale lock checker cannot finish check between two heartbeat writings."""
-        period = vintagebackup.Backup_Lock.heartbeat_period
-        timeout = vintagebackup.Backup_Lock.stale_timeout
-        self.assertGreaterEqual(timeout, 3*period)
-
     def test_backup_with_no_wait_while_lock_is_present_raises_concurrency_error(self) -> None:
         """Test that basic locking with no waiting raises an error when the lock is present."""
         with (tempfile.TemporaryDirectory() as user_folder,
@@ -1645,50 +1637,21 @@ class BackupLockTest(unittest.TestCase):
                                                "--backup-folder", backup_folder])
                     vintagebackup.start_backup(args)
 
-    def test_lock_writes_changing_heartbeat_info_to_lock_file_and_deletes_on_exit(self) -> None:
-        """Test that lock file has constantly changing heartbeat info and is deleted unlocked."""
+    def test_lock_writes_process_info_to_lock_file_and_deletes_on_exit(self) -> None:
+        """Test that lock file is created when entering with statement and deleted when exiting."""
         with tempfile.TemporaryDirectory() as backup_folder:
             backup_path = Path(backup_folder)
-            test_operation = "heartbeat test"
+            test_pid = str(os.getpid())
+            test_operation = "lock data test"
             with vintagebackup.Backup_Lock(backup_path, test_operation, wait=False):
                 lock_path = backup_path/"vintagebackup.lock"
                 with lock_path.open() as lock_file:
-                    pid_1, counter_1, operation_1 = (s.strip() for s in lock_file)
+                    lock_pid, lock_operation = (s.strip() for s in lock_file)
 
-                self.assertTrue(pid_1)
-                self.assertTrue(counter_1)
-                self.assertEqual(operation_1, test_operation)
-
-                time.sleep(2*vintagebackup.Backup_Lock.heartbeat_period.total_seconds())
-
-                with lock_path.open() as lock_file:
-                    pid_2, counter_2, operation_2 = (s.strip() for s in lock_file)
-
-                self.assertTrue(pid_2)
-                self.assertTrue(counter_2)
-                self.assertEqual(operation_2, test_operation)
-
-                self.assertEqual(pid_1, pid_2)
-                self.assertNotEqual(counter_1, counter_2)
-                self.assertEqual(operation_1, operation_2)
+                self.assertEqual(lock_pid, test_pid)
+                self.assertEqual(lock_operation, test_operation)
 
             self.assertFalse(lock_path.is_file(follow_symlinks=False))
-
-    def test_stale_lock_file_is_deleted_by_another_lock_after_delay(self) -> None:
-        """Test that a stale lock is deleted and claimed by new process after sufficient delay."""
-        with tempfile.TemporaryDirectory() as backup_folder:
-            backup_path = Path(backup_folder)
-            stale_lock_path = backup_path/"vintagebackup.lock"
-            with stale_lock_path.open("w") as lock_file:
-                lock_file.write("0\n")
-                lock_file.write("0\n")
-
-            start = datetime.datetime.now()
-            with vintagebackup.Backup_Lock(backup_path, "stale test", wait=False):
-                pass
-            end = datetime.datetime.now()
-            self.assertFalse(stale_lock_path.is_file(follow_symlinks=False))
-            self.assertGreaterEqual(end - start, vintagebackup.Backup_Lock.stale_timeout)
 
 
 class MaxAverageHardLinksTest(unittest.TestCase):
@@ -1792,6 +1755,4 @@ class AtomicBackupTests(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    set_start_method("spawn")
-    freeze_support()
     unittest.main()
