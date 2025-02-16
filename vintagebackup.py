@@ -537,15 +537,12 @@ def backup_directory(user_data_location: Path,
             action_counter["failed copies"] += 1
 
 
-def backup_name(backup_datetime: datetime.datetime | str | None, backup_name: str | None) -> Path:
+def backup_name(backup_datetime: datetime.datetime | str | None) -> Path:
     """Create the name and relative path for the new dated backup."""
     now = (datetime.datetime.strptime(backup_datetime, backup_date_format)
            if isinstance(backup_datetime, str)
            else (backup_datetime or datetime.datetime.now()))
-    backup_date = now.strftime(backup_date_format)
-    name = backup_name or os_name()
-    backup_name = f"{backup_date} ({name})".removesuffix("()").strip()
-    return Path(str(now.year))/backup_name
+    return Path(str(now.year))/now.strftime(backup_date_format)
 
 def extract_backup_name(backup: Path) -> str:
     """Extract the name of an individual backup (the part after the timestamp in parentheses)."""
@@ -574,7 +571,6 @@ def create_new_backup(user_data_location: Path,
                       force_copy: bool,
                       max_average_hard_links: str | None,
                       timestamp: datetime.datetime | str | None,
-                      name: str | None = None,
                       is_backup_move: bool = False) -> None:
     """
     Create a new dated backup.
@@ -594,7 +590,7 @@ def create_new_backup(user_data_location: Path,
     """
     check_paths_for_validity(user_data_location, backup_location, filter_file)
 
-    new_backup_path = backup_location/backup_name(timestamp, name)
+    new_backup_path = backup_location/backup_name(timestamp)
 
     confirm_user_location_is_unchanged(user_data_location, backup_location)
     record_user_location(user_data_location, backup_location)
@@ -1117,8 +1113,7 @@ def move_backups(old_backup_location: Path,
                           force_copy=False,
                           max_average_hard_links=None,
                           is_backup_move=True,
-                          timestamp=backup_datetime(backup),
-                          name=extract_backup_name(backup))
+                          timestamp=backup_datetime(backup))
 
         backup_source_file = get_user_location_record(new_backup_location)
         backup_source_file.unlink()
