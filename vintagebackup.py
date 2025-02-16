@@ -16,8 +16,7 @@ import time
 from collections import Counter
 from collections.abc import Callable, Iterator, Iterable
 from pathlib import Path
-from multiprocessing import Process, set_start_method, freeze_support
-from typing import Any, Literal, cast
+from typing import Any, cast
 
 backup_date_format = "%Y-%m-%d %H-%M-%S"
 
@@ -45,18 +44,14 @@ class Backup_Lock:
     ```
     """
 
-    heartbeat_period = datetime.timedelta(seconds=1)
-    stale_timeout = datetime.timedelta(seconds=3)
+    wait_period = datetime.timedelta(seconds=1)
 
     def __init__(self, backup_location: Path, operation: str, *, wait: bool) -> None:
         """Set up the lock."""
         self.lock_file_path = backup_location/"vintagebackup.lock"
         self.wait = wait
         self.pid = str(os.getpid())
-        self.heartbeat_counter = 0
-        self.heartbeat = Process(target=self.heartbeat_writer)
         self.operation = operation
-        self.previous_heartbeat_data: tuple[str, str, str] | None = None
 
     def __enter__(self) -> None:
         """
@@ -68,13 +63,7 @@ class Backup_Lock:
         last_pid = None
         while not self.acquire_lock():
             try:
-                if self.lock_is_stale():
-                    logger.info(f"Deleting stale lock file: {self.lock_file_path}")
-                    self.lock_file_path.unlink()
-                    continue
-
-                other_pid = self.read_blocking_pid()
-                other_operation = self.read_blocking_operation()
+                other_pid, other_operation = self.read_lock_data()
             except FileNotFoundError:
                 continue
 
@@ -87,12 +76,10 @@ class Backup_Lock:
                             f" to finish {other_operation} in {self.lock_file_path.parent} ...")
                 last_pid = other_pid
 
-        self.heartbeat.start()
+            time.sleep(self.wait_period.total_seconds())
 
     def __exit__(self, *_: object) -> None:
         """Release the file lock."""
-        self.heartbeat.terminate()
-        self.heartbeat.join()
         self.lock_file_path.unlink()
 
     def acquire_lock(self) -> bool:
@@ -102,56 +89,23 @@ class Backup_Lock:
         Returns whether locking was successful.
         """
         try:
-            self.write_heartbeat("x")
+            self.create_lock()
             return True
         except FileExistsError:
             return False
 
-    def heartbeat_writer(self) -> None:
-        """Write PID and heartbeat counter periodically to file to indicate lock is still valid."""
-        while True:
-            self.heartbeat_counter += 1
-            self.write_heartbeat("w")
-            time.sleep(self.heartbeat_period.total_seconds())
-
-    def write_heartbeat(self, mode: Literal["x", "w"]) -> None:
-        """
-        Write PID and heartbeat counter to the lock file.
-
-        :param mode: Whether to open the file in exclusive mode ("x") or write mode ("w").
-        """
-        with self.lock_file_path.open(mode) as lock_file:
+    def create_lock(self) -> None:
+        """Write PID and operation to the lock file."""
+        with self.lock_file_path.open("x") as lock_file:
             lock_file.write(f"{self.pid}\n")
-            lock_file.write(f"{self.heartbeat_counter}\n")
             lock_file.write(f"{self.operation}\n")
 
-    def lock_is_stale(self) -> bool:
-        """Return True if information in the lock file has not changed in a long time."""
-        heartbeat_data_1 = self.recall_heartbeat_data()
-        time.sleep(self.stale_timeout.total_seconds())
-        heartbeat_data_2 = self.read_heartbeat_data()
-        return heartbeat_data_1 == heartbeat_data_2
-
-    def read_heartbeat_data(self) -> tuple[str, str, str]:
+    def read_lock_data(self) -> tuple[str, str]:
         """Get all data from lock file."""
         with self.lock_file_path.open() as lock_file:
             pid = lock_file.readline().strip()
-            heartbeat_counter = lock_file.readline().strip()
             operation = lock_file.readline().strip()
-            self.previous_heartbeat_data = (pid, heartbeat_counter, operation)
-            return self.previous_heartbeat_data
-
-    def read_blocking_pid(self) -> str:
-        """Get the PID of the other Vintage Backup process."""
-        return self.recall_heartbeat_data()[0]
-
-    def read_blocking_operation(self) -> str:
-        """Get the name of the operation that is blocking this run of Vintage Backup."""
-        return self.recall_heartbeat_data()[2]
-
-    def recall_heartbeat_data(self) -> tuple[str, str, str]:
-        """Return data from previous lock file read if available or read the lock file."""
-        return self.previous_heartbeat_data or self.read_heartbeat_data()
+            return (pid, operation)
 
 
 storage_prefixes = ["", "k", "M", "G", "T", "P", "E", "Z", "Y", "R", "Q"]
@@ -595,6 +549,12 @@ def create_new_backup(user_data_location: Path,
     check_paths_for_validity(user_data_location, backup_location, filter_file)
 
     new_backup_path = backup_location/backup_name(timestamp, name)
+    staging_backup_path = backup_location/"Staging"
+    if staging_backup_path.exists():
+        raise RuntimeError(f"The folder {staging_backup_path} already exists. This means that "
+                           "another backup is already running or this is leftover from a previous "
+                           "failed backup. Wait for the other backup to complete or delete the "
+                           "folder before retrying the backup.")
 
     confirm_user_location_is_unchanged(user_data_location, backup_location)
     record_user_location(user_data_location, backup_location)
@@ -605,6 +565,7 @@ def create_new_backup(user_data_location: Path,
     else:
         logger.info(f"User's data      : {user_data_location}")
         logger.info(f"Backup location  : {new_backup_path}")
+    logger.info(f"Staging area     : {staging_backup_path}")
 
     last_backup_path = None if force_copy else find_previous_backup(backup_location)
     if last_backup_path:
@@ -621,15 +582,25 @@ def create_new_backup(user_data_location: Path,
     paths_to_backup = Backup_Set(user_data_location, filter_file)
     copy_probability = copy_probability_from_hard_link_count(max_average_hard_links)
     logger.info("Running backup ...")
-    for current_user_path, user_file_names in paths_to_backup:
-        backup_directory(user_data_location,
-                         new_backup_path,
-                         last_backup_path,
-                         current_user_path,
-                         user_file_names,
-                         examine_whole_file,
-                         copy_probability,
-                         action_counter)
+    try:
+        for current_user_path, user_file_names in paths_to_backup:
+            backup_directory(user_data_location,
+                             staging_backup_path,
+                             last_backup_path,
+                             current_user_path,
+                             user_file_names,
+                             examine_whole_file,
+                             copy_probability,
+                             action_counter)
+    except KeyboardInterrupt:
+        if staging_backup_path.is_dir():
+            logger.info("Deleting in-progress backup ...")
+            delete_directory_tree(staging_backup_path)
+        raise
+
+    if staging_backup_path.is_dir():
+        new_backup_path.parent.mkdir(parents=True, exist_ok=True)
+        staging_backup_path.rename(new_backup_path)
 
     report_backup_file_counts(action_counter)
 
@@ -1396,21 +1367,19 @@ def start_recovery_from_backup(args: argparse.Namespace) -> None:
     """Recover a file or folder from a backup according to the command line."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     choice = None if args.choice is None else int(args.choice)
-    with Backup_Lock(backup_folder, "recovery from backup", wait=toggle_is_set(args, "wait")):
-        print_run_title(args, "Recovering from backups")
-        recover_path(Path(args.recover).resolve(), backup_folder, choice)
+    print_run_title(args, "Recovering from backups")
+    recover_path(Path(args.recover).resolve(), backup_folder, choice)
 
 
 def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
     """Choose what to recover a list of backed up files and folders."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     search_directory = Path(args.list).resolve()
-    with Backup_Lock(backup_folder, "recovery from backup", wait=toggle_is_set(args, "wait")):
-        print_run_title(args, "Listing recoverable files and directories")
-        logger.info(f"Searching for everything backed up from {search_directory} ...")
-        chosen_recovery_path = search_backups(search_directory, backup_folder)
-        if chosen_recovery_path is not None:
-            recover_path(chosen_recovery_path, backup_folder)
+    print_run_title(args, "Listing recoverable files and directories")
+    logger.info(f"Searching for everything backed up from {search_directory} ...")
+    chosen_recovery_path = search_backups(search_directory, backup_folder)
+    if chosen_recovery_path is not None:
+        recover_path(chosen_recovery_path, backup_folder)
 
 
 def start_move_backups(args: argparse.Namespace) -> None:
@@ -1431,8 +1400,7 @@ def start_move_backups(args: argparse.Namespace) -> None:
                                "must be used when moving backups.")
 
     new_backup_location.mkdir(parents=True, exist_ok=True)
-    with (Backup_Lock(old_backup_location, "backup move", wait=toggle_is_set(args, "wait")),
-          Backup_Lock(new_backup_location, "backup move", wait=toggle_is_set(args, "wait"))):
+    with Backup_Lock(new_backup_location, "backup move", wait=toggle_is_set(args, "wait")):
         print_run_title(args, "Moving backups")
         move_backups(old_backup_location, new_backup_location, backups_to_move)
 
@@ -1443,9 +1411,8 @@ def start_verify_backup(args: argparse.Namespace) -> None:
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     filter_file = path_or_none(args.filter)
     result_folder = Path(args.verify).resolve()
-    with Backup_Lock(backup_folder, "backup verification", wait=toggle_is_set(args, "wait")):
-        print_run_title(args, "Verifying last backup")
-        verify_last_backup(user_folder, backup_folder, filter_file, result_folder)
+    print_run_title(args, "Verifying last backup")
+    verify_last_backup(user_folder, backup_folder, filter_file, result_folder)
 
 
 def start_backup_restore(args: argparse.Namespace) -> None:
@@ -1472,25 +1439,24 @@ def start_backup_restore(args: argparse.Namespace) -> None:
     if not restore_source:
         raise CommandLineError(f"No backups found in {backup_folder}")
 
-    with Backup_Lock(backup_folder, "restoration from backup", wait=toggle_is_set(args, "wait")):
-        print_run_title(args, "Restoring user data from backup")
+    print_run_title(args, "Restoring user data from backup")
 
-        required_response = "yes"
-        logger.info(f"This will overwrite all files in {user_folder} and subfolders with files "
-                    f"in {restore_source}.")
-        if delete_extra_files:
-            logger.info("Any files that were not backed up, including newly created files and "
-                        "files not backed up because of --filter, will be deleted.")
-        automatic_response = "no" if args.bad_input else required_response
-        response = (automatic_response if args.skip_prompt
-                    else input(f'Do you want to continue? Type "{required_response}" to proceed '
-                               'or press Ctrl-C to cancel: '))
+    required_response = "yes"
+    logger.info(f"This will overwrite all files in {user_folder} and subfolders with files "
+                f"in {restore_source}.")
+    if delete_extra_files:
+        logger.info("Any files that were not backed up, including newly created files and "
+                    "files not backed up because of --filter, will be deleted.")
+    automatic_response = "no" if args.bad_input else required_response
+    response = (automatic_response if args.skip_prompt
+                else input(f'Do you want to continue? Type "{required_response}" to proceed '
+                           'or press Ctrl-C to cancel: '))
 
-        if response.strip().lower() == required_response:
-            restore_backup(restore_source, destination, delete_extra_files=delete_extra_files)
-        else:
-            logger.info(f'The response was "{response}" and not "{required_response}", '
-                        'so the restoration is cancelled.')
+    if response.strip().lower() == required_response:
+        restore_backup(restore_source, destination, delete_extra_files=delete_extra_files)
+    else:
+        logger.info(f'The response was "{response}" and not "{required_response}", '
+                    'so the restoration is cancelled.')
 
 
 def confirm_choice_made(args: argparse.Namespace, option1: str, option2: str) -> None:
@@ -1894,8 +1860,6 @@ def main(argv: list[str]) -> int:
 
 if __name__ == "__main__":
     try:
-        set_start_method("spawn")
-        freeze_support()
         logger.addHandler(logging.StreamHandler(sys.stdout))
         sys.exit(main(sys.argv))
     except KeyboardInterrupt:
