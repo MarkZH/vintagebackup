@@ -1459,6 +1459,52 @@ def start_backup_restore(args: argparse.Namespace) -> None:
                     'so the restoration is cancelled.')
 
 
+def start_backup_purge(args: argparse.Namespace, prompt_reponse: str | None = None) -> None:
+    """Parse command line options to purge file or folder from all backups."""
+    backup_folder = get_existing_path(args.backup_folder, "backup folder")
+    purge_target = Path(args.purge).resolve()
+    is_folder = purge_target_is_folder(purge_target, prompt_reponse)
+
+    try:
+        user_folder = backup_source(backup_folder)
+    except FileNotFoundError:
+        raise CommandLineError(f"There do not seem to be any backups stored in {backup_folder}.")
+
+    try:
+        relative_purge_target = purge_target.relative_to(user_folder)
+    except ValueError:
+        raise CommandLineError("The purge target is not contained within the backed up "
+                               f"folder {user_folder}")
+
+    logger.info(f"Deleting backups of the {"folder" if is_folder else "file"} {purge_target} from "
+                f"all backups in {backup_folder}.")
+    for backup in all_backups(backup_folder):
+        backup_purge_target = backup/relative_purge_target
+        if is_folder != is_real_directory(backup_purge_target):
+            continue
+
+        logger.info(f"Deleting {'folder' if is_folder else 'file'} {backup_purge_target}")
+        if is_folder:
+            delete_directory_tree(backup_purge_target)
+        else:
+            backup_purge_target.unlink(missing_ok=True)
+
+
+def purge_target_is_folder(purge_target: Path, prompt_reponse: str | None) -> bool:
+    """Determine the type of the given Path, possibly by asking the user."""
+    if not purge_target.exists():
+        response = prompt_reponse or input("Is the path to be purged a file or folder? ").lower()
+        if response == "folder":
+            return True
+        elif response == "file":
+            return False
+        else:
+            raise ValueError(f'Response must be "file" or "folder". The response {response} does '
+                             "not match either.")
+
+    return is_real_directory(purge_target)
+
+
 def confirm_choice_made(args: argparse.Namespace, option1: str, option2: str) -> None:
     """Make sure that at least one of two argument parameters are present."""
     args_dict = vars(args)
@@ -1591,6 +1637,10 @@ This action restores the user's folder to a previous, backed up state. Any exist
 have the same name as one in the backup will be overwritten. The --backup-folder is required to
 specify from where to restore. See the Restore Options section below for the other required
 parameters."""))
+
+    only_one_action_group.add_argument("--purge", help=format_help("""
+Delete a file or folder from all backups. The argument is the path to delete. This requires the
+--backup-folder argument."""))
 
     common_group = user_input.add_argument_group("Options needed for all actions")
 
@@ -1845,6 +1895,7 @@ def main(argv: list[str]) -> int:
                   else start_move_backups if args.move_backup
                   else start_verify_backup if args.verify
                   else start_backup_restore if args.restore
+                  else start_backup_purge if args.purge
                   else start_backup)
         action(args)
         return 0
