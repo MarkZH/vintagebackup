@@ -16,7 +16,7 @@ python vintagebackup.py --user-folder C:\Users\Alice --backup-folder E:\backups
 ```
 Every time this program is run with the same options, a new dated backup folder will be created. For example, the above command would create a new backup folder that might look like this:
 ```
-E:\backups\2023\2023-09-02 17-25-33 (Windows 10)
+E:\backups\2023\2023-09-02 17-25-33
 ```
 Bob, on a Linux or Mac, might run it like this:
 ```
@@ -24,7 +24,7 @@ python vintagebackup.py --user-folder /home/bob/ --backup-folder /mnt/backup_dri
 ```
 which might create
 ```
-/mnt/backup_drive/bob/2024/2024-08-27 22-10-12 (Ubuntu 22.04.4 LTS)
+/mnt/backup_drive/bob/2024/2024-08-27 22-10-12
 ```
 as the first backup.
 
