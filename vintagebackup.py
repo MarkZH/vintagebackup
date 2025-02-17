@@ -552,17 +552,6 @@ def extract_backup_name(backup: Path) -> str:
     except IndexError:
         return ""
 
-def os_name() -> str:
-    """Return the name and version of the present OS, if available."""
-    os_type = platform.system()
-    if os_type == "Windows":
-        return f"{platform.system()} {platform.release()}".strip()
-    elif os_type == "Linux":
-        return platform.freedesktop_os_release()["PRETTY_NAME"]
-    else:
-        return platform.platform()
-
-
 def create_new_backup(user_data_location: Path,
                       backup_location: Path,
                       *,
