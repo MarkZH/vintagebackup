@@ -959,7 +959,7 @@ def parse_time_span_to_timepoint(time_span: str) -> datetime.datetime:
 
 def fix_end_of_month(year: int, month: int, day: int) -> datetime.date:
     """
-    Fix day if it is past then end of the month (e.g., Feb. 31).
+    Replace a day past the end of the month (e.g., Feb. 31) with the last day of the same month.
 
     >>> fix_end_of_month(2023, 2, 31)
     datetime.date(2023, 2, 28)
@@ -969,6 +969,11 @@ def fix_end_of_month(year: int, month: int, day: int) -> datetime.date:
 
     >>> fix_end_of_month(2025, 4, 31)
     datetime.date(2025, 4, 30)
+
+    All other days are unaffected.
+
+    >>> fix_end_of_month(2025, 5, 23)
+    datetime.date(2025, 5, 23)
     """
     new_day = day
     while True:
