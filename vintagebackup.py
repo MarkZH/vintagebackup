@@ -975,12 +975,11 @@ def fix_end_of_month(year: int, month: int, day: int) -> datetime.date:
     >>> fix_end_of_month(2025, 5, 23)
     datetime.date(2025, 5, 23)
     """
-    new_day = day
     while True:
         try:
-            return datetime.date(year, month, new_day)
+            return datetime.date(year, month, day)
         except ValueError:
-            new_day -= 1
+            day -= 1
 
 
 def delete_backups_older_than(backup_folder: Path,
