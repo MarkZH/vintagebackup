@@ -1459,11 +1459,18 @@ def start_backup_restore(args: argparse.Namespace) -> None:
                     'so the restoration is cancelled.')
 
 
-def start_backup_purge(args: argparse.Namespace, prompt_reponse: str | None = None) -> None:
+def classify_path(path: Path | os.DirEntry[str]) -> str:
+    """Return a text description of the item at the given path (file, folder, etc.)."""
+    return ("Symlink" if path.is_symlink()
+            else "Folder" if path.is_dir()
+            else "File" if path.is_file(follow_symlinks=False)
+            else "Unknown")
+
+
+def start_backup_purge(args: argparse.Namespace, confirmation_reponse: str | None = None) -> None:
     """Parse command line options to purge file or folder from all backups."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     purge_target = Path(args.purge).resolve()
-    is_folder = purge_target_is_folder(purge_target, prompt_reponse)
 
     try:
         user_folder = backup_source(backup_folder)
@@ -1476,33 +1483,44 @@ def start_backup_purge(args: argparse.Namespace, prompt_reponse: str | None = No
         raise CommandLineError("The purge target is not contained within the backed up "
                                f"folder {user_folder}")
 
-    logger.info(f"Deleting backups of the {"folder" if is_folder else "file"} {purge_target} from "
-                f"all backups in {backup_folder}.")
-    for backup in all_backups(backup_folder):
-        backup_purge_target = backup/relative_purge_target
-        if is_folder != is_real_directory(backup_purge_target):
-            continue
+    paths_to_delete: list[Path] = [backup_purge_target for backup_purge_target
+                                   in (backup/relative_purge_target
+                                       for backup in all_backups(backup_folder))
+                                   if backup_purge_target.exists(follow_symlinks=False)]
 
-        logger.info(f"Deleting {'folder' if is_folder else 'file'} {backup_purge_target}")
-        if is_folder:
-            delete_directory_tree(backup_purge_target)
-        else:
-            backup_purge_target.unlink(missing_ok=True)
+    path_type_counts = Counter(map(classify_path, paths_to_delete))
+    if len(path_type_counts) == 0:
+        logger.info(f"Could not find any backed up copies of {purge_target}")
+        return
 
+    if len(path_type_counts) == 1:
+        types_to_delete = [classify_path(paths_to_delete[0])]
+    else:
+        print("Multiple types of paths were found. Which one should be deleted?")
+        menu_choices = [f"{path_type}s ({count} items)"
+                        for path_type, count in path_type_counts.items()]
+        menu_choices.append(f"All ({len(paths_to_delete)} items)")
+        arg_choice = args.choice
+        choice = choose_from_menu(menu_choices, "Choice") if arg_choice is None else int(arg_choice)
+        type_choices = list(path_type_counts.keys())
+        types_to_delete = (type_choices if menu_choices[choice].startswith("All")
+                           else [type_choices[choice]])
 
-def purge_target_is_folder(purge_target: Path, prompt_reponse: str | None) -> bool:
-    """Determine the type of the given Path, possibly by asking the user."""
-    if not purge_target.exists():
-        response = prompt_reponse or input("Is the path to be purged a file or folder? ").lower()
-        if response == "folder":
-            return True
-        elif response == "file":
-            return False
-        else:
-            raise ValueError(f'Response must be "file" or "folder". The response {response} does '
-                             "not match either.")
+    print("The following items will be deleted: ", end="")
+    type_choice_data = [(path_type_counts[path_type], path_type) for path_type in types_to_delete]
+    type_list = [f"{count} {plural_noun(count, path_type)}"
+                 for count, path_type in type_choice_data]
+    print(", ".join(type_list))
+    confirmation = confirmation_reponse or input("Proceed? [y/n] ")
+    if confirmation.lower() != "y":
+        return
 
-    return is_real_directory(purge_target)
+    for path in paths_to_delete:
+        path_type = classify_path(path)
+        if path_type in types_to_delete:
+            logger.info(f"Deleting {path_type} {path} ...")
+            action = delete_directory_tree if path_type == "Folder" else Path.unlink
+            action(path)
 
 
 def confirm_choice_made(args: argparse.Namespace, option1: str, option2: str) -> None:
