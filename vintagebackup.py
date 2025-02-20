@@ -671,10 +671,7 @@ def search_backups(search_directory: Path,
         try:
             with os.scandir(backup_search_directory) as backup_scan:
                 for item in backup_scan:
-                    path_type = ("Symlink" if item.is_symlink()
-                                 else "File" if item.is_file()
-                                 else "Folder" if item.is_dir()
-                                 else "?")
+                    path_type = classify_path(item)
                     all_paths.add((item.name, path_type))
         except FileNotFoundError:
             continue
