@@ -773,9 +773,8 @@ def choose_from_menu(menu_choices: list[str], prompt: str) -> int:
     :param menu_choices: List of choices
     :param prompt: Message to show user prior to the prompt for a choice.
 
-    :returns int: The returned number is an index into the input list. Note that the user interface
-    has the user choose a number from 1 to len(menu_list), but returns a number from 0 to
-    len(menu_list) - 1.
+    :returns int: The returned number is an index into the input list. The interface has the user
+    choose a number from 1 to len(menu_list), but returns a number from 0 to len(menu_list) - 1.
     """
     number_column_size = len(str(len(menu_choices)))
     for number, choice in enumerate(menu_choices, 1):
