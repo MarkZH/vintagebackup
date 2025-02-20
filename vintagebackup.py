@@ -544,14 +544,6 @@ def backup_name(backup_datetime: datetime.datetime | str | None) -> Path:
            else (backup_datetime or datetime.datetime.now()))
     return Path(str(now.year))/now.strftime(backup_date_format)
 
-def extract_backup_name(backup: Path) -> str:
-    """Extract the name of an individual backup (the part after the timestamp in parentheses)."""
-    try:
-        name = backup.name.split("(", maxsplit=1)[1]
-        return name[:-1] if name[-1] == ")" else name
-    except IndexError:
-        return ""
-
 def create_new_backup(user_data_location: Path,
                       backup_location: Path,
                       *,
