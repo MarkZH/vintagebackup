@@ -1056,8 +1056,7 @@ def delete_backups(backup_folder: Path,
 
 def backup_datetime(backup: Path) -> datetime.datetime:
     """Get the timestamp of a backup from the backup folder name."""
-    timestamp_portion = " ".join(backup.name.split()[:2])
-    return datetime.datetime.strptime(timestamp_portion, backup_date_format)
+    return datetime.datetime.strptime(backup.name, backup_date_format)
 
 
 def plural_noun(count: int, word: str) -> str:
