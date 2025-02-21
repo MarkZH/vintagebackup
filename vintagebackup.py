@@ -491,34 +491,12 @@ def backup_directory(user_data_location: Path,
             action_counter["failed copies"] += 1
 
 
-def backup_name(backup_datetime: datetime.datetime | str | None, backup_name: str | None) -> Path:
+def backup_name(backup_datetime: datetime.datetime | str | None) -> Path:
     """Create the name and relative path for the new dated backup."""
     now = (datetime.datetime.strptime(backup_datetime, backup_date_format)
            if isinstance(backup_datetime, str)
            else (backup_datetime or datetime.datetime.now()))
-    backup_date = now.strftime(backup_date_format)
-    name = backup_name or os_name()
-    backup_name = f"{backup_date} ({name})".removesuffix("()").strip()
-    return Path(str(now.year))/backup_name
-
-def extract_backup_name(backup: Path) -> str:
-    """Extract the name of an individual backup (the part after the timestamp in parentheses)."""
-    try:
-        name = backup.name.split("(", maxsplit=1)[1]
-        return name[:-1] if name[-1] == ")" else name
-    except IndexError:
-        return ""
-
-def os_name() -> str:
-    """Return the name and version of the present OS, if available."""
-    os_type = platform.system()
-    if os_type == "Windows":
-        return f"{platform.system()} {platform.release()}".strip()
-    elif os_type == "Linux":
-        return platform.freedesktop_os_release()["PRETTY_NAME"]
-    else:
-        return platform.platform()
-
+    return Path(str(now.year))/now.strftime(backup_date_format)
 
 def create_new_backup(user_data_location: Path,
                       backup_location: Path,
@@ -528,7 +506,6 @@ def create_new_backup(user_data_location: Path,
                       force_copy: bool,
                       max_average_hard_links: str | None,
                       timestamp: datetime.datetime | str | None,
-                      name: str | None = None,
                       is_backup_move: bool = False) -> None:
     """
     Create a new dated backup.
@@ -548,7 +525,7 @@ def create_new_backup(user_data_location: Path,
     """
     check_paths_for_validity(user_data_location, backup_location, filter_file)
 
-    new_backup_path = backup_location/backup_name(timestamp, name)
+    new_backup_path = backup_location/backup_name(timestamp)
     staging_backup_path = backup_location/"Staging"
     if staging_backup_path.exists():
         raise RuntimeError(f"The folder {staging_backup_path} already exists. This means that "
@@ -1058,8 +1035,7 @@ def delete_backups(backup_folder: Path,
 
 def backup_datetime(backup: Path) -> datetime.datetime:
     """Get the timestamp of a backup from the backup folder name."""
-    timestamp_portion = " ".join(backup.name.split()[:2])
-    return datetime.datetime.strptime(timestamp_portion, backup_date_format)
+    return datetime.datetime.strptime(backup.name, backup_date_format)
 
 
 def plural_noun(count: int, word: str) -> str:
@@ -1096,8 +1072,7 @@ def move_backups(old_backup_location: Path,
                           force_copy=False,
                           max_average_hard_links=None,
                           is_backup_move=True,
-                          timestamp=backup_datetime(backup),
-                          name=extract_backup_name(backup))
+                          timestamp=backup_datetime(backup))
 
         backup_source_file = get_user_location_record(new_backup_location)
         backup_source_file.unlink()
