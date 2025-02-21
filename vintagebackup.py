@@ -1784,8 +1784,8 @@ Whitespace at the beginning and end of the values will be trimmed off.
 If both --config and other command line options are used and they conflict, then the command
 line options override the config file options.
 
-A final note: the parameter "config" does nothing inside a config file and will cause the program to
-quit with an error."""))
+A final note: recursive configuration files are not supported. Using the parameter "config" inside
+a configuration file will cause the program to quit with an error."""))
 
     other_group.add_argument("--debug", action="store_true", help=format_help("""
 Log information on all actions during a program run."""))
