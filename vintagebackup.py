@@ -1460,7 +1460,7 @@ def classify_path(path: Path | os.DirEntry[str]) -> str:
     """Return a text description of the item at the given path (file, folder, etc.)."""
     return ("Symlink" if path.is_symlink()
             else "Folder" if path.is_dir()
-            else "File" if path.is_file(follow_symlinks=False)
+            else "File" if path.is_file()
             else "Unknown")
 
 
