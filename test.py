@@ -703,7 +703,10 @@ class DeleteBackupTest(unittest.TestCase):
                         exit_code = vintagebackup.main(["--user-folder", user_folder,
                                                         "--backup-folder", backup_folder,
                                                         "--log", os.devnull,
-                                                        "--free-up", goal_space_str])
+                                                        "--free-up", goal_space_str,
+                                                        "--timestamp",
+                                                        unique_timestamp().strftime(
+                                                            vintagebackup.backup_date_format)])
                         self.assertEqual(exit_code, 0)
 
                     # While backups are being deleted, the fake user data still exists, so one more
@@ -763,7 +766,10 @@ class DeleteBackupTest(unittest.TestCase):
                         exit_code = vintagebackup.main(["--user-folder", user_folder,
                                                         "--backup-folder", backup_folder,
                                                         "--log", os.devnull,
-                                                        "--free-up", goal_space_percent_str])
+                                                        "--free-up", goal_space_percent_str,
+                                                        "--timestamp",
+                                                        unique_timestamp().strftime(
+                                                            vintagebackup.backup_date_format)])
                         self.assertEqual(exit_code, 0)
 
                     # While backups are being deleted, the fake user data still exists, so one more
@@ -798,7 +804,10 @@ class DeleteBackupTest(unittest.TestCase):
                         exit_code = vintagebackup.main(["--user-folder", user_folder,
                                                         "--backup-folder", backup_folder,
                                                         "--log", os.devnull,
-                                                        "--delete-after", max_age])
+                                                        "--delete-after", max_age,
+                                                        "--timestamp",
+                                                        unique_timestamp().strftime(
+                                                            vintagebackup.backup_date_format)])
                         self.assertEqual(exit_code, 0)
                 else:
                     raise NotImplementedError("Delete old backup test not implemented for {method}")
