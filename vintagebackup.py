@@ -782,14 +782,19 @@ def choose_from_menu(menu_choices: list[str], prompt: str) -> int:
 
     while True:
         try:
-            action_key = "Cmd" if platform.system() == "Darwin" else "Ctrl"
-            user_choice = int(input(f"{prompt} ({action_key}-C to quit): "))
+            user_choice = int(input(f"{prompt} ({cancel_key()} to quit): "))
             if 1 <= user_choice <= len(menu_choices):
                 return user_choice - 1
         except ValueError:
             pass
 
         print(f"Enter a number from 1 to {len(menu_choices)}")
+
+
+def cancel_key() -> str:
+    """Return string describing the key combination that emits a SIGINT."""
+    action_key = "Cmd" if platform.system() == "Darwin" else "Ctrl"
+    return f"{action_key}-C"
 
 
 def choose_backup(backup_folder: Path, choice: int | None) -> Path | None:
@@ -1453,7 +1458,7 @@ def start_backup_restore(args: argparse.Namespace) -> None:
     automatic_response = "no" if args.bad_input else required_response
     response = (automatic_response if args.skip_prompt
                 else input(f'Do you want to continue? Type "{required_response}" to proceed '
-                           'or press Ctrl-C to cancel: '))
+                           f'or press {cancel_key()} to cancel: '))
 
     if response.strip().lower() == required_response:
         restore_backup(restore_source, destination, delete_extra_files=delete_extra_files)
