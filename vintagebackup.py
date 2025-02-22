@@ -122,23 +122,20 @@ def byte_units(size: float) -> str:
 
 def all_backups(backup_location: Path) -> list[Path]:
     """Return a sorted list of all backups at the given location."""
-    year_pattern = "%Y"
-    backup_pattern = backup_date_format
-
-    def is_valid_directory(directory: os.DirEntry[str], pattern: str) -> bool:
+    def is_valid_directory(date_folder: os.DirEntry[str]) -> bool:
         try:
-            datetime.datetime.strptime(directory.name, pattern)
-            return is_real_directory(directory)
+            backup_path = Path(date_folder)
+            year = datetime.datetime.strptime(backup_path.parent.name, "%Y").year
+            date = datetime.datetime.strptime(backup_path.name, backup_date_format)
+            return year == date.year and is_real_directory(backup_path)
         except ValueError:
             return False
 
     all_backup_list: list[Path] = []
     with os.scandir(backup_location) as year_scan:
-        for year in (y for y in year_scan if is_valid_directory(y, year_pattern)):
+        for year in filter(is_real_directory, year_scan):
             with os.scandir(year) as dated_backup_scan:
-                all_backup_list.extend(Path(dated_backup)
-                                       for dated_backup in dated_backup_scan
-                                       if is_valid_directory(dated_backup, backup_pattern))
+                all_backup_list.extend(map(Path, filter(is_valid_directory, dated_backup_scan)))
 
     return sorted(all_backup_list)
 
