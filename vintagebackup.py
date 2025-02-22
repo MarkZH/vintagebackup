@@ -12,7 +12,6 @@ import itertools
 import textwrap
 import math
 import random
-import time
 from collections import Counter
 from collections.abc import Callable, Iterator, Iterable
 from pathlib import Path
@@ -44,12 +43,9 @@ class Backup_Lock:
     ```
     """
 
-    wait_period = datetime.timedelta(seconds=1)
-
-    def __init__(self, backup_location: Path, operation: str, *, wait: bool) -> None:
+    def __init__(self, backup_location: Path, operation: str) -> None:
         """Set up the lock."""
         self.lock_file_path = backup_location/"vintagebackup.lock"
-        self.wait = wait
         self.pid = str(os.getpid())
         self.operation = operation
 
@@ -60,23 +56,14 @@ class Backup_Lock:
         If unsuccessful, wait or fail out according to the --wait choice. Failure is indicated by a
         ConcurrencyError exception.
         """
-        last_pid = None
         while not self.acquire_lock():
             try:
                 other_pid, other_operation = self.read_lock_data()
             except FileNotFoundError:
                 continue
 
-            if not self.wait:
-                raise ConcurrencyError(f"Vintage Backup already running {other_operation} on "
-                                       f"{self.lock_file_path.parent} (PID {other_pid})")
-
-            if last_pid != other_pid:
-                logger.info(f"Waiting for another Vintage Backup process (PID: {other_pid})"
-                            f" to finish {other_operation} in {self.lock_file_path.parent} ...")
-                last_pid = other_pid
-
-            time.sleep(self.wait_period.total_seconds())
+            raise ConcurrencyError(f"Vintage Backup already running {other_operation} on "
+                                   f"{self.lock_file_path.parent} (PID {other_pid})")
 
     def __exit__(self, *_: object) -> None:
         """Release the file lock."""
@@ -1379,7 +1366,7 @@ def start_move_backups(args: argparse.Namespace) -> None:
                                "must be used when moving backups.")
 
     new_backup_location.mkdir(parents=True, exist_ok=True)
-    with Backup_Lock(new_backup_location, "backup move", wait=toggle_is_set(args, "wait")):
+    with Backup_Lock(new_backup_location, "backup move"):
         print_run_title(args, "Moving backups")
         move_backups(old_backup_location, new_backup_location, backups_to_move)
 
@@ -1460,7 +1447,7 @@ def start_backup(args: argparse.Namespace) -> None:
     backup_folder = Path(args.backup_folder).resolve()
     backup_folder.mkdir(parents=True, exist_ok=True)
 
-    with Backup_Lock(backup_folder, "backup", wait=toggle_is_set(args, "wait")):
+    with Backup_Lock(backup_folder, "backup"):
         print_run_title(args, "Starting new backup")
         create_new_backup(user_folder,
                           backup_folder,
@@ -1722,13 +1709,6 @@ Specify a different destination for the backup restoration. Either this or the -
 is required when recovering from a backup."""))
 
     other_group = user_input.add_argument_group("Other options")
-
-    other_group.add_argument("--wait", action="store_true", help=format_help("""
-By default, if another Vintage Backup process is using the backup location, Vintage Backup will
-exit. With this parameter, the program will wait until the other process finishes before
-continuing."""))
-
-    add_no_option(other_group, "wait")
 
     other_group.add_argument("-c", "--config", metavar="FILE_NAME", help=format_help(r"""
 Read options from a configuration file instead of command-line arguments. The format

@@ -1131,18 +1131,15 @@ Debug:""")
         with tempfile.NamedTemporaryFile("w+", delete_on_close=False) as config_file:
             config_file.write(r"""
 whole file:
-Debug:
-wait:""")
+Debug:""")
             config_file.close()
             command_line_options = ["-c", config_file.name,
                                     "--no-whole-file",
-                                    "--no-debug",
-                                    "--no-wait"]
+                                    "--no-debug"]
             arg_parser = vintagebackup.argument_parser()
             options = vintagebackup.parse_command_line(command_line_options, arg_parser)
             self.assertFalse(vintagebackup.toggle_is_set(options, "whole_file"))
             self.assertFalse(vintagebackup.toggle_is_set(options, "debug"))
-            self.assertFalse(vintagebackup.toggle_is_set(options, "wait"))
 
     def test_recursive_config_files_are_not_allowed(self) -> None:
         """Test that putting a config parameter in a configuration file raises an exception."""
@@ -1621,14 +1618,14 @@ class RestorationTest(unittest.TestCase):
 class BackupLockTest(unittest.TestCase):
     """Test that the lock prevents simultaneous access to a backup location."""
 
-    def test_backup_with_no_wait_while_lock_is_present_raises_concurrency_error(self) -> None:
-        """Test that basic locking with no waiting raises an error when the lock is present."""
+    def test_backup_while_lock_is_present_raises_concurrency_error(self) -> None:
+        """Test that locking raises an error when the lock is present."""
         with (tempfile.TemporaryDirectory() as user_folder,
               tempfile.TemporaryDirectory() as backup_folder):
             user_path = Path(user_folder)
             create_user_data(user_path)
             backup_path = Path(backup_folder)
-            with vintagebackup.Backup_Lock(backup_path, "no wait test", wait=False):
+            with vintagebackup.Backup_Lock(backup_path, "no wait test"):
                 exit_code = run_backup(Invocation.cli,
                                        user_path,
                                        backup_path,
@@ -1650,7 +1647,7 @@ class BackupLockTest(unittest.TestCase):
             backup_path = Path(backup_folder)
             test_pid = str(os.getpid())
             test_operation = "lock data test"
-            with vintagebackup.Backup_Lock(backup_path, test_operation, wait=False):
+            with vintagebackup.Backup_Lock(backup_path, test_operation):
                 lock_path = backup_path/"vintagebackup.lock"
                 with lock_path.open() as lock_file:
                     lock_pid, lock_operation = (s.strip() for s in lock_file)
