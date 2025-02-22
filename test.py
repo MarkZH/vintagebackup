@@ -42,8 +42,7 @@ def create_user_data(base_directory: Path) -> None:
             subsubfolder.mkdir()
             for file_num in range(3):
                 file_path = subsubfolder/f"file_{file_num}.txt"
-                with open(file_path, "w") as file:
-                    file.write(f"File contents: {sub_num}/{sub_sub_num}/{file_num}\n")
+                file_path.write_text(f"File contents: {sub_num}/{sub_sub_num}/{file_num}\n")
 
 
 def create_old_backups(backup_base_directory: Path, count: int) -> None:
@@ -615,8 +614,7 @@ def create_large_files(backup_location: Path, file_size: int) -> None:
     data = "A"*file_size
     for directory_name, sub_directory_names, _ in backup_location.walk():
         if not sub_directory_names:
-            with open(Path(directory_name)/"file.txt", "w") as file:
-                file.write(data)
+            (Path(directory_name)/"file.txt").write_text(data)
 
 
 class DeleteBackupTest(unittest.TestCase):
@@ -1285,8 +1283,7 @@ class RestorationTest(unittest.TestCase):
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
 
             first_extra_file = user_path/"extra_file1.txt"
-            with open(first_extra_file, "w") as file1:
-                file1.write("extra 1\n")
+            first_extra_file.write_text("extra 1\n")
 
             vintagebackup.create_new_backup(user_path,
                                             backup_path,
@@ -1298,8 +1295,7 @@ class RestorationTest(unittest.TestCase):
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
 
             second_extra_file = user_path/"extra_file2.txt"
-            with open(second_extra_file, "w") as file2:
-                file2.write("extra 2\n")
+            second_extra_file.write_text("extra 2\n")
 
             exit_code = vintagebackup.main(["--restore",
                                             "--user-folder", user_folder,
@@ -1334,8 +1330,7 @@ class RestorationTest(unittest.TestCase):
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
 
             first_extra_file = user_path/"extra_file1.txt"
-            with open(first_extra_file, "w") as file1:
-                file1.write("extra 1\n")
+            first_extra_file.write_text("extra 1\n")
 
             vintagebackup.create_new_backup(user_path,
                                             backup_path,
@@ -1347,8 +1342,7 @@ class RestorationTest(unittest.TestCase):
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
 
             second_extra_file = user_path/"extra_file2.txt"
-            with open(second_extra_file, "w") as file2:
-                file2.write("extra 2\n")
+            second_extra_file.write_text("extra 2\n")
 
             exit_code = vintagebackup.main(["--restore",
                                             "--user-folder", user_folder,
@@ -1384,8 +1378,7 @@ class RestorationTest(unittest.TestCase):
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
 
             first_extra_file = user_path/"extra_file1.txt"
-            with open(first_extra_file, "w") as file1:
-                file1.write("extra 1\n")
+            first_extra_file.write_text("extra 1\n")
 
             vintagebackup.create_new_backup(user_path,
                                             backup_path,
@@ -1397,8 +1390,7 @@ class RestorationTest(unittest.TestCase):
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
 
             second_extra_file = user_path/"extra_file2.txt"
-            with open(second_extra_file, "w") as file2:
-                file2.write("extra 2\n")
+            second_extra_file.write_text("extra 2\n")
 
             choice = 0
             exit_code = vintagebackup.main(["--restore",
@@ -1433,8 +1425,7 @@ class RestorationTest(unittest.TestCase):
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
 
             first_extra_file = user_path/"extra_file1.txt"
-            with open(first_extra_file, "w") as file1:
-                file1.write("extra 1\n")
+            first_extra_file.write_text("extra 1\n")
 
             vintagebackup.create_new_backup(user_path,
                                             backup_path,
@@ -1446,8 +1437,7 @@ class RestorationTest(unittest.TestCase):
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
 
             second_extra_file = user_path/"extra_file2.txt"
-            with open(second_extra_file, "w") as file2:
-                file2.write("extra 2\n")
+            second_extra_file.write_text("extra 2\n")
 
             choice = 0
             exit_code = vintagebackup.main(["--restore",
