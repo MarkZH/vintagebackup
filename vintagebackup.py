@@ -1458,12 +1458,13 @@ def start_backup_purge(args: argparse.Namespace, confirmation_reponse: str | Non
     else:
         menu_choices = [f"{path_type}s ({count} items)"
                         for path_type, count in path_type_counts.items()]
-        menu_choices.append(f"All ({len(paths_to_delete)} items)")
+        all_choice = f"All ({len(paths_to_delete)} items)"
+        menu_choices.append(all_choice)
         arg_choice = args.choice
         prompt = "Multiple types of paths were found. Which one should be deleted?\nChoice"
         choice = choose_from_menu(menu_choices, prompt) if arg_choice is None else int(arg_choice)
         type_choices = list(path_type_counts.keys())
-        types_to_delete = (type_choices if menu_choices[choice].startswith("All")
+        types_to_delete = (type_choices if menu_choices[choice] == all_choice
                            else [type_choices[choice]])
 
     type_choice_data = [(path_type_counts[path_type], path_type) for path_type in types_to_delete]
