@@ -12,7 +12,6 @@ import itertools
 import textwrap
 import math
 import random
-import time
 from collections import Counter
 from collections.abc import Callable, Iterator, Iterable
 from pathlib import Path
@@ -44,12 +43,9 @@ class Backup_Lock:
     ```
     """
 
-    wait_period = datetime.timedelta(seconds=1)
-
-    def __init__(self, backup_location: Path, operation: str, *, wait: bool) -> None:
+    def __init__(self, backup_location: Path, operation: str) -> None:
         """Set up the lock."""
         self.lock_file_path = backup_location/"vintagebackup.lock"
-        self.wait = wait
         self.pid = str(os.getpid())
         self.operation = operation
 
@@ -60,23 +56,14 @@ class Backup_Lock:
         If unsuccessful, wait or fail out according to the --wait choice. Failure is indicated by a
         ConcurrencyError exception.
         """
-        last_pid = None
         while not self.acquire_lock():
             try:
                 other_pid, other_operation = self.read_lock_data()
             except FileNotFoundError:
                 continue
 
-            if not self.wait:
-                raise ConcurrencyError(f"Vintage Backup already running {other_operation} on "
-                                       f"{self.lock_file_path.parent} (PID {other_pid})")
-
-            if last_pid != other_pid:
-                logger.info(f"Waiting for another Vintage Backup process (PID: {other_pid})"
-                            f" to finish {other_operation} in {self.lock_file_path.parent} ...")
-                last_pid = other_pid
-
-            time.sleep(self.wait_period.total_seconds())
+            raise ConcurrencyError(f"Vintage Backup already running {other_operation} on "
+                                   f"{self.lock_file_path.parent} (PID {other_pid})")
 
     def __exit__(self, *_: object) -> None:
         """Release the file lock."""
@@ -212,10 +199,6 @@ class Backup_Set:
                 self.entries.append((line_number, sign, pattern))
 
     def __iter__(self) -> Iterator[tuple[Path, list[str]]]:
-        """Generate the paths to backup when used in, for example, a for-loop."""
-        return self.filtered_paths()
-
-    def filtered_paths(self) -> Iterator[tuple[Path, list[str]]]:
         """Create the iterator that yields the paths to backup."""
         for current_directory, _, files in self.user_folder.walk():
             good_files = list(filter(self.passes, (current_directory/file for file in files)))
@@ -491,34 +474,12 @@ def backup_directory(user_data_location: Path,
             action_counter["failed copies"] += 1
 
 
-def backup_name(backup_datetime: datetime.datetime | str | None, backup_name: str | None) -> Path:
+def backup_name(backup_datetime: datetime.datetime | str | None) -> Path:
     """Create the name and relative path for the new dated backup."""
     now = (datetime.datetime.strptime(backup_datetime, backup_date_format)
            if isinstance(backup_datetime, str)
            else (backup_datetime or datetime.datetime.now()))
-    backup_date = now.strftime(backup_date_format)
-    name = backup_name or os_name()
-    backup_name = f"{backup_date} ({name})".removesuffix("()").strip()
-    return Path(str(now.year))/backup_name
-
-def extract_backup_name(backup: Path) -> str:
-    """Extract the name of an individual backup (the part after the timestamp in parentheses)."""
-    try:
-        name = backup.name.split("(", maxsplit=1)[1]
-        return name[:-1] if name[-1] == ")" else name
-    except IndexError:
-        return ""
-
-def os_name() -> str:
-    """Return the name and version of the present OS, if available."""
-    os_type = platform.system()
-    if os_type == "Windows":
-        return f"{platform.system()} {platform.release()}".strip()
-    elif os_type == "Linux":
-        return platform.freedesktop_os_release()["PRETTY_NAME"]
-    else:
-        return platform.platform()
-
+    return Path(str(now.year))/now.strftime(backup_date_format)
 
 def create_new_backup(user_data_location: Path,
                       backup_location: Path,
@@ -528,7 +489,6 @@ def create_new_backup(user_data_location: Path,
                       force_copy: bool,
                       max_average_hard_links: str | None,
                       timestamp: datetime.datetime | str | None,
-                      name: str | None = None,
                       is_backup_move: bool = False) -> None:
     """
     Create a new dated backup.
@@ -548,7 +508,7 @@ def create_new_backup(user_data_location: Path,
     """
     check_paths_for_validity(user_data_location, backup_location, filter_file)
 
-    new_backup_path = backup_location/backup_name(timestamp, name)
+    new_backup_path = backup_location/backup_name(timestamp)
     staging_backup_path = backup_location/"Staging"
     if staging_backup_path.exists():
         raise RuntimeError(f"The folder {staging_backup_path} already exists. This means that "
@@ -770,9 +730,8 @@ def choose_from_menu(menu_choices: list[str], prompt: str) -> int:
     :param menu_choices: List of choices
     :param prompt: Message to show user prior to the prompt for a choice.
 
-    :returns int: The returned number is an index into the input list. Note that the user interface
-    has the user choose a number from 1 to len(menu_list), but returns a number from 0 to
-    len(menu_list) - 1.
+    :returns int: The returned number is an index into the input list. The interface has the user
+    choose a number from 1 to len(menu_list), but returns a number from 0 to len(menu_list) - 1.
     """
     number_column_size = len(str(len(menu_choices)))
     for number, choice in enumerate(menu_choices, 1):
@@ -780,14 +739,19 @@ def choose_from_menu(menu_choices: list[str], prompt: str) -> int:
 
     while True:
         try:
-            action_key = "Cmd" if platform.system() == "Darwin" else "Ctrl"
-            user_choice = int(input(f"{prompt} ({action_key}-C to quit): "))
+            user_choice = int(input(f"{prompt} ({cancel_key()} to quit): "))
             if 1 <= user_choice <= len(menu_choices):
                 return user_choice - 1
         except ValueError:
             pass
 
         print(f"Enter a number from 1 to {len(menu_choices)}")
+
+
+def cancel_key() -> str:
+    """Return string describing the key combination that emits a SIGINT."""
+    action_key = "Cmd" if platform.system() == "Darwin" else "Ctrl"
+    return f"{action_key}-C"
 
 
 def choose_backup(backup_folder: Path, choice: int | None) -> Path | None:
@@ -956,7 +920,7 @@ def parse_time_span_to_timepoint(time_span: str) -> datetime.datetime:
 
 def fix_end_of_month(year: int, month: int, day: int) -> datetime.date:
     """
-    Fix day if it is past then end of the month (e.g., Feb. 31).
+    Replace a day past the end of the month (e.g., Feb. 31) with the last day of the same month.
 
     >>> fix_end_of_month(2023, 2, 31)
     datetime.date(2023, 2, 28)
@@ -966,13 +930,17 @@ def fix_end_of_month(year: int, month: int, day: int) -> datetime.date:
 
     >>> fix_end_of_month(2025, 4, 31)
     datetime.date(2025, 4, 30)
+
+    All other days are unaffected.
+
+    >>> fix_end_of_month(2025, 5, 23)
+    datetime.date(2025, 5, 23)
     """
-    new_day = day
     while True:
         try:
-            return datetime.date(year, month, new_day)
+            return datetime.date(year, month, day)
         except ValueError:
-            new_day -= 1
+            day -= 1
 
 
 def delete_backups_older_than(backup_folder: Path,
@@ -1047,8 +1015,7 @@ def delete_backups(backup_folder: Path,
 
 def backup_datetime(backup: Path) -> datetime.datetime:
     """Get the timestamp of a backup from the backup folder name."""
-    timestamp_portion = " ".join(backup.name.split()[:2])
-    return datetime.datetime.strptime(timestamp_portion, backup_date_format)
+    return datetime.datetime.strptime(backup.name, backup_date_format)
 
 
 def plural_noun(count: int, word: str) -> str:
@@ -1085,8 +1052,7 @@ def move_backups(old_backup_location: Path,
                           force_copy=False,
                           max_average_hard_links=None,
                           is_backup_move=True,
-                          timestamp=backup_datetime(backup),
-                          name=extract_backup_name(backup))
+                          timestamp=backup_datetime(backup))
 
         backup_source_file = get_user_location_record(new_backup_location)
         backup_source_file.unlink()
@@ -1397,7 +1363,7 @@ def start_move_backups(args: argparse.Namespace) -> None:
                                "must be used when moving backups.")
 
     new_backup_location.mkdir(parents=True, exist_ok=True)
-    with Backup_Lock(new_backup_location, "backup move", wait=toggle_is_set(args, "wait")):
+    with Backup_Lock(new_backup_location, "backup move"):
         print_run_title(args, "Moving backups")
         move_backups(old_backup_location, new_backup_location, backups_to_move)
 
@@ -1447,7 +1413,7 @@ def start_backup_restore(args: argparse.Namespace) -> None:
     automatic_response = "no" if args.bad_input else required_response
     response = (automatic_response if args.skip_prompt
                 else input(f'Do you want to continue? Type "{required_response}" to proceed '
-                           'or press Ctrl-C to cancel: '))
+                           f'or press {cancel_key()} to cancel: '))
 
     if response.strip().lower() == required_response:
         restore_backup(restore_source, destination, delete_extra_files=delete_extra_files)
@@ -1542,7 +1508,7 @@ def start_backup(args: argparse.Namespace) -> None:
     backup_folder = Path(args.backup_folder).resolve()
     backup_folder.mkdir(parents=True, exist_ok=True)
 
-    with Backup_Lock(backup_folder, "backup", wait=toggle_is_set(args, "wait")):
+    with Backup_Lock(backup_folder, "backup"):
         print_run_title(args, "Starting new backup")
         create_new_backup(user_folder,
                           backup_folder,
@@ -1809,13 +1775,6 @@ is required when recovering from a backup."""))
 
     other_group = user_input.add_argument_group("Other options")
 
-    other_group.add_argument("--wait", action="store_true", help=format_help("""
-By default, if another Vintage Backup process is using the backup location, Vintage Backup will
-exit. With this parameter, the program will wait until the other process finishes before
-continuing."""))
-
-    add_no_option(other_group, "wait")
-
     other_group.add_argument("-c", "--config", metavar="FILE_NAME", help=format_help(r"""
 Read options from a configuration file instead of command-line arguments. The format
 of the file should be one option per line with a colon separating the parameter name
@@ -1841,8 +1800,8 @@ Whitespace at the beginning and end of the values will be trimmed off.
 If both --config and other command line options are used and they conflict, then the command
 line options override the config file options.
 
-A final note: the parameter "config" does nothing inside a config file and will cause the program to
-quit with an error."""))
+A final note: recursive configuration files are not supported. Using the parameter "config" inside
+a configuration file will cause the program to quit with an error."""))
 
     other_group.add_argument("--debug", action="store_true", help=format_help("""
 Log information on all actions during a program run."""))

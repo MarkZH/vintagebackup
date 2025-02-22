@@ -62,7 +62,7 @@ def create_old_backups(backup_base_directory: Path, count: int) -> None:
             new_year -= 1
         backup_date = vintagebackup.fix_end_of_month(new_year, new_month, now.day)
         backup_timestamp = datetime.datetime.combine(backup_date, now.time())
-        backup_name = f"{backup_timestamp.strftime(vintagebackup.backup_date_format)} (Testing)"
+        backup_name = backup_timestamp.strftime(vintagebackup.backup_date_format)
         (backup_base_directory/str(new_year)/backup_name).mkdir(parents=True)
 
 
@@ -703,7 +703,10 @@ class DeleteBackupTest(unittest.TestCase):
                         exit_code = vintagebackup.main(["--user-folder", user_folder,
                                                         "--backup-folder", backup_folder,
                                                         "--log", os.devnull,
-                                                        "--free-up", goal_space_str])
+                                                        "--free-up", goal_space_str,
+                                                        "--timestamp",
+                                                        unique_timestamp().strftime(
+                                                            vintagebackup.backup_date_format)])
                         self.assertEqual(exit_code, 0)
 
                     # While backups are being deleted, the fake user data still exists, so one more
@@ -763,7 +766,10 @@ class DeleteBackupTest(unittest.TestCase):
                         exit_code = vintagebackup.main(["--user-folder", user_folder,
                                                         "--backup-folder", backup_folder,
                                                         "--log", os.devnull,
-                                                        "--free-up", goal_space_percent_str])
+                                                        "--free-up", goal_space_percent_str,
+                                                        "--timestamp",
+                                                        unique_timestamp().strftime(
+                                                            vintagebackup.backup_date_format)])
                         self.assertEqual(exit_code, 0)
 
                     # While backups are being deleted, the fake user data still exists, so one more
@@ -798,7 +804,10 @@ class DeleteBackupTest(unittest.TestCase):
                         exit_code = vintagebackup.main(["--user-folder", user_folder,
                                                         "--backup-folder", backup_folder,
                                                         "--log", os.devnull,
-                                                        "--delete-after", max_age])
+                                                        "--delete-after", max_age,
+                                                        "--timestamp",
+                                                        unique_timestamp().strftime(
+                                                            vintagebackup.backup_date_format)])
                         self.assertEqual(exit_code, 0)
                 else:
                     raise NotImplementedError("Delete old backup test not implemented for {method}")
@@ -880,15 +889,14 @@ class MoveBackupsTest(unittest.TestCase):
             create_user_data(user_data)
             backup_location = Path(backup_folder)
             backup_count = 10
-            for number in range(backup_count):
+            for _ in range(backup_count):
                 vintagebackup.create_new_backup(user_data,
                                                 backup_location,
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
                                                 max_average_hard_links=None,
-                                                timestamp=unique_timestamp(),
-                                                name=f"Backup {number}")
+                                                timestamp=unique_timestamp())
 
             for method in Invocation:
                 with tempfile.TemporaryDirectory() as new_backup_folder:
@@ -928,15 +936,14 @@ class MoveBackupsTest(unittest.TestCase):
             user_data = Path(user_data_folder)
             create_user_data(user_data)
             backup_location = Path(backup_folder)
-            for number in range(10):
+            for _ in range(10):
                 vintagebackup.create_new_backup(user_data,
                                                 backup_location,
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
                                                 max_average_hard_links=None,
-                                                timestamp=unique_timestamp(),
-                                                name=f"Backup ({number})")
+                                                timestamp=unique_timestamp())
 
             move_count = 5
             for method in Invocation:
@@ -1124,18 +1131,15 @@ Debug:""")
         with tempfile.NamedTemporaryFile("w+", delete_on_close=False) as config_file:
             config_file.write(r"""
 whole file:
-Debug:
-wait:""")
+Debug:""")
             config_file.close()
             command_line_options = ["-c", config_file.name,
                                     "--no-whole-file",
-                                    "--no-debug",
-                                    "--no-wait"]
+                                    "--no-debug"]
             arg_parser = vintagebackup.argument_parser()
             options = vintagebackup.parse_command_line(command_line_options, arg_parser)
             self.assertFalse(vintagebackup.toggle_is_set(options, "whole_file"))
             self.assertFalse(vintagebackup.toggle_is_set(options, "debug"))
-            self.assertFalse(vintagebackup.toggle_is_set(options, "wait"))
 
     def test_recursive_config_files_are_not_allowed(self) -> None:
         """Test that putting a config parameter in a configuration file raises an exception."""
@@ -1614,14 +1618,14 @@ class RestorationTest(unittest.TestCase):
 class BackupLockTest(unittest.TestCase):
     """Test that the lock prevents simultaneous access to a backup location."""
 
-    def test_backup_with_no_wait_while_lock_is_present_raises_concurrency_error(self) -> None:
-        """Test that basic locking with no waiting raises an error when the lock is present."""
+    def test_backup_while_lock_is_present_raises_concurrency_error(self) -> None:
+        """Test that locking raises an error when the lock is present."""
         with (tempfile.TemporaryDirectory() as user_folder,
               tempfile.TemporaryDirectory() as backup_folder):
             user_path = Path(user_folder)
             create_user_data(user_path)
             backup_path = Path(backup_folder)
-            with vintagebackup.Backup_Lock(backup_path, "no wait test", wait=False):
+            with vintagebackup.Backup_Lock(backup_path, "no wait test"):
                 exit_code = run_backup(Invocation.cli,
                                        user_path,
                                        backup_path,
@@ -1643,7 +1647,7 @@ class BackupLockTest(unittest.TestCase):
             backup_path = Path(backup_folder)
             test_pid = str(os.getpid())
             test_operation = "lock data test"
-            with vintagebackup.Backup_Lock(backup_path, test_operation, wait=False):
+            with vintagebackup.Backup_Lock(backup_path, test_operation):
                 lock_path = backup_path/"vintagebackup.lock"
                 with lock_path.open() as lock_file:
                     lock_pid, lock_operation = (s.strip() for s in lock_file)
