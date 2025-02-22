@@ -687,10 +687,7 @@ def recover_path(recovery_path: Path, backup_location: Path, choice: int | None 
         menu_choices: list[str] = []
         for backup_copy in backup_choices:
             backup_date = backup_copy.relative_to(backup_location).parts[1]
-            path_type = ("Symlink" if backup_copy.is_symlink()
-                         else "File" if backup_copy.is_file()
-                         else "Folder" if backup_copy.is_dir()
-                         else "?")
+            path_type = classify_path(backup_copy)
             menu_choices.append(f"{backup_date} ({path_type})")
         choice = choose_from_menu(menu_choices, "Version to recover")
 
