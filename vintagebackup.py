@@ -718,13 +718,13 @@ def path_relative_to_backups(user_path: Path, backup_location: Path) -> Path:
     try:
         user_data_location = backup_source(backup_location)
     except FileNotFoundError:
-        raise CommandLineError(f"No backups found at {backup_location}")
+        raise CommandLineError(f"No backups found at {backup_location}") from None
 
     try:
         return user_path.relative_to(user_data_location)
     except ValueError:
         raise CommandLineError(f"{user_path} is not contained in the backup set "
-                               f"{backup_location}, which contains {user_data_location}.")
+                               f"{backup_location}, which contains {user_data_location}.") from None
 
 
 def choose_from_menu(menu_choices: list[str], prompt: str) -> int:
@@ -853,7 +853,7 @@ def parse_storage_space(space_requirement: str, total_storage: int) -> float:
         try:
             free_fraction_required = float(space_text[:-1])/100
         except ValueError:
-            raise CommandLineError(f"Invalid percentage value: {space_requirement}")
+            raise CommandLineError(f"Invalid percentage value: {space_requirement}") from None
 
         if free_fraction_required > 1:
             raise CommandLineError(f"Percent cannot be greater than 100: {space_requirement}")
@@ -870,7 +870,7 @@ def parse_storage_space(space_requirement: str, total_storage: int) -> float:
             multiplier: int = 1000**storage_prefixes.index(prefix)
             return float(number)*multiplier
         except ValueError:
-            raise CommandLineError(f"Invalid storage space value: {space_requirement}")
+            raise CommandLineError(f"Invalid storage space value: {space_requirement}") from None
     else:
         raise CommandLineError(f"Incorrect format of free-up space: {space_requirement}")
 
@@ -895,7 +895,8 @@ def parse_time_span_to_timepoint(time_span: str) -> datetime.datetime:
     try:
         number = int(time_span[:-1])
     except ValueError:
-        raise CommandLineError(f"Invalid number in time span (must be a whole number): {time_span}")
+        raise CommandLineError(
+            f"Invalid number in time span (must be a whole number): {time_span}") from None
 
     if number < 1:
         raise CommandLineError(f"Invalid number in time span (must be positive): {time_span}")
@@ -1215,7 +1216,7 @@ def read_configuation_file(config_file_name: str) -> list[str]:
                 if value:
                     arguments.append(value)
     except FileNotFoundError:
-        raise CommandLineError(f"Configuation file does not exist: {config_file_name}")
+        raise CommandLineError(f"Configuation file does not exist: {config_file_name}") from None
 
     return arguments
 
@@ -1290,7 +1291,7 @@ def copy_probability_from_hard_link_count(hard_link_count: str | None) -> float:
     try:
         average_hard_link_count = int(hard_link_count)
     except ValueError:
-        raise CommandLineError(f"Invalid value for hard link count: {hard_link_count}")
+        raise CommandLineError(f"Invalid value for hard link count: {hard_link_count}") from None
 
     if average_hard_link_count < 1:
         raise CommandLineError("Hard link count must be a positive whole number. "
@@ -1326,7 +1327,7 @@ def get_existing_path(path: str | None, folder_type: str) -> Path:
     try:
         return Path(path).resolve(strict=True)
     except FileNotFoundError:
-        raise CommandLineError(f"Could not find {folder_type.lower()}: {path}")
+        raise CommandLineError(f"Could not find {folder_type.lower()}: {path}") from None
 
 
 def start_recovery_from_backup(args: argparse.Namespace) -> None:
