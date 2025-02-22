@@ -42,8 +42,7 @@ def create_user_data(base_directory: Path) -> None:
             subsubfolder.mkdir()
             for file_num in range(3):
                 file_path = subsubfolder/f"file_{file_num}.txt"
-                with open(file_path, "w") as file:
-                    file.write(f"File contents: {sub_num}/{sub_sub_num}/{file_num}\n")
+                file_path.write_text(f"File contents: {sub_num}/{sub_sub_num}/{file_num}\n")
 
 
 def create_old_backups(backup_base_directory: Path, count: int) -> None:
@@ -70,8 +69,8 @@ def directory_contents(base_directory: Path) -> set[Path]:
     """Return a set of all paths in a directory relative to that directory."""
     paths: set[Path] = set()
     for directory, directories, files in base_directory.walk():
-        for path in itertools.chain(directories, files):
-            paths.add(Path(directory).relative_to(base_directory)/path)
+        relative_directory = directory.relative_to(base_directory)
+        paths.update(relative_directory/name for name in itertools.chain(directories, files))
     return paths
 
 
@@ -369,6 +368,7 @@ class BackupTest(unittest.TestCase):
             self.assertTrue((last_backup/directory_symlink_name).is_symlink())
             self.assertTrue((last_backup/file_symlink_name).is_symlink())
 
+
 class FilterTest(unittest.TestCase):
     """Test that filter files work properly."""
 
@@ -614,8 +614,7 @@ def create_large_files(backup_location: Path, file_size: int) -> None:
     data = "A"*file_size
     for directory_name, sub_directory_names, _ in backup_location.walk():
         if not sub_directory_names:
-            with open(Path(directory_name)/"file.txt", "w") as file:
-                file.write(data)
+            (Path(directory_name)/"file.txt").write_text(data)
 
 
 class DeleteBackupTest(unittest.TestCase):
@@ -810,7 +809,7 @@ class DeleteBackupTest(unittest.TestCase):
                                                             vintagebackup.backup_date_format)])
                         self.assertEqual(exit_code, 0)
                 else:
-                    raise NotImplementedError("Delete old backup test not implemented for {method}")
+                    raise NotImplementedError(f"Delete backup test not implemented for {method}")
                 backups = vintagebackup.all_backups(backup_location)
                 self.assertEqual(len(backups), 12)
                 self.assertLessEqual(earliest_backup, vintagebackup.backup_datetime(backups[0]))
@@ -1284,8 +1283,7 @@ class RestorationTest(unittest.TestCase):
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
 
             first_extra_file = user_path/"extra_file1.txt"
-            with open(first_extra_file, "w") as file1:
-                file1.write("extra 1\n")
+            first_extra_file.write_text("extra 1\n")
 
             vintagebackup.create_new_backup(user_path,
                                             backup_path,
@@ -1297,8 +1295,7 @@ class RestorationTest(unittest.TestCase):
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
 
             second_extra_file = user_path/"extra_file2.txt"
-            with open(second_extra_file, "w") as file2:
-                file2.write("extra 2\n")
+            second_extra_file.write_text("extra 2\n")
 
             exit_code = vintagebackup.main(["--restore",
                                             "--user-folder", user_folder,
@@ -1333,8 +1330,7 @@ class RestorationTest(unittest.TestCase):
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
 
             first_extra_file = user_path/"extra_file1.txt"
-            with open(first_extra_file, "w") as file1:
-                file1.write("extra 1\n")
+            first_extra_file.write_text("extra 1\n")
 
             vintagebackup.create_new_backup(user_path,
                                             backup_path,
@@ -1346,8 +1342,7 @@ class RestorationTest(unittest.TestCase):
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
 
             second_extra_file = user_path/"extra_file2.txt"
-            with open(second_extra_file, "w") as file2:
-                file2.write("extra 2\n")
+            second_extra_file.write_text("extra 2\n")
 
             exit_code = vintagebackup.main(["--restore",
                                             "--user-folder", user_folder,
@@ -1383,8 +1378,7 @@ class RestorationTest(unittest.TestCase):
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
 
             first_extra_file = user_path/"extra_file1.txt"
-            with open(first_extra_file, "w") as file1:
-                file1.write("extra 1\n")
+            first_extra_file.write_text("extra 1\n")
 
             vintagebackup.create_new_backup(user_path,
                                             backup_path,
@@ -1396,8 +1390,7 @@ class RestorationTest(unittest.TestCase):
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
 
             second_extra_file = user_path/"extra_file2.txt"
-            with open(second_extra_file, "w") as file2:
-                file2.write("extra 2\n")
+            second_extra_file.write_text("extra 2\n")
 
             choice = 0
             exit_code = vintagebackup.main(["--restore",
@@ -1432,8 +1425,7 @@ class RestorationTest(unittest.TestCase):
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
 
             first_extra_file = user_path/"extra_file1.txt"
-            with open(first_extra_file, "w") as file1:
-                file1.write("extra 1\n")
+            first_extra_file.write_text("extra 1\n")
 
             vintagebackup.create_new_backup(user_path,
                                             backup_path,
@@ -1445,8 +1437,7 @@ class RestorationTest(unittest.TestCase):
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
 
             second_extra_file = user_path/"extra_file2.txt"
-            with open(second_extra_file, "w") as file2:
-                file2.write("extra 2\n")
+            second_extra_file.write_text("extra 2\n")
 
             choice = 0
             exit_code = vintagebackup.main(["--restore",
