@@ -811,7 +811,7 @@ class DeleteBackupTest(unittest.TestCase):
                                                             vintagebackup.backup_date_format)])
                         self.assertEqual(exit_code, 0)
                 else:
-                    raise NotImplementedError("Delete old backup test not implemented for {method}")
+                    raise NotImplementedError(f"Delete backup test not implemented for {method}")
                 backups = vintagebackup.all_backups(backup_location)
                 self.assertEqual(len(backups), 12)
                 self.assertLessEqual(earliest_backup, vintagebackup.backup_datetime(backups[0]))
