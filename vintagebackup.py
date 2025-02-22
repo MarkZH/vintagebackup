@@ -632,7 +632,7 @@ def search_backups(search_directory: Path,
         try:
             with os.scandir(backup_search_directory) as backup_scan:
                 for item in backup_scan:
-                    path_type = classify_path(backup_search_directory/item.name)
+                    path_type = classify_path(item)
                     all_paths.add((item.name, path_type))
         except FileNotFoundError:
             continue
@@ -1420,9 +1420,9 @@ def start_backup_restore(args: argparse.Namespace) -> None:
                     'so the restoration is cancelled.')
 
 
-def classify_path(path: Path) -> str:
+def classify_path(path: Path | os.DirEntry[str]) -> str:
     """Return a text description of the item at the given path (file, folder, etc.)."""
-    return (f"Symlink -> {path.readlink()}" if path.is_symlink()
+    return ("Symlink" if path.is_symlink()
             else "Folder" if path.is_dir()
             else "File" if path.is_file()
             else "Unknown")
