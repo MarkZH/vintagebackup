@@ -1790,7 +1790,6 @@ class PurgeTests(unittest.TestCase):
             for backup in vintagebackup.all_backups(backup_path):
                 self.assertFalse((backup/relative_purge_file).exists())
 
-
     def test_folder_purge(self) -> None:
         """Test that a purged folder is deleted from all backups."""
         with (tempfile.TemporaryDirectory() as user_folder,
