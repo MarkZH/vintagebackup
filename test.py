@@ -62,7 +62,7 @@ def create_old_backups(backup_base_directory: Path, count: int) -> None:
             new_year -= 1
         backup_date = vintagebackup.fix_end_of_month(new_year, new_month, now.day)
         backup_timestamp = datetime.datetime.combine(backup_date, now.time())
-        backup_name = f"{backup_timestamp.strftime(vintagebackup.backup_date_format)} (Testing)"
+        backup_name = backup_timestamp.strftime(vintagebackup.backup_date_format)
         (backup_base_directory/str(new_year)/backup_name).mkdir(parents=True)
 
 
@@ -703,7 +703,10 @@ class DeleteBackupTest(unittest.TestCase):
                         exit_code = vintagebackup.main(["--user-folder", user_folder,
                                                         "--backup-folder", backup_folder,
                                                         "--log", os.devnull,
-                                                        "--free-up", goal_space_str])
+                                                        "--free-up", goal_space_str,
+                                                        "--timestamp",
+                                                        unique_timestamp().strftime(
+                                                            vintagebackup.backup_date_format)])
                         self.assertEqual(exit_code, 0)
 
                     # While backups are being deleted, the fake user data still exists, so one more
@@ -763,7 +766,10 @@ class DeleteBackupTest(unittest.TestCase):
                         exit_code = vintagebackup.main(["--user-folder", user_folder,
                                                         "--backup-folder", backup_folder,
                                                         "--log", os.devnull,
-                                                        "--free-up", goal_space_percent_str])
+                                                        "--free-up", goal_space_percent_str,
+                                                        "--timestamp",
+                                                        unique_timestamp().strftime(
+                                                            vintagebackup.backup_date_format)])
                         self.assertEqual(exit_code, 0)
 
                     # While backups are being deleted, the fake user data still exists, so one more
@@ -798,7 +804,10 @@ class DeleteBackupTest(unittest.TestCase):
                         exit_code = vintagebackup.main(["--user-folder", user_folder,
                                                         "--backup-folder", backup_folder,
                                                         "--log", os.devnull,
-                                                        "--delete-after", max_age])
+                                                        "--delete-after", max_age,
+                                                        "--timestamp",
+                                                        unique_timestamp().strftime(
+                                                            vintagebackup.backup_date_format)])
                         self.assertEqual(exit_code, 0)
                 else:
                     raise NotImplementedError("Delete old backup test not implemented for {method}")
@@ -880,15 +889,14 @@ class MoveBackupsTest(unittest.TestCase):
             create_user_data(user_data)
             backup_location = Path(backup_folder)
             backup_count = 10
-            for number in range(backup_count):
+            for _ in range(backup_count):
                 vintagebackup.create_new_backup(user_data,
                                                 backup_location,
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
                                                 max_average_hard_links=None,
-                                                timestamp=unique_timestamp(),
-                                                name=f"Backup {number}")
+                                                timestamp=unique_timestamp())
 
             for method in Invocation:
                 with tempfile.TemporaryDirectory() as new_backup_folder:
@@ -928,15 +936,14 @@ class MoveBackupsTest(unittest.TestCase):
             user_data = Path(user_data_folder)
             create_user_data(user_data)
             backup_location = Path(backup_folder)
-            for number in range(10):
+            for _ in range(10):
                 vintagebackup.create_new_backup(user_data,
                                                 backup_location,
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
                                                 max_average_hard_links=None,
-                                                timestamp=unique_timestamp(),
-                                                name=f"Backup ({number})")
+                                                timestamp=unique_timestamp())
 
             move_count = 5
             for method in Invocation:
