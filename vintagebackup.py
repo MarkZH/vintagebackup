@@ -631,9 +631,7 @@ def search_backups(search_directory: Path,
         backup_search_directory = backup/target_relative_path
         try:
             with os.scandir(backup_search_directory) as backup_scan:
-                for item in backup_scan:
-                    path_type = classify_path(item)
-                    all_paths.add((item.name, path_type))
+                all_paths.update((item.name, classify_path(item)) for item in backup_scan)
         except FileNotFoundError:
             continue
 
