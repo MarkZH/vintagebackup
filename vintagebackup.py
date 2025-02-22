@@ -481,6 +481,7 @@ def backup_name(backup_datetime: datetime.datetime | str | None) -> Path:
            else (backup_datetime or datetime.datetime.now()))
     return Path(str(now.year))/now.strftime(backup_date_format)
 
+
 def create_new_backup(user_data_location: Path,
                       backup_location: Path,
                       *,

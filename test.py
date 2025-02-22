@@ -369,6 +369,7 @@ class BackupTest(unittest.TestCase):
             self.assertTrue((last_backup/directory_symlink_name).is_symlink())
             self.assertTrue((last_backup/file_symlink_name).is_symlink())
 
+
 class FilterTest(unittest.TestCase):
     """Test that filter files work properly."""
 
