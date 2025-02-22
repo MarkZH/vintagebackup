@@ -70,8 +70,8 @@ def directory_contents(base_directory: Path) -> set[Path]:
     """Return a set of all paths in a directory relative to that directory."""
     paths: set[Path] = set()
     for directory, directories, files in base_directory.walk():
-        for path in itertools.chain(directories, files):
-            paths.add(Path(directory).relative_to(base_directory)/path)
+        relative_directory = directory.relative_to(base_directory)
+        paths.update(relative_directory/name for name in itertools.chain(directories, files))
     return paths
 
 
