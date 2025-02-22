@@ -1459,22 +1459,21 @@ def start_backup_purge(args: argparse.Namespace, confirmation_reponse: str | Non
     if len(path_type_counts) == 1:
         types_to_delete = [classify_path(paths_to_delete[0])]
     else:
-        print("Multiple types of paths were found. Which one should be deleted?")
         menu_choices = [f"{path_type}s ({count} items)"
                         for path_type, count in path_type_counts.items()]
         menu_choices.append(f"All ({len(paths_to_delete)} items)")
         arg_choice = args.choice
-        choice = choose_from_menu(menu_choices, "Choice") if arg_choice is None else int(arg_choice)
+        prompt = "Multiple types of paths were found. Which one should be deleted?\nChoice"
+        choice = choose_from_menu(menu_choices, prompt) if arg_choice is None else int(arg_choice)
         type_choices = list(path_type_counts.keys())
         types_to_delete = (type_choices if menu_choices[choice].startswith("All")
                            else [type_choices[choice]])
 
-    print("The following items will be deleted: ", end="")
     type_choice_data = [(path_type_counts[path_type], path_type) for path_type in types_to_delete]
     type_list = [f"{count} {plural_noun(count, path_type)}"
                  for count, path_type in type_choice_data]
-    print(", ".join(type_list))
-    confirmation = confirmation_reponse or input("Proceed? [y/n] ")
+    prompt = f"The following items will be deleted: {", ".join(type_list)}\nProceed? [y/n] "
+    confirmation = confirmation_reponse or input(prompt)
     if confirmation.lower() != "y":
         return
 
