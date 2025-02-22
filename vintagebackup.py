@@ -212,10 +212,6 @@ class Backup_Set:
                 self.entries.append((line_number, sign, pattern))
 
     def __iter__(self) -> Iterator[tuple[Path, list[str]]]:
-        """Generate the paths to backup when used in, for example, a for-loop."""
-        return self.filtered_paths()
-
-    def filtered_paths(self) -> Iterator[tuple[Path, list[str]]]:
         """Create the iterator that yields the paths to backup."""
         for current_directory, _, files in self.user_folder.walk():
             good_files = list(filter(self.passes, (current_directory/file for file in files)))
