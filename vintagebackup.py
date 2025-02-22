@@ -632,10 +632,7 @@ def search_backups(search_directory: Path,
         try:
             with os.scandir(backup_search_directory) as backup_scan:
                 for item in backup_scan:
-                    path_type = ("Symlink" if item.is_symlink()
-                                 else "File" if item.is_file()
-                                 else "Folder" if item.is_dir()
-                                 else "?")
+                    path_type = classify_path(item)
                     all_paths.add((item.name, path_type))
         except FileNotFoundError:
             continue
@@ -691,10 +688,7 @@ def recover_path(recovery_path: Path, backup_location: Path, choice: int | None 
         menu_choices: list[str] = []
         for backup_copy in backup_choices:
             backup_date = backup_copy.relative_to(backup_location).parts[1]
-            path_type = ("Symlink" if backup_copy.is_symlink()
-                         else "File" if backup_copy.is_file()
-                         else "Folder" if backup_copy.is_dir()
-                         else "?")
+            path_type = classify_path(backup_copy)
             menu_choices.append(f"{backup_date} ({path_type})")
         choice = choose_from_menu(menu_choices, "Version to recover")
 
@@ -1426,6 +1420,71 @@ def start_backup_restore(args: argparse.Namespace) -> None:
                     'so the restoration is cancelled.')
 
 
+def classify_path(path: Path | os.DirEntry[str]) -> str:
+    """Return a text description of the item at the given path (file, folder, etc.)."""
+    return ("Symlink" if path.is_symlink()
+            else "Folder" if path.is_dir()
+            else "File" if path.is_file()
+            else "Unknown")
+
+
+def start_backup_purge(args: argparse.Namespace, confirmation_reponse: str | None = None) -> None:
+    """Parse command line options to purge file or folder from all backups."""
+    backup_folder = get_existing_path(args.backup_folder, "backup folder")
+    purge_target = Path(args.purge).resolve()
+
+    try:
+        user_folder = backup_source(backup_folder)
+    except FileNotFoundError:
+        raise CommandLineError(
+            f"There do not seem to be any backups stored in {backup_folder}.") from None
+
+    try:
+        relative_purge_target = purge_target.relative_to(user_folder)
+    except ValueError:
+        raise CommandLineError("The purge target is not contained within the backed up "
+                               f"folder {user_folder}") from None
+
+    paths_to_delete: list[Path] = [backup_purge_target for backup_purge_target
+                                   in (backup/relative_purge_target
+                                       for backup in all_backups(backup_folder))
+                                   if backup_purge_target.exists(follow_symlinks=False)]
+
+    if not paths_to_delete:
+        logger.info(f"Could not find any backed up copies of {purge_target}")
+        return
+
+    path_type_counts = Counter(map(classify_path, paths_to_delete))
+    if len(path_type_counts) == 1:
+        types_to_delete = [classify_path(paths_to_delete[0])]
+    else:
+        menu_choices = [f"{path_type}s ({count} items)"
+                        for path_type, count in path_type_counts.items()]
+        all_choice = f"All ({len(paths_to_delete)} items)"
+        menu_choices.append(all_choice)
+        arg_choice = args.choice
+        prompt = "Multiple types of paths were found. Which one should be deleted?\nChoice"
+        choice = choose_from_menu(menu_choices, prompt) if arg_choice is None else int(arg_choice)
+        type_choices = list(path_type_counts.keys())
+        types_to_delete = (type_choices if menu_choices[choice] == all_choice
+                           else [type_choices[choice]])
+
+    type_choice_data = [(path_type_counts[path_type], path_type) for path_type in types_to_delete]
+    type_list = [f"{count} {plural_noun(count, path_type)}"
+                 for count, path_type in type_choice_data]
+    prompt = f"The following items will be deleted: {", ".join(type_list)}\nProceed? [y/n] "
+    confirmation = confirmation_reponse or input(prompt)
+    if confirmation.lower() != "y":
+        return
+
+    for path in paths_to_delete:
+        path_type = classify_path(path)
+        if path_type in types_to_delete:
+            logger.info(f"Deleting {path_type} {path} ...")
+            action = delete_directory_tree if path_type == "Folder" else Path.unlink
+            action(path)
+
+
 def confirm_choice_made(args: argparse.Namespace, option1: str, option2: str) -> None:
     """Make sure that at least one of two argument parameters are present."""
     args_dict = vars(args)
@@ -1558,6 +1617,10 @@ This action restores the user's folder to a previous, backed up state. Any exist
 have the same name as one in the backup will be overwritten. The --backup-folder is required to
 specify from where to restore. See the Restore Options section below for the other required
 parameters."""))
+
+    only_one_action_group.add_argument("--purge", help=format_help("""
+Delete a file or folder from all backups. The argument is the path to delete. This requires the
+--backup-folder argument."""))
 
     common_group = user_input.add_argument_group("Options needed for all actions")
 
@@ -1805,6 +1868,7 @@ def main(argv: list[str]) -> int:
                   else start_move_backups if args.move_backup
                   else start_verify_backup if args.verify
                   else start_backup_restore if args.restore
+                  else start_backup_purge if args.purge
                   else start_backup)
         action(args)
         return 0
