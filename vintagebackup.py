@@ -1436,13 +1436,14 @@ def start_backup_purge(args: argparse.Namespace, confirmation_reponse: str | Non
     try:
         user_folder = backup_source(backup_folder)
     except FileNotFoundError:
-        raise CommandLineError(f"There do not seem to be any backups stored in {backup_folder}.")
+        raise CommandLineError(
+            f"There do not seem to be any backups stored in {backup_folder}.") from None
 
     try:
         relative_purge_target = purge_target.relative_to(user_folder)
     except ValueError:
         raise CommandLineError("The purge target is not contained within the backed up "
-                               f"folder {user_folder}")
+                               f"folder {user_folder}") from None
 
     paths_to_delete: list[Path] = [backup_purge_target for backup_purge_target
                                    in (backup/relative_purge_target
