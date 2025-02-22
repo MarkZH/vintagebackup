@@ -1450,11 +1450,11 @@ def start_backup_purge(args: argparse.Namespace, confirmation_reponse: str | Non
                                        for backup in all_backups(backup_folder))
                                    if backup_purge_target.exists(follow_symlinks=False)]
 
-    path_type_counts = Counter(map(classify_path, paths_to_delete))
-    if len(path_type_counts) == 0:
+    if not paths_to_delete:
         logger.info(f"Could not find any backed up copies of {purge_target}")
         return
 
+    path_type_counts = Counter(map(classify_path, paths_to_delete))
     if len(path_type_counts) == 1:
         types_to_delete = [classify_path(paths_to_delete[0])]
     else:
