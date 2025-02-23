@@ -15,7 +15,7 @@ import random
 from collections import Counter
 from collections.abc import Callable, Iterator, Iterable
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, cast, Literal
 
 backup_date_format = "%Y-%m-%d %H-%M-%S"
 
@@ -607,6 +607,7 @@ def setup_log_file(logger: logging.Logger, log_file_path: str) -> None:
 
 def search_backups(search_directory: Path,
                    backup_folder: Path,
+                   operation: str,
                    choice: int | None = None) -> Path | None:
     """
     Decide which path to restore among all backups for all items in the given directory.
@@ -638,7 +639,7 @@ def search_backups(search_directory: Path,
     menu_list = sorted(all_paths)
     if choice is None:
         menu_choices = [f"{name} ({path_type})" for (name, path_type) in menu_list]
-        choice = choose_from_menu(menu_choices, "Which path to recover")
+        choice = choose_from_menu(menu_choices, f"Which path for {operation}")
 
     return search_directory/menu_list[choice][0]
 
@@ -1326,15 +1327,32 @@ def start_recovery_from_backup(args: argparse.Namespace) -> None:
     recover_path(Path(args.recover).resolve(), backup_folder, choice)
 
 
-def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
-    """Choose what to recover a list of backed up files and folders."""
+def choose_target_path_from_backups(args: argparse.Namespace,
+                                    operation: Literal["recovery", "purging"]) -> Path | None:
+    """Choose a path from a list of backed up files and folders from a given directory."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
-    search_directory = Path(args.list).resolve()
-    print_run_title(args, "Listing recoverable files and directories")
+    search_parameter = args.list if operation == "recovery" else args.purge_list
+    search_directory = Path(search_parameter).resolve()
+    print_run_title(args, f"Listing files and directories for {operation}")
     logger.info(f"Searching for everything backed up from {search_directory} ...")
-    chosen_recovery_path = search_backups(search_directory, backup_folder)
+    return search_backups(search_directory, backup_folder, operation)
+
+
+def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
+    """Choose what to recover from a list of everything backed up from a folder."""
+    backup_folder = get_existing_path(args.backup_folder, "backup folder")
+    chosen_recovery_path = choose_target_path_from_backups(args, "recovery")
     if chosen_recovery_path is not None:
         recover_path(chosen_recovery_path, backup_folder)
+
+
+def choose_purge_target_from_backups(args: argparse.Namespace,
+                                     confirmation_response: str | None = None) -> None:
+    """Choose which path to purge from a list of everything backed up from a folder."""
+    backup_folder = get_existing_path(args.backup_folder, "backup folder")
+    chosen_purge_path = choose_target_path_from_backups(args, "purging")
+    if chosen_purge_path is not None:
+        purge_path(chosen_purge_path, backup_folder, confirmation_response, args.choice)
 
 
 def start_move_backups(args: argparse.Namespace) -> None:
@@ -1426,7 +1444,14 @@ def start_backup_purge(args: argparse.Namespace, confirmation_reponse: str | Non
     """Parse command line options to purge file or folder from all backups."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     purge_target = Path(args.purge).resolve()
+    purge_path(purge_target, backup_folder, confirmation_reponse, args.choice)
 
+
+def purge_path(purge_target: Path,
+               backup_folder: Path,
+               confirmation_reponse: str | None,
+               arg_choice: str | None) -> None:
+    """Delete all occurences of a path from all backups."""
     try:
         user_folder = backup_source(backup_folder)
     except FileNotFoundError:
@@ -1456,7 +1481,6 @@ def start_backup_purge(args: argparse.Namespace, confirmation_reponse: str | Non
                         for path_type, count in path_type_counts.items()]
         all_choice = f"All ({len(paths_to_delete)} items)"
         menu_choices.append(all_choice)
-        arg_choice = args.choice
         prompt = "Multiple types of paths were found. Which one should be deleted?\nChoice"
         choice = choose_from_menu(menu_choices, prompt) if arg_choice is None else int(arg_choice)
         type_choices = list(path_type_counts.keys())
@@ -1615,6 +1639,13 @@ parameters."""))
     only_one_action_group.add_argument("--purge", help=format_help("""
 Delete a file or folder from all backups. The argument is the path to delete. This requires the
 --backup-folder argument."""))
+
+    only_one_action_group.add_argument("--purge-list", metavar="DIRECTORY", nargs="?", const=".",
+                                       help=format_help("""
+Purge a file or folder from all backups in the directory specified by the argument by first choosing
+what to purge from a list of everything that's ever been backed up. If there is no folder specified
+after --purge-list, then the current directory is used. If the file exists in the user's folder, it
+is not deleted. The backup location argument --backup-folder is required."""))
 
     common_group = user_input.add_argument_group("Options needed for all actions")
 
@@ -1863,6 +1894,7 @@ def main(argv: list[str]) -> int:
                   else start_verify_backup if args.verify
                   else start_backup_restore if args.restore
                   else start_backup_purge if args.purge
+                  else choose_purge_target_from_backups if args.purge_list
                   else start_backup)
         action(args)
         return 0
@@ -1870,8 +1902,8 @@ def main(argv: list[str]) -> int:
         if __name__ == "__main__":
             user_input.print_usage()
         logger.error(error)
-    except Exception as error:
-        logger.error(error)
+    except Exception:
+        logger.exception("The program ended unexpectedly with an error:")
 
     return 1
 

@@ -600,7 +600,7 @@ class RecoveryTest(unittest.TestCase):
                                             max_average_hard_links=None,
                                             timestamp=unique_timestamp())
             folder_path = (user_data/"sub_directory_1"/"sub_sub_directory_1").resolve()
-            chosen_file = vintagebackup.search_backups(folder_path, backup_location, 1)
+            chosen_file = vintagebackup.search_backups(folder_path, backup_location, "recovery", 1)
             self.assertTrue(chosen_file)
             chosen_file = cast(Path, chosen_file)
             self.assertEqual(chosen_file, folder_path/"file_1.txt")
