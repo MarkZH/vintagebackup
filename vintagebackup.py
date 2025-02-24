@@ -1428,11 +1428,8 @@ def start_backup_purge(args: argparse.Namespace, confirmation_reponse: str | Non
     purge_target = Path(args.purge).resolve()
     relative_purge_target = path_relative_to_backups(purge_target, backup_folder)
 
-    paths_to_delete: list[Path] = [backup_purge_target for backup_purge_target
-                                   in (backup/relative_purge_target
-                                       for backup in all_backups(backup_folder))
-                                   if backup_purge_target.exists(follow_symlinks=False)]
-
+    potential_deletions = (backup/relative_purge_target for backup in all_backups(backup_folder))
+    paths_to_delete = list(filter(lambda p: p.exists(follow_symlinks=False), potential_deletions))
     if not paths_to_delete:
         logger.info(f"Could not find any backed up copies of {purge_target}")
         return
