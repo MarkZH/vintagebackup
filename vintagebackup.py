@@ -1440,7 +1440,7 @@ def start_backup_purge(args: argparse.Namespace, confirmation_reponse: str | Non
     type_choice_data = [(path_type_counts[path_type], path_type) for path_type in types_to_delete]
     type_list = [f"{plural_noun(count, path_type)}" for count, path_type in type_choice_data]
     logger.info(f"Path to be purged from backups: {purge_target}")
-    prompt = f"The following items will be deleted: {", ".join(type_list)}\nProceed? [y/n] "
+    prompt = f"The following items will be deleted: {", ".join(type_list)}.\nProceed? [y/n] "
     confirmation = confirmation_reponse or input(prompt)
     if confirmation.lower() != "y":
         return
