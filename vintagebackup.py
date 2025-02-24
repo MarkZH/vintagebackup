@@ -1458,7 +1458,7 @@ def choose_types_to_delete(paths_to_delete: list[Path],
                            test_choice: str | None) -> list[str]:
     """If a purge target has more than one type in backups, choose which type to delete."""
     if len(path_type_counts) == 1:
-        types_to_delete = [classify_path(paths_to_delete[0])]
+        return [classify_path(paths_to_delete[0])]
     else:
         menu_choices = [f"{path_type}s ({count} items)"
                         for path_type, count in path_type_counts.items()]
@@ -1467,10 +1467,7 @@ def choose_types_to_delete(paths_to_delete: list[Path],
         prompt = "Multiple types of paths were found. Which one should be deleted?\nChoice"
         choice = choose_from_menu(menu_choices, prompt) if test_choice is None else int(test_choice)
         type_choices = list(path_type_counts.keys())
-        types_to_delete = (type_choices if menu_choices[choice] == all_choice
-                           else [type_choices[choice]])
-
-    return types_to_delete
+        return type_choices if menu_choices[choice] == all_choice else [type_choices[choice]]
 
 
 def confirm_choice_made(args: argparse.Namespace, option1: str, option2: str) -> None:
