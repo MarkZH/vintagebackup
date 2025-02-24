@@ -1452,6 +1452,7 @@ def start_backup_purge(args: argparse.Namespace, confirmation_reponse: str | Non
             action = delete_directory_tree if path_type == "Folder" else Path.unlink
             action(path)
 
+
 def choose_types_to_delete(paths_to_delete: list[Path],
                            path_type_counts: Counter[str],
                            test_choice: str | None) -> list[str]:
