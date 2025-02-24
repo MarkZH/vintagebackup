@@ -1012,19 +1012,19 @@ def backup_datetime(backup: Path) -> datetime.datetime:
 
 def plural_noun(count: int, word: str) -> str:
     """
-    Convert a noun to a simple plural form if the count is not one.
+    Convert a noun to a simple plural phrase if the count is not one.
 
     >>> plural_noun(5, "cow")
-    'cows'
+    '5 cows'
 
     >>> plural_noun(1, "cat")
-    'cat'
+    '1 cat'
 
     Irregular nouns that are not pluralized by appending an "s" are not supported.
     >>> plural_noun(3, "fox")
-    'foxs'
+    '3 foxs'
     """
-    return f"{word}{'' if count == 1 else 's'}"
+    return f"{count} {word}{'' if count == 1 else 's'}"
 
 
 def move_backups(old_backup_location: Path,
@@ -1032,7 +1032,7 @@ def move_backups(old_backup_location: Path,
                  backups_to_move: list[Path]) -> None:
     """Move a set of backups to a new location."""
     move_count = len(backups_to_move)
-    logger.info(f"Moving {move_count} {plural_noun(move_count, "backup")}")
+    logger.info(f"Moving {plural_noun(move_count, "backup")}")
     logger.info(f"from {old_backup_location}")
     logger.info(f"to   {new_backup_location}")
 
@@ -1464,8 +1464,7 @@ def start_backup_purge(args: argparse.Namespace, confirmation_reponse: str | Non
                            else [type_choices[choice]])
 
     type_choice_data = [(path_type_counts[path_type], path_type) for path_type in types_to_delete]
-    type_list = [f"{count} {plural_noun(count, path_type)}"
-                 for count, path_type in type_choice_data]
+    type_list = [f"{plural_noun(count, path_type)}" for count, path_type in type_choice_data]
     prompt = f"The following items will be deleted: {", ".join(type_list)}\nProceed? [y/n] "
     confirmation = confirmation_reponse or input(prompt)
     if confirmation.lower() != "y":
