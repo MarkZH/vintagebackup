@@ -1117,8 +1117,7 @@ Debug:""")
             command_line_options = ["-b", actual_backup_folder,
                                     "-c", config_file.name,
                                     "-l", actual_log_file]
-            arg_parser = vintagebackup.argument_parser()
-            options = vintagebackup.parse_command_line(command_line_options, arg_parser)
+            options = vintagebackup.parse_command_line(command_line_options)
             self.assertEqual(options.user_folder, user_folder)
             self.assertEqual(options.backup_folder, actual_backup_folder)
             self.assertEqual(options.log, actual_log_file)
@@ -1135,8 +1134,7 @@ Debug:""")
             command_line_options = ["-c", config_file.name,
                                     "--no-whole-file",
                                     "--no-debug"]
-            arg_parser = vintagebackup.argument_parser()
-            options = vintagebackup.parse_command_line(command_line_options, arg_parser)
+            options = vintagebackup.parse_command_line(command_line_options)
             self.assertFalse(vintagebackup.toggle_is_set(options, "whole_file"))
             self.assertFalse(vintagebackup.toggle_is_set(options, "debug"))
 
@@ -1774,8 +1772,7 @@ class PurgeTests(unittest.TestCase):
             purge_command_line = vintagebackup.parse_command_line(["--purge",
                                                                    str(purged_file),
                                                                    "--backup-folder",
-                                                                   str(backup_path)],
-                                                                   vintagebackup.argument_parser())
+                                                                   str(backup_path)])
             vintagebackup.start_backup_purge(purge_command_line, "y")
             relative_purge_file = purged_file.relative_to(user_path)
             for backup in vintagebackup.all_backups(backup_path):
@@ -1803,8 +1800,7 @@ class PurgeTests(unittest.TestCase):
             purge_command_line = vintagebackup.parse_command_line(["--purge",
                                                                    str(purged_folder),
                                                                    "--backup-folder",
-                                                                   str(backup_path)],
-                                                                   vintagebackup.argument_parser())
+                                                                   str(backup_path)])
             vintagebackup.start_backup_purge(purge_command_line, "y")
             relative_purge_folder = purged_folder.relative_to(user_path)
             for backup in vintagebackup.all_backups(backup_path):
@@ -1846,8 +1842,7 @@ class PurgeTests(unittest.TestCase):
                                                                    str(purged_path),
                                                                    "--backup-folder",
                                                                    str(backup_path),
-                                                                   "--choice", "1"],
-                                                                   vintagebackup.argument_parser())
+                                                                   "--choice", "1"])
             vintagebackup.start_backup_purge(purge_command_line, "y")
             relative_purge_file = purged_path.relative_to(user_path)
             for backup in vintagebackup.all_backups(backup_path):
@@ -1891,8 +1886,7 @@ class PurgeTests(unittest.TestCase):
                                                                    str(purged_path),
                                                                    "--backup-folder",
                                                                    str(backup_path),
-                                                                   "--choice", "0"],
-                                                                   vintagebackup.argument_parser())
+                                                                   "--choice", "0"])
             vintagebackup.start_backup_purge(purge_command_line, "y")
             relative_purge_file = purged_path.relative_to(user_path)
             for backup in vintagebackup.all_backups(backup_path):
@@ -1921,8 +1915,7 @@ class PurgeTests(unittest.TestCase):
             purge_command_line = vintagebackup.parse_command_line(["--purge",
                                                                    str(purged_path),
                                                                    "--backup-folder",
-                                                                   str(backup_path)],
-                                                                   vintagebackup.argument_parser())
+                                                                   str(backup_path)])
             vintagebackup.start_backup_purge(purge_command_line, "thing")
 
             for backup in vintagebackup.all_backups(backup_path):
