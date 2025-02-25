@@ -1445,6 +1445,7 @@ def start_backup_purge(args: argparse.Namespace, confirmation_reponse: str | Non
     """Parse command line options to purge file or folder from all backups."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     purge_target = Path(args.purge).resolve()
+    print_run_title(args, "Purging from backups")
     purge_path(purge_target, backup_folder, confirmation_reponse, args.choice)
 
 
