@@ -1922,5 +1922,43 @@ class PurgeTests(unittest.TestCase):
                 self.assertTrue(directories_have_identical_content(backup, user_path))
 
 
+class UtilityTest(unittest.TestCase):
+    """Test stand-alone functions."""
+
+    def test_fix_end_of_month_does_not_change_valid_dates(self) -> None:
+        """Test that valid dates are returned unchanged."""
+        start_date = datetime.date(2024, 1, 1)
+        end_date = datetime.date(2025, 12, 31)
+        date = start_date
+        while date <= end_date:
+            self.assertEqual(date, vintagebackup.fix_end_of_month(date.year, date.month, date.day))
+            date += datetime.timedelta(days=1)
+
+    def test_fix_end_of_month_always_returns_last_day_of_month_for_invalid_dates(self) -> None:
+        """Test that an invalid date is fixed to be the end of the month."""
+        january = 1
+        december = 12
+
+        for year in [2024, 2025]:
+            for month in range(january, december + 1):
+                bad_day = 40
+                last_day_of_month = vintagebackup.fix_end_of_month(year, month, bad_day)
+                day_after = last_day_of_month + datetime.timedelta(days=1)
+                if last_day_of_month.month == december:
+                    first_day_of_next_month = datetime.date(year + 1, january, 1)
+                else:
+                    first_day_of_next_month = datetime.date(year, month + 1, 1)
+                self.assertEqual(day_after, first_day_of_next_month)
+
+    def test_one_noun_results_in_singular_noun(self) -> None:
+        """Test that exactly 1 of a noun leaves the noun unchanged."""
+        self.assertEqual(vintagebackup.plural_noun(1, "cat"), "1 cat")
+
+    def test_several_nouns_results_in_simple_plural_noun(self) -> None:
+        """Test that a number not equal to 1 appends s to noun."""
+        for number in [0, 2, 3, 4]:
+            self.assertEqual(vintagebackup.plural_noun(number, "dog"), f"{number} dogs")
+
+
 if __name__ == "__main__":
     unittest.main()
