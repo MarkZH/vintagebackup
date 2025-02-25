@@ -1013,19 +1013,19 @@ def backup_datetime(backup: Path) -> datetime.datetime:
 
 def plural_noun(count: int, word: str) -> str:
     """
-    Convert a noun to a simple plural form if the count is not one.
+    Convert a noun to a simple plural phrase if the count is not one.
 
     >>> plural_noun(5, "cow")
-    'cows'
+    '5 cows'
 
     >>> plural_noun(1, "cat")
-    'cat'
+    '1 cat'
 
     Irregular nouns that are not pluralized by appending an "s" are not supported.
     >>> plural_noun(3, "fox")
-    'foxs'
+    '3 foxs'
     """
-    return f"{word}{'' if count == 1 else 's'}"
+    return f"{count} {word}{'' if count == 1 else 's'}"
 
 
 def move_backups(old_backup_location: Path,
@@ -1033,7 +1033,7 @@ def move_backups(old_backup_location: Path,
                  backups_to_move: list[Path]) -> None:
     """Move a set of backups to a new location."""
     move_count = len(backups_to_move)
-    logger.info(f"Moving {move_count} {plural_noun(move_count, "backup")}")
+    logger.info(f"Moving {plural_noun(move_count, "backup")}")
     logger.info(f"from {old_backup_location}")
     logger.info(f"to   {new_backup_location}")
 
@@ -1451,46 +1451,22 @@ def purge_path(purge_target: Path,
                backup_folder: Path,
                confirmation_reponse: str | None,
                arg_choice: str | None) -> None:
-    """Delete all occurences of a path from all backups."""
-    try:
-        user_folder = backup_source(backup_folder)
-    except FileNotFoundError:
-        raise CommandLineError(
-            f"There do not seem to be any backups stored in {backup_folder}.") from None
+    """Purge a file/folder by deleting it from all backups."""
+    relative_purge_target = path_relative_to_backups(purge_target, backup_folder)
 
-    try:
-        relative_purge_target = purge_target.relative_to(user_folder)
-    except ValueError:
-        raise CommandLineError("The purge target is not contained within the backed up "
-                               f"folder {user_folder}") from None
-
-    paths_to_delete: list[Path] = [backup_purge_target for backup_purge_target
-                                   in (backup/relative_purge_target
-                                       for backup in all_backups(backup_folder))
-                                   if backup_purge_target.exists(follow_symlinks=False)]
-
+    potential_deletions = (backup/relative_purge_target for backup in all_backups(backup_folder))
+    paths_to_delete = list(filter(lambda p: p.exists(follow_symlinks=False), potential_deletions))
     if not paths_to_delete:
         logger.info(f"Could not find any backed up copies of {purge_target}")
         return
 
     path_type_counts = Counter(map(classify_path, paths_to_delete))
-    if len(path_type_counts) == 1:
-        types_to_delete = [classify_path(paths_to_delete[0])]
-    else:
-        menu_choices = [f"{path_type}s ({count} items)"
-                        for path_type, count in path_type_counts.items()]
-        all_choice = f"All ({len(paths_to_delete)} items)"
-        menu_choices.append(all_choice)
-        prompt = "Multiple types of paths were found. Which one should be deleted?\nChoice"
-        choice = choose_from_menu(menu_choices, prompt) if arg_choice is None else int(arg_choice)
-        type_choices = list(path_type_counts.keys())
-        types_to_delete = (type_choices if menu_choices[choice] == all_choice
-                           else [type_choices[choice]])
+    types_to_delete = choose_types_to_delete(paths_to_delete, path_type_counts, arg_choice)
 
     type_choice_data = [(path_type_counts[path_type], path_type) for path_type in types_to_delete]
-    type_list = [f"{count} {plural_noun(count, path_type)}"
-                 for count, path_type in type_choice_data]
-    prompt = f"The following items will be deleted: {", ".join(type_list)}\nProceed? [y/n] "
+    type_list = [f"{plural_noun(count, path_type)}" for count, path_type in type_choice_data]
+    logger.info(f"Path to be purged from backups: {purge_target}")
+    prompt = f"The following items will be deleted: {", ".join(type_list)}.\nProceed? [y/n] "
     confirmation = confirmation_reponse or input(prompt)
     if confirmation.lower() != "y":
         return
@@ -1501,6 +1477,23 @@ def purge_path(purge_target: Path,
             logger.info(f"Deleting {path_type} {path} ...")
             action = delete_directory_tree if path_type == "Folder" else Path.unlink
             action(path)
+
+
+def choose_types_to_delete(paths_to_delete: list[Path],
+                           path_type_counts: Counter[str],
+                           test_choice: str | None) -> list[str]:
+    """If a purge target has more than one type in backups, choose which type to delete."""
+    if len(path_type_counts) == 1:
+        return [classify_path(paths_to_delete[0])]
+    else:
+        menu_choices = [f"{path_type}s ({count} items)"
+                        for path_type, count in path_type_counts.items()]
+        all_choice = f"All ({len(paths_to_delete)} items)"
+        menu_choices.append(all_choice)
+        prompt = "Multiple types of paths were found. Which one should be deleted?\nChoice"
+        choice = choose_from_menu(menu_choices, prompt) if test_choice is None else int(test_choice)
+        type_choices = list(path_type_counts.keys())
+        return type_choices if menu_choices[choice] == all_choice else [type_choices[choice]]
 
 
 def confirm_choice_made(args: argparse.Namespace, option1: str, option2: str) -> None:
