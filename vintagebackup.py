@@ -1850,18 +1850,29 @@ log file is desired, use the file name {os.devnull}."""))
     return user_input
 
 
-def parse_command_line(argv: list[str], user_input: argparse.ArgumentParser) -> argparse.Namespace:
+def parse_command_line(argv: list[str]) -> argparse.Namespace:
     """Parse the command line options and incorporate configuration file options if needed."""
     if argv and argv[0] == sys.argv[0]:
         argv = argv[1:]
 
     command_line_options = argv or ["--help"]
+    user_input = argument_parser()
     command_line_args = user_input.parse_args(command_line_options)
     if command_line_args.config:
         file_options = read_configuation_file(command_line_args.config)
         return user_input.parse_args(file_options + command_line_options)
     else:
         return command_line_args
+
+
+def print_usage() -> None:
+    """Print short instructions for the command line options."""
+    argument_parser().print_usage()
+
+
+def print_help() -> None:
+    """Print full manual for Vintage Backup."""
+    argument_parser().print_help()
 
 
 def main(argv: list[str]) -> int:
@@ -1871,10 +1882,9 @@ def main(argv: list[str]) -> int:
     :param argv: A list of command line arguments as from sys.argv
     """
     try:
-        user_input = argument_parser()
-        args = parse_command_line(argv, user_input)
+        args = parse_command_line(argv)
         if args.help:
-            user_input.print_help()
+            print_help()
             return 0
 
         setup_log_file(logger, args.log)
@@ -1893,7 +1903,7 @@ def main(argv: list[str]) -> int:
         return 0
     except CommandLineError as error:
         if __name__ == "__main__":
-            user_input.print_usage()
+            print_usage()
         logger.error(error)
     except Exception:
         logger.exception("The program ended unexpectedly with an error:")
