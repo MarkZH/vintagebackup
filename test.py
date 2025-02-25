@@ -1916,15 +1916,6 @@ class PurgeTests(unittest.TestCase):
                                                 max_average_hard_links=None,
                                                 timestamp=unique_timestamp())
 
-            for _ in range(number_of_backups):
-                vintagebackup.create_new_backup(user_path,
-                                                backup_path,
-                                                filter_file=None,
-                                                examine_whole_file=False,
-                                                force_copy=False,
-                                                max_average_hard_links=None,
-                                                timestamp=unique_timestamp())
-
             purged_path = user_path/"sub_directory_2"/"sub_sub_directory_1"
             self.assertTrue(purged_path.is_dir(follow_symlinks=False))
             purge_command_line = vintagebackup.parse_command_line(["--purge",
