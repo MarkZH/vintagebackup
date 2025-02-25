@@ -1335,7 +1335,8 @@ def choose_target_path_from_backups(args: argparse.Namespace,
     search_directory = Path(search_parameter).resolve()
     print_run_title(args, f"Listing files and directories for {operation}")
     logger.info(f"Searching for everything backed up from {search_directory} ...")
-    return search_backups(search_directory, backup_folder, operation)
+    test_choice = int(args.choice) if args.choice else None
+    return search_backups(search_directory, backup_folder, operation, test_choice)
 
 
 def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
@@ -1487,12 +1488,12 @@ def choose_types_to_delete(paths_to_delete: list[Path],
         return [classify_path(paths_to_delete[0])]
     else:
         menu_choices = [f"{path_type}s ({count} items)"
-                        for path_type, count in path_type_counts.items()]
+                        for path_type, count in sorted(path_type_counts.items())]
         all_choice = f"All ({len(paths_to_delete)} items)"
         menu_choices.append(all_choice)
         prompt = "Multiple types of paths were found. Which one should be deleted?\nChoice"
         choice = choose_from_menu(menu_choices, prompt) if test_choice is None else int(test_choice)
-        type_choices = list(path_type_counts.keys())
+        type_choices = sorted(path_type_counts.keys())
         return type_choices if menu_choices[choice] == all_choice else [type_choices[choice]]
 
 
