@@ -1925,9 +1925,8 @@ class PurgeTests(unittest.TestCase):
                                                                    vintagebackup.argument_parser())
             vintagebackup.start_backup_purge(purge_command_line, "thing")
 
-            relative_path = purged_path.relative_to(user_path)
             for backup in vintagebackup.all_backups(backup_path):
-                self.assertTrue((backup/relative_path).exists(follow_symlinks=False))
+                self.assertTrue(directories_have_identical_content(backup, user_path))
 
 
 if __name__ == "__main__":
