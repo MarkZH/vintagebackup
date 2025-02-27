@@ -987,6 +987,31 @@ class MoveBackupsTest(unittest.TestCase):
             oldest_backup_timestamp = vintagebackup.backup_datetime(backups_to_move[0])
             self.assertLessEqual(six_months_ago, oldest_backup_timestamp)
 
+    def test_move_without_specifying_how_many_to_move_is_an_error(self) -> None:
+        """Test that missing --move-count, --move-age, and --move-since results in an error."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+            backup_path = Path(backup_folder)
+            vintagebackup.create_new_backup(user_path,
+                                            backup_path,
+                                            filter_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False,
+                                            max_average_hard_links=None,
+                                            timestamp=unique_timestamp())
+            with (self.assertLogs(level=logging.ERROR) as no_move_choice_log,
+                  tempfile.TemporaryDirectory() as move_destination):
+                exit_code = vintagebackup.main(["--move-backup", move_destination,
+                                                "--user-folder", user_folder,
+                                                "--backup-folder", backup_folder,
+                                                "--log", os.devnull])
+            self.assertEqual(exit_code, 1)
+            expected_logs = ["ERROR:vintagebackup:One of the following are required: "
+                             "--move-count, --move-age, or --move-since"]
+            self.assertEqual(expected_logs, no_move_choice_log.output)
+
 
 class VerificationTest(unittest.TestCase):
     """Test backup verification."""
