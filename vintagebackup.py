@@ -1342,6 +1342,7 @@ def start_move_backups(args: argparse.Namespace) -> None:
     old_backup_location = get_existing_path(args.backup_folder, "current backup location")
     new_backup_location = Path(args.move_backup).resolve()
 
+    confirm_choice_made(args, "move_count", "move_age", "move_since")
     if args.move_count:
         backups_to_move = last_n_backups(old_backup_location, args.move_count)
     elif args.move_age:
@@ -1350,9 +1351,6 @@ def start_move_backups(args: argparse.Namespace) -> None:
     elif args.move_since:
         oldest_backup_date = datetime.datetime.strptime(args.move_since, "%Y-%m-%d")
         backups_to_move = backups_since(oldest_backup_date, old_backup_location)
-    else:
-        raise CommandLineError("Exactly one of --move-count, --move-age, or --move-since "
-                               "must be used when moving backups.")
 
     new_backup_location.mkdir(parents=True, exist_ok=True)
     with Backup_Lock(new_backup_location, "backup move"):
@@ -1470,12 +1468,18 @@ def choose_types_to_delete(paths_to_delete: list[Path],
         return type_choices if menu_choices[choice] == all_choice else [type_choices[choice]]
 
 
-def confirm_choice_made(args: argparse.Namespace, option1: str, option2: str) -> None:
+def confirm_choice_made(args: argparse.Namespace, *options: str) -> None:
     """Make sure that at least one of two argument parameters are present."""
     args_dict = vars(args)
-    if not args_dict.get(option1) and not args_dict.get(option2):
-        raise CommandLineError("One of the following are required: "
-                               f"--{option1.replace("_", "-")} or --{option2.replace("_", "-")}")
+    if not any(map(args_dict.get, options)):
+        option_list = [f"--{option.replace("_", "-")}" for option in options]
+        comma = ", "
+        message = "One of the following are required: " + comma.join(option_list)
+        if message.count(comma) == 1:
+            message = message.replace(comma, " or ")
+        else:
+            message = f"{comma}or ".join(message.rsplit(comma, maxsplit=1))
+        raise CommandLineError(message)
 
 
 def start_backup(args: argparse.Namespace) -> None:
