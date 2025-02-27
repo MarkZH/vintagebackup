@@ -15,7 +15,7 @@ import random
 from collections import Counter
 from collections.abc import Callable, Iterator, Iterable
 from pathlib import Path
-from typing import Any, cast, Literal
+from typing import Any, cast
 
 backup_date_format = "%Y-%m-%d %H-%M-%S"
 
@@ -1327,12 +1327,11 @@ def start_recovery_from_backup(args: argparse.Namespace) -> None:
     recover_path(Path(args.recover).resolve(), backup_folder, choice)
 
 
-def choose_target_path_from_backups(args: argparse.Namespace,
-                                    operation: Literal["recovery", "purging"]) -> Path | None:
+def choose_target_path_from_backups(args: argparse.Namespace) -> Path | None:
     """Choose a path from a list of backed up files and folders from a given directory."""
+    operation = "recovery" if args.list else "purging"
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
-    search_parameter = args.list if operation == "recovery" else args.purge_list
-    search_directory = Path(search_parameter).resolve()
+    search_directory = Path(args.list or args.purge_list).resolve()
     print_run_title(args, f"Listing files and directories for {operation}")
     logger.info(f"Searching for everything backed up from {search_directory} ...")
     test_choice = int(args.choice) if args.choice else None
@@ -1342,7 +1341,7 @@ def choose_target_path_from_backups(args: argparse.Namespace,
 def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
     """Choose what to recover from a list of everything backed up from a folder."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
-    chosen_recovery_path = choose_target_path_from_backups(args, "recovery")
+    chosen_recovery_path = choose_target_path_from_backups(args)
     if chosen_recovery_path is not None:
         recover_path(chosen_recovery_path, backup_folder)
 
@@ -1351,7 +1350,7 @@ def choose_purge_target_from_backups(args: argparse.Namespace,
                                      confirmation_response: str | None = None) -> None:
     """Choose which path to purge from a list of everything backed up from a folder."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
-    chosen_purge_path = choose_target_path_from_backups(args, "purging")
+    chosen_purge_path = choose_target_path_from_backups(args)
     if chosen_purge_path is not None:
         purge_path(chosen_purge_path, backup_folder, confirmation_response, args.choice)
 
