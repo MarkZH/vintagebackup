@@ -607,6 +607,7 @@ def setup_log_file(logger: logging.Logger, log_file_path: str) -> None:
 
 def search_backups(search_directory: Path,
                    backup_folder: Path,
+                   operation: str,
                    choice: int | None = None) -> Path | None:
     """
     Decide which path to restore among all backups for all items in the given directory.
@@ -638,7 +639,7 @@ def search_backups(search_directory: Path,
     menu_list = sorted(all_paths)
     if choice is None:
         menu_choices = [f"{name} ({path_type})" for (name, path_type) in menu_list]
-        choice = choose_from_menu(menu_choices, "Which path to recover")
+        choice = choose_from_menu(menu_choices, f"Which path for {operation}")
 
     return search_directory/menu_list[choice][0]
 
@@ -1326,15 +1327,32 @@ def start_recovery_from_backup(args: argparse.Namespace) -> None:
     recover_path(Path(args.recover).resolve(), backup_folder, choice)
 
 
-def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
-    """Choose what to recover a list of backed up files and folders."""
+def choose_target_path_from_backups(args: argparse.Namespace) -> Path | None:
+    """Choose a path from a list of backed up files and folders from a given directory."""
+    operation = "recovery" if args.list else "purging"
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
-    search_directory = Path(args.list).resolve()
-    print_run_title(args, "Listing recoverable files and directories")
+    search_directory = Path(args.list or args.purge_list).resolve()
+    print_run_title(args, f"Listing files and directories for {operation}")
     logger.info(f"Searching for everything backed up from {search_directory} ...")
-    chosen_recovery_path = search_backups(search_directory, backup_folder)
+    test_choice = int(args.choice) if args.choice else None
+    return search_backups(search_directory, backup_folder, operation, test_choice)
+
+
+def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
+    """Choose what to recover from a list of everything backed up from a folder."""
+    backup_folder = get_existing_path(args.backup_folder, "backup folder")
+    chosen_recovery_path = choose_target_path_from_backups(args)
     if chosen_recovery_path is not None:
         recover_path(chosen_recovery_path, backup_folder)
+
+
+def choose_purge_target_from_backups(args: argparse.Namespace,
+                                     confirmation_response: str | None = None) -> None:
+    """Choose which path to purge from a list of everything backed up from a folder."""
+    backup_folder = get_existing_path(args.backup_folder, "backup folder")
+    chosen_purge_path = choose_target_path_from_backups(args)
+    if chosen_purge_path is not None:
+        purge_path(chosen_purge_path, backup_folder, confirmation_response, args.choice)
 
 
 def start_move_backups(args: argparse.Namespace) -> None:
@@ -1424,6 +1442,15 @@ def start_backup_purge(args: argparse.Namespace, confirmation_reponse: str | Non
     """Parse command line options to purge file or folder from all backups."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     purge_target = Path(args.purge).resolve()
+    print_run_title(args, "Purging from backups")
+    purge_path(purge_target, backup_folder, confirmation_reponse, args.choice)
+
+
+def purge_path(purge_target: Path,
+               backup_folder: Path,
+               confirmation_reponse: str | None,
+               arg_choice: str | None) -> None:
+    """Purge a file/folder by deleting it from all backups."""
     relative_purge_target = path_relative_to_backups(purge_target, backup_folder)
 
     potential_deletions = (backup/relative_purge_target for backup in all_backups(backup_folder))
@@ -1433,7 +1460,7 @@ def start_backup_purge(args: argparse.Namespace, confirmation_reponse: str | Non
         return
 
     path_type_counts = Counter(map(classify_path, paths_to_delete))
-    types_to_delete = choose_types_to_delete(paths_to_delete, path_type_counts, args.choice)
+    types_to_delete = choose_types_to_delete(paths_to_delete, path_type_counts, arg_choice)
 
     type_choice_data = [(path_type_counts[path_type], path_type) for path_type in types_to_delete]
     type_list = [f"{plural_noun(count, path_type)}" for count, path_type in type_choice_data]
@@ -1459,12 +1486,12 @@ def choose_types_to_delete(paths_to_delete: list[Path],
         return [classify_path(paths_to_delete[0])]
     else:
         menu_choices = [f"{path_type}s ({count} items)"
-                        for path_type, count in path_type_counts.items()]
+                        for path_type, count in sorted(path_type_counts.items())]
         all_choice = f"All ({len(paths_to_delete)} items)"
         menu_choices.append(all_choice)
         prompt = "Multiple types of paths were found. Which one should be deleted?\nChoice"
         choice = choose_from_menu(menu_choices, prompt) if test_choice is None else int(test_choice)
-        type_choices = list(path_type_counts.keys())
+        type_choices = sorted(path_type_counts.keys())
         return type_choices if menu_choices[choice] == all_choice else [type_choices[choice]]
 
 
@@ -1610,6 +1637,13 @@ parameters."""))
     only_one_action_group.add_argument("--purge", help=format_help("""
 Delete a file or folder from all backups. The argument is the path to delete. This requires the
 --backup-folder argument."""))
+
+    only_one_action_group.add_argument("--purge-list", metavar="DIRECTORY", nargs="?", const=".",
+                                       help=format_help("""
+Purge a file or folder from all backups in the directory specified by the argument by first choosing
+what to purge from a list of everything that's ever been backed up. If there is no folder specified
+after --purge-list, then the current directory is used. If the file exists in the user's folder, it
+is not deleted. The backup location argument --backup-folder is required."""))
 
     common_group = user_input.add_argument_group("Options needed for all actions")
 
@@ -1868,6 +1902,7 @@ def main(argv: list[str]) -> int:
                   else start_verify_backup if args.verify
                   else start_backup_restore if args.restore
                   else start_backup_purge if args.purge
+                  else choose_purge_target_from_backups if args.purge_list
                   else start_backup)
         action(args)
         return 0
@@ -1875,8 +1910,8 @@ def main(argv: list[str]) -> int:
         if __name__ == "__main__":
             print_usage()
         logger.error(error)
-    except Exception as error:
-        logger.error(error)
+    except Exception:
+        logger.exception("The program ended unexpectedly with an error:")
 
     return 1
 

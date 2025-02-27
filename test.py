@@ -600,7 +600,7 @@ class RecoveryTest(unittest.TestCase):
                                             max_average_hard_links=None,
                                             timestamp=unique_timestamp())
             folder_path = (user_data/"sub_directory_1"/"sub_sub_directory_1").resolve()
-            chosen_file = vintagebackup.search_backups(folder_path, backup_location, 1)
+            chosen_file = vintagebackup.search_backups(folder_path, backup_location, "recovery", 1)
             self.assertTrue(chosen_file)
             chosen_file = cast(Path, chosen_file)
             self.assertEqual(chosen_file, folder_path/"file_1.txt")
@@ -1867,7 +1867,7 @@ class PurgeTests(unittest.TestCase):
                                                                    str(purged_path),
                                                                    "--backup-folder",
                                                                    str(backup_path),
-                                                                   "--choice", "1"])
+                                                                   "--choice", "0"])
             vintagebackup.start_backup_purge(purge_command_line, "y")
             relative_purge_file = purged_path.relative_to(user_path)
             for backup in vintagebackup.all_backups(backup_path):
@@ -1911,7 +1911,7 @@ class PurgeTests(unittest.TestCase):
                                                                    str(purged_path),
                                                                    "--backup-folder",
                                                                    str(backup_path),
-                                                                   "--choice", "0"])
+                                                                   "--choice", "1"])
             vintagebackup.start_backup_purge(purge_command_line, "y")
             relative_purge_file = purged_path.relative_to(user_path)
             for backup in vintagebackup.all_backups(backup_path):
@@ -1945,6 +1945,51 @@ class PurgeTests(unittest.TestCase):
 
             for backup in vintagebackup.all_backups(backup_path):
                 self.assertTrue(directories_have_identical_content(backup, user_path))
+
+    def test_file_purge_from_list_with_prompt_only_deletes_folders(self) -> None:
+        """Test that a purging a non-existent file only deletes files in backups."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+            number_of_backups = 5
+            backup_path = Path(backup_folder)
+            for _ in range(number_of_backups):
+                vintagebackup.create_new_backup(user_path,
+                                                backup_path,
+                                                filter_file=None,
+                                                examine_whole_file=False,
+                                                force_copy=False,
+                                                max_average_hard_links=None,
+                                                timestamp=unique_timestamp())
+
+            purged_path = user_path/"sub_directory_2"/"sub_sub_directory_0"
+            vintagebackup.delete_directory_tree(purged_path)
+            purged_path.touch()
+
+            for _ in range(number_of_backups):
+                vintagebackup.create_new_backup(user_path,
+                                                backup_path,
+                                                filter_file=None,
+                                                examine_whole_file=False,
+                                                force_copy=False,
+                                                max_average_hard_links=None,
+                                                timestamp=unique_timestamp())
+
+            self.assertTrue(purged_path.is_file())
+            purged_path.unlink()
+            search_directory = purged_path.parent
+            purge_command_line = vintagebackup.parse_command_line(["--purge-list",
+                                                                   str(search_directory),
+                                                                   "--backup-folder",
+                                                                   str(backup_path),
+                                                                   "--choice", "0"])
+            vintagebackup.choose_purge_target_from_backups(purge_command_line, "y")
+            relative_purge_file = purged_path.relative_to(user_path)
+            for backup in vintagebackup.all_backups(backup_path):
+                backup_file_path = backup/relative_purge_file
+                self.assertTrue(vintagebackup.is_real_directory(backup_file_path)
+                                or not backup_file_path.exists())
 
 
 class UtilityTest(unittest.TestCase):
