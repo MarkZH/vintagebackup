@@ -2029,6 +2029,65 @@ class UtilityTest(unittest.TestCase):
         for number in [0, 2, 3, 4]:
             self.assertEqual(vintagebackup.plural_noun(number, "dog"), f"{number} dogs")
 
+    def test_all_backups_returns_all_backups(self) -> None:
+        """Test that all_backups() returns all expected backups."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+            backup_path = Path(backup_folder)
+            backups_to_create = 7
+            timestamps: list[datetime.datetime] = []
+            for _ in range(backups_to_create):
+                timestamp = unique_timestamp()
+                timestamps.append(timestamp)
+                vintagebackup.create_new_backup(user_path,
+                                                backup_path,
+                                                filter_file=None,
+                                                examine_whole_file=False,
+                                                force_copy=False,
+                                                max_average_hard_links=None,
+                                                timestamp=timestamp)
+            backups = vintagebackup.all_backups(backup_path)
+            for timestamp, backup in zip(timestamps, backups, strict=True):
+                year_path = str(timestamp.year)
+                dated_folder_name = timestamp.strftime(vintagebackup.backup_date_format)
+                expected_folder = backup_path/year_path/dated_folder_name
+                self.assertEqual(backup, expected_folder)
+
+    def test_all_backups_returns_only_backups(self) -> None:
+        """Test that all_backups() returns all expected backups."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+            backup_path = Path(backup_folder)
+            backups_to_create = 7
+            timestamps: list[datetime.datetime] = []
+            for _ in range(backups_to_create):
+                timestamp = unique_timestamp()
+                timestamps.append(timestamp)
+                vintagebackup.create_new_backup(user_path,
+                                                backup_path,
+                                                filter_file=None,
+                                                examine_whole_file=False,
+                                                force_copy=False,
+                                                max_average_hard_links=None,
+                                                timestamp=timestamp)
+
+            # Create entries that should be left out of all_backups() list
+            (backup_path/"extra year folder"/"extra backup folder").mkdir(parents=True)
+            (backup_path/"extra year file").touch()
+            (backup_path/str(timestamp.year)/"extra backup folder").mkdir()
+            (backup_path/str(timestamp.year)/"extra backup file").touch()
+
+            backups = vintagebackup.all_backups(backup_path)
+            for timestamp, backup in zip(timestamps, backups, strict=True):
+                year_path = str(timestamp.year)
+                dated_folder_name = timestamp.strftime(vintagebackup.backup_date_format)
+                expected_folder = backup_path/year_path/dated_folder_name
+                self.assertEqual(backup, expected_folder)
+
 
 if __name__ == "__main__":
     unittest.main()
