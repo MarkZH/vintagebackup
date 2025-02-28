@@ -2116,7 +2116,7 @@ class UtilityTest(unittest.TestCase):
         self.assertTrue(set(evens).isdisjoint(odds))
 
     def test_separate_results_union_equals_the_original_list(self) -> None:
-        """Test that separate() result lists have no items in common."""
+        """Test that the combined separate() results contain every item in the original list."""
         numbers = list(range(100))
         evens, odds = vintagebackup.separate(numbers, is_even)
         self.assertEqual(sorted(evens + odds), numbers)
