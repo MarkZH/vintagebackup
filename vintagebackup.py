@@ -405,10 +405,8 @@ def separate[T](items: Iterable[T], predicate: Callable[[T], bool]) -> tuple[lis
     true_items: list[T] = []
     false_items: list[T] = []
     for item in items:
-        if predicate(item):
-            true_items.append(item)
-        else:
-            false_items.append(item)
+        destination = true_items if predicate(item) else false_items
+        destination.append(item)
     return true_items, false_items
 
 
