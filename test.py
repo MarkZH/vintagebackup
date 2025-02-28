@@ -2088,6 +2088,22 @@ class UtilityTest(unittest.TestCase):
                 expected_folder = backup_path/year_path/dated_folder_name
                 self.assertEqual(backup, expected_folder)
 
+    def test_backup_name_and_backup_datetime_are_inverse_functions(self) -> None:
+        """Test that a timestamp is preserved in a backup name."""
+        now = datetime.datetime.now()
+        timestamp = datetime.datetime(now.year, now.month, now.day,
+                                      now.hour, now.minute, now.second)
+        backup = vintagebackup.backup_name(timestamp)
+        backup_timestamp = vintagebackup.backup_datetime(backup)
+        self.assertEqual(timestamp, backup_timestamp)
+
+    def test_backup_name_puts_backup_folder_in_correct_year_folder(self) -> None:
+        """Test that backups with the same year are grouped together."""
+        timestamp = datetime.datetime.now()
+        backup_folder = vintagebackup.backup_name(timestamp)
+        backup_timestamp = vintagebackup.backup_datetime(backup_folder)
+        self.assertEqual(int(backup_folder.parent.name), backup_timestamp.year)
+
 
 if __name__ == "__main__":
     unittest.main()
