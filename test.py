@@ -1992,6 +1992,11 @@ class PurgeTests(unittest.TestCase):
                                 or not backup_file_path.exists())
 
 
+def is_even(n: int) -> bool:
+    """Return whether an integer is even."""
+    return n % 2 == 0
+
+
 class UtilityTest(unittest.TestCase):
     """Test stand-alone functions."""
 
@@ -2103,6 +2108,30 @@ class UtilityTest(unittest.TestCase):
         backup_folder = vintagebackup.backup_name(timestamp)
         backup_timestamp = vintagebackup.backup_datetime(backup_folder)
         self.assertEqual(int(backup_folder.parent.name), backup_timestamp.year)
+
+    def test_separate_results_are_disjoint(self) -> None:
+        """Test that separate() result lists have no items in common."""
+        numbers = list(range(100))
+        evens, odds = vintagebackup.separate(numbers, is_even)
+        self.assertTrue(set(evens).isdisjoint(odds))
+
+    def test_separate_results_union_equals_the_original_list(self) -> None:
+        """Test that separate() result lists have no items in common."""
+        numbers = list(range(100))
+        evens, odds = vintagebackup.separate(numbers, is_even)
+        self.assertEqual(sorted(evens + odds), numbers)
+
+    def test_separate_first_results_always_satisfy_predicate(self) -> None:
+        """Test that every member of the first separate() list satisfies predicate."""
+        numbers = list(range(100))
+        evens, _ = vintagebackup.separate(numbers, is_even)
+        self.assertTrue(all(map(is_even, evens)))
+
+    def test_separate_second_results_always_fail_predicate(self) -> None:
+        """Test that every member of the first separate() list satisfies predicate."""
+        numbers = list(range(100))
+        _, odds = vintagebackup.separate(numbers, is_even)
+        self.assertTrue(not any(map(is_even, odds)))
 
 
 if __name__ == "__main__":
