@@ -26,6 +26,11 @@ def unique_timestamp() -> datetime.datetime:
     return testing_timestamp
 
 
+def random_string(length: int) -> str:
+    """Return a string with random ASCII letters of a given length."""
+    return "".join(random.choices(string.ascii_letters, k=length))
+
+
 def create_user_data(base_directory: Path) -> None:
     """
     Fill the given directory with folders and files.
@@ -1178,7 +1183,7 @@ class ErrorTest(unittest.TestCase):
 
     def test_non_existent_user_folder_in_a_backup_is_an_error(self) -> None:
         """Test that non-existent user folder prints correct error message."""
-        user_folder = "".join(random.choices(string.ascii_letters, k=50))
+        user_folder = random_string(50)
         with self.assertLogs(level=logging.ERROR) as log_check:
             exit_code = vintagebackup.main(["-u", user_folder, "-l", os.devnull])
         self.assertEqual(exit_code, 1)
