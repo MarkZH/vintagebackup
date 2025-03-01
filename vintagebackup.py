@@ -1250,9 +1250,22 @@ def copy_probability_from_hard_link_count(hard_link_count: str | None) -> float:
     """
     Convert an expected average hard link count into a copy probability.
 
-    In order to prevent the slow increase in time required to make a backup on Windows, this
-    function returns a probability of copying an unchanged file instead of hard linking. The
+    Randomly copying files serves two purposes. First, it increases the safety of the backed up
+    files. If no files were ever copied, then there would only be one copy of each file in the
+    backup location. If that backup become corrupted, then all backups of the file would be lost.
+    Randomly copying files ensures that there are multiple independent copies available, even when
+    they don't change.
+
+    Second, in some operating systems (including Windows), creating a new hard link to a file that
+    already has many hard links takes longer and longer. If most files in a backup set have
+    hundreds of hard links, then backups can take multiple hours even if copying everything would
+    take under an hour.
+
+    This function returns a probability of copying an unchanged file instead of hard linking. The
     convesion is p = 1/(h + 1), where h is the hard link count and p is the resulting probability.
+    The files to copy are chosen randomly since counting the number of hard links requires a file
+    system access. For files with many hard links, this can be slow, which negates half the purpose
+    of copying files instead of hard-linking them.
     """
     if hard_link_count is None:
         return 0.0
