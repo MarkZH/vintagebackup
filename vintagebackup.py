@@ -1194,7 +1194,7 @@ def format_paragraphs(lines: str, line_length: int) -> str:
     """
     Format multiparagraph text in when printing --help.
 
-    :param lines: A string of text with paragraphs are separated by at least two newlines. Indented
+    :param lines: A string of text where paragraphs are separated by at least two newlines. Indented
     lines will be preserved as-is.
     :param line_length: The length of the line for word wrapping. Indented lines will not be word
     wrapped.
