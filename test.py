@@ -368,6 +368,33 @@ class BackupTest(unittest.TestCase):
             self.assertTrue((last_backup/directory_symlink_name).is_symlink())
             self.assertTrue((last_backup/file_symlink_name).is_symlink())
 
+    def test_backing_up_different_folder_to_existing_backup_set_is_an_error(self) -> None:
+        """Test that backing up different folders to the same backup folder raises an exception."""
+        with (tempfile.TemporaryDirectory() as user_folder_1,
+              tempfile.TemporaryDirectory() as user_folder_2,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_path_1 = Path(user_folder_1)
+            create_user_data(user_path_1)
+            backup_path = Path(backup_folder)
+            vintagebackup.create_new_backup(user_path_1,
+                                            backup_path,
+                                            filter_file=None,
+                                            examine_whole_file=False,
+                                            force_copy=False,
+                                            max_average_hard_links=None,
+                                            timestamp=unique_timestamp())
+
+            user_path_2 = Path(user_folder_2)
+            create_user_data(user_path_2)
+            with self.assertRaises(RuntimeError):
+                vintagebackup.create_new_backup(user_path_2,
+                                                backup_path,
+                                                filter_file=None,
+                                                examine_whole_file=False,
+                                                force_copy=False,
+                                                max_average_hard_links=None,
+                                                timestamp=unique_timestamp())
+
 
 class FilterTest(unittest.TestCase):
     """Test that filter files work properly."""
