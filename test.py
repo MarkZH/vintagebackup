@@ -2097,7 +2097,7 @@ class UtilityTest(unittest.TestCase):
         for number in range(10000):
             self.assertEqual(number, vintagebackup.parse_storage_space(str(number)))
 
-    def test_parse_storage_space_is_unaffected_by_presense_or_absence_of_B(self) -> None:
+    def test_parse_storage_space_is_unaffected_by_presense_or_absence_of_b(self) -> None:
         """Test that adding or removing 'B' from byte unit does not affect returned value."""
         for unit in vintagebackup.storage_prefixes:
             self.assertEqual(vintagebackup.parse_storage_space(f"3{unit}"),
