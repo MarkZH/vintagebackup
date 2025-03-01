@@ -2117,6 +2117,16 @@ class UtilityTest(unittest.TestCase):
             size_2 = vintagebackup.parse_storage_space(f"{base_size}{prefix_2}B")
             self.assertEqual(round(size_2/size_1), 1000)
 
+    def test_parse_storage_space_argument_with_no_numbers_is_an_error(self) -> None:
+        """Test that sending non-numeric text to parse_strorage_space() is an error."""
+        with self.assertRaises(vintagebackup.CommandLineError):
+            vintagebackup.parse_storage_space("abcdefg")
+
+    def test_parse_storage_space_argument_with_invalid_unit_is_an_error(self) -> None:
+        """Test that an invalid unit raises an exception in parse_storage_space."""
+        with self.assertRaises(vintagebackup.CommandLineError):
+            vintagebackup.parse_storage_space("123 AB")
+
     def test_parse_storage_space_and_byte_units_are_inverses(self) -> None:
         """Test that parse_storage_space(byte_units(x)) == x."""
         for unit in vintagebackup.storage_prefixes:
