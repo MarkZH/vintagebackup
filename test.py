@@ -740,47 +740,6 @@ class DeleteBackupTest(unittest.TestCase):
             all_backups_after_deletion = vintagebackup.all_backups(backup_location)
             self.assertEqual(len(all_backups_after_deletion), expected_backups_count)
 
-    def test_free_up_with_percent_parameter_deletes_enough_backups(self) -> None:
-        """Test deleting backups until there is a given percent of free space."""
-        for method in Invocation:
-            with tempfile.TemporaryDirectory() as backup_folder:
-                backup_location = Path(backup_folder)
-                backups_created = 30
-                create_old_backups(backup_location, backups_created)
-                file_size = 10_000_000
-                create_large_files(backup_location, file_size)
-                backups_after_deletion = 10
-                size_of_deleted_backups = file_size*(backups_created - backups_after_deletion)
-                after_backup_space = shutil.disk_usage(backup_location).free
-                goal_space = after_backup_space + size_of_deleted_backups - file_size/2
-                goal_space_percent = 100*goal_space/shutil.disk_usage(backup_location).total
-                goal_space_percent_str = f"{goal_space_percent}%"
-                if method == Invocation.function:
-                    vintagebackup.delete_oldest_backups_for_space(backup_location,
-                                                                  goal_space_percent_str)
-                elif method == Invocation.cli:
-                    with tempfile.TemporaryDirectory() as user_folder:
-                        user_data = Path(user_folder)
-                        create_large_files(user_data, file_size)
-                        exit_code = vintagebackup.main(["--user-folder", user_folder,
-                                                        "--backup-folder", backup_folder,
-                                                        "--log", os.devnull,
-                                                        "--free-up", goal_space_percent_str,
-                                                        "--timestamp",
-                                                        unique_timestamp().strftime(
-                                                            vintagebackup.backup_date_format)])
-                        self.assertEqual(exit_code, 0)
-
-                    # While backups are being deleted, the fake user data still exists, so one more
-                    # backup needs to be deleted to free up the required space.
-                    backups_after_deletion -= 1
-                else:
-                    raise NotImplementedError("Delete backup percent test "
-                                              f"not implemented for {method}")
-
-                backups_left = len(vintagebackup.all_backups(backup_location))
-                self.assertEqual(backups_left, backups_after_deletion)
-
     def test_delete_after_deletes_all_backups_prior_to_given_date(self) -> None:
         """Test that backups older than a given date can be deleted with --delete-after."""
         for method in Invocation:

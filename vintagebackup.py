@@ -789,7 +789,7 @@ def delete_oldest_backups_for_space(backup_location: Path,
         return
 
     total_storage = shutil.disk_usage(backup_location).total
-    free_storage_required = parse_storage_space(space_requirement, total_storage)
+    free_storage_required = parse_storage_space(space_requirement)
 
     if free_storage_required > total_storage:
         raise CommandLineError(f"Cannot free more storage ({byte_units(free_storage_required)})"
@@ -815,51 +815,33 @@ def delete_oldest_backups_for_space(backup_location: Path,
             logger.info("Stopped after reaching maximum number of deletions.")
 
 
-def parse_storage_space(space_requirement: str, total_storage: int) -> float:
+def parse_storage_space(space_requirement: str) -> float:
     """
     Parse a string into a number of bytes of storage space.
 
-    :param space_requirement: A string indicating an amount of space, either as an absolute number
-    of bytes or a percentage of the total storage. Byte units and prefixes are allowed. Percents
-    require a percent sign.
-    :param total_storage: The total storage space in bytes on the device. Used with percentage
-    values.
+    :param space_requirement: A string indicating an amount of space as an absolute number of
+    bytes. Byte units and prefixes are allowed.
 
-    >>> parse_storage_space("152 kB", 0)
+    >>> parse_storage_space("100")
+    100.0
+
+    >>> parse_storage_space("152 kB")
     152000.0
 
-    >>> parse_storage_space("15%", 1000)
-    150.0
-
     Note that the byte units are case and spacing insensitive.
-    >>> parse_storage_space("123gb", 0)
+    >>> parse_storage_space("123gb")
     123000000000.0
     """
-    space_text = "".join(space_requirement.upper().split())
-    if space_text.endswith("%"):
-        try:
-            free_fraction_required = float(space_text[:-1])/100
-        except ValueError:
-            raise CommandLineError(f"Invalid percentage value: {space_requirement}") from None
+    text = "".join(space_requirement.upper().split())
+    text = text.replace("K", "k")
+    text = text.rstrip("B")
+    number, prefix = (text[:-1], text[-1]) if text[-1].isalpha() else (text, "")
 
-        if free_fraction_required > 1:
-            raise CommandLineError(f"Percent cannot be greater than 100: {space_requirement}")
-
-        return total_storage*free_fraction_required
-    elif space_text[-1].isalpha():
-        space_text = space_text.rstrip("B")
-        number, prefix = ((space_text[:-1], space_text[-1])
-                          if space_text[-1].isalpha() else
-                          (space_text, ""))
-
-        try:
-            prefix = prefix.lower() if prefix == "K" else prefix
-            multiplier: int = 1000**storage_prefixes.index(prefix)
-            return float(number)*multiplier
-        except ValueError:
-            raise CommandLineError(f"Invalid storage space value: {space_requirement}") from None
-    else:
-        raise CommandLineError(f"Incorrect format of free-up space: {space_requirement}")
+    try:
+        multiplier: int = 1000**storage_prefixes.index(prefix)
+        return float(number)*multiplier
+    except ValueError:
+        raise CommandLineError(f"Invalid storage space value: {space_requirement}") from None
 
 
 def parse_time_span_to_timepoint(time_span: str) -> datetime.datetime:
@@ -1703,20 +1685,13 @@ take considerably longer."""))
 
     backup_group.add_argument("--free-up", metavar="SPACE", help=format_help("""
 After a successful backup, delete old backups until the amount of free space on the
-backup destination is at least SPACE. The SPACE argument can be in one of two forms.
-If the argument is a number followed by a percent sign (%%), then
-the number is interpreted as a percent of the total storage space
-of the destination. Old backups will be deleted until that
-percentage of the destination storage space is free.
+backup destination is at least SPACE.
 
-If the argument ends with one letter or one letter followed by
-a 'B', then the number will be interpreted as a number of bytes.
-Case does not matter, so all of the following specify 15 megabytes:
-15MB, 15Mb, 15mB, 15mb, 15M, 15m. Old backups will be deleted until
-at least that much space is free.
-
-In either of the above cases, there should be no space between the
-number and subsequent symbol.
+The argument should be a bare number or a number followed by letters that
+indicate a unit in bytes. The number will be interpreted as a number
+of bytes. Case does not matter, so all of the following specify
+15 megabytes: 15MB, 15Mb, 15mB, 15mb, 15M, and 15m. Old backups
+will be deleted until at least that much space is free.
 
 No matter what, the most recent backup will not be deleted."""))
 
