@@ -2092,6 +2092,46 @@ class UtilityTest(unittest.TestCase):
         _, odds = vintagebackup.separate(numbers, is_even)
         self.assertTrue(not any(map(is_even, odds)))
 
+    def test_parse_storage_space_return_bare_numbers_unchanged(self) -> None:
+        """Test that sending a string version of a number returns that number unchanged."""
+        for number in range(10000):
+            self.assertEqual(number, vintagebackup.parse_storage_space(str(number)))
+
+    def test_parse_storage_space_is_unaffected_by_presense_or_absence_of_B(self) -> None:
+        """Test that adding or removing 'B' from byte unit does not affect returned value."""
+        for unit in vintagebackup.storage_prefixes:
+            self.assertEqual(vintagebackup.parse_storage_space(f"3{unit}"),
+                             vintagebackup.parse_storage_space(f"3{unit}b"))
+
+    def test_parse_storage_space_is_unaffected_by_space_between_number_and_unit(self) -> None:
+        """Test that spaces don't matter when parsing storage space."""
+        self.assertEqual(vintagebackup.parse_storage_space("4 GB"),
+                         vintagebackup.parse_storage_space("4GB"))
+
+    def test_each_storage_prefix_is_a_thousand_times_larger_than_the_last(self) -> None:
+        """Test that storage prefixes are interpretted correctly."""
+        base_size = 5
+        self.assertEqual(base_size, vintagebackup.parse_storage_space(str(base_size)))
+        for prefix_1, prefix_2 in itertools.pairwise(vintagebackup.storage_prefixes):
+            size_1 = vintagebackup.parse_storage_space(f"{base_size}{prefix_1}B")
+            size_2 = vintagebackup.parse_storage_space(f"{base_size}{prefix_2}B")
+            self.assertEqual(round(size_2/size_1), 1000)
+
+    def test_parse_storage_space_and_byte_units_are_inverses(self) -> None:
+        """Test that parse_storage_space(byte_units(x)) == x."""
+        for unit in vintagebackup.storage_prefixes:
+            text = f"1.000 {unit}B"
+            size = vintagebackup.parse_storage_space(text)
+            self.assertEqual(vintagebackup.byte_units(size), text)
+
+    def test_number_part_of_byte_units_result_is_less_than_one_thousand(self) -> None:
+        """Test that the numeric part of they byte_units() result is less than 1000."""
+        for digit_count in range(1, 20):
+            number = int("1"*digit_count)
+            text = vintagebackup.byte_units(number)
+            number_part = float(text.split()[0])
+            self.assertLess(number_part, 1000)
+
 
 if __name__ == "__main__":
     unittest.main()
