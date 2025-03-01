@@ -2185,6 +2185,64 @@ class UtilityTest(unittest.TestCase):
             probability = vintagebackup.copy_probability_from_hard_link_count(str(n))
             self.assertAlmostEqual(1/(n + 1), probability)
 
+    def test_format_paragraph_for_short_line_returned_as_is(self) -> None:
+        """Test that text that is shorter than the line length is returned unchanged."""
+        text = "A short line."
+        wrapped_text = vintagebackup.format_paragraphs(text, 100)
+        self.assertEqual(text, wrapped_text)
+
+    def test_format_paragraph_for_indented_text_returned_as_is(self) -> None:
+        """Test that indented text is not changed no matter how long the line is."""
+        text = "        This is a very very long line indeed."
+        wrapped_text = vintagebackup.format_paragraphs(text, 10)
+        self.assertEqual(text, wrapped_text)
+
+    def test_format_paragraph_separates_paragraphs_by_exactly_two_newlines(self) -> None:
+        """Test that formatted paragraphs are separated by single blank lines."""
+        text = """
+The is the first paragraph.
+
+This is the second paragraph.
+
+
+This is the third paragraph.
+
+
+
+This is the fourth paragraph."""
+
+        expected_wrapped_text = text = """The is the first paragraph.
+
+This is the second paragraph.
+
+This is the third paragraph.
+
+This is the fourth paragraph."""
+
+        wrapped_text = vintagebackup.format_paragraphs(text, 100)
+        self.assertEqual(wrapped_text, expected_wrapped_text)
+
+    def test_format_paragraphs_wraps_long_lines(self) -> None:
+        """Test that format_paragraphs correctly wraps long lines."""
+        text = "This is a very long line of text that needs to be wrapped to multiple lines."
+        max_line_length = 20
+        wrapped_text = vintagebackup.format_paragraphs(text, max_line_length)
+        first_word_length = 0
+        for line in wrapped_text.split("\n"):
+            line_length = len(line)
+
+            # Lines are not too long
+            self.assertLessEqual(line_length, max_line_length)
+
+            # Line not broken too early
+            self.assertTrue(line_length + first_word_length > max_line_length
+                            or first_word_length == 0)
+
+            first_word_length = len(line.split()[0])
+
+        # Text is not changed except for line breaks.
+        self.assertEqual(text, " ".join(wrapped_text.split()))
+
 
 if __name__ == "__main__":
     unittest.main()
