@@ -2248,6 +2248,30 @@ This is the fourth paragraph."""
         # Text is not changed except for line breaks.
         self.assertEqual(text, " ".join(wrapped_text.split()))
 
+    def test_classify_paths_classifies_files_as_files(self) -> None:
+        """Test that classify_paths() correctly identifies files."""
+        with tempfile.NamedTemporaryFile() as test_file:
+            self.assertEqual(vintagebackup.classify_path(Path(test_file.name)), "File")
+
+    def test_classify_paths_classifies_folders_as_folders(self) -> None:
+        """Test that classify_paths() correctly identifies folders."""
+        with tempfile.TemporaryDirectory() as test_directory:
+            self.assertEqual(vintagebackup.classify_path(Path(test_directory)), "Folder")
+
+    def test_classify_paths_classifies_symlinks_as_symlinks(self) -> None:
+        """Test that classify_paths() correctly identifies symlinks."""
+        if platform.system() == "Windows":
+            self.skipTest("Cannot create symlinks on Windows without elevated privileges.")
+
+        with tempfile.TemporaryDirectory() as test_directory:
+            symlink = Path(test_directory)/"symlink"
+            symlink.symlink_to(".")
+            self.assertEqual(vintagebackup.classify_path(symlink), "Symlink")
+
+    def test_classify_paths_classifies_non_existent_files_as_unknown(self) -> None:
+        """Test that classify_paths() returns 'Unknown' for non-existent files."""
+        self.assertEqual(vintagebackup.classify_path(Path(random_string(50))), "Unknown")
+
 
 if __name__ == "__main__":
     unittest.main()
