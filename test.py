@@ -443,6 +443,41 @@ class FilterTest(unittest.TestCase):
                 self.assertEqual(directory_contents(last_backup), expected_backups)
                 self.assertNotEqual(directory_contents(user_data), expected_backups)
 
+    def test_path_excluded_with_absolute_file_name_in_filter_file_are_not_in_backup(self) -> None:
+        """Test that filter files with absolute paths excluded exclude the right paths."""
+        for method in Invocation:
+            with (tempfile.TemporaryDirectory() as user_data_location,
+                  tempfile.TemporaryDirectory() as backup_folder,
+                  tempfile.NamedTemporaryFile("w+", delete_on_close=False) as filter_file):
+
+                user_data = Path(user_data_location).resolve()
+                create_user_data(user_data)
+                user_paths = directory_contents(user_data)
+
+                expected_backups = user_paths.copy()
+                filter_file.write(f"- {user_data/'sub_directory_2'/'**'}\n\n")
+                expected_backups.difference_update(path for path in user_paths
+                                                   if "sub_directory_2" in path.parts)
+
+                filter_file.close()
+
+                backup_location = Path(backup_folder)
+                exit_code = run_backup(method,
+                                       user_data,
+                                       backup_location,
+                                       filter_file=Path(filter_file.name),
+                                       examine_whole_file=False,
+                                       force_copy=False,
+                                       timestamp=unique_timestamp())
+                self.assertEqual(exit_code, 0)
+
+                last_backup = vintagebackup.find_previous_backup(backup_location)
+                self.assertTrue(last_backup)
+                last_backup = cast(Path, last_backup)
+
+                self.assertEqual(directory_contents(last_backup), expected_backups)
+                self.assertNotEqual(directory_contents(user_data), expected_backups)
+
     def test_paths_included_after_exclusions_appear_in_backup(self) -> None:
         """Test that filter files with inclusions and exclusions work properly."""
         with (tempfile.TemporaryDirectory() as user_data_location,
