@@ -1163,10 +1163,9 @@ def print_backup_storage_stats(backup_location: Path) -> None:
 
 def read_configuation_file(config_file_name: str) -> list[str]:
     """Parse a configuration file into command line arguments."""
-    arguments: list[str] = []
-
     try:
         with open(config_file_name) as file:
+            arguments: list[str] = []
             for line_raw in file:
                 line = line_raw.strip()
                 if not line or line.startswith("#"):
@@ -1182,10 +1181,9 @@ def read_configuation_file(config_file_name: str) -> list[str]:
                 value = value_raw.strip()
                 if value:
                     arguments.append(value)
+            return arguments
     except FileNotFoundError:
         raise CommandLineError(f"Configuation file does not exist: {config_file_name}") from None
-
-    return arguments
 
 
 def format_paragraphs(lines: str, line_length: int) -> str:
