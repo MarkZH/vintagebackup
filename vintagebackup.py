@@ -1172,12 +1172,14 @@ def read_configuation_file(config_file_name: str) -> list[str]:
                 if not line or line.startswith("#"):
                     continue
                 parameter_raw, value_raw = line.split(":", maxsplit=1)
-                parameter = parameter_raw.strip().lower()
-                value = value_raw.strip()
+
+                parameter = "-".join(parameter_raw.lower().split())
                 if parameter == "config":
                     raise CommandLineError("The parameter `config` within a configuration file"
                                            " has no effect.")
-                arguments.append(f"--{"-".join(parameter.split())}")
+                arguments.append(f"--{parameter}")
+
+                value = value_raw.strip()
                 if value:
                     arguments.append(value)
     except FileNotFoundError:
