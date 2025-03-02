@@ -2216,7 +2216,7 @@ This is the third paragraph.
 
 This is the fourth paragraph."""
 
-        expected_wrapped_text = text = """The is the first paragraph.
+        expected_wrapped_text = """The is the first paragraph.
 
 This is the second paragraph.
 
