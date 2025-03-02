@@ -174,7 +174,7 @@ class Backup_Set:
         with filter_file.open() as filters:
             logger.info(f"Filtering items according to {filter_file} ...")
             for line_number, line_raw in enumerate(filters, 1):
-                line = line_raw.lstrip().rstrip("\n")
+                line = line_raw.strip()
                 if not line:
                     continue
                 sign = line[0]
@@ -186,7 +186,7 @@ class Backup_Set:
                 if sign == "#":
                     continue
 
-                pattern = user_folder/line[1:].lstrip()
+                pattern = user_folder/line[1:].strip()
                 if not pattern.is_relative_to(user_folder):
                     raise ValueError(f"Line #{line_number} ({line}): Filter looks at paths "
                                      "outside user folder.")
