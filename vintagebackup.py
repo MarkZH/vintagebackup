@@ -844,7 +844,8 @@ def parse_storage_space(space_requirement: str) -> float:
         raise CommandLineError(f"Invalid storage space value: {space_requirement}") from None
 
 
-def parse_time_span_to_timepoint(time_span: str) -> datetime.datetime:
+def parse_time_span_to_timepoint(time_span: str,
+                                 now: datetime.datetime | None = None) -> datetime.datetime:
     """
     Parse a string representing a time span into a datetime representing a date that long ago.
 
@@ -852,13 +853,8 @@ def parse_time_span_to_timepoint(time_span: str) -> datetime.datetime:
 
     :param time_span: A string consisting of a positive integer followed by a single letter: "d"
     for days, "w" for weeks, "m" for calendar months, and "y" for calendar years.
-
-    >>> import datetime
-    >>> today = datetime.date.today()
-    >>> yesterday = today - datetime.timedelta(days=1)
-    >>> yesterday_parse = parse_time_span_to_timepoint("1d")
-    >>> yesterday == yesterday_parse.date()
-    True
+    :param now: The point from which to calculate the past point. If None, use
+    datetime.datetime.now().
     """
     time_span = "".join(time_span.lower().split())
     try:
@@ -871,7 +867,7 @@ def parse_time_span_to_timepoint(time_span: str) -> datetime.datetime:
         raise CommandLineError(f"Invalid number in time span (must be positive): {time_span}")
 
     letter = time_span[-1]
-    now = datetime.datetime.now()
+    now = now or datetime.datetime.now()
     if letter == "d":
         return now - datetime.timedelta(days=number)
     elif letter == "w":

@@ -2272,6 +2272,66 @@ This is the fourth paragraph."""
         """Test that classify_paths() returns 'Unknown' for non-existent files."""
         self.assertEqual(vintagebackup.classify_path(Path(random_string(50))), "Unknown")
 
+    def test_parse_timespan_with_no_numeric_part_is_an_error(self) -> None:
+        """Test that the lack of a number in the argument is an error."""
+        with self.assertRaises(vintagebackup.CommandLineError):
+            vintagebackup.parse_time_span_to_timepoint("y")
+
+    def test_parse_timespan_with_no_time_unit_part_is_an_error(self) -> None:
+        """Test that the lack of a unit in the argument is an error."""
+        with self.assertRaises(vintagebackup.CommandLineError):
+            vintagebackup.parse_time_span_to_timepoint("100")
+
+    def test_parse_timespan_with_small_or_negative_number_is_an_error(self) -> None:
+        """Test that the lack of a unit in the argument is an error."""
+        with self.assertRaises(vintagebackup.CommandLineError):
+            vintagebackup.parse_time_span_to_timepoint("0.5d")
+
+        with self.assertRaises(vintagebackup.CommandLineError):
+            vintagebackup.parse_time_span_to_timepoint("-2y")
+
+    def test_parse_timespan_with_invalid_time_unit_is_an_error(self) -> None:
+        """Test that an unknown time unit raise an exception."""
+        with self.assertRaises(vintagebackup.CommandLineError):
+            vintagebackup.parse_time_span_to_timepoint("3u")
+
+    def test_parse_timespan_correctly_calculates_days_ago(self) -> None:
+        """Test that arguments of the form "Nd" for some number N gives the correct results."""
+        for days in range(1, 10):
+            now = datetime.datetime.now()
+            then = vintagebackup.parse_time_span_to_timepoint(f"{days}d", now)
+            self.assertEqual(now - then, datetime.timedelta(days=days))
+
+    def test_parse_timespan_correctly_calculates_weeks_ago(self) -> None:
+        """Test that arguments of the form "Nw" for some number N gives the correct results."""
+        for weeks in range(1, 10):
+            now = datetime.datetime.now()
+            then = vintagebackup.parse_time_span_to_timepoint(f"{weeks}w", now)
+            self.assertEqual(now - then, datetime.timedelta(weeks=weeks))
+
+    def test_parse_timespan_correctly_calculates_months_ago(self) -> None:
+        """Test that arguments of the form "Nm" for some number N gives the correct results."""
+        now = datetime.datetime(2024, 3, 31, 12, 0, 0)
+        expected_then_1 = datetime.datetime(2024, 2, 29, 12, 0, 0)
+        then_1 = vintagebackup.parse_time_span_to_timepoint("1m", now)
+        self.assertEqual(then_1, expected_then_1)
+
+        expected_then_2 = datetime.datetime(2024, 1, 31, 12, 0, 0)
+        then_2 = vintagebackup.parse_time_span_to_timepoint("2m", now)
+        self.assertEqual(then_2, expected_then_2)
+
+    def test_parse_timespan_correctly_calculates_years_ago(self) -> None:
+        """Test that arguments of the form "Ny" for some number N gives the correct results."""
+        now_1 = datetime.datetime(2024, 2, 29, 12, 0, 0)
+        expected_then_1 = datetime.datetime(2023, 2, 28, 12, 0, 0)
+        then_1 = vintagebackup.parse_time_span_to_timepoint("1y", now_1)
+        self.assertEqual(then_1, expected_then_1)
+
+        now_2 = datetime.datetime(2025, 1, 31, 12, 0, 0)
+        expected_then_2 = datetime.datetime(2023, 1, 31, 12, 0, 0)
+        then_2 = vintagebackup.parse_time_span_to_timepoint("2y", now_2)
+        self.assertEqual(then_2, expected_then_2)
+
 
 if __name__ == "__main__":
     unittest.main()
