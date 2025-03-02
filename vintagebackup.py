@@ -1649,16 +1649,20 @@ folder and all subfolders will be backed up recursively."""))
 
     backup_group.add_argument("-f", "--filter", metavar="FILTER_FILE_NAME", help=format_help("""
 Filter the set of files that will be backed up. The value of this argument should be the name of
-a text file that contains lines specifying what files to include or exclude. These may contain
-wildcard characters like *, **, [], and ? to allow for matching multiple path names. If you want to
-match a single name that contains wildcards, put brackets around them: What Is Life[?].pdf, for
-example. Only files will be matched against each line in this file. If you want to include or
-exclude an entire directory, the line must end with a "/**" or "\\**" to match all of its contents.
+a text file that contains lines specifying what files to include or exclude.
 
-Each line should begin with a minus (-), plus (+), or hash (#). Lines with minus signs specify
-files and folders to exclude. Lines with plus signs specify files and folders to include. Lines
-with hash signs are ignored. All paths must reside within the directory tree of the
---user-folder. For example, if backing up C:\\Users\\Alice, the following filter file:
+Each line in the file consists of a symbol followed by a path. The symbol must be a minus (-),
+plus (+), or hash (#). Lines with minus signs specify files and folders to exclude. Lines with plus
+signs specify files and folders to include. Lines with hash signs are ignored. Prior to reading the
+first line, everything in the user's folder is included. The path that follows may contain wildcard
+characters like *, **, [], and ? to allow for matching multiple path names. If you want to match a
+single name that contains wildcards, put brackets around them: What Is Life[?].pdf, for example.
+Only files will be matched against each line in this file. If you want to include or exclude an
+entire directory, the line must end with a "/**" or "\\**" to match all of its contents. The paths
+may be absolute or relative. If a path is relative, it is relative to the user's folder.
+
+All paths must reside within the directory tree of the --user-folder. For example, if backing up
+C:\\Users\\Alice, the following filter file:
 
     # Ignore AppData except Firefox
     - AppData/**
