@@ -1204,10 +1204,8 @@ def format_paragraphs(lines: str, line_length: int) -> str:
         if not paragraph:
             continue
 
-        if paragraph[0].isspace():
-            paragraphs.append(paragraph)
-        else:
-            paragraphs.append(textwrap.fill(paragraph, line_length))
+        paragraphs.append(paragraph if paragraph[0].isspace()
+                          else textwrap.fill(paragraph, line_length))
 
     return "\n\n".join(paragraphs)
 
