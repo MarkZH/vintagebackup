@@ -1888,7 +1888,7 @@ class PurgeTests(unittest.TestCase):
                                 or not backup_file_path.exists())
 
     def test_folder_purge_with_prompt_only_deletes_folders(self) -> None:
-        """Test that a purging a non-existent file only deletes files in backups."""
+        """Test that a purging a non-existent folder only deletes folders in backups."""
         with (tempfile.TemporaryDirectory() as user_folder,
               tempfile.TemporaryDirectory() as backup_folder):
             user_path = Path(user_folder)
@@ -1931,7 +1931,7 @@ class PurgeTests(unittest.TestCase):
                 self.assertTrue(backup_file_path.is_file() or not backup_file_path.exists())
 
     def test_purge_with_non_y_confirmation_response_deletes_nothing(self) -> None:
-        """Test that a purging a non-existent file only deletes files in backups."""
+        """Test that a entering something other that 'y' at confirmation purges nothing."""
         with (tempfile.TemporaryDirectory() as user_folder,
               tempfile.TemporaryDirectory() as backup_folder):
             user_path = Path(user_folder)
@@ -1958,8 +1958,8 @@ class PurgeTests(unittest.TestCase):
             for backup in vintagebackup.all_backups(backup_path):
                 self.assertTrue(directories_have_identical_content(backup, user_path))
 
-    def test_file_purge_from_list_with_prompt_only_deletes_folders(self) -> None:
-        """Test that a purging a non-existent file only deletes files in backups."""
+    def test_folder_purge_from_list_with_prompt_only_deletes_folders(self) -> None:
+        """Test that a purging a folder from a menu only deletes folders in backups."""
         with (tempfile.TemporaryDirectory() as user_folder,
               tempfile.TemporaryDirectory() as backup_folder):
             user_path = Path(user_folder)
