@@ -2017,6 +2017,62 @@ class PurgeTests(unittest.TestCase):
                 self.assertTrue(vintagebackup.is_real_directory(backup_file_path)
                                 or not backup_file_path.exists())
 
+    def test_purge_file_suggests_filter_line(self) -> None:
+        """Test that purging a file logs a filter line for the purged file."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+            number_of_backups = 5
+            backup_path = Path(backup_folder)
+            for _ in range(number_of_backups):
+                vintagebackup.create_new_backup(user_path,
+                                                backup_path,
+                                                filter_file=None,
+                                                examine_whole_file=False,
+                                                force_copy=False,
+                                                max_average_hard_links=None,
+                                                timestamp=unique_timestamp())
+
+            purged_file = user_path/"sub_directory_2"/"sub_sub_directory_1"/"file_0.txt"
+            self.assertTrue(purged_file.is_file())
+            purge_command_line = vintagebackup.parse_command_line(["--purge",
+                                                                   str(purged_file),
+                                                                   "--backup-folder",
+                                                                   str(backup_path)])
+            with self.assertLogs() as log_lines:
+                vintagebackup.start_backup_purge(purge_command_line, "y")
+            relative_purge_file = purged_file.relative_to(user_path)
+            self.assertEqual(log_lines.output[-1], f"INFO:vintagebackup:- {relative_purge_file}")
+
+    def test_purge_folder_suggests_recursive_filter_line(self) -> None:
+        """Test that purging a file logs a filter line for the purged file."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+            number_of_backups = 5
+            backup_path = Path(backup_folder)
+            for _ in range(number_of_backups):
+                vintagebackup.create_new_backup(user_path,
+                                                backup_path,
+                                                filter_file=None,
+                                                examine_whole_file=False,
+                                                force_copy=False,
+                                                max_average_hard_links=None,
+                                                timestamp=unique_timestamp())
+
+            purged_file = user_path/"sub_directory_2"
+            self.assertTrue(purged_file.is_dir())
+            purge_command_line = vintagebackup.parse_command_line(["--purge",
+                                                                   str(purged_file),
+                                                                   "--backup-folder",
+                                                                   str(backup_path)])
+            with self.assertLogs() as log_lines:
+                vintagebackup.start_backup_purge(purge_command_line, "y")
+            relative_purge_file = purged_file.relative_to(user_path)/"**"
+            self.assertEqual(log_lines.output[-1], f"INFO:vintagebackup:- {relative_purge_file}")
+
 
 def is_even(n: int) -> bool:
     """Return whether an integer is even."""

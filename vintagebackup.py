@@ -1463,6 +1463,12 @@ def purge_path(purge_target: Path,
             action = delete_directory_tree if path_type == "Folder" else Path.unlink
             action(path)
 
+    logger.info("If you want to prevent the purged item from being backed up in the future,")
+    logger.info("consider adding the following line to a filter file:")
+    filter_line = (relative_purge_target/"**" if is_real_directory(purge_target)
+                   else relative_purge_target)
+    logger.info(f"- {filter_line}")
+
 
 def choose_types_to_delete(paths_to_delete: list[Path],
                            path_type_counts: Counter[str],
