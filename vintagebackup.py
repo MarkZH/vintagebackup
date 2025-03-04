@@ -536,21 +536,15 @@ def create_new_backup(user_data_location: Path,
     paths_to_backup = Backup_Set(user_data_location, filter_file)
     copy_probability = copy_probability_from_hard_link_count(max_average_hard_links)
     logger.info("Running backup ...")
-    try:
-        for current_user_path, user_file_names in paths_to_backup:
-            backup_directory(user_data_location,
-                             staging_backup_path,
-                             last_backup_path,
-                             current_user_path,
-                             user_file_names,
-                             examine_whole_file,
-                             copy_probability,
-                             action_counter)
-    except KeyboardInterrupt:
-        if staging_backup_path.is_dir():
-            logger.info("Deleting in-progress backup ...")
-            delete_directory_tree(staging_backup_path)
-        raise
+    for current_user_path, user_file_names in paths_to_backup:
+        backup_directory(user_data_location,
+                            staging_backup_path,
+                            last_backup_path,
+                            current_user_path,
+                            user_file_names,
+                            examine_whole_file,
+                            copy_probability,
+                            action_counter)
 
     if staging_backup_path.is_dir():
         new_backup_path.parent.mkdir(parents=True, exist_ok=True)
