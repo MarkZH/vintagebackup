@@ -680,10 +680,10 @@ class RecoveryTest(unittest.TestCase):
             self.assertTrue(filecmp.cmp(chosen_file, recovered_file_path, shallow=False))
 
 
-def create_large_files(backup_location: Path, file_size: int) -> None:
+def create_large_files(base_folder: Path, file_size: int) -> None:
     """Create a file of a give size in every leaf subdirectory."""
     data = "A"*file_size
-    for directory_name, sub_directory_names, _ in backup_location.walk():
+    for directory_name, sub_directory_names, _ in base_folder.walk():
         if not sub_directory_names:
             (Path(directory_name)/"file.txt").write_text(data)
 
