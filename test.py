@@ -404,6 +404,36 @@ class BackupTest(unittest.TestCase):
                                                 max_average_hard_links=None,
                                                 timestamp=unique_timestamp())
 
+    def test_warn_when_backup_is_larger_than_free_up(self) -> None:
+        """Test that a warning is logged when a backup is larger that the free-up argument."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            create_large_files(Path(user_folder), 50_000_000)
+            arguments = ["--user-folder", user_folder,
+                         "--backup-folder", backup_folder,
+                         "--free-up", "1B",
+                         "--log", os.devnull]
+
+            with self.assertLogs(level=logging.WARNING) as log_lines:
+                vintagebackup.main(arguments)
+
+            space_warning = ("WARNING:vintagebackup:"
+                             "The size of the last backup (50.01 MB) is "
+                             "larger than the --free-up parameter (1.000 B)")
+            self.assertEqual([space_warning], log_lines.output)
+
+    def test_no_warning_when_backup_is_smaller_than_free_up(self) -> None:
+        """Test that a warning is not logged when a backup is smaller that the free-up argument."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            create_large_files(Path(user_folder), 50_000_000)
+            arguments = ["--user-folder", user_folder,
+                         "--backup-folder", backup_folder,
+                         "--free-up", "100 MB",
+                         "--log", os.devnull]
+            with self.assertNoLogs(level=logging.WARNING):
+                vintagebackup.main(arguments)
+
 
 class FilterTest(unittest.TestCase):
     """Test that filter files work properly."""

@@ -1511,6 +1511,7 @@ def start_backup(args: argparse.Namespace) -> None:
 
     with Backup_Lock(backup_folder, "backup"):
         print_run_title(args, "Starting new backup")
+        free_space_before_backup = shutil.disk_usage(backup_folder).free
         create_new_backup(user_folder,
                           backup_folder,
                           filter_file=path_or_none(args.filter),
@@ -1518,6 +1519,12 @@ def start_backup(args: argparse.Namespace) -> None:
                           force_copy=toggle_is_set(args, "force_copy"),
                           max_average_hard_links=args.hard_link_count,
                           timestamp=args.timestamp)
+        free_space_after_backup = shutil.disk_usage(backup_folder).free
+        backup_space_taken = free_space_before_backup - free_space_after_backup
+        free_up = parse_storage_space(args.free_up or "0")
+        if free_up > 0 and backup_space_taken > free_up:
+            logger.warning(f"The size of the last backup ({byte_units(backup_space_taken)}) is "
+                           f"larger than the --free-up parameter ({byte_units(free_up)})")
         delete_old_backups(args)
 
 
