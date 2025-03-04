@@ -39,9 +39,13 @@ def create_user_data(base_directory: Path) -> None:
 
     :param base_directory: The directory into which all created files and folders go.
     """
+    root_file = base_directory/"root_file.txt"
+    root_file.write_text("File at root of user folder.\n")
     for sub_num in range(3):
         subfolder = base_directory/f"sub_directory_{sub_num}"
         subfolder.mkdir()
+        subfile = subfolder/"sub_root_file.txt"
+        subfile.write_text(f"File in subfolder {sub_num}.\n")
         for sub_sub_num in range(3):
             subsubfolder = subfolder/f"sub_sub_directory_{sub_sub_num}"
             subsubfolder.mkdir()
@@ -1991,7 +1995,7 @@ class PurgeTests(unittest.TestCase):
                                                                    str(search_directory),
                                                                    "--backup-folder",
                                                                    str(backup_path),
-                                                                   "--choice", "0"])
+                                                                   "--choice", "2"])
             vintagebackup.choose_purge_target_from_backups(purge_command_line, "y")
             relative_purge_file = purged_path.relative_to(user_path)
             for backup in vintagebackup.all_backups(backup_path):
