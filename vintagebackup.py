@@ -1638,6 +1638,9 @@ what to purge from a list of everything that's ever been backed up. If there is 
 after --purge-list, then the current directory is used. If the file exists in the user's folder, it
 is not deleted. The backup location argument --backup-folder is required."""))
 
+    only_one_action_group.add_argument("--delete-only", action="store_true", help=format_help("""
+Delete old backups according to --free-up or --delete-after without running a backup first."""))
+
     common_group = user_input.add_argument_group("Options needed for all actions")
 
     common_group.add_argument("-b", "--backup-folder", help=format_help("""
@@ -1893,6 +1896,7 @@ def main(argv: list[str]) -> int:
                   else start_backup_restore if args.restore
                   else start_backup_purge if args.purge
                   else choose_purge_target_from_backups if args.purge_list
+                  else delete_old_backups if args.delete_only
                   else start_backup)
         action(args)
         return 0

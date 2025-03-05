@@ -936,6 +936,22 @@ class DeleteBackupTest(unittest.TestCase):
             this_year_backup_folder = backup_location/f"{today.year}"
             self.assertTrue(this_year_backup_folder)
 
+    def test_delete_only_command_line_option(self) -> None:
+        """Test that --delete-only deletes backups without running a backup."""
+        with tempfile.TemporaryDirectory() as backup_folder:
+            backup_path = Path(backup_folder)
+            create_old_backups(backup_path, 30)
+            oldest_backup_age = datetime.timedelta(days=120)
+            arguments = ["--backup-folder", backup_folder,
+                         "--delete-after", f"{oldest_backup_age.days}d",
+                         "--delete-only"]
+            vintagebackup.main(arguments)
+            backups = vintagebackup.all_backups(backup_path)
+            self.assertEqual(len(backups), 4)  # 120 days = 4 months
+            now = datetime.datetime.now()
+            earliest_backup_timestamp = vintagebackup.backup_datetime(backups[0])
+            self.assertLessEqual(now - earliest_backup_timestamp, oldest_backup_age)
+
 
 class MoveBackupsTest(unittest.TestCase):
     """Test moving backup sets to a different location."""
