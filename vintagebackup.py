@@ -1713,6 +1713,8 @@ of bytes. Case does not matter, so all of the following specify
 15 megabytes: 15MB, 15Mb, 15mB, 15mb, 15M, and 15m. Old backups
 will be deleted until at least that much space is free.
 
+This can be used at the same time as --delete-after.
+
 No matter what, the most recent backup will not be deleted."""))
 
     backup_group.add_argument("--delete-after", metavar="TIME", help=format_help("""
@@ -1721,6 +1723,8 @@ The format of the argument is Nt, where N is a whole number and
 t is a single letter: d for days, w for weeks, m for calendar months,
 or y for calendar years. There should be no space between the number
 and letter.
+
+This can be used at the same time as --free-up.
 
 No matter what, the most recent backup will not be deleted."""))
 
