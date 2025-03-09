@@ -1871,7 +1871,7 @@ class CopyProbabilityTest(unittest.TestCase):
             self.assertTrue(directories_are_completely_copied(*all_backups))
 
     def test_copy_probability_half_hard_links_some_files(self) -> None:
-        """Test that a middle range value for copy probability copies some files and hard links others."""
+        """Test that a middle range copy probability copies some files and hard links others."""
         with (tempfile.TemporaryDirectory() as user_folder,
               tempfile.TemporaryDirectory() as backup_folder):
             user_path = Path(user_folder)
