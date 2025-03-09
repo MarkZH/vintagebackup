@@ -1759,13 +1759,9 @@ backup."""))
     link_copy_probability_group = backup_group.add_mutually_exclusive_group()
 
     link_copy_probability_group.add_argument("--hard-link-count", help=format_help("""
-Specify the average number of hard links Vintage Backup should create for a file before copying it
-again. The argument HARD_LINK_COUNT should be an integer. If specified, every unchanged file will be
-copied with a probability of 1/(HARD_LINK_COUNT + 1).
-
-This is probably only useful for Windows machines. If a lot of files being backed up are not
-changing, the backups will gradually slow down as the number of hard links increases. This is due to
-peculiarities of the NTFS file system."""))
+Specify the average number of hard links Vintage Backup should create for an unchanged file before
+copying it again. The argument HARD_LINK_COUNT should be an integer. If specified, every unchanged
+file will be copied with a probability of 1/(HARD_LINK_COUNT + 1)."""))
 
     link_copy_probability_group.add_argument("--copy-probability", help=format_help("""
 Specify the probability that an unchanged file will be copied instead of hard-linked during a
