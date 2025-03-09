@@ -1531,7 +1531,7 @@ def parse_probability(probability_str: str) -> float:
     probability = number/divisor
     if probability < 0.0 or probability > 1.0:
         raise CommandLineError("Value of --copy-probability must be between 0.0 and 1.0 "
-                                f"(or 0% and 100%): {probability}")
+                                f"(or 0% and 100%): {probability_str}")
     return probability
 
 
