@@ -486,7 +486,7 @@ class FilterTest(unittest.TestCase):
                   tempfile.TemporaryDirectory() as backup_folder,
                   tempfile.NamedTemporaryFile("w+", delete_on_close=False) as filter_file):
 
-                user_data = Path(user_data_location).resolve()
+                user_data = Path(user_data_location)
                 create_user_data(user_data)
                 user_paths = directory_contents(user_data)
 
@@ -643,7 +643,7 @@ class RecoveryTest(unittest.TestCase):
                                                 force_copy=False,
                                                 copy_probability=0.0,
                                                 timestamp=unique_timestamp())
-                file = (user_data/"sub_directory_0"/"sub_sub_directory_0"/"file_0.txt").resolve()
+                file = user_data/"sub_directory_0"/"sub_sub_directory_0"/"file_0.txt"
                 moved_file_path = file.parent/(file.name + "_moved")
                 file.rename(moved_file_path)
                 exit_code = run_recovery(method, backup_location, file)
@@ -664,7 +664,7 @@ class RecoveryTest(unittest.TestCase):
                                             force_copy=False,
                                             copy_probability=0.0,
                                             timestamp=unique_timestamp())
-            file_path = (user_data/"sub_directory_0"/"sub_sub_directory_0"/"file_0.txt").resolve()
+            file_path = user_data/"sub_directory_0"/"sub_sub_directory_0"/"file_0.txt"
             vintagebackup.recover_path(file_path, backup_location, 0)
             recovered_file_path = file_path.parent/f"{file_path.stem}.1{file_path.suffix}"
             self.assertTrue(filecmp.cmp(file_path, recovered_file_path, shallow=False))
@@ -683,7 +683,7 @@ class RecoveryTest(unittest.TestCase):
                                             force_copy=False,
                                             copy_probability=0.0,
                                             timestamp=unique_timestamp())
-            folder_path = (user_data/"sub_directory_1").resolve()
+            folder_path = user_data/"sub_directory_1"
             vintagebackup.recover_path(folder_path, backup_location, 0)
             recovered_folder_path = folder_path.parent/f"{folder_path.name}.1"
             self.assertTrue(directories_are_completely_copied(folder_path, recovered_folder_path))
@@ -702,7 +702,7 @@ class RecoveryTest(unittest.TestCase):
                                             force_copy=False,
                                             copy_probability=0.0,
                                             timestamp=unique_timestamp())
-            folder_path = (user_data/"sub_directory_1"/"sub_sub_directory_1").resolve()
+            folder_path = user_data/"sub_directory_1"/"sub_sub_directory_1"
             chosen_file = vintagebackup.search_backups(folder_path, backup_location, "recovery", 1)
             self.assertTrue(chosen_file)
             chosen_file = cast(Path, chosen_file)
@@ -1303,7 +1303,7 @@ class ErrorTest(unittest.TestCase):
                                             timestamp=unique_timestamp())
 
         expected_error_message = ("Previous backup stored a different user folder. Previously: "
-                                  f"{user_path.resolve()}; Now: {other_user_path.resolve()}")
+                                  f"{user_path}; Now: {other_user_path}")
         self.assertEqual(error.exception.args, (expected_error_message,))
 
     def test_warning_printed_if_no_user_data_is_backed_up(self) -> None:
