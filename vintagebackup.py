@@ -1185,20 +1185,30 @@ def read_configuation_file(config_file_name: str) -> list[str]:
 
 def remove_quotes(s: str) -> str:
     """
-    Remove single pair of quotes from the start and end of a string.
+    After stripping a string of outer whitespace, remove pairs of quotes from the start and end.
 
-    >>> remove_quotes('"  a b c  "')
+    >>> remove_quotes('  "  a b c  "   ')
     '  a b c  '
 
-    >>> remove_quotes('abc')
+    Strings without quotes are stripped of outer whitespace.
+
+    >>> remove_quotes(' abc  ')
     'abc'
 
+    All other strings are unchanged.
+
+    >>> remove_quotes('Inner "quoted strings" are not affected.')
+    'Inner "quoted strings" are not affected.'
+
+    >>> remove_quotes('"This quote will stay," he said.')
+    '"This quote will stay," he said.'
+
     If a string (usually a file name read from a file) has leading or trailing spaces,
-    then the user should surround this file name with quotations marks to make sure they
-    are included in the return value.
+    then the user should surround this file name with quotations marks to make sure the
+    spaces are included in the return value.
 
     If the file name actually does begin and end with quotation marks, then surround the
-    file name with another pair of quotation marks. Only one pair will ever be removed.
+    file name with another pair of quotation marks. Only one pair will be removed.
 
     >>> remove_quotes('""abc""')
     '"abc"'
