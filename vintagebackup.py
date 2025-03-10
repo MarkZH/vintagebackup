@@ -1791,7 +1791,7 @@ file will be copied with a probability of 1/(HARD_LINK_COUNT + 1)."""))
 
     link_copy_probability_group.add_argument("--copy-probability", help=format_help("""
 Specify the probability that an unchanged file will be copied instead of hard-linked during a
-backup. The probability can be expressed as a decimal (0.1) or as a percent (10%). This is an
+backup. The probability can be expressed as a decimal (0.1) or as a percent (10%%). This is an
 alternate to --hard-link-count and cannot be used together with it."""))
 
     move_group = user_input.add_argument_group("Move backup options", format_text("""
