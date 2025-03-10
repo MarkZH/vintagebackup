@@ -946,7 +946,8 @@ class DeleteBackupTest(unittest.TestCase):
             oldest_backup_age = datetime.timedelta(days=120)
             arguments = ["--backup-folder", backup_folder,
                          "--delete-after", f"{oldest_backup_age.days}d",
-                         "--delete-only"]
+                         "--delete-only",
+                         "--log", os.devnull]
             vintagebackup.main(arguments)
             backups = vintagebackup.all_backups(backup_path)
             self.assertEqual(len(backups), 4)  # 120 days = 4 months
@@ -1763,6 +1764,7 @@ class CopyProbabilityTest(unittest.TestCase):
             arguments = ["--user-folder", user_folder,
                          "--backup-folder", backup_folder,
                          "--hard-link-count", "1",
+                         "--log", os.devnull,
                          "--timestamp",
                          unique_timestamp().strftime(vintagebackup.backup_date_format)]
             vintagebackup.main(arguments)
@@ -1781,6 +1783,7 @@ class CopyProbabilityTest(unittest.TestCase):
               tempfile.TemporaryDirectory() as backup_folder):
             arguments = ["--user-folder", user_folder,
                          "--backup-folder", backup_folder,
+                         "--log", os.devnull,
                          "--hard-link-count", "Z"]
             with self.assertLogs(level=logging.ERROR) as error_log:
                 vintagebackup.main(arguments)
@@ -1823,6 +1826,7 @@ class CopyProbabilityTest(unittest.TestCase):
             arguments = ["--user-folder", user_folder,
                          "--backup-folder", backup_folder,
                          "--copy-probability", "0",
+                         "--log", os.devnull,
                          "--timestamp",
                          unique_timestamp().strftime(vintagebackup.backup_date_format)]
             vintagebackup.main(arguments)
@@ -1842,6 +1846,7 @@ class CopyProbabilityTest(unittest.TestCase):
             backup_path = Path(backup_folder)
             arguments = ["--user-folder", user_folder,
                          "--backup-folder", backup_folder,
+                         "--log", os.devnull,
                          "--timestamp",
                          unique_timestamp().strftime(vintagebackup.backup_date_format)]
             vintagebackup.main(arguments)
@@ -1862,6 +1867,7 @@ class CopyProbabilityTest(unittest.TestCase):
             arguments = ["--user-folder", user_folder,
                          "--backup-folder", backup_folder,
                          "--copy-probability", "1",
+                         "--log", os.devnull,
                          "--timestamp",
                          unique_timestamp().strftime(vintagebackup.backup_date_format)]
             vintagebackup.main(arguments)
@@ -1882,6 +1888,7 @@ class CopyProbabilityTest(unittest.TestCase):
             arguments = ["--user-folder", user_folder,
                          "--backup-folder", backup_folder,
                          "--copy-probability", "50%",
+                         "--log", os.devnull,
                          "--timestamp",
                          unique_timestamp().strftime(vintagebackup.backup_date_format)]
             vintagebackup.main(arguments)
