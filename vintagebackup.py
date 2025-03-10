@@ -239,7 +239,7 @@ def get_user_location_record(backup_location: Path) -> Path:
 def record_user_location(user_location: Path, backup_location: Path) -> None:
     """Write the user directory being backed up to a file in the base backup directory."""
     user_folder_record = get_user_location_record(backup_location)
-    resolved_user_location = user_location.resolve(strict=True)
+    resolved_user_location = absolute_path(user_location, strict=True)
     logger.debug(f"Writing {resolved_user_location} to {user_folder_record}")
     with user_folder_record.open("w") as user_record:
         user_record.write(str(resolved_user_location) + "\n")
@@ -249,7 +249,7 @@ def backup_source(backup_location: Path) -> Path:
     """Read the user directory that was backed up to the given backup location."""
     user_folder_record = get_user_location_record(backup_location)
     with user_folder_record.open() as user_record:
-        return Path(user_record.readline().rstrip("\n")).resolve()
+        return absolute_path(user_record.readline().rstrip("\n"))
 
 
 def confirm_user_location_is_unchanged(user_data_location: Path, backup_location: Path) -> None:
@@ -264,8 +264,8 @@ def confirm_user_location_is_unchanged(user_data_location: Path, backup_location
         recorded_user_folder = backup_source(backup_location)
         if not recorded_user_folder.samefile(user_data_location):
             raise RuntimeError("Previous backup stored a different user folder."
-                               f" Previously: {recorded_user_folder.resolve()};"
-                               f" Now: {user_data_location.resolve()}")
+                               f" Previously: {absolute_path(recorded_user_folder)};"
+                               f" Now: {absolute_path(user_data_location)}")
     except FileNotFoundError:
         # This is probably the first backup, hence no user folder record.
         pass
@@ -1234,7 +1234,7 @@ def toggle_is_set(args: argparse.Namespace, name: str) -> bool:
 
 def path_or_none(arg: str | None) -> Path | None:
     """Create a Path instance if the input string is valid."""
-    return Path(arg).resolve() if arg else None
+    return absolute_path(arg) if arg else None
 
 
 def copy_probability_from_hard_link_count(hard_link_count: str) -> float:
@@ -1295,7 +1295,7 @@ def get_existing_path(path: str | None, folder_type: str) -> Path:
         raise CommandLineError(f"{folder_type.capitalize()} not specified.")
 
     try:
-        return Path(path).resolve(strict=True)
+        return absolute_path(path, strict=True)
     except FileNotFoundError:
         raise CommandLineError(f"Could not find {folder_type.lower()}: {path}") from None
 
@@ -1305,14 +1305,14 @@ def start_recovery_from_backup(args: argparse.Namespace) -> None:
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     choice = None if args.choice is None else int(args.choice)
     print_run_title(args, "Recovering from backups")
-    recover_path(Path(args.recover).resolve(), backup_folder, choice)
+    recover_path(absolute_path(args.recover), backup_folder, choice)
 
 
 def choose_target_path_from_backups(args: argparse.Namespace) -> Path | None:
     """Choose a path from a list of backed up files and folders from a given directory."""
     operation = "recovery" if args.list else "purging"
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
-    search_directory = Path(args.list or args.purge_list).resolve()
+    search_directory = absolute_path(args.list or args.purge_list)
     print_run_title(args, f"Listing files and directories for {operation}")
     logger.info(f"Searching for everything backed up from {search_directory} ...")
     test_choice = int(args.choice) if args.choice else None
@@ -1339,7 +1339,7 @@ def choose_purge_target_from_backups(args: argparse.Namespace,
 def start_move_backups(args: argparse.Namespace) -> None:
     """Parse command line options to move backups to another location."""
     old_backup_location = get_existing_path(args.backup_folder, "current backup location")
-    new_backup_location = Path(args.move_backup).resolve()
+    new_backup_location = absolute_path(args.move_backup)
 
     confirm_choice_made(args, "move_count", "move_age", "move_since")
     if args.move_count:
@@ -1362,7 +1362,7 @@ def start_verify_backup(args: argparse.Namespace) -> None:
     user_folder = get_existing_path(args.user_folder, "user's folder")
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     filter_file = path_or_none(args.filter)
-    result_folder = Path(args.verify).resolve()
+    result_folder = absolute_path(args.verify)
     print_run_title(args, "Verifying last backup")
     verify_last_backup(user_folder, backup_folder, filter_file, result_folder)
 
@@ -1372,7 +1372,7 @@ def start_backup_restore(args: argparse.Namespace) -> None:
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
 
     if args.destination:
-        destination = Path(args.destination).resolve()
+        destination = absolute_path(args.destination)
         user_folder = None
     else:
         user_folder = get_existing_path(args.user_folder, "user folder")
@@ -1422,7 +1422,7 @@ def classify_path(path: Path | os.DirEntry[str]) -> str:
 def start_backup_purge(args: argparse.Namespace, confirmation_reponse: str | None = None) -> None:
     """Parse command line options to purge file or folder from all backups."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
-    purge_target = Path(args.purge).resolve()
+    purge_target = absolute_path(args.purge)
     print_run_title(args, "Purging from backups")
     purge_path(purge_target, backup_folder, confirmation_reponse, args.choice)
 
@@ -1512,7 +1512,7 @@ def start_backup(args: argparse.Namespace) -> None:
     if not args.backup_folder:
         raise CommandLineError("Backup folder not specified.")
 
-    backup_folder = Path(args.backup_folder).resolve()
+    backup_folder = absolute_path(args.backup_folder)
     backup_folder.mkdir(parents=True, exist_ok=True)
 
     with Backup_Lock(backup_folder, "backup"):
@@ -1532,6 +1532,22 @@ def start_backup(args: argparse.Namespace) -> None:
             logger.warning(f"The size of the last backup ({byte_units(backup_space_taken)}) is "
                            f"larger than the --free-up parameter ({byte_units(free_up)})")
         delete_old_backups(args)
+
+
+def absolute_path(path: Path | str, *, strict: bool = False) -> Path:
+    """
+    Return an absolute version of the given path.
+
+    Relative path segments (..) are removed. Symlinks are not resolved.
+
+    :param path: The path to be made absolute.
+    :param stict: Require that the path exists. An FileNotFoundError is raised if not. Symlinks are
+    not followed, so an existing symlink to a non-existent file or folder does not raise an error.
+    """
+    abs_path = Path(os.path.abspath(path))
+    if strict and not abs_path.exists(follow_symlinks=False):
+        raise FileNotFoundError(f"The path {abs_path}, resolved from {path} does not exist.")
+    return abs_path
 
 
 def parse_probability(probability_str: str) -> float:
