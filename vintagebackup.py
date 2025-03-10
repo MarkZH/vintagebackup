@@ -1707,6 +1707,9 @@ signs specify files and folders to include. Lines with hash signs are ignored. P
 first line, everything in the user's folder is included. The path that follows may contain wildcard
 characters like *, **, [], and ? to allow for matching multiple path names. If you want to match a
 single name that contains wildcards, put brackets around them: What Is Life[?].pdf, for example.
+Since leading and trailing whitespace is normally removed, use brackets around each leading/trailing
+space character: - [ ][ ]has_two_leading_and_three_trailing_spaces.txt[ ][ ][ ]
+
 Only files will be matched against each line in this file. If you want to include or exclude an
 entire directory, the line must end with a "/**" or "\\**" to match all of its contents. The paths
 may be absolute or relative. If a path is relative, it is relative to the user's folder.
