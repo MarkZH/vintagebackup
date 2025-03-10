@@ -1214,7 +1214,7 @@ def remove_quotes(s: str) -> str:
     '"abc"'
     """
     s = s.strip()
-    if s and (s[0] == s[-1] == '"'):
+    if len(s) > 1 and (s[0] == s[-1] == '"'):
         return s[1:-1]
     return s
 

@@ -2615,6 +2615,11 @@ class RemoveQuotesTests(unittest.TestCase):
         s = 'this is a "text" file.png'
         self.assertEqual(s, vintagebackup.remove_quotes(s))
 
+    def test_remove_quotes_on_single_quotation_mark_does_nothing(self) -> None:
+        """Test that a string consisting of a single quotation mark is not changed."""
+        s = '"'
+        self.assertEqual(s, vintagebackup.remove_quotes(s))
+
 
 if __name__ == "__main__":
     unittest.main()
