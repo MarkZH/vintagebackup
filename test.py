@@ -2541,6 +2541,38 @@ This is the fourth paragraph."""
         then_2 = vintagebackup.parse_time_span_to_timepoint("2y", now_2)
         self.assertEqual(then_2, expected_then_2)
 
+    def test_remove_quotes_on_string_with_no_quotes_or_spaces_changes_nothing(self) -> None:
+        """Test that a string with no quotation marks or spaces is returned unchanged."""
+        s = "abc"
+        self.assertEqual(s, vintagebackup.remove_quotes(s))
+
+    def test_remove_quotes_on_string_with_no_quotes_and_end_whitespace_is_stripped(self) -> None:
+        """Test that a string with no quotation marks is stripped of leading/trailing whitespace."""
+        s = "   abc  "
+        self.assertEqual(s.strip(), vintagebackup.remove_quotes(s))
+
+    def test_remove_quotes_on_string_with_quotes_strips_whitespace_outside_quotes(self) -> None:
+        """Test that quotations marks prevent whitespace inside from being stripped."""
+        s = '     "  abc  " '
+        s_after = "  abc  "
+        self.assertEqual(s_after, vintagebackup.remove_quotes(s))
+
+    def test_remove_quotes_on_string_with_doubled_quotes_preserves_single_quote_pair(self) -> None:
+        """Test that a string with doubled quotation marks is returned with outer quotes removed."""
+        s = '""   abc  ""'
+        s_after = '"   abc  "'
+        self.assertEqual(s_after, vintagebackup.remove_quotes(s))
+
+    def test_remove_quotes_on_string_with_only_starting_quote_is_unchanged(self) -> None:
+        """Test that a string with only an initial quotation mark is unchanged."""
+        s = '"according to".txt'
+        self.assertEqual(s, vintagebackup.remove_quotes(s))
+
+    def test_remove_quotes_on_string_with_internal_quotes_is_unchanged(self) -> None:
+        """Test that quotation marks inside a string have no effect."""
+        s = 'this is a "text" file.png'
+        self.assertEqual(s, vintagebackup.remove_quotes(s))
+
 
 if __name__ == "__main__":
     unittest.main()

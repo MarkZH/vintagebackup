@@ -1175,12 +1175,38 @@ def read_configuation_file(config_file_name: str) -> list[str]:
                                            " has no effect.")
                 arguments.append(f"--{parameter}")
 
-                value = value_raw.strip()
+                value = remove_quotes(value_raw)
                 if value:
                     arguments.append(value)
             return arguments
     except FileNotFoundError:
         raise CommandLineError(f"Configuation file does not exist: {config_file_name}") from None
+
+
+def remove_quotes(s: str) -> str:
+    """
+    Remove single pair of quotes from the start and end of a string.
+
+    >>> remove_quotes('"  a b c  "')
+    '  a b c  '
+
+    >>> remove_quotes('abc')
+    'abc'
+
+    If a string (usually a file name read from a file) has leading or trailing spaces,
+    then the user should surround this file name with quotations marks to make sure they
+    are included in the return value.
+
+    If the file name actually does begin and end with quotation marks, then surround the
+    file name with another pair of quotation marks. Only one pair will ever be removed.
+
+    >>> remove_quotes('""abc""')
+    '"abc"'
+    """
+    s = s.strip()
+    if s and (s[0] == s[-1] == '"'):
+        return s[1:-1]
+    return s
 
 
 def format_paragraphs(lines: str, line_length: int) -> str:
@@ -1863,7 +1889,17 @@ The parameter names may also be spelled with spaces instead of the dashes and wi
     Delete on error:
 
 Values like file and folder names may contain any characters--no escaping or quoting necessary.
-Whitespace at the beginning and end of the values will be trimmed off.
+Whitespace at the beginning and end of the values will be trimmed off. If a file or folder name
+begins or ends with spaces, surrounding the name with double quotes will preserve this space.
+
+    User Folder: "/home/bob/folder that ends with a space "
+
+If a file or folder name is already quoted--that is, starts and ends with double quotes--then
+another pair of quotes will preserve these quotes. If the filter file is name
+"the alleged file.txt" with quotes in the name, then the configuration file line should look like
+this:
+
+    filter file: ""the alleged file.txt""
 
 If both --config and other command line options are used and they conflict, then the command
 line options override the config file options.
