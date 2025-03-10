@@ -2195,8 +2195,8 @@ def is_even(n: int) -> bool:
     return n % 2 == 0
 
 
-class UtilityTest(unittest.TestCase):
-    """Test stand-alone functions."""
+class EndOfMonthFixTests(unittest.TestCase):
+    """Test date fixing function."""
 
     def test_fix_end_of_month_does_not_change_valid_dates(self) -> None:
         """Test that valid dates are returned unchanged."""
@@ -2223,6 +2223,10 @@ class UtilityTest(unittest.TestCase):
                     first_day_of_next_month = datetime.date(year, month + 1, 1)
                 self.assertEqual(day_after, first_day_of_next_month)
 
+
+class PluralTests(unittest.TestCase):
+    """Test pluralizing function."""
+
     def test_one_noun_results_in_singular_noun(self) -> None:
         """Test that exactly 1 of a noun leaves the noun unchanged."""
         self.assertEqual(vintagebackup.plural_noun(1, "cat"), "1 cat")
@@ -2231,6 +2235,10 @@ class UtilityTest(unittest.TestCase):
         """Test that a number not equal to 1 appends s to noun."""
         for number in [0, 2, 3, 4]:
             self.assertEqual(vintagebackup.plural_noun(number, "dog"), f"{number} dogs")
+
+
+class AllBackupsTests(unittest.TestCase):
+    """Test all_backups() function."""
 
     def test_all_backups_returns_all_backups(self) -> None:
         """Test that all_backups() returns all expected backups."""
@@ -2291,6 +2299,10 @@ class UtilityTest(unittest.TestCase):
                 expected_folder = backup_path/year_path/dated_folder_name
                 self.assertEqual(backup, expected_folder)
 
+
+class BackupNameTests(unittest.TestCase):
+    """Test backup_name() and backup_datetime() functions."""
+
     def test_backup_name_and_backup_datetime_are_inverse_functions(self) -> None:
         """Test that a timestamp is preserved in a backup name."""
         now = datetime.datetime.now()
@@ -2306,6 +2318,10 @@ class UtilityTest(unittest.TestCase):
         backup_folder = vintagebackup.backup_name(timestamp)
         backup_timestamp = vintagebackup.backup_datetime(backup_folder)
         self.assertEqual(int(backup_folder.parent.name), backup_timestamp.year)
+
+
+class SeparateTests(unittest.TestCase):
+    """Tests for the separate() function."""
 
     def test_separate_results_are_disjoint(self) -> None:
         """Test that separate() result lists have no items in common."""
@@ -2330,6 +2346,10 @@ class UtilityTest(unittest.TestCase):
         numbers = list(range(100))
         _, odds = vintagebackup.separate(numbers, is_even)
         self.assertTrue(not any(map(is_even, odds)))
+
+
+class ParseStorageTests(unittest.TestCase):
+    """Test parse_storage_space() function."""
 
     def test_parse_storage_space_return_bare_numbers_unchanged(self) -> None:
         """Test that sending a string version of a number returns that number unchanged."""
@@ -2381,6 +2401,10 @@ class UtilityTest(unittest.TestCase):
             number_part = float(text.split()[0])
             self.assertLess(number_part, 1000)
 
+
+class CopyProbabilityTests(unittest.TestCase):
+    """Tests for --copy-probability and --hard-link-count parsing."""
+
     def test_copy_probability_returns_zero_if_no_hard_link_argument_present(self) -> None:
         """Test if no --hard-link-count argument is present, probability of copy is zero."""
         user_input = vintagebackup.argument_parser()
@@ -2398,6 +2422,10 @@ class UtilityTest(unittest.TestCase):
         for n in range(1, 10):
             probability = vintagebackup.copy_probability_from_hard_link_count(str(n))
             self.assertAlmostEqual(1/(n + 1), probability)
+
+
+class HelpFormatterTests(unittest.TestCase):
+    """Tests for functions that format --help paragraphs."""
 
     def test_format_paragraph_for_short_line_returned_as_is(self) -> None:
         """Test that text that is shorter than the line length is returned unchanged."""
@@ -2457,6 +2485,10 @@ This is the fourth paragraph."""
         # Text is not changed except for line breaks.
         self.assertEqual(text, " ".join(wrapped_text.split()))
 
+
+class ClassifyPathsTests(unittest.TestCase):
+    """Tests for classify_paths() function."""
+
     def test_classify_paths_classifies_files_as_files(self) -> None:
         """Test that classify_paths() correctly identifies files."""
         with tempfile.NamedTemporaryFile() as test_file:
@@ -2485,6 +2517,10 @@ This is the fourth paragraph."""
         """Test that the lack of a number in the argument is an error."""
         with self.assertRaises(vintagebackup.CommandLineError):
             vintagebackup.parse_time_span_to_timepoint("y")
+
+
+class ParseTimeSpanTests(unittest.TestCase):
+    """Tests for parse_time_span_to_time_point() function."""
 
     def test_parse_timespan_with_no_time_unit_part_is_an_error(self) -> None:
         """Test that the lack of a unit in the argument is an error."""
@@ -2540,6 +2576,10 @@ This is the fourth paragraph."""
         expected_then_2 = datetime.datetime(2023, 1, 31, 12, 0, 0)
         then_2 = vintagebackup.parse_time_span_to_timepoint("2y", now_2)
         self.assertEqual(then_2, expected_then_2)
+
+
+class RemoveQuotesTests(unittest.TestCase):
+    """Tests for remove_quotes() function."""
 
     def test_remove_quotes_on_string_with_no_quotes_or_spaces_changes_nothing(self) -> None:
         """Test that a string with no quotation marks or spaces is returned unchanged."""
