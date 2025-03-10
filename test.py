@@ -173,7 +173,7 @@ def run_backup(run_method: Invocation,
                                         filter_file=filter_file,
                                         examine_whole_file=examine_whole_file,
                                         force_copy=force_copy,
-                                        max_average_hard_links=None,
+                                        copy_probability=0.0,
                                         timestamp=timestamp)
         return 0
     elif run_method == Invocation.cli:
@@ -325,7 +325,7 @@ class BackupTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
 
             changed_file_name = user_data/"sub_directory_2"/"sub_sub_directory_0"/"file_1.txt"
@@ -337,7 +337,7 @@ class BackupTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
             backup_1, backup_2 = vintagebackup.all_backups(backup_location)
             contents_1 = directory_contents(backup_1)
@@ -369,7 +369,7 @@ class BackupTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
             last_backup = vintagebackup.find_previous_backup(backup_path)
             self.assertTrue(last_backup)
@@ -390,7 +390,7 @@ class BackupTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
 
             user_path_2 = Path(user_folder_2)
@@ -401,7 +401,7 @@ class BackupTest(unittest.TestCase):
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
-                                                max_average_hard_links=None,
+                                                copy_probability=0.0,
                                                 timestamp=unique_timestamp())
 
     def test_warn_when_backup_is_larger_than_free_up(self) -> None:
@@ -543,7 +543,7 @@ class FilterTest(unittest.TestCase):
                                             filter_file=Path(filter_file.name),
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
 
             self.assertEqual(len(vintagebackup.all_backups(backup_location)), 1)
@@ -639,7 +639,7 @@ class RecoveryTest(unittest.TestCase):
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
-                                                max_average_hard_links=None,
+                                                copy_probability=0.0,
                                                 timestamp=unique_timestamp())
                 file = (user_data/"sub_directory_0"/"sub_sub_directory_0"/"file_0.txt").resolve()
                 moved_file_path = file.parent/(file.name + "_moved")
@@ -660,7 +660,7 @@ class RecoveryTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
             file_path = (user_data/"sub_directory_0"/"sub_sub_directory_0"/"file_0.txt").resolve()
             vintagebackup.recover_path(file_path, backup_location, 0)
@@ -679,7 +679,7 @@ class RecoveryTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
             folder_path = (user_data/"sub_directory_1").resolve()
             vintagebackup.recover_path(folder_path, backup_location, 0)
@@ -698,7 +698,7 @@ class RecoveryTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
             folder_path = (user_data/"sub_directory_1"/"sub_sub_directory_1").resolve()
             chosen_file = vintagebackup.search_backups(folder_path, backup_location, "recovery", 1)
@@ -746,7 +746,7 @@ class DeleteBackupTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
 
             backups = vintagebackup.all_backups(backup_location)
@@ -770,7 +770,7 @@ class DeleteBackupTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
 
             backups = vintagebackup.all_backups(backup_location)
@@ -970,7 +970,7 @@ class MoveBackupsTest(unittest.TestCase):
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
-                                                max_average_hard_links=None,
+                                                copy_probability=0.0,
                                                 timestamp=unique_timestamp())
 
             for method in Invocation:
@@ -1017,7 +1017,7 @@ class MoveBackupsTest(unittest.TestCase):
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
-                                                max_average_hard_links=None,
+                                                copy_probability=0.0,
                                                 timestamp=unique_timestamp())
 
             move_count = 5
@@ -1075,7 +1075,7 @@ class MoveBackupsTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
             with (self.assertLogs(level=logging.ERROR) as no_move_choice_log,
                   tempfile.TemporaryDirectory() as move_destination):
@@ -1104,7 +1104,7 @@ class VerificationTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
 
             mismatch_file = Path("sub_directory_1")/"sub_sub_directory_2"/"file_0.txt"
@@ -1288,7 +1288,7 @@ class ErrorTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
 
             other_user_path = Path(other_user_folder)
@@ -1297,7 +1297,7 @@ class ErrorTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
 
         expected_error_message = ("Previous backup stored a different user folder. Previously: "
@@ -1316,7 +1316,7 @@ class ErrorTest(unittest.TestCase):
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
-                                                max_average_hard_links=None,
+                                                copy_probability=0.0,
                                                 timestamp=unique_timestamp())
             self.assertIn("WARNING:vintagebackup:No files were backed up!", assert_log.output)
             self.assertEqual(os.listdir(backup_path), ["vintagebackup.source.txt"])
@@ -1332,7 +1332,7 @@ class ErrorTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
             self.assertEqual(os.listdir(backup_path), ["vintagebackup.source.txt"])
 
@@ -1355,7 +1355,7 @@ class ErrorTest(unittest.TestCase):
                                                 filter_file=filter_path,
                                                 examine_whole_file=False,
                                                 force_copy=False,
-                                                max_average_hard_links=None,
+                                                copy_probability=0.0,
                                                 timestamp=unique_timestamp())
             self.assertIn("WARNING:vintagebackup:No files were backed up!", assert_log.output)
             self.assertEqual(os.listdir(backup_path), ["vintagebackup.source.txt"])
@@ -1376,7 +1376,7 @@ class RestorationTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
 
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
@@ -1389,7 +1389,7 @@ class RestorationTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
 
@@ -1423,7 +1423,7 @@ class RestorationTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
 
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
@@ -1436,7 +1436,7 @@ class RestorationTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
 
@@ -1471,7 +1471,7 @@ class RestorationTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
 
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
@@ -1484,7 +1484,7 @@ class RestorationTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
 
@@ -1518,7 +1518,7 @@ class RestorationTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
 
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
@@ -1531,7 +1531,7 @@ class RestorationTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
 
@@ -1568,7 +1568,7 @@ class RestorationTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
 
             exit_code = vintagebackup.main(["--restore",
@@ -1600,7 +1600,7 @@ class RestorationTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
 
             destination_path = Path(destination_folder)
@@ -1637,7 +1637,7 @@ class RestorationTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
 
             with self.assertLogs(level=logging.ERROR) as no_extra_log:
@@ -1663,7 +1663,7 @@ class RestorationTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
             with self.assertLogs(level=logging.ERROR) as no_backup_choice_log:
                 exit_code = vintagebackup.main(["--restore",
@@ -1688,7 +1688,7 @@ class RestorationTest(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
             with self.assertLogs(level=logging.INFO) as bad_prompt_log:
                 vintagebackup.main(["--restore",
@@ -1748,8 +1748,8 @@ class BackupLockTest(unittest.TestCase):
             self.assertFalse(lock_path.is_file(follow_symlinks=False))
 
 
-class MaxAverageHardLinksTest(unittest.TestCase):
-    """Test that specifying an average hard link count results in identical files being copied."""
+class CopyProbabilityTest(unittest.TestCase):
+    """Test that copy probability or hard link count causes identical files to be copied."""
 
     def test_max_average_hard_links_causes_some_unchanged_files_to_be_copied(self) -> None:
         """Test some files are copied instead of linked when max_average_hard_links is non-zero."""
@@ -1758,22 +1758,14 @@ class MaxAverageHardLinksTest(unittest.TestCase):
             user_path = Path(user_folder)
             create_user_data(user_path)
             backup_path = Path(backup_folder)
-
-            vintagebackup.create_new_backup(user_path,
-                                            backup_path,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            max_average_hard_links="1",
-                                            timestamp=unique_timestamp())
-
-            vintagebackup.create_new_backup(user_path,
-                                            backup_path,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            max_average_hard_links="1",
-                                            timestamp=unique_timestamp())
+            arguments = ["--user-folder", user_folder,
+                         "--backup-folder", backup_folder,
+                         "--hard-link-count", "1",
+                         "--timestamp",
+                         unique_timestamp().strftime(vintagebackup.backup_date_format)]
+            vintagebackup.main(arguments)
+            arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
+            vintagebackup.main(arguments)
 
             all_backups = vintagebackup.all_backups(backup_path)
             self.assertEqual(len(all_backups), 2)
@@ -1785,28 +1777,120 @@ class MaxAverageHardLinksTest(unittest.TestCase):
         """Test that all inputs to --hard-link-count besides positive whole numbers are errors."""
         with (tempfile.TemporaryDirectory() as user_folder,
               tempfile.TemporaryDirectory() as backup_folder):
-            user_path = Path(user_folder)
-            backup_path = Path(backup_folder)
-            with self.assertRaises(vintagebackup.CommandLineError) as error:
-                vintagebackup.create_new_backup(user_path,
-                                                backup_path,
-                                                filter_file=None,
-                                                examine_whole_file=False,
-                                                force_copy=False,
-                                                max_average_hard_links="Z",
-                                                timestamp=unique_timestamp())
-            self.assertEqual(error.exception.args[0], "Invalid value for hard link count: Z")
+            arguments = ["--user-folder", user_folder,
+                         "--backup-folder", backup_folder,
+                         "--hard-link-count", "Z"]
+            with self.assertLogs(level=logging.ERROR) as error_log:
+                vintagebackup.main(arguments)
+            self.assertEqual(error_log.output,
+                             ["ERROR:vintagebackup:Invalid value for hard link count: Z"])
 
-            with self.assertRaises(vintagebackup.CommandLineError) as error:
-                vintagebackup.create_new_backup(user_path,
-                                                backup_path,
-                                                filter_file=None,
-                                                examine_whole_file=False,
-                                                force_copy=False,
-                                                max_average_hard_links="0",
-                                                timestamp=unique_timestamp())
-            self.assertEqual(error.exception.args[0],
-                             "Hard link count must be a positive whole number. Got: 0")
+            arguments[-1] = "0"
+            with self.assertLogs(level=logging.ERROR) as error_log:
+                vintagebackup.main(arguments)
+            self.assertEqual(error_log.output,
+                             ["ERROR:vintagebackup:Hard link count must be a positive whole number."
+                              " Got: 0"])
+
+    def test_copy_probability_decimal_must_be_between_zero_and_one(self) -> None:
+        """Test that only values from 0.0 to 1.0 are valid for --copy-probability."""
+        for good_value in ["0.0", "0.5", "1.0"]:
+            self.assertEqual(float(good_value), vintagebackup.parse_probability(good_value))
+
+        for bad_value in ["-1.0", "1.5"]:
+            with self.assertRaises(vintagebackup.CommandLineError):
+                vintagebackup.parse_probability(bad_value)
+
+    def test_copy_probability_percent_must_be_between_zero_and_one_hundred(self) -> None:
+        """Test that only values from 0.0 to 1.0 are valid for --copy-probability."""
+        for good_value in ["0.0%", "50%", "100%"]:
+            decimal = float(good_value[:-1])/100
+            self.assertEqual(decimal, vintagebackup.parse_probability(good_value))
+
+        for bad_value in ["-100%", "150%"]:
+            with self.assertRaises(vintagebackup.CommandLineError):
+                vintagebackup.parse_probability(bad_value)
+
+    def test_copy_probability_zero_hard_links_all_files(self) -> None:
+        """Test that a copy probability of zero links all unchanged files."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+            backup_path = Path(backup_folder)
+            arguments = ["--user-folder", user_folder,
+                         "--backup-folder", backup_folder,
+                         "--copy-probability", "0",
+                         "--timestamp",
+                         unique_timestamp().strftime(vintagebackup.backup_date_format)]
+            vintagebackup.main(arguments)
+            arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
+            vintagebackup.main(arguments)
+
+            all_backups = vintagebackup.all_backups(backup_path)
+            self.assertEqual(len(all_backups), 2)
+            self.assertTrue(directories_are_completely_hardlinked(*all_backups))
+
+    def test_no_copy_probability_argument_hard_links_all_files(self) -> None:
+        """Test that a copy probability of zero links all unchanged files."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+            backup_path = Path(backup_folder)
+            arguments = ["--user-folder", user_folder,
+                         "--backup-folder", backup_folder,
+                         "--timestamp",
+                         unique_timestamp().strftime(vintagebackup.backup_date_format)]
+            vintagebackup.main(arguments)
+            arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
+            vintagebackup.main(arguments)
+
+            all_backups = vintagebackup.all_backups(backup_path)
+            self.assertEqual(len(all_backups), 2)
+            self.assertTrue(directories_are_completely_hardlinked(*all_backups))
+
+    def test_copy_probability_one_copies_all_files(self) -> None:
+        """Test that a copy probability of one causes all files to be copied."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+            backup_path = Path(backup_folder)
+            arguments = ["--user-folder", user_folder,
+                         "--backup-folder", backup_folder,
+                         "--copy-probability", "1",
+                         "--timestamp",
+                         unique_timestamp().strftime(vintagebackup.backup_date_format)]
+            vintagebackup.main(arguments)
+            arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
+            vintagebackup.main(arguments)
+
+            all_backups = vintagebackup.all_backups(backup_path)
+            self.assertEqual(len(all_backups), 2)
+            self.assertTrue(directories_are_completely_copied(*all_backups))
+
+    def test_copy_probability_half_hard_links_some_files(self) -> None:
+        """Test that a middle range copy probability copies some files and hard links others."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+            backup_path = Path(backup_folder)
+            arguments = ["--user-folder", user_folder,
+                         "--backup-folder", backup_folder,
+                         "--copy-probability", "50%",
+                         "--timestamp",
+                         unique_timestamp().strftime(vintagebackup.backup_date_format)]
+            vintagebackup.main(arguments)
+            arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
+            vintagebackup.main(arguments)
+
+            all_backups = vintagebackup.all_backups(backup_path)
+            self.assertEqual(len(all_backups), 2)
+            self.assertTrue(all_files_have_same_content(*all_backups))
+            self.assertFalse(directories_are_completely_hardlinked(*all_backups))
+            self.assertFalse(directories_are_completely_copied(*all_backups))
 
 
 class AtomicBackupTests(unittest.TestCase):
@@ -1825,7 +1909,7 @@ class AtomicBackupTests(unittest.TestCase):
                                             filter_file=None,
                                             examine_whole_file=False,
                                             force_copy=False,
-                                            max_average_hard_links=None,
+                                            copy_probability=0.0,
                                             timestamp=unique_timestamp())
             self.assertFalse(staging_path.exists())
 
@@ -1847,7 +1931,7 @@ class PurgeTests(unittest.TestCase):
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
-                                                max_average_hard_links=None,
+                                                copy_probability=0.0,
                                                 timestamp=unique_timestamp())
 
             purged_file = user_path/"sub_directory_2"/"sub_sub_directory_1"/"file_0.txt"
@@ -1875,7 +1959,7 @@ class PurgeTests(unittest.TestCase):
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
-                                                max_average_hard_links=None,
+                                                copy_probability=0.0,
                                                 timestamp=unique_timestamp())
 
             purged_folder = user_path/"sub_directory_2"/"sub_sub_directory_1"
@@ -1903,7 +1987,7 @@ class PurgeTests(unittest.TestCase):
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
-                                                max_average_hard_links=None,
+                                                copy_probability=0.0,
                                                 timestamp=unique_timestamp())
 
             purged_path = user_path/"sub_directory_2"/"sub_sub_directory_1"
@@ -1916,7 +2000,7 @@ class PurgeTests(unittest.TestCase):
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
-                                                max_average_hard_links=None,
+                                                copy_probability=0.0,
                                                 timestamp=unique_timestamp())
 
             self.assertTrue(purged_path.is_file())
@@ -1947,7 +2031,7 @@ class PurgeTests(unittest.TestCase):
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
-                                                max_average_hard_links=None,
+                                                copy_probability=0.0,
                                                 timestamp=unique_timestamp())
 
             purged_path = user_path/"sub_directory_2"/"sub_sub_directory_1"
@@ -1960,7 +2044,7 @@ class PurgeTests(unittest.TestCase):
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
-                                                max_average_hard_links=None,
+                                                copy_probability=0.0,
                                                 timestamp=unique_timestamp())
 
             self.assertTrue(purged_path.is_file())
@@ -1990,7 +2074,7 @@ class PurgeTests(unittest.TestCase):
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
-                                                max_average_hard_links=None,
+                                                copy_probability=0.0,
                                                 timestamp=unique_timestamp())
 
             purged_path = user_path/"sub_directory_2"/"sub_sub_directory_1"
@@ -2018,7 +2102,7 @@ class PurgeTests(unittest.TestCase):
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
-                                                max_average_hard_links=None,
+                                                copy_probability=0.0,
                                                 timestamp=unique_timestamp())
 
             purged_path = user_path/"sub_directory_2"/"sub_sub_directory_0"
@@ -2031,7 +2115,7 @@ class PurgeTests(unittest.TestCase):
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
-                                                max_average_hard_links=None,
+                                                copy_probability=0.0,
                                                 timestamp=unique_timestamp())
 
             self.assertTrue(purged_path.is_file())
@@ -2063,7 +2147,7 @@ class PurgeTests(unittest.TestCase):
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
-                                                max_average_hard_links=None,
+                                                copy_probability=0.0,
                                                 timestamp=unique_timestamp())
 
             purged_file = user_path/"sub_directory_2"/"sub_sub_directory_1"/"file_0.txt"
@@ -2091,7 +2175,7 @@ class PurgeTests(unittest.TestCase):
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
-                                                max_average_hard_links=None,
+                                                copy_probability=0.0,
                                                 timestamp=unique_timestamp())
 
             purged_file = user_path/"sub_directory_2"
@@ -2165,7 +2249,7 @@ class UtilityTest(unittest.TestCase):
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
-                                                max_average_hard_links=None,
+                                                copy_probability=0.0,
                                                 timestamp=timestamp)
             backups = vintagebackup.all_backups(backup_path)
             for timestamp, backup in zip(timestamps, backups, strict=True):
@@ -2191,7 +2275,7 @@ class UtilityTest(unittest.TestCase):
                                                 filter_file=None,
                                                 examine_whole_file=False,
                                                 force_copy=False,
-                                                max_average_hard_links=None,
+                                                copy_probability=0.0,
                                                 timestamp=timestamp)
 
             # Create entries that should be left out of all_backups() list
@@ -2299,7 +2383,9 @@ class UtilityTest(unittest.TestCase):
 
     def test_copy_probability_returns_zero_if_no_hard_link_argument_present(self) -> None:
         """Test if no --hard-link-count argument is present, probability of copy is zero."""
-        self.assertEqual(vintagebackup.copy_probability_from_hard_link_count(None), 0.0)
+        user_input = vintagebackup.argument_parser()
+        no_arguments = user_input.parse_args([])
+        self.assertEqual(vintagebackup.copy_probability(no_arguments), 0.0)
 
     def test_copy_probability_with_non_positive_argument_is_an_error(self) -> None:
         """Any argument to --hard-link-count that is not a positive integer raises an exception."""

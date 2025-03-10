@@ -482,7 +482,7 @@ def create_new_backup(user_data_location: Path,
                       filter_file: Path | None,
                       examine_whole_file: bool,
                       force_copy: bool,
-                      max_average_hard_links: str | None,
+                      copy_probability: float,
                       timestamp: datetime.datetime | str | None,
                       is_backup_move: bool = False) -> None:
     """
@@ -534,7 +534,6 @@ def create_new_backup(user_data_location: Path,
 
     action_counter: Counter[str] = Counter()
     paths_to_backup = Backup_Set(user_data_location, filter_file)
-    copy_probability = copy_probability_from_hard_link_count(max_average_hard_links)
     logger.info("Running backup ...")
     for current_user_path, user_file_names in paths_to_backup:
         backup_directory(user_data_location,
@@ -1012,7 +1011,7 @@ def move_backups(old_backup_location: Path,
                           filter_file=None,
                           examine_whole_file=False,
                           force_copy=False,
-                          max_average_hard_links=None,
+                          copy_probability=0.0,
                           is_backup_move=True,
                           timestamp=backup_datetime(backup))
 
@@ -1233,7 +1232,7 @@ def path_or_none(arg: str | None) -> Path | None:
     return Path(arg).resolve() if arg else None
 
 
-def copy_probability_from_hard_link_count(hard_link_count: str | None) -> float:
+def copy_probability_from_hard_link_count(hard_link_count: str) -> float:
     """
     Convert an expected average hard link count into a copy probability.
 
@@ -1254,9 +1253,6 @@ def copy_probability_from_hard_link_count(hard_link_count: str | None) -> float:
     system access. For files with many hard links, this can be slow, which negates half the purpose
     of copying files instead of hard-linking them.
     """
-    if hard_link_count is None:
-        return 0.0
-
     try:
         average_hard_link_count = int(hard_link_count)
     except ValueError:
@@ -1517,7 +1513,7 @@ def start_backup(args: argparse.Namespace) -> None:
                           filter_file=path_or_none(args.filter),
                           examine_whole_file=toggle_is_set(args, "whole_file"),
                           force_copy=toggle_is_set(args, "force_copy"),
-                          max_average_hard_links=args.hard_link_count,
+                          copy_probability=copy_probability(args),
                           timestamp=args.timestamp)
         free_space_after_backup = shutil.disk_usage(backup_folder).free
         backup_space_taken = free_space_before_backup - free_space_after_backup
@@ -1526,6 +1522,27 @@ def start_backup(args: argparse.Namespace) -> None:
             logger.warning(f"The size of the last backup ({byte_units(backup_space_taken)}) is "
                            f"larger than the --free-up parameter ({byte_units(free_up)})")
         delete_old_backups(args)
+
+
+def parse_probability(probability_str: str) -> float:
+    """Parse probability from --copy-probability argument."""
+    divisor = 100 if probability_str.endswith("%") else 1
+    number = float(probability_str.rstrip("%"))
+    probability = number/divisor
+    if probability < 0.0 or probability > 1.0:
+        raise CommandLineError("Value of --copy-probability must be between 0.0 and 1.0 "
+                                f"(or 0% and 100%): {probability_str}")
+    return probability
+
+
+def copy_probability(args: argparse.Namespace) -> float:
+    """Calculate the probability of copying unchanged files from command line arguments."""
+    if args.hard_link_count:
+        return copy_probability_from_hard_link_count(args.hard_link_count)
+    elif args.copy_probability:
+        return parse_probability(args.copy_probability)
+    else:
+        return 0.0
 
 
 def delete_old_backups(args: argparse.Namespace) -> None:
@@ -1739,14 +1756,17 @@ backup."""))
 
     add_no_option(backup_group, "force-copy")
 
-    backup_group.add_argument("--hard-link-count", help=format_help("""
-Specify the average number of hard links Vintage Backup should create for a file before copying it
-again. The argument HARD_LINK_COUNT should be an integer. If specified, every unchanged file will be
-copied with a probability of 1/(HARD_LINK_COUNT + 1).
+    link_copy_probability_group = backup_group.add_mutually_exclusive_group()
 
-This is probably only useful for Windows machines. If a lot of files being backed up are not
-changing, the backups will gradually slow down as the number of hard links increases. This is due to
-peculiarities of the NTFS file system."""))
+    link_copy_probability_group.add_argument("--hard-link-count", help=format_help("""
+Specify the average number of hard links Vintage Backup should create for an unchanged file before
+copying it again. The argument HARD_LINK_COUNT should be an integer. If specified, every unchanged
+file will be copied with a probability of 1/(HARD_LINK_COUNT + 1)."""))
+
+    link_copy_probability_group.add_argument("--copy-probability", help=format_help("""
+Specify the probability that an unchanged file will be copied instead of hard-linked during a
+backup. The probability can be expressed as a decimal (0.1) or as a percent (10%). This is an
+alternate to --hard-link-count and cannot be used together with it."""))
 
     move_group = user_input.add_argument_group("Move backup options", format_text("""
 Use exactly one of these options to specify which backups to move when using --move-backup."""))
