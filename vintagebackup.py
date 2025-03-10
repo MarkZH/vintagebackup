@@ -504,7 +504,7 @@ def create_new_backup(user_data_location: Path,
     check_paths_for_validity(user_data_location, backup_location, filter_file)
 
     new_backup_path = backup_location/backup_name(timestamp)
-    staging_backup_path = backup_location/"Staging"
+    staging_backup_path = backup_staging_folder(backup_location)
     if staging_backup_path.exists():
         logger.info("There is a staging folder leftover from previous incomplete backup.")
         logger.info(f"Deleting {staging_backup_path} ...")
@@ -550,6 +550,11 @@ def create_new_backup(user_data_location: Path,
         staging_backup_path.rename(new_backup_path)
 
     report_backup_file_counts(action_counter)
+
+
+def backup_staging_folder(backup_location: Path) -> Path:
+    """Get the name of the staging folder for new backups."""
+    return backup_location/"Staging"
 
 
 def report_backup_file_counts(action_counter: Counter[str]) -> None:
@@ -1429,7 +1434,8 @@ def purge_path(purge_target: Path,
     """Purge a file/folder by deleting it from all backups."""
     relative_purge_target = path_relative_to_backups(purge_target, backup_folder)
 
-    potential_deletions = (backup/relative_purge_target for backup in all_backups(backup_folder))
+    backup_list = all_backups(backup_folder)
+    potential_deletions = (backup/relative_purge_target for backup in backup_list)
     paths_to_delete = list(filter(lambda p: p.exists(follow_symlinks=False), potential_deletions))
     if not paths_to_delete:
         logger.info(f"Could not find any backed up copies of {purge_target}")
@@ -1453,6 +1459,10 @@ def purge_path(purge_target: Path,
             action = delete_directory_tree if path_type == "Folder" else Path.unlink
             action(path)
 
+    last_backup = find_previous_backup(backup_folder)
+    if backup_list[-1] != last_backup or backup_staging_folder(backup_folder).exists():
+        logger.warning(f"A backup to {backup_folder} ran during purging. You may want to rerun the "
+                       "purge after the backup completes.")
     logger.info("If you want to prevent the purged item from being backed up in the future,")
     logger.info("consider adding the following line to a filter file:")
     filter_line = (relative_purge_target/"**" if is_real_directory(purge_target)
