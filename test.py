@@ -2515,14 +2515,14 @@ class ClassifyPathsTests(unittest.TestCase):
         """Test that classify_paths() returns 'Unknown' for non-existent files."""
         self.assertEqual(vintagebackup.classify_path(Path(random_string(50))), "Unknown")
 
+
+class ParseTimeSpanTests(unittest.TestCase):
+    """Tests for parse_time_span_to_time_point() function."""
+
     def test_parse_timespan_with_no_numeric_part_is_an_error(self) -> None:
         """Test that the lack of a number in the argument is an error."""
         with self.assertRaises(vintagebackup.CommandLineError):
             vintagebackup.parse_time_span_to_timepoint("y")
-
-
-class ParseTimeSpanTests(unittest.TestCase):
-    """Tests for parse_time_span_to_time_point() function."""
 
     def test_parse_timespan_with_no_time_unit_part_is_an_error(self) -> None:
         """Test that the lack of a unit in the argument is an error."""
