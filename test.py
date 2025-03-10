@@ -15,6 +15,7 @@ import random
 import string
 import platform
 from typing import cast
+import re
 
 testing_timestamp = datetime.datetime.now()
 
@@ -417,10 +418,11 @@ class BackupTest(unittest.TestCase):
             with self.assertLogs(level=logging.WARNING) as log_lines:
                 vintagebackup.main(arguments)
 
-            space_warning = ("WARNING:vintagebackup:"
-                             "The size of the last backup (50.01 MB) is "
-                             "larger than the --free-up parameter (1.000 B)")
-            self.assertEqual([space_warning], log_lines.output)
+            space_warning = re.compile(r"WARNING:vintagebackup:"
+                                       r"The size of the last backup \(50\.0. MB\) is "
+                                       r"larger than the --free-up parameter \(1\.000 B\)")
+            self.assertEqual(len(log_lines.output), 1)
+            self.assertTrue(space_warning.fullmatch(log_lines.output[0]))
 
     def test_no_warning_when_backup_is_smaller_than_free_up(self) -> None:
         """Test that a warning is not logged when a backup is smaller that the free-up argument."""
