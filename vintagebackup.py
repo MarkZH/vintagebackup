@@ -677,20 +677,33 @@ def recover_path(recovery_path: Path, backup_location: Path, choice: int | None 
             path_type = classify_path(backup_copy)
             menu_choices.append(f"{backup_date} ({path_type})")
         choice = choose_from_menu(menu_choices, "Version to recover")
-
     chosen_path = backup_choices[choice]
-    recovered_path = recovery_path
-    unique_id = 0
-    while recovered_path.exists(follow_symlinks=False):
-        unique_id += 1
-        new_file_name = f"{recovery_path.stem}.{unique_id}{recovery_path.suffix}"
-        recovered_path = recovery_path.parent/new_file_name
 
+    recovered_path = unique_path_name(recovery_path)
     logger.info(f"Copying {chosen_path} to {recovered_path}")
-    if chosen_path.is_symlink() or chosen_path.is_file():
-        shutil.copy2(chosen_path, recovered_path, follow_symlinks=False)
-    else:
+    if is_real_directory(chosen_path):
         shutil.copytree(chosen_path, recovered_path, symlinks=True)
+    else:
+        shutil.copy2(chosen_path, recovered_path, follow_symlinks=False)
+
+
+def unique_path_name(destination_path: Path) -> Path:
+    """
+    Create a unique name for a path if something already exists at that path.
+
+    If there is nothing at the destination path, it is returned unchanged. Otherwise, a number will
+    be inserted between the name and suffix (if any) to prevent clobbering any existing files or
+    folders.
+
+    :param destination_path: The path that will be modified if something already exists there.
+    """
+    unique_path = destination_path
+    unique_id = 0
+    while unique_path.exists(follow_symlinks=False):
+        unique_id += 1
+        new_path_name = f"{destination_path.stem}.{unique_id}{destination_path.suffix}"
+        unique_path = destination_path.parent/new_path_name
+    return unique_path
 
 
 def path_relative_to_backups(user_path: Path, backup_location: Path) -> Path:
