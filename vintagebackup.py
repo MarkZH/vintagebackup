@@ -432,10 +432,6 @@ def backup_directory(user_data_location: Path,
     :param action_counter: A counter to track how many files have been linked, copied, or failed for
     both
     """
-    if not is_real_directory(current_user_path):
-        logger.warning(f"Folder disappeared during backup: {current_user_path}")
-        return
-
     relative_path = current_user_path.relative_to(user_data_location)
     new_backup_directory = new_backup_path/relative_path
     new_backup_directory.mkdir(parents=True)
