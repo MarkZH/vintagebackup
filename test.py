@@ -1147,16 +1147,16 @@ class VerificationTest(unittest.TestCase):
                                                         "--log", os.devnull])
                         self.assertEqual(exit_code, 0)
 
-                    for file_name in os.listdir(verification_location):
-                        if " matching " in file_name:
-                            path_set = matching_path_set
-                        elif " mismatching " in file_name:
-                            path_set = mismatching_path_set
-                        elif " error " in file_name:
-                            path_set = error_path_set
-                        else:
-                            # Should be unreachable
-                            raise AssertionError
+                    verify_files = os.listdir(verification_location)
+                    verify_endings = {p.split(maxsplit=2)[2] for p in verify_files}
+                    expected_endings = {"matching files.txt",
+                                        "mismatching files.txt",
+                                        "error files.txt"}
+                    self.assertEqual(verify_endings, expected_endings)
+                    for file_name in verify_files:
+                        path_set = (matching_path_set if " matching " in file_name
+                                    else mismatching_path_set if " mismatching " in file_name
+                                    else error_path_set)
 
                         verify_file_path = verification_location/file_name
                         with open(verify_file_path) as verify_file:
