@@ -879,19 +879,28 @@ def parse_time_span_to_timepoint(time_span: str,
     elif letter == "w":
         return now - datetime.timedelta(weeks=number)
     elif letter == "m":
-        new_month = now.month - (number % 12)
-        new_year = now.year - (number // 12)
-        if new_month < 1:
-            new_month += 12
-            new_year -= 1
-
-        new_date = fix_end_of_month(new_year, new_month, now.day)
+        new_date = months_ago(now, number)
         return datetime.datetime.combine(new_date, now.time())
     elif letter == "y":
         new_date = fix_end_of_month(now.year - number, now.month, now.day)
         return datetime.datetime.combine(new_date, now.time())
     else:
         raise CommandLineError(f"Invalid time (valid units: {list("dwmy")}): {time_span}")
+
+
+def months_ago(now: datetime.datetime | datetime.date, month_count: int) -> datetime.date:
+    """
+    Return a date that is a number of calendar months ago.
+
+    The day of the month is not changed unless necessary to produce a valid date
+    (see fix_end_of_month()).
+    """
+    new_month = now.month - (month_count % 12)
+    new_year = now.year - (month_count // 12)
+    if new_month < 1:
+        new_month += 12
+        new_year -= 1
+    return fix_end_of_month(new_year, new_month, now.day)
 
 
 def fix_end_of_month(year: int, month: int, day: int) -> datetime.date:
