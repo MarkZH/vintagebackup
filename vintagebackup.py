@@ -1660,8 +1660,8 @@ more capabilities.
 
 Technical notes:
 
-- If a folder is completely empty, whether because it was already empty or everything inside was
-filtered out, it will not appear in the backup.
+- If a folder contains no files and none of its subfolders contain files, whether because there
+were none or all files were filtered out, it will not appear in the backup.
 
 - Symbolic links are not followed and are always copied as symbolic links. On Windows, symbolic
 links cannot be created or copied without elevated privileges, so they will be missing from
