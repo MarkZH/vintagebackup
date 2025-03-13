@@ -1581,14 +1581,17 @@ def start_backup(args: argparse.Namespace) -> None:
                           force_copy=toggle_is_set(args, "force_copy"),
                           copy_probability=copy_probability(args),
                           timestamp=args.timestamp)
+
         free_space_after_backup = shutil.disk_usage(backup_folder).free
         backup_space_taken = free_space_before_backup - free_space_after_backup
         free_up = parse_storage_space(args.free_up or "0")
+        logger.info("")
         if free_up > 0 and backup_space_taken > free_up:
             logger.warning(f"The size of the last backup ({byte_units(backup_space_taken)}) is "
                            f"larger than the --free-up parameter ({byte_units(free_up)})")
         else:
             logger.info(f"Backup space used: {byte_units(backup_space_taken)}")
+
         delete_old_backups(args)
 
 
