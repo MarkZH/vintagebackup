@@ -780,7 +780,7 @@ def delete_directory_tree(backup_path: Path) -> None:
 
 def delete_oldest_backups_for_space(backup_location: Path,
                                     space_requirement: str | None,
-                                    min_backups_remaining: int | None = None) -> None:
+                                    min_backups_remaining: int = 1) -> None:
     """
     Delete backups--starting with the oldest--until enough space is free on the backup destination.
 
@@ -931,7 +931,7 @@ def fix_end_of_month(year: int, month: int, day: int) -> datetime.date:
 
 def delete_backups_older_than(backup_folder: Path,
                               time_span: str | None,
-                              min_backups_remaining: int | None = None) -> None:
+                              min_backups_remaining: int = 1) -> None:
     """
     Delete backups older than a given timespan.
 
@@ -963,7 +963,7 @@ def delete_backups_older_than(backup_folder: Path,
 
 
 def delete_backups(backup_folder: Path,
-                   min_backups_remaining: int | None,
+                   min_backups_remaining: int,
                    first_deletion_message: str,
                    stop_deletion_condition: Callable[[Path], bool]) -> None:
     """
@@ -976,7 +976,7 @@ def delete_backups(backup_folder: Path,
     deletions will take place.
     :param stop_deletion_condition: A function that, if it returns True, stops deletions.
     """
-    min_backups_remaining = max(1, min_backups_remaining or 1)
+    min_backups_remaining = max(1, min_backups_remaining)
 
     backups_to_delete = all_backups(backup_folder)[:-min_backups_remaining]
     for deletion_count, backup in enumerate(backups_to_delete, 1):
@@ -1632,8 +1632,8 @@ def delete_old_backups(args: argparse.Namespace) -> None:
     """Delete the oldest backups by various criteria in the command line options."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     backup_count = len(all_backups(backup_folder))
-    max_deletions = None if args.max_deletions is None else int(args.max_deletions)
-    min_backups_remaining = None if max_deletions is None else max(backup_count - max_deletions, 1)
+    max_deletions = int(args.max_deletions or backup_count)
+    min_backups_remaining = max(backup_count - max_deletions, 1)
     delete_oldest_backups_for_space(backup_folder, args.free_up, min_backups_remaining)
     delete_backups_older_than(backup_folder, args.delete_after, min_backups_remaining)
     print_backup_storage_stats(backup_folder)
