@@ -38,7 +38,7 @@ class Backup_Lock:
 
     This class should be used as a context manager like so:
     ```
-    with Lock_File(backup_path):
+    with Lock_File(backup_path, "backup"):
         # Code that uses backup path
     ```
     """
@@ -53,8 +53,7 @@ class Backup_Lock:
         """
         Attempt to take possession of the file lock.
 
-        If unsuccessful, wait or fail out according to the --wait choice. Failure is indicated by a
-        ConcurrencyError exception.
+        If unsuccessful, a ConcurrencyError is raised.
         """
         while not self.acquire_lock():
             try:
