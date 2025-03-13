@@ -787,9 +787,10 @@ def delete_oldest_backups_for_space(backup_location: Path,
     The most recent backup will never be deleted.
 
     :param backup_location: The folder containing all backups
-    :param space_requirement: The amount of space that should be free after deleting backups. This
-    may be expressed in bytes with a unit ("MB", "GB", etc.) or as a percentage ("%") of the total
-    storage space.
+    :param space_requirement: How much space should be free after deleting backups. This is
+    expressed in bytes with a unit ("MB", etc.) or as a percentage ("%") of the total storage space.
+    :param min_backups_remaining: The minimum number of backups remaining after deletions. The most
+    recent backup will never be deleted, so the minimum meaningful value is one.
     """
     if not space_requirement:
         return
@@ -937,6 +938,8 @@ def delete_backups_older_than(backup_folder: Path,
     :param backup_folder: The folder containing all backups
     :param time_span: The maximum age of a backup to not be deleted. See
     parse_time_span_to_timepoint() for how the string is formatted.
+    :param min_backups_remaining: The minimum number of backups remaining after deletions. The most
+    recent backup will never be deleted, so the minimum meaningful value is one.
     """
     if not time_span:
         return
