@@ -437,6 +437,7 @@ class BackupTest(unittest.TestCase):
                 vintagebackup.main(arguments)
             expected_message = re.compile(r"INFO:vintagebackup:Backup space used: 50\.0. MB")
             self.assertTrue(any(expected_message.fullmatch(line) for line in logs.output))
+            self.assertFalse(any(line.startswith("WARNING:") for line in logs.output))
 
 
 class FilterTest(unittest.TestCase):
