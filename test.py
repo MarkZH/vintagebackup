@@ -424,7 +424,7 @@ class BackupTest(unittest.TestCase):
             self.assertEqual(len(log_lines.output), 1)
             self.assertTrue(space_warning.fullmatch(log_lines.output[0]))
 
-    def test_no_warning_when_backup_is_smaller_than_free_up(self) -> None:
+    def test_info_when_backup_is_smaller_than_free_up(self) -> None:
         """Test that a warning is not logged when a backup is smaller that the free-up argument."""
         with (tempfile.TemporaryDirectory() as user_folder,
               tempfile.TemporaryDirectory() as backup_folder):
@@ -433,8 +433,10 @@ class BackupTest(unittest.TestCase):
                          "--backup-folder", backup_folder,
                          "--free-up", "100 MB",
                          "--log", os.devnull]
-            with self.assertNoLogs(level=logging.WARNING):
+            with self.assertLogs(level=logging.INFO) as logs:
                 vintagebackup.main(arguments)
+            expected_message = re.compile(r"INFO:vintagebackup:Backup space used: 50\.0. MB")
+            self.assertTrue(any(expected_message.fullmatch(line) for line in logs.output))
 
 
 class FilterTest(unittest.TestCase):

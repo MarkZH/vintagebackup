@@ -1587,6 +1587,8 @@ def start_backup(args: argparse.Namespace) -> None:
         if free_up > 0 and backup_space_taken > free_up:
             logger.warning(f"The size of the last backup ({byte_units(backup_space_taken)}) is "
                            f"larger than the --free-up parameter ({byte_units(free_up)})")
+        else:
+            logger.info(f"Backup space used: {byte_units(backup_space_taken)}")
         delete_old_backups(args)
 
 
