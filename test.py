@@ -1925,6 +1925,31 @@ class AtomicBackupTests(unittest.TestCase):
                                             timestamp=unique_timestamp())
             self.assertFalse(staging_path.exists())
 
+    def test_staging_folder_deleted_by_new_backup(self) -> None:
+        """Test that a backup process deletes a staging folder should it already exist."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+            backup_path = Path(backup_folder)
+            staging_path = backup_path/"Staging"
+            staging_path.mkdir()
+            (staging_path/"leftover_file.txt").write_text("Leftover from last backup\n")
+            with self.assertLogs(level=logging.INFO) as logs:
+                vintagebackup.create_new_backup(user_path,
+                                                backup_path,
+                                                filter_file=None,
+                                                examine_whole_file=False,
+                                                force_copy=False,
+                                                copy_probability=0.0,
+                                                timestamp=unique_timestamp())
+            self.assertFalse(staging_path.exists())
+            staging_message = ("INFO:vintagebackup:There is a staging folder "
+                               "leftover from previous incomplete backup.")
+            self.assertIn(staging_message, logs.output)
+            deletion_message = f"INFO:vintagebackup:Deleting {staging_path} ..."
+            self.assertIn(deletion_message, logs.output)
+
 
 class PurgeTests(unittest.TestCase):
     """Tests for purging files and folders from backups."""
