@@ -416,7 +416,8 @@ class BackupTest(unittest.TestCase):
                          "--log", os.devnull]
 
             with self.assertLogs(level=logging.WARNING) as log_lines:
-                vintagebackup.main(arguments)
+                exit_code = vintagebackup.main(arguments)
+            self.assertEqual(exit_code, 0)
 
             space_warning = re.compile(r"WARNING:vintagebackup:"
                                        r"The size of the last backup \(50\.0. MB\) is "
@@ -434,7 +435,8 @@ class BackupTest(unittest.TestCase):
                          "--free-up", "100 MB",
                          "--log", os.devnull]
             with self.assertLogs(level=logging.INFO) as logs:
-                vintagebackup.main(arguments)
+                exit_code = vintagebackup.main(arguments)
+            self.assertEqual(exit_code, 0)
             expected_message = re.compile(r"INFO:vintagebackup:Backup space used: 50\.0. MB")
             self.assertTrue(any(expected_message.fullmatch(line) for line in logs.output))
             self.assertFalse(any(line.startswith("WARNING:") for line in logs.output))
@@ -951,7 +953,8 @@ class DeleteBackupTest(unittest.TestCase):
                          "--delete-after", f"{oldest_backup_age.days}d",
                          "--delete-only",
                          "--log", os.devnull]
-            vintagebackup.main(arguments)
+            exit_code = vintagebackup.main(arguments)
+            self.assertEqual(exit_code, 0)
             backups = vintagebackup.all_backups(backup_path)
             self.assertEqual(len(backups), 4)  # 120 days = 4 months
             now = datetime.datetime.now()
@@ -1697,15 +1700,16 @@ class RestorationTest(unittest.TestCase):
                                             copy_probability=0.0,
                                             timestamp=unique_timestamp())
             with self.assertLogs(level=logging.INFO) as bad_prompt_log:
-                vintagebackup.main(["--restore",
-                                    "--user-folder", user_folder,
-                                    "--backup-folder", backup_folder,
-                                    "--choose-backup",
-                                    "--delete-extra",
-                                    "--log", os.devnull,
-                                    "--skip-prompt",
-                                    "--bad-input",
-                                    "--choice", "0"])
+                exit_code = vintagebackup.main(["--restore",
+                                                "--user-folder", user_folder,
+                                                "--backup-folder", backup_folder,
+                                                "--choose-backup",
+                                                "--delete-extra",
+                                                "--log", os.devnull,
+                                                "--skip-prompt",
+                                                "--bad-input",
+                                                "--choice", "0"])
+            self.assertEqual(exit_code, 0)
             rejection_line = ('INFO:vintagebackup:The response was "no" and not "yes", so the '
                               'restoration is cancelled.')
             self.assertIn(rejection_line, bad_prompt_log.output)
@@ -1770,9 +1774,11 @@ class CopyProbabilityTest(unittest.TestCase):
                          "--log", os.devnull,
                          "--timestamp",
                          unique_timestamp().strftime(vintagebackup.backup_date_format)]
-            vintagebackup.main(arguments)
+            exit_code = vintagebackup.main(arguments)
+            self.assertEqual(exit_code, 0)
             arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
-            vintagebackup.main(arguments)
+            exit_code = vintagebackup.main(arguments)
+            self.assertEqual(exit_code, 0)
 
             all_backups = vintagebackup.all_backups(backup_path)
             self.assertEqual(len(all_backups), 2)
@@ -1789,13 +1795,15 @@ class CopyProbabilityTest(unittest.TestCase):
                          "--log", os.devnull,
                          "--hard-link-count", "Z"]
             with self.assertLogs(level=logging.ERROR) as error_log:
-                vintagebackup.main(arguments)
+                exit_code = vintagebackup.main(arguments)
+            self.assertEqual(exit_code, 1)
             self.assertEqual(error_log.output,
                              ["ERROR:vintagebackup:Invalid value for hard link count: Z"])
 
             arguments[-1] = "0"
             with self.assertLogs(level=logging.ERROR) as error_log:
-                vintagebackup.main(arguments)
+                exit_code = vintagebackup.main(arguments)
+            self.assertEqual(exit_code, 1)
             self.assertEqual(error_log.output,
                              ["ERROR:vintagebackup:Hard link count must be a positive whole number."
                               " Got: 0"])
@@ -1832,9 +1840,11 @@ class CopyProbabilityTest(unittest.TestCase):
                          "--log", os.devnull,
                          "--timestamp",
                          unique_timestamp().strftime(vintagebackup.backup_date_format)]
-            vintagebackup.main(arguments)
+            exit_code = vintagebackup.main(arguments)
+            self.assertEqual(exit_code, 0)
             arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
-            vintagebackup.main(arguments)
+            exit_code = vintagebackup.main(arguments)
+            self.assertEqual(exit_code, 0)
 
             all_backups = vintagebackup.all_backups(backup_path)
             self.assertEqual(len(all_backups), 2)
@@ -1852,9 +1862,11 @@ class CopyProbabilityTest(unittest.TestCase):
                          "--log", os.devnull,
                          "--timestamp",
                          unique_timestamp().strftime(vintagebackup.backup_date_format)]
-            vintagebackup.main(arguments)
+            exit_code = vintagebackup.main(arguments)
+            self.assertEqual(exit_code, 0)
             arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
-            vintagebackup.main(arguments)
+            exit_code = vintagebackup.main(arguments)
+            self.assertEqual(exit_code, 0)
 
             all_backups = vintagebackup.all_backups(backup_path)
             self.assertEqual(len(all_backups), 2)
@@ -1873,9 +1885,11 @@ class CopyProbabilityTest(unittest.TestCase):
                          "--log", os.devnull,
                          "--timestamp",
                          unique_timestamp().strftime(vintagebackup.backup_date_format)]
-            vintagebackup.main(arguments)
+            exit_code = vintagebackup.main(arguments)
+            self.assertEqual(exit_code, 0)
             arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
-            vintagebackup.main(arguments)
+            exit_code = vintagebackup.main(arguments)
+            self.assertEqual(exit_code, 0)
 
             all_backups = vintagebackup.all_backups(backup_path)
             self.assertEqual(len(all_backups), 2)
@@ -1894,9 +1908,11 @@ class CopyProbabilityTest(unittest.TestCase):
                          "--log", os.devnull,
                          "--timestamp",
                          unique_timestamp().strftime(vintagebackup.backup_date_format)]
-            vintagebackup.main(arguments)
+            exit_code = vintagebackup.main(arguments)
+            self.assertEqual(exit_code, 0)
             arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
-            vintagebackup.main(arguments)
+            exit_code = vintagebackup.main(arguments)
+            self.assertEqual(exit_code, 0)
 
             all_backups = vintagebackup.all_backups(backup_path)
             self.assertEqual(len(all_backups), 2)
