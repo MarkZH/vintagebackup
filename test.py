@@ -1282,16 +1282,19 @@ Debug:""")
             config_file.write(r"""
 whole file:
 Debug:
+delete first:
 force copy:
 """)
             config_file.close()
             command_line_options = ["-c", config_file.name,
                                     "--no-whole-file",
                                     "--no-debug",
+                                    "--no-delete-first",
                                     "--no-force-copy"]
             options = vintagebackup.parse_command_line(command_line_options)
             self.assertFalse(vintagebackup.toggle_is_set(options, "whole_file"))
             self.assertFalse(vintagebackup.toggle_is_set(options, "debug"))
+            self.assertFalse(vintagebackup.toggle_is_set(options, "delete_first"))
             self.assertFalse(vintagebackup.toggle_is_set(options, "force_copy"))
 
     def test_recursive_config_files_are_not_allowed(self) -> None:

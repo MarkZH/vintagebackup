@@ -1850,6 +1850,8 @@ to starting a new backup.
 
 The most recent backup will never be deleted."""))
 
+    add_no_option(backup_group, "delete-first")
+
     backup_group.add_argument("--force-copy", action="store_true", help=format_help("""
 Copy all files instead of linking to files previous backups. The
 new backup will contain new copies of all of the user's files,
@@ -2033,7 +2035,7 @@ def main(argv: list[str]) -> int:
                   else start_backup_purge if args.purge
                   else choose_purge_target_from_backups if args.purge_list
                   else delete_old_backups if args.delete_only
-                  else delete_before_backup if args.delete_first
+                  else delete_before_backup if toggle_is_set(args, "delete_first")
                   else start_backup)
         action(args)
         return 0
