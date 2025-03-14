@@ -1643,6 +1643,12 @@ def delete_old_backups(args: argparse.Namespace) -> None:
     print_backup_storage_stats(backup_folder)
 
 
+def delete_before_backup(args: argparse.Namespace) -> None:
+    """Delete old backups before running a backup process."""
+    delete_old_backups(args)
+    start_backup(args)
+
+
 def argument_parser() -> argparse.ArgumentParser:
     """Create the parser for command line arguments."""
     user_input = argparse.ArgumentParser(add_help=False,
@@ -1838,6 +1844,12 @@ The most recent backup will not be deleted."""))
     backup_group.add_argument("--max-deletions", help=format_help("""
 Specify the maximum number of deletions per program run."""))
 
+    backup_group.add_argument("--delete-first", action="store_true", help=format_help("""
+Delete old backups (according to --free-up, --delete-after, and --max-deletions) to make room prior
+to starting a new backup.
+
+The most recent backup will never be deleted."""))
+
     backup_group.add_argument("--force-copy", action="store_true", help=format_help("""
 Copy all files instead of linking to files previous backups. The
 new backup will contain new copies of all of the user's files,
@@ -2021,6 +2033,7 @@ def main(argv: list[str]) -> int:
                   else start_backup_purge if args.purge
                   else choose_purge_target_from_backups if args.purge_list
                   else delete_old_backups if args.delete_only
+                  else delete_before_backup if args.delete_first
                   else start_backup)
         action(args)
         return 0

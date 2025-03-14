@@ -961,6 +961,48 @@ class DeleteBackupTest(unittest.TestCase):
             earliest_backup_timestamp = vintagebackup.backup_datetime(backups[0])
             self.assertLessEqual(now - earliest_backup_timestamp, oldest_backup_age)
 
+    def test_delete_first_deletes_backups_before_backing_up(self) -> None:
+        """Test that --delete-first deletes backups before creating a new backup."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            backup_path = Path(backup_folder)
+            initial_backups = 20
+            create_old_backups(backup_path, initial_backups)
+            user_path = Path(user_folder)
+            create_user_data(user_path)
+            arguments = ["--user-folder", user_folder,
+                         "--backup-folder", backup_folder,
+                         "--delete-after", "1y",
+                         "--delete-first",
+                         "--log", os.devnull,
+                         "--timestamp",
+                         unique_timestamp().strftime(vintagebackup.backup_date_format)]
+            backups_in_year = 12
+            expected_deletions_before_backup = initial_backups - backups_in_year
+            expected_backup_count_before_backup = initial_backups - expected_deletions_before_backup
+            with self.assertLogs(level=logging.INFO) as logs:
+                exit_code = vintagebackup.main(arguments)
+            self.assertEqual(exit_code, 0)
+            backups_remaining = vintagebackup.all_backups(backup_path)
+            expected_backups_left = expected_backup_count_before_backup + 1
+            self.assertEqual(len(backups_remaining), expected_backups_left)
+            backup_log_line = "INFO:vintagebackup: Starting new backup"
+            self.assertIn(backup_log_line, logs.output)
+            backup_start_index = logs.output.index(backup_log_line)
+            deletion_log_prefix = "INFO:vintagebackup:Deleting oldest backup:"
+
+            deletions_before_backup = 0
+            for log_line in logs.output[:backup_start_index]:
+                if log_line.startswith(deletion_log_prefix):
+                    deletions_before_backup += 1
+            self.assertEqual(deletions_before_backup, expected_deletions_before_backup)
+
+            deletions_after_backup = 0
+            for log_line in logs.output[backup_start_index:]:
+                if log_line.startswith(deletion_log_prefix):
+                    deletions_after_backup += 1
+            self.assertEqual(deletions_after_backup, 0)
+
 
 class MoveBackupsTest(unittest.TestCase):
     """Test moving backup sets to a different location."""
