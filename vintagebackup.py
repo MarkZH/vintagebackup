@@ -1822,7 +1822,7 @@ will be deleted until at least that much space is free.
 
 This can be used at the same time as --delete-after.
 
-No matter what, the most recent backup will not be deleted."""))
+The most recent backup will not be deleted."""))
 
     backup_group.add_argument("--delete-after", metavar="TIME", help=format_help("""
 After a successful backup, delete backups if they are older than the time span in the argument.
@@ -1833,7 +1833,7 @@ and letter.
 
 This can be used at the same time as --free-up.
 
-No matter what, the most recent backup will not be deleted."""))
+The most recent backup will not be deleted."""))
 
     backup_group.add_argument("--max-deletions", help=format_help("""
 Specify the maximum number of deletions per program run."""))
