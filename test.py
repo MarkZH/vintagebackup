@@ -41,18 +41,19 @@ def create_user_data(base_directory: Path) -> None:
     :param base_directory: The directory into which all created files and folders go.
     """
     root_file = base_directory/"root_file.txt"
-    root_file.write_text("File at root of user folder.\n")
+    root_file.write_text("File at root of user folder.\n", encoding="utf8")
     for sub_num in range(3):
         subfolder = base_directory/f"sub_directory_{sub_num}"
         subfolder.mkdir()
         subfile = subfolder/"sub_root_file.txt"
-        subfile.write_text(f"File in subfolder {sub_num}.\n")
+        subfile.write_text(f"File in subfolder {sub_num}.\n", encoding="utf8")
         for sub_sub_num in range(3):
             subsubfolder = subfolder/f"sub_sub_directory_{sub_sub_num}"
             subsubfolder.mkdir()
             for file_num in range(3):
                 file_path = subsubfolder/f"file_{file_num}.txt"
-                file_path.write_text(f"File contents: {sub_num}/{sub_sub_num}/{file_num}\n")
+                file_path.write_text(
+                    f"File contents: {sub_num}/{sub_sub_num}/{file_num}\n", encoding="utf8")
 
 
 def create_old_backups(backup_base_directory: Path, count: int) -> None:
@@ -340,7 +341,7 @@ class BackupTest(unittest.TestCase):
                 timestamp=unique_timestamp())
 
             changed_file_name = user_data/"sub_directory_2"/"sub_sub_directory_0"/"file_1.txt"
-            with open(changed_file_name, "a") as changed_file:
+            with open(changed_file_name, "a", encoding="utf8") as changed_file:
                 changed_file.write("the change\n")
 
             vintagebackup.create_new_backup(
@@ -467,7 +468,10 @@ class FilterTest(unittest.TestCase):
         for method in Invocation:
             with (tempfile.TemporaryDirectory() as user_data_location,
                   tempfile.TemporaryDirectory() as backup_folder,
-                  tempfile.NamedTemporaryFile("w+", delete_on_close=False) as filter_file):
+                  tempfile.NamedTemporaryFile(
+                      "w+",
+                      encoding="utf8",
+                      delete_on_close=False) as filter_file):
 
                 user_data = Path(user_data_location)
                 create_user_data(user_data)
@@ -507,7 +511,10 @@ class FilterTest(unittest.TestCase):
         for method in Invocation:
             with (tempfile.TemporaryDirectory() as user_data_location,
                   tempfile.TemporaryDirectory() as backup_folder,
-                  tempfile.NamedTemporaryFile("w+", delete_on_close=False) as filter_file):
+                  tempfile.NamedTemporaryFile(
+                      "w+",
+                      encoding="utf8",
+                      delete_on_close=False) as filter_file):
 
                 user_data = Path(user_data_location)
                 create_user_data(user_data)
@@ -542,7 +549,10 @@ class FilterTest(unittest.TestCase):
         """Test that filter files with inclusions and exclusions work properly."""
         with (tempfile.TemporaryDirectory() as user_data_location,
               tempfile.TemporaryDirectory() as backup_folder,
-              tempfile.NamedTemporaryFile("w+", delete_on_close=False) as filter_file):
+              tempfile.NamedTemporaryFile(
+                  "w+",
+                  encoding="utf8",
+                  delete_on_close=False) as filter_file):
 
             user_data = Path(user_data_location)
             create_user_data(user_data)
@@ -584,7 +594,10 @@ class FilterTest(unittest.TestCase):
     def test_filter_lines_that_have_no_effect_are_logged(self) -> None:
         """Test that filter lines with no effect on the backup files are detected."""
         with (tempfile.TemporaryDirectory() as user_data_location,
-              tempfile.NamedTemporaryFile("w+", delete_on_close=False) as filter_file):
+              tempfile.NamedTemporaryFile(
+                  "w+",
+                  encoding="utf8",
+                  delete_on_close=False) as filter_file):
             user_path = Path(user_data_location)
             create_user_data(user_path)
 
@@ -616,7 +629,10 @@ class FilterTest(unittest.TestCase):
 
     def test_invalid_filter_symbol_raises_exception(self) -> None:
         """Test that a filter symbol not in "+-#" raises an exceptions."""
-        with tempfile.NamedTemporaryFile("w", delete_on_close=False) as filter_file:
+        with tempfile.NamedTemporaryFile(
+                "w",
+                encoding="utf8",
+                delete_on_close=False) as filter_file:
             filter_file.write("* invalid_sign\n")
             filter_file.close()
             with self.assertRaises(ValueError) as error:
@@ -629,7 +645,10 @@ class FilterTest(unittest.TestCase):
             user_path = Path(user_folder)
             create_user_data(user_path)
 
-            with tempfile.NamedTemporaryFile("w", delete_on_close=False) as filter_file:
+            with tempfile.NamedTemporaryFile(
+                    "w",
+                    encoding="utf8",
+                    delete_on_close=False) as filter_file:
                 filter_file.write("- /other_place/sub_directory_0")
                 filter_file.close()
                 with self.assertRaises(ValueError) as error:
@@ -749,7 +768,7 @@ def create_large_files(base_folder: Path, file_size: int) -> None:
     data = "A"*file_size
     for directory_name, sub_directory_names, _ in base_folder.walk():
         if not sub_directory_names:
-            (Path(directory_name)/"file.txt").write_text(data)
+            (Path(directory_name)/"file.txt").write_text(data, encoding="utf8")
 
 
 class DeleteBackupTest(unittest.TestCase):
@@ -1205,7 +1224,7 @@ class VerificationTest(unittest.TestCase):
                 timestamp=unique_timestamp())
 
             mismatch_file = Path("sub_directory_1")/"sub_sub_directory_2"/"file_0.txt"
-            with open(user_location/mismatch_file, "a") as file:
+            with open(user_location/mismatch_file, "a", encoding="utf8") as file:
                 file.write("\naddition\n")
 
             error_file = Path("sub_directory_2")/"sub_sub_directory_0"/"file_1.txt"
@@ -1258,7 +1277,7 @@ class VerificationTest(unittest.TestCase):
                             else error_path_set)
 
                         verify_file_path = verification_location/file_name
-                        with open(verify_file_path) as verify_file:
+                        with open(verify_file_path, encoding="utf8") as verify_file:
                             verify_file.readline()
                             files_from_verify = {Path(line.strip("\n")) for line in verify_file}
 
@@ -1277,7 +1296,10 @@ class ConfigurationFileTest(unittest.TestCase):
         2. Spacing
         3. Parameters spelled with dashes (as on command line) or spaces
         """
-        with tempfile.NamedTemporaryFile("w+", delete_on_close=False) as config_file:
+        with tempfile.NamedTemporaryFile(
+                "w+",
+                encoding="utf8",
+                delete_on_close=False) as config_file:
             user_folder = r"C:\Files"
             backup_folder = r"D:\Backup"
             filter_file = "filter_file.txt"
@@ -1307,7 +1329,10 @@ backup folder:   {backup_folder}
 
     def test_command_line_options_override_config_file_options(self) -> None:
         """Test that command line options override file configurations and leave others alone."""
-        with tempfile.NamedTemporaryFile("w+", delete_on_close=False) as config_file:
+        with tempfile.NamedTemporaryFile(
+                "w+",
+                encoding="utf8",
+                delete_on_close=False) as config_file:
             user_folder = r"C:\Users\Test User"
             config_file.write(rf"""
 User Folder : {user_folder}
@@ -1332,7 +1357,10 @@ Debug:""")
 
     def test_negating_command_line_parameters_override_config_file(self) -> None:
         """Test that command line options like --no-X override file configurations."""
-        with tempfile.NamedTemporaryFile("w+", delete_on_close=False) as config_file:
+        with tempfile.NamedTemporaryFile(
+                "w+",
+                encoding="utf8",
+                delete_on_close=False) as config_file:
             config_file.write(r"""
 whole file:
 Debug:
@@ -1354,7 +1382,10 @@ force copy:
 
     def test_recursive_config_files_are_not_allowed(self) -> None:
         """Test that putting a config parameter in a configuration file raises an exception."""
-        with tempfile.NamedTemporaryFile("w+", delete_on_close=False) as config_file:
+        with tempfile.NamedTemporaryFile(
+                "w+",
+                encoding="utf8",
+                delete_on_close=False) as config_file:
             config_file.write("config: config_file_2.txt")
             config_file.close()
             with self.assertRaises(vintagebackup.CommandLineError):
@@ -1462,8 +1493,7 @@ class ErrorTest(unittest.TestCase):
             user_path = Path(user_folder)
             create_user_data(user_path)
             filter_path = Path(filter_file_name.name)
-            with filter_path.open("w") as filter_file:
-                filter_file.write("- **/*.txt\n")
+            filter_path.write_text("- **/*.txt\n", encoding="utf8")
             filter_file_name.close()
             backup_path = Path(backup_folder)
 
@@ -1502,7 +1532,7 @@ class RestorationTest(unittest.TestCase):
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
 
             first_extra_file = user_path/"extra_file1.txt"
-            first_extra_file.write_text("extra 1\n")
+            first_extra_file.write_text("extra 1\n", encoding="utf8")
 
             vintagebackup.create_new_backup(
                 user_path,
@@ -1515,7 +1545,7 @@ class RestorationTest(unittest.TestCase):
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
 
             second_extra_file = user_path/"extra_file2.txt"
-            second_extra_file.write_text("extra 2\n")
+            second_extra_file.write_text("extra 2\n", encoding="utf8")
 
             exit_code = vintagebackup.main([
                 "--restore",
@@ -1552,7 +1582,7 @@ class RestorationTest(unittest.TestCase):
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
 
             first_extra_file = user_path/"extra_file1.txt"
-            first_extra_file.write_text("extra 1\n")
+            first_extra_file.write_text("extra 1\n", encoding="utf8")
 
             vintagebackup.create_new_backup(
                 user_path,
@@ -1565,7 +1595,7 @@ class RestorationTest(unittest.TestCase):
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
 
             second_extra_file = user_path/"extra_file2.txt"
-            second_extra_file.write_text("extra 2\n")
+            second_extra_file.write_text("extra 2\n", encoding="utf8")
 
             exit_code = vintagebackup.main([
                 "--restore",
@@ -1603,7 +1633,7 @@ class RestorationTest(unittest.TestCase):
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
 
             first_extra_file = user_path/"extra_file1.txt"
-            first_extra_file.write_text("extra 1\n")
+            first_extra_file.write_text("extra 1\n", encoding="utf8")
 
             vintagebackup.create_new_backup(
                 user_path,
@@ -1616,7 +1646,7 @@ class RestorationTest(unittest.TestCase):
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
 
             second_extra_file = user_path/"extra_file2.txt"
-            second_extra_file.write_text("extra 2\n")
+            second_extra_file.write_text("extra 2\n", encoding="utf8")
 
             choice = 0
             exit_code = vintagebackup.main([
@@ -1653,7 +1683,7 @@ class RestorationTest(unittest.TestCase):
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
 
             first_extra_file = user_path/"extra_file1.txt"
-            first_extra_file.write_text("extra 1\n")
+            first_extra_file.write_text("extra 1\n", encoding="utf8")
 
             vintagebackup.create_new_backup(
                 user_path,
@@ -1666,7 +1696,7 @@ class RestorationTest(unittest.TestCase):
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
 
             second_extra_file = user_path/"extra_file2.txt"
-            second_extra_file.write_text("extra 2\n")
+            second_extra_file.write_text("extra 2\n", encoding="utf8")
 
             choice = 0
             exit_code = vintagebackup.main([
@@ -1739,8 +1769,7 @@ class RestorationTest(unittest.TestCase):
 
             destination_path = Path(destination_folder)
             extra_file = destination_path/"extra_file1.txt"
-            with extra_file.open("w") as file1:
-                file1.write("extra 1\n")
+            extra_file.write_text("extra 1\n", encoding="utf8")
 
             exit_code = vintagebackup.main([
                 "--restore",
@@ -2088,7 +2117,8 @@ class AtomicBackupTests(unittest.TestCase):
             backup_path = Path(backup_folder)
             staging_path = backup_path/"Staging"
             staging_path.mkdir()
-            (staging_path/"leftover_file.txt").write_text("Leftover from last backup\n")
+            (staging_path/"leftover_file.txt").write_text(
+                "Leftover from last backup\n", encoding="utf8")
             with self.assertLogs(level=logging.INFO) as logs:
                 vintagebackup.create_new_backup(
                     user_path,
