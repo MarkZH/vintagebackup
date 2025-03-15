@@ -1106,6 +1106,9 @@ def verify_last_backup(
         for file in (matching_file, mismatching_file, error_file):
             file.write(f"Comparison: {user_folder} <---> {backup_folder}\n")
 
+        def file_name_line_writer(relative_directory: Path) -> Callable[[str], str]:
+            return lambda file_name: f"{relative_directory/file_name}\n"
+
         for directory, file_names in Backup_Set(user_folder, filter_file):
             relative_directory = directory.relative_to(user_folder)
             backup_directory = last_backup_folder/relative_directory
@@ -1115,13 +1118,10 @@ def verify_last_backup(
                 file_names,
                 shallow=False)
 
-            def file_name_line(file_name: str) -> str:
-                """Create a relative path for recording to a file."""
-                return f"{relative_directory/file_name}\n"
-
-            matching_file.writelines(map(file_name_line, matches))
-            mismatching_file.writelines(map(file_name_line, mismatches))
-            error_file.writelines(map(file_name_line, errors))
+            stringifier = file_name_line_writer(relative_directory)
+            matching_file.writelines(map(stringifier, matches))
+            mismatching_file.writelines(map(stringifier, mismatches))
+            error_file.writelines(map(stringifier, errors))
 
 
 def restore_backup(
