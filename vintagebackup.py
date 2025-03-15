@@ -242,15 +242,13 @@ def record_user_location(user_location: Path, backup_location: Path) -> None:
     user_folder_record = get_user_location_record(backup_location)
     resolved_user_location = absolute_path(user_location, strict=True)
     logger.debug(f"Writing {resolved_user_location} to {user_folder_record}")
-    with user_folder_record.open("w") as user_record:
-        user_record.write(str(resolved_user_location) + "\n")
+    user_folder_record.write_text(str(resolved_user_location), encoding="utf8")
 
 
 def backup_source(backup_location: Path) -> Path:
     """Read the user directory that was backed up to the given backup location."""
     user_folder_record = get_user_location_record(backup_location)
-    with user_folder_record.open() as user_record:
-        return absolute_path(user_record.readline().rstrip("\n"))
+    return absolute_path(user_folder_record.read_text(encoding="utf8"))
 
 
 def confirm_user_location_is_unchanged(user_data_location: Path, backup_location: Path) -> None:
