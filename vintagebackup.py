@@ -209,19 +209,18 @@ class Backup_Set:
         is_included = not path.is_junction()
         for line_number, sign, pattern in self.entries:
             should_include = (sign == "+")
-            if is_included == should_include:
+            if is_included == should_include or not path.full_match(pattern):
                 continue
 
-            if path.full_match(pattern):
-                self.lines_used.add(line_number)
-                is_included = should_include
-                logger.debug(
-                    "File: %s %s by line %d: %s %s",
-                    path,
-                    "included" if is_included else "excluded",
-                    line_number,
-                    sign,
-                    pattern)
+            self.lines_used.add(line_number)
+            is_included = should_include
+            logger.debug(
+                "File: %s %s by line %d: %s %s",
+                path,
+                "included" if is_included else "excluded",
+                line_number,
+                sign,
+                pattern)
 
         return is_included
 
