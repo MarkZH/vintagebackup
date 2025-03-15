@@ -84,8 +84,7 @@ def directory_contents(base_directory: Path) -> set[Path]:
     return paths
 
 
-def all_files_have_same_content(standard_directory: Path,
-                                test_directory: Path) -> bool:
+def all_files_have_same_content(standard_directory: Path, test_directory: Path) -> bool:
     """
     Test that every file in the standard directory exists also in the test directory.
 
@@ -99,10 +98,11 @@ def all_files_have_same_content(standard_directory: Path,
     for directory_name_1, _, file_names in standard_directory.walk():
         directory_1 = Path(directory_name_1)
         directory_2 = test_directory/(directory_1.relative_to(standard_directory))
-        _, mismatches, errors = filecmp.cmpfiles(directory_1,
-                                                 directory_2,
-                                                 file_names,
-                                                 shallow=False)
+        _, mismatches, errors = filecmp.cmpfiles(
+            directory_1,
+            directory_2,
+            file_names,
+            shallow=False)
         if mismatches or errors:
             return False
     return True
@@ -160,28 +160,31 @@ class Invocation(enum.StrEnum):
     cli = enum.auto()
 
 
-def run_backup(run_method: Invocation,
-               user_data: Path,
-               backup_location: Path,
-               filter_file: Path | None,
-               examine_whole_file: bool,
-               force_copy: bool,
-               timestamp: datetime.datetime) -> int:
+def run_backup(
+        run_method: Invocation,
+        user_data: Path,
+        backup_location: Path,
+        filter_file: Path | None,
+        examine_whole_file: bool,
+        force_copy: bool,
+        timestamp: datetime.datetime) -> int:
     """Create a new backup while choosing a direct function call or a CLI invocation."""
     if run_method == Invocation.function:
-        vintagebackup.create_new_backup(user_data,
-                                        backup_location,
-                                        filter_file=filter_file,
-                                        examine_whole_file=examine_whole_file,
-                                        force_copy=force_copy,
-                                        copy_probability=0.0,
-                                        timestamp=timestamp)
+        vintagebackup.create_new_backup(
+            user_data,
+            backup_location,
+            filter_file=filter_file,
+            examine_whole_file=examine_whole_file,
+            force_copy=force_copy,
+            copy_probability=0.0,
+            timestamp=timestamp)
         return 0
     elif run_method == Invocation.cli:
-        argv = ["--user-folder", str(user_data),
-                "--backup-folder", str(backup_location),
-                "--log", os.devnull,
-                "--timestamp", timestamp.strftime(vintagebackup.backup_date_format)]
+        argv = [
+            "--user-folder", str(user_data),
+            "--backup-folder", str(backup_location),
+            "--log", os.devnull,
+            "--timestamp", timestamp.strftime(vintagebackup.backup_date_format)]
         if filter_file:
             argv.extend(["--filter", str(filter_file)])
         if examine_whole_file:
@@ -204,13 +207,14 @@ class BackupTest(unittest.TestCase):
                 user_data = Path(user_data_folder)
                 backup_location = Path(backup_location_folder)
                 create_user_data(user_data)
-                exit_code = run_backup(method,
-                                       user_data,
-                                       backup_location,
-                                       filter_file=None,
-                                       examine_whole_file=False,
-                                       force_copy=False,
-                                       timestamp=unique_timestamp())
+                exit_code = run_backup(
+                    method,
+                    user_data,
+                    backup_location,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    timestamp=unique_timestamp())
                 self.assertEqual(exit_code, 0)
                 backups = vintagebackup.all_backups(backup_location)
                 self.assertEqual(len(backups), 1)
@@ -226,13 +230,14 @@ class BackupTest(unittest.TestCase):
                 backup_location = Path(backup_location_folder)
                 create_user_data(user_data)
                 for _ in range(2):
-                    exit_code = run_backup(method,
-                                           user_data,
-                                           backup_location,
-                                           filter_file=None,
-                                           examine_whole_file=False,
-                                           force_copy=False,
-                                           timestamp=unique_timestamp())
+                    exit_code = run_backup(
+                        method,
+                        user_data,
+                        backup_location,
+                        filter_file=None,
+                        examine_whole_file=False,
+                        force_copy=False,
+                        timestamp=unique_timestamp())
                     self.assertEqual(exit_code, 0)
                 backups = vintagebackup.all_backups(backup_location)
                 self.assertEqual(len(backups), 2)
@@ -248,13 +253,14 @@ class BackupTest(unittest.TestCase):
                 backup_location = Path(backup_location_folder)
                 create_user_data(user_data)
                 for _ in range(2):
-                    exit_code = run_backup(method,
-                                           user_data,
-                                           backup_location,
-                                           filter_file=None,
-                                           examine_whole_file=False,
-                                           force_copy=True,
-                                           timestamp=unique_timestamp())
+                    exit_code = run_backup(
+                        method,
+                        user_data,
+                        backup_location,
+                        filter_file=None,
+                        examine_whole_file=False,
+                        force_copy=True,
+                        timestamp=unique_timestamp())
                     self.assertEqual(exit_code, 0)
                 backups = vintagebackup.all_backups(backup_location)
                 self.assertEqual(len(backups), 2)
@@ -275,13 +281,14 @@ class BackupTest(unittest.TestCase):
                 backup_location = Path(backup_location_folder)
                 create_user_data(user_data)
                 for _ in range(2):
-                    exit_code = run_backup(method,
-                                           user_data,
-                                           backup_location,
-                                           filter_file=None,
-                                           examine_whole_file=True,
-                                           force_copy=False,
-                                           timestamp=unique_timestamp())
+                    exit_code = run_backup(
+                        method,
+                        user_data,
+                        backup_location,
+                        filter_file=None,
+                        examine_whole_file=True,
+                        force_copy=False,
+                        timestamp=unique_timestamp())
                     self.assertEqual(exit_code, 0)
                     for current_directory, _, files in user_data.walk():
                         for file in files:
@@ -301,13 +308,14 @@ class BackupTest(unittest.TestCase):
                 backup_location = Path(backup_location_folder)
                 create_user_data(user_data)
                 for _ in range(2):
-                    exit_code = run_backup(method,
-                                           user_data,
-                                           backup_location,
-                                           filter_file=None,
-                                           examine_whole_file=True,
-                                           force_copy=True,
-                                           timestamp=unique_timestamp())
+                    exit_code = run_backup(
+                        method,
+                        user_data,
+                        backup_location,
+                        filter_file=None,
+                        examine_whole_file=True,
+                        force_copy=True,
+                        timestamp=unique_timestamp())
                     self.assertEqual(exit_code, 0)
                 backups = vintagebackup.all_backups(backup_location)
                 self.assertEqual(len(backups), 2)
@@ -321,25 +329,27 @@ class BackupTest(unittest.TestCase):
             user_data = Path(user_data_folder)
             backup_location = Path(backup_location_folder)
             create_user_data(user_data)
-            vintagebackup.create_new_backup(user_data,
-                                            backup_location,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_data,
+                backup_location,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
 
             changed_file_name = user_data/"sub_directory_2"/"sub_sub_directory_0"/"file_1.txt"
             with open(changed_file_name, "a") as changed_file:
                 changed_file.write("the change\n")
 
-            vintagebackup.create_new_backup(user_data,
-                                            backup_location,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_data,
+                backup_location,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
             backup_1, backup_2 = vintagebackup.all_backups(backup_location)
             contents_1 = directory_contents(backup_1)
             contents_2 = directory_contents(backup_2)
@@ -365,13 +375,14 @@ class BackupTest(unittest.TestCase):
             (user_data_path/file_symlink_name).symlink_to(file_link_target)
 
             backup_path = Path(backup_location_folder)
-            vintagebackup.create_new_backup(user_data_path,
-                                            backup_path,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_data_path,
+                backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
             last_backup = vintagebackup.find_previous_backup(backup_path)
             self.assertTrue(last_backup)
             last_backup = cast(Path, last_backup)
@@ -386,42 +397,46 @@ class BackupTest(unittest.TestCase):
             user_path_1 = Path(user_folder_1)
             create_user_data(user_path_1)
             backup_path = Path(backup_folder)
-            vintagebackup.create_new_backup(user_path_1,
-                                            backup_path,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_path_1,
+                backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
 
             user_path_2 = Path(user_folder_2)
             create_user_data(user_path_2)
             with self.assertRaises(RuntimeError):
-                vintagebackup.create_new_backup(user_path_2,
-                                                backup_path,
-                                                filter_file=None,
-                                                examine_whole_file=False,
-                                                force_copy=False,
-                                                copy_probability=0.0,
-                                                timestamp=unique_timestamp())
+                vintagebackup.create_new_backup(
+                    user_path_2,
+                    backup_path,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    copy_probability=0.0,
+                    timestamp=unique_timestamp())
 
     def test_warn_when_backup_is_larger_than_free_up(self) -> None:
         """Test that a warning is logged when a backup is larger that the free-up argument."""
         with (tempfile.TemporaryDirectory() as user_folder,
               tempfile.TemporaryDirectory() as backup_folder):
             create_large_files(Path(user_folder), 50_000_000)
-            arguments = ["--user-folder", user_folder,
-                         "--backup-folder", backup_folder,
-                         "--free-up", "1B",
-                         "--log", os.devnull]
+            arguments = [
+                "--user-folder", user_folder,
+                "--backup-folder", backup_folder,
+                "--free-up", "1B",
+                "--log", os.devnull]
 
             with self.assertLogs(level=logging.WARNING) as log_lines:
                 exit_code = vintagebackup.main(arguments)
             self.assertEqual(exit_code, 0)
 
-            space_warning = re.compile(r"WARNING:vintagebackup:"
-                                       r"The size of the last backup \(50\.0. MB\) is "
-                                       r"larger than the --free-up parameter \(1\.000 B\)")
+            space_warning = re.compile(
+                r"WARNING:vintagebackup:"
+                r"The size of the last backup \(50\.0. MB\) is "
+                r"larger than the --free-up parameter \(1\.000 B\)")
             self.assertEqual(len(log_lines.output), 1)
             self.assertTrue(space_warning.fullmatch(log_lines.output[0]))
 
@@ -430,10 +445,11 @@ class BackupTest(unittest.TestCase):
         with (tempfile.TemporaryDirectory() as user_folder,
               tempfile.TemporaryDirectory() as backup_folder):
             create_large_files(Path(user_folder), 50_000_000)
-            arguments = ["--user-folder", user_folder,
-                         "--backup-folder", backup_folder,
-                         "--free-up", "100 MB",
-                         "--log", os.devnull]
+            arguments = [
+                "--user-folder", user_folder,
+                "--backup-folder", backup_folder,
+                "--free-up", "100 MB",
+                "--log", os.devnull]
             with self.assertLogs(level=logging.INFO) as logs:
                 exit_code = vintagebackup.main(arguments)
             self.assertEqual(exit_code, 0)
@@ -458,23 +474,24 @@ class FilterTest(unittest.TestCase):
 
                 expected_backups = user_paths.copy()
                 filter_file.write("- sub_directory_2/**\n\n")
-                expected_backups.difference_update(path for path in user_paths
-                                                   if "sub_directory_2" in path.parts)
+                expected_backups.difference_update(
+                    path for path in user_paths if "sub_directory_2" in path.parts)
 
                 filter_file.write(str(Path("- *")/"sub_sub_directory_0/**\n\n"))
-                expected_backups.difference_update(path for path in user_paths
-                                                   if "sub_sub_directory_0" in path.parts)
+                expected_backups.difference_update(
+                    path for path in user_paths if "sub_sub_directory_0" in path.parts)
 
                 filter_file.close()
 
                 backup_location = Path(backup_folder)
-                exit_code = run_backup(method,
-                                       user_data,
-                                       backup_location,
-                                       filter_file=Path(filter_file.name),
-                                       examine_whole_file=False,
-                                       force_copy=False,
-                                       timestamp=unique_timestamp())
+                exit_code = run_backup(
+                    method,
+                    user_data,
+                    backup_location,
+                    filter_file=Path(filter_file.name),
+                    examine_whole_file=False,
+                    force_copy=False,
+                    timestamp=unique_timestamp())
                 self.assertEqual(exit_code, 0)
 
                 last_backup = vintagebackup.find_previous_backup(backup_location)
@@ -497,19 +514,20 @@ class FilterTest(unittest.TestCase):
 
                 expected_backups = user_paths.copy()
                 filter_file.write(f"- {user_data/'sub_directory_2'/'**'}\n\n")
-                expected_backups.difference_update(path for path in user_paths
-                                                   if "sub_directory_2" in path.parts)
+                expected_backups.difference_update(
+                    path for path in user_paths if "sub_directory_2" in path.parts)
 
                 filter_file.close()
 
                 backup_location = Path(backup_folder)
-                exit_code = run_backup(method,
-                                       user_data,
-                                       backup_location,
-                                       filter_file=Path(filter_file.name),
-                                       examine_whole_file=False,
-                                       force_copy=False,
-                                       timestamp=unique_timestamp())
+                exit_code = run_backup(
+                    method,
+                    user_data,
+                    backup_location,
+                    filter_file=Path(filter_file.name),
+                    examine_whole_file=False,
+                    force_copy=False,
+                    timestamp=unique_timestamp())
                 self.assertEqual(exit_code, 0)
 
                 last_backup = vintagebackup.find_previous_backup(backup_location)
@@ -531,12 +549,12 @@ class FilterTest(unittest.TestCase):
 
             expected_backup_paths = user_paths.copy()
             filter_file.write("- sub_directory_2/**\n\n")
-            expected_backup_paths.difference_update(path for path in user_paths
-                                                    if "sub_directory_2" in path.parts)
+            expected_backup_paths.difference_update(
+                path for path in user_paths if "sub_directory_2" in path.parts)
 
             filter_file.write(str(Path("- *")/"sub_sub_directory_0/**\n\n"))
-            expected_backup_paths.difference_update(path for path in user_paths
-                                                    if "sub_sub_directory_0" in path.parts)
+            expected_backup_paths.difference_update(
+                path for path in user_paths if "sub_sub_directory_0" in path.parts)
 
             filter_file.write(str(Path("+ sub_directory_1")/"sub_sub_directory_0"/"file_1.txt\n\n"))
             expected_backup_paths.add(Path("sub_directory_1")/"sub_sub_directory_0")
@@ -545,13 +563,14 @@ class FilterTest(unittest.TestCase):
             filter_file.close()
 
             backup_location = Path(backup_folder)
-            vintagebackup.create_new_backup(user_data,
-                                            backup_location,
-                                            filter_file=Path(filter_file.name),
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_data,
+                backup_location,
+                filter_file=Path(filter_file.name),
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
 
             self.assertEqual(len(vintagebackup.all_backups(backup_location)), 1)
             last_backup = vintagebackup.find_previous_backup(backup_location)
@@ -570,11 +589,12 @@ class FilterTest(unittest.TestCase):
 
             filter_file.write("- sub_directory_1/**\n")
 
-            bad_lines = [("-", "sub_directory_1/sub_sub_directory_0/**"),  # redundant exclusion
-                         ("+", "sub_directory_0/**"),  # redundant inclusion
-                         ("-", "does_not_exist.txt"),  # excluding non-existent file
-                         ("-", "sub_directory_0"),  # ineffective exclusion of folder
-                         ("-", "sub_directory_1/*")]  # ineffective exlusion of folder
+            bad_lines = [
+                ("-", "sub_directory_1/sub_sub_directory_0/**"),  # redundant exclusion
+                ("+", "sub_directory_0/**"),  # redundant inclusion
+                ("-", "does_not_exist.txt"),  # excluding non-existent file
+                ("-", "sub_directory_0"),  # ineffective exclusion of folder
+                ("-", "sub_directory_1/*")]  # ineffective exlusion of folder
 
             filter_file.write("# Ineffective lines:\n")
             for sign, line in bad_lines:
@@ -586,9 +606,10 @@ class FilterTest(unittest.TestCase):
                     pass
 
             for line_number, (sign, path) in enumerate(bad_lines, 3):
-                self.assertIn(f"INFO:vintagebackup:{filter_file.name}: line #{line_number} "
-                              f"({sign} {user_path/path}) had no effect.",
-                              log_assert.output)
+                self.assertIn(
+                    f"INFO:vintagebackup:{filter_file.name}: line #{line_number} "
+                    f"({sign} {user_path/path}) had no effect.",
+                    log_assert.output)
 
             self.assertTrue(all("Ineffective" not in message for message in log_assert.output))
 
@@ -621,10 +642,11 @@ def run_recovery(method: Invocation, backup_location: Path, file_path: Path) -> 
         vintagebackup.recover_path(file_path, backup_location, 0)
         return 0
     elif method == Invocation.cli:
-        argv = ["--recover", str(file_path),
-                "--backup-folder", str(backup_location),
-                "--choice", "0",
-                "--log", os.devnull]
+        argv = [
+            "--recover", str(file_path),
+            "--backup-folder", str(backup_location),
+            "--choice", "0",
+            "--log", os.devnull]
         return vintagebackup.main(argv)
     else:
         raise NotImplementedError(f"Backup test with {method} not implemented.")
@@ -641,13 +663,14 @@ class RecoveryTest(unittest.TestCase):
                 user_data = Path(user_data_location)
                 create_user_data(user_data)
                 backup_location = Path(backup_folder)
-                vintagebackup.create_new_backup(user_data,
-                                                backup_location,
-                                                filter_file=None,
-                                                examine_whole_file=False,
-                                                force_copy=False,
-                                                copy_probability=0.0,
-                                                timestamp=unique_timestamp())
+                vintagebackup.create_new_backup(
+                    user_data,
+                    backup_location,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    copy_probability=0.0,
+                    timestamp=unique_timestamp())
                 file = user_data/"sub_directory_0"/"sub_sub_directory_0"/"file_0.txt"
                 moved_file_path = file.parent/(file.name + "_moved")
                 file.rename(moved_file_path)
@@ -662,13 +685,14 @@ class RecoveryTest(unittest.TestCase):
             user_data = Path(user_data_location)
             create_user_data(user_data)
             backup_location = Path(backup_folder)
-            vintagebackup.create_new_backup(user_data,
-                                            backup_location,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_data,
+                backup_location,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
             file_path = user_data/"sub_directory_0"/"sub_sub_directory_0"/"file_0.txt"
             vintagebackup.recover_path(file_path, backup_location, 0)
             recovered_file_path = file_path.parent/f"{file_path.stem}.1{file_path.suffix}"
@@ -681,13 +705,14 @@ class RecoveryTest(unittest.TestCase):
             user_data = Path(user_data_location)
             create_user_data(user_data)
             backup_location = Path(backup_folder)
-            vintagebackup.create_new_backup(user_data,
-                                            backup_location,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_data,
+                backup_location,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
             folder_path = user_data/"sub_directory_1"
             vintagebackup.recover_path(folder_path, backup_location, 0)
             recovered_folder_path = folder_path.parent/f"{folder_path.name}.1"
@@ -700,13 +725,14 @@ class RecoveryTest(unittest.TestCase):
             user_data = Path(user_data_location)
             create_user_data(user_data)
             backup_location = Path(backup_folder)
-            vintagebackup.create_new_backup(user_data,
-                                            backup_location,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_data,
+                backup_location,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
             folder_path = user_data/"sub_directory_1"/"sub_sub_directory_1"
             chosen_file = vintagebackup.search_backups(folder_path, backup_location, "recovery", 1)
             self.assertTrue(chosen_file)
@@ -748,13 +774,14 @@ class DeleteBackupTest(unittest.TestCase):
             (user_data/"sub_directory_1"/"sub_sub_directory_1"/"file_1.txt").chmod(stat.S_IRUSR)
 
             backup_location = Path(backup_folder)
-            vintagebackup.create_new_backup(user_data,
-                                            backup_location,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_data,
+                backup_location,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
 
             backups = vintagebackup.all_backups(backup_location)
             self.assertEqual(len(backups), 1)
@@ -772,13 +799,14 @@ class DeleteBackupTest(unittest.TestCase):
             (user_data/"sub_directory_1"/"sub_sub_directory_1").chmod(stat.S_IRUSR | stat.S_IXUSR)
 
             backup_location = Path(backup_folder)
-            vintagebackup.create_new_backup(user_data,
-                                            backup_location,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_data,
+                backup_location,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
 
             backups = vintagebackup.all_backups(backup_location)
             self.assertEqual(len(backups), 1)
@@ -807,13 +835,13 @@ class DeleteBackupTest(unittest.TestCase):
                     with tempfile.TemporaryDirectory() as user_folder:
                         user_data = Path(user_folder)
                         create_large_files(user_data, file_size)
-                        exit_code = vintagebackup.main(["--user-folder", user_folder,
-                                                        "--backup-folder", backup_folder,
-                                                        "--log", os.devnull,
-                                                        "--free-up", goal_space_str,
-                                                        "--timestamp",
-                                                        unique_timestamp().strftime(
-                                                            vintagebackup.backup_date_format)])
+                        exit_code = vintagebackup.main([
+                            "--user-folder", user_folder,
+                            "--backup-folder", backup_folder,
+                            "--log", os.devnull,
+                            "--free-up", goal_space_str,
+                            "--timestamp",
+                            unique_timestamp().strftime(vintagebackup.backup_date_format)])
                         self.assertEqual(exit_code, 0)
 
                     # While backups are being deleted, the fake user data still exists, so one more
@@ -840,11 +868,13 @@ class DeleteBackupTest(unittest.TestCase):
             maximum_deletions = 5
             expected_backups_count = backups_created - maximum_deletions
             with self.assertLogs(level=logging.INFO) as log_check:
-                vintagebackup.delete_oldest_backups_for_space(backup_location,
-                                                            goal_space_str,
-                                                            expected_backups_count)
-            self.assertIn("INFO:vintagebackup:Stopped after reaching maximum number of deletions.",
-                          log_check.output)
+                vintagebackup.delete_oldest_backups_for_space(
+                    backup_location,
+                    goal_space_str,
+                    expected_backups_count)
+            self.assertIn(
+                "INFO:vintagebackup:Stopped after reaching maximum number of deletions.",
+                log_check.output)
             all_backups_after_deletion = vintagebackup.all_backups(backup_location)
             self.assertEqual(len(all_backups_after_deletion), expected_backups_count)
 
@@ -856,9 +886,9 @@ class DeleteBackupTest(unittest.TestCase):
                 create_old_backups(backup_location, 30)
                 max_age = "1y"
                 now = datetime.datetime.now()
-                earliest_backup = datetime.datetime(now.year - 1, now.month, now.day,
-                                                    now.hour, now.minute, now.second,
-                                                    now.microsecond)
+                earliest_backup = datetime.datetime(
+                    now.year - 1, now.month, now.day,
+                    now.hour, now.minute, now.second, now.microsecond)
                 if method == Invocation.function:
                     vintagebackup.delete_backups_older_than(backup_location, max_age)
                 elif method == Invocation.cli:
@@ -867,13 +897,13 @@ class DeleteBackupTest(unittest.TestCase):
                         create_user_data(user_data)
                         most_recent_backup = vintagebackup.last_n_backups(backup_location, 1)[0]
                         vintagebackup.delete_directory_tree(most_recent_backup)
-                        exit_code = vintagebackup.main(["--user-folder", user_folder,
-                                                        "--backup-folder", backup_folder,
-                                                        "--log", os.devnull,
-                                                        "--delete-after", max_age,
-                                                        "--timestamp",
-                                                        unique_timestamp().strftime(
-                                                            vintagebackup.backup_date_format)])
+                        exit_code = vintagebackup.main([
+                            "--user-folder", user_folder,
+                            "--backup-folder", backup_folder,
+                            "--log", os.devnull,
+                            "--delete-after", max_age,
+                            "--timestamp",
+                            unique_timestamp().strftime(vintagebackup.backup_date_format)])
                         self.assertEqual(exit_code, 0)
                 else:
                     raise NotImplementedError(f"Delete backup test not implemented for {method}")
@@ -891,11 +921,13 @@ class DeleteBackupTest(unittest.TestCase):
             max_deletions = 10
             expected_backup_count = backups_created - max_deletions
             with self.assertLogs(level=logging.INFO) as log_check:
-                vintagebackup.delete_backups_older_than(backup_location,
-                                                        max_age,
-                                                        expected_backup_count)
-            self.assertIn("INFO:vintagebackup:Stopped after reaching maximum number of deletions.",
-                          log_check.output)
+                vintagebackup.delete_backups_older_than(
+                    backup_location,
+                    max_age,
+                    expected_backup_count)
+            self.assertIn(
+                "INFO:vintagebackup:Stopped after reaching maximum number of deletions.",
+                log_check.output)
             backups_left = vintagebackup.all_backups(backup_location)
             self.assertEqual(len(backups_left), expected_backup_count)
 
@@ -949,10 +981,11 @@ class DeleteBackupTest(unittest.TestCase):
             backup_path = Path(backup_folder)
             create_old_backups(backup_path, 30)
             oldest_backup_age = datetime.timedelta(days=120)
-            arguments = ["--backup-folder", backup_folder,
-                         "--delete-after", f"{oldest_backup_age.days}d",
-                         "--delete-only",
-                         "--log", os.devnull]
+            arguments = [
+                "--backup-folder", backup_folder,
+                "--delete-after", f"{oldest_backup_age.days}d",
+                "--delete-only",
+                "--log", os.devnull]
             exit_code = vintagebackup.main(arguments)
             self.assertEqual(exit_code, 0)
             backups = vintagebackup.all_backups(backup_path)
@@ -970,13 +1003,14 @@ class DeleteBackupTest(unittest.TestCase):
             create_old_backups(backup_path, initial_backups)
             user_path = Path(user_folder)
             create_user_data(user_path)
-            arguments = ["--user-folder", user_folder,
-                         "--backup-folder", backup_folder,
-                         "--delete-after", "1y",
-                         "--delete-first",
-                         "--log", os.devnull,
-                         "--timestamp",
-                         unique_timestamp().strftime(vintagebackup.backup_date_format)]
+            arguments = [
+                "--user-folder", user_folder,
+                "--backup-folder", backup_folder,
+                "--delete-after", "1y",
+                "--delete-first",
+                "--log", os.devnull,
+                "--timestamp",
+                unique_timestamp().strftime(vintagebackup.backup_date_format)]
             backups_in_year = 12
             expected_deletions_before_backup = initial_backups - backups_in_year
             expected_backup_count_before_backup = initial_backups - expected_deletions_before_backup
@@ -1016,13 +1050,14 @@ class MoveBackupsTest(unittest.TestCase):
             backup_location = Path(backup_folder)
             backup_count = 10
             for _ in range(backup_count):
-                vintagebackup.create_new_backup(user_data,
-                                                backup_location,
-                                                filter_file=None,
-                                                examine_whole_file=False,
-                                                force_copy=False,
-                                                copy_probability=0.0,
-                                                timestamp=unique_timestamp())
+                vintagebackup.create_new_backup(
+                    user_data,
+                    backup_location,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    copy_probability=0.0,
+                    timestamp=unique_timestamp())
 
             for method in Invocation:
                 with tempfile.TemporaryDirectory() as new_backup_folder:
@@ -1030,22 +1065,25 @@ class MoveBackupsTest(unittest.TestCase):
                     if method == Invocation.function:
                         backups_to_move = vintagebackup.all_backups(backup_location)
                         self.assertEqual(len(backups_to_move), backup_count)
-                        vintagebackup.move_backups(backup_location,
-                                                   new_backup_location,
-                                                   backups_to_move)
+                        vintagebackup.move_backups(
+                            backup_location,
+                            new_backup_location,
+                            backups_to_move)
                     elif method == Invocation.cli:
-                        exit_code = vintagebackup.main(["--backup-folder", backup_folder,
-                                                        "--log", os.devnull,
-                                                        "--move-backup", new_backup_folder,
-                                                        "--move-count", "all"])
+                        exit_code = vintagebackup.main([
+                            "--backup-folder", backup_folder,
+                            "--log", os.devnull,
+                            "--move-backup", new_backup_folder,
+                            "--move-count", "all"])
                         self.assertEqual(exit_code, 0)
                     else:
                         raise NotImplementedError(f"Move backup test not implemented for {method}.")
 
-                    self.assertTrue(directories_are_completely_copied(backup_location,
-                                                                      new_backup_location))
-                    self.assertEqual(vintagebackup.backup_source(backup_location),
-                                     vintagebackup.backup_source(new_backup_location))
+                    self.assertTrue(
+                        directories_are_completely_copied(backup_location, new_backup_location))
+                    self.assertEqual(
+                        vintagebackup.backup_source(backup_location),
+                        vintagebackup.backup_source(new_backup_location))
 
                     original_backups = vintagebackup.all_backups(backup_location)
                     original_names = [p.relative_to(backup_location) for p in original_backups]
@@ -1063,13 +1101,14 @@ class MoveBackupsTest(unittest.TestCase):
             create_user_data(user_data)
             backup_location = Path(backup_folder)
             for _ in range(10):
-                vintagebackup.create_new_backup(user_data,
-                                                backup_location,
-                                                filter_file=None,
-                                                examine_whole_file=False,
-                                                force_copy=False,
-                                                copy_probability=0.0,
-                                                timestamp=unique_timestamp())
+                vintagebackup.create_new_backup(
+                    user_data,
+                    backup_location,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    copy_probability=0.0,
+                    timestamp=unique_timestamp())
 
             move_count = 5
             for method in Invocation:
@@ -1078,14 +1117,16 @@ class MoveBackupsTest(unittest.TestCase):
                     if method == Invocation.function:
                         backups_to_move = vintagebackup.last_n_backups(backup_location, move_count)
                         self.assertEqual(len(backups_to_move), move_count)
-                        vintagebackup.move_backups(backup_location,
-                                                   new_backup_location,
-                                                   backups_to_move)
+                        vintagebackup.move_backups(
+                            backup_location,
+                            new_backup_location,
+                            backups_to_move)
                     elif method == Invocation.cli:
-                        exit_code = vintagebackup.main(["--backup-folder", backup_folder,
-                                                        "--log", os.devnull,
-                                                        "--move-backup", new_backup_folder,
-                                                        "--move-count", str(move_count)])
+                        exit_code = vintagebackup.main([
+                            "--backup-folder", backup_folder,
+                            "--log", os.devnull,
+                            "--move-backup", new_backup_folder,
+                            "--move-count", str(move_count)])
                         self.assertEqual(exit_code, 0)
                     else:
                         raise NotImplementedError(f"Move backup test not implemented for {method}")
@@ -1121,22 +1162,25 @@ class MoveBackupsTest(unittest.TestCase):
             user_path = Path(user_folder)
             create_user_data(user_path)
             backup_path = Path(backup_folder)
-            vintagebackup.create_new_backup(user_path,
-                                            backup_path,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_path,
+                backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
             with (self.assertLogs(level=logging.ERROR) as no_move_choice_log,
                   tempfile.TemporaryDirectory() as move_destination):
-                exit_code = vintagebackup.main(["--move-backup", move_destination,
-                                                "--user-folder", user_folder,
-                                                "--backup-folder", backup_folder,
-                                                "--log", os.devnull])
+                exit_code = vintagebackup.main([
+                    "--move-backup", move_destination,
+                    "--user-folder", user_folder,
+                    "--backup-folder", backup_folder,
+                    "--log", os.devnull])
             self.assertEqual(exit_code, 1)
-            expected_logs = ["ERROR:vintagebackup:One of the following are required: "
-                             "--move-count, --move-age, or --move-since"]
+            expected_logs = [
+                "ERROR:vintagebackup:One of the following are required: "
+                "--move-count, --move-age, or --move-since"]
             self.assertEqual(expected_logs, no_move_choice_log.output)
 
 
@@ -1150,13 +1194,14 @@ class VerificationTest(unittest.TestCase):
             user_location = Path(user_folder)
             backup_location = Path(backup_folder)
             create_user_data(user_location)
-            vintagebackup.create_new_backup(user_location,
-                                            backup_location,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_location,
+                backup_location,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
 
             mismatch_file = Path("sub_directory_1")/"sub_sub_directory_2"/"file_0.txt"
             with open(user_location/mismatch_file, "a") as file:
@@ -1175,36 +1220,41 @@ class VerificationTest(unittest.TestCase):
             for directory, file_names in user_paths:
                 for file_name in file_names:
                     path = (directory/file_name).relative_to(user_location)
-                    path_set = (mismatching_path_set if path == mismatch_file
-                                else error_path_set if path == error_file
-                                else matching_path_set)
+                    path_set = (
+                        mismatching_path_set if path == mismatch_file
+                        else error_path_set if path == error_file
+                        else matching_path_set)
                     path_set.add(path)
 
             for method in Invocation:
                 with tempfile.TemporaryDirectory() as verification_folder:
                     verification_location = Path(verification_folder)
                     if method == Invocation.function:
-                        vintagebackup.verify_last_backup(user_location,
-                                                         backup_location,
-                                                         None,
-                                                         verification_location)
+                        vintagebackup.verify_last_backup(
+                            user_location,
+                            backup_location,
+                            None,
+                            verification_location)
                     else:
-                        exit_code = vintagebackup.main(["--user-folder", user_folder,
-                                                        "--backup-folder", backup_folder,
-                                                        "--verify", verification_folder,
-                                                        "--log", os.devnull])
+                        exit_code = vintagebackup.main([
+                            "--user-folder", user_folder,
+                            "--backup-folder", backup_folder,
+                            "--verify", verification_folder,
+                            "--log", os.devnull])
                         self.assertEqual(exit_code, 0)
 
                     verify_files = os.listdir(verification_location)
                     verify_endings = {p.split(maxsplit=2)[2] for p in verify_files}
-                    expected_endings = {"matching files.txt",
-                                        "mismatching files.txt",
-                                        "error files.txt"}
+                    expected_endings = {
+                        "matching files.txt",
+                        "mismatching files.txt",
+                        "error files.txt"}
                     self.assertEqual(verify_endings, expected_endings)
                     for file_name in verify_files:
-                        path_set = (matching_path_set if " matching " in file_name
-                                    else mismatching_path_set if " mismatching " in file_name
-                                    else error_path_set)
+                        path_set = (
+                            matching_path_set if " matching " in file_name
+                            else mismatching_path_set if " mismatching " in file_name
+                            else error_path_set)
 
                         verify_file_path = verification_location/file_name
                         with open(verify_file_path) as verify_file:
@@ -1239,12 +1289,14 @@ backup folder:   {backup_folder}
 """)
             config_file.close()
             command_line = vintagebackup.read_configuation_file(config_file.name)
-            self.assertEqual(command_line,
-                             ["--user-folder", user_folder,
-                             "--backup-folder", backup_folder,
-                             "--filter", filter_file,
-                             "--force-copy",
-                             "--whole-file"])
+            expected_command_line = [
+                "--user-folder", user_folder,
+                "--backup-folder", backup_folder,
+                "--filter", filter_file,
+                "--force-copy",
+                "--whole-file"]
+
+            self.assertEqual(command_line, expected_command_line)
             arg_parser = vintagebackup.argument_parser()
             args = arg_parser.parse_args(command_line)
             self.assertEqual(args.user_folder, user_folder)
@@ -1266,9 +1318,10 @@ Debug:""")
             config_file.close()
             actual_backup_folder = "temp_back2"
             actual_log_file = "temporary_log.log"
-            command_line_options = ["-b", actual_backup_folder,
-                                    "-c", config_file.name,
-                                    "-l", actual_log_file]
+            command_line_options = [
+                "-b", actual_backup_folder,
+                "-c", config_file.name,
+                "-l", actual_log_file]
             options = vintagebackup.parse_command_line(command_line_options)
             self.assertEqual(options.user_folder, user_folder)
             self.assertEqual(options.backup_folder, actual_backup_folder)
@@ -1286,11 +1339,12 @@ delete first:
 force copy:
 """)
             config_file.close()
-            command_line_options = ["-c", config_file.name,
-                                    "--no-whole-file",
-                                    "--no-debug",
-                                    "--no-delete-first",
-                                    "--no-force-copy"]
+            command_line_options = [
+                "-c", config_file.name,
+                "--no-whole-file",
+                "--no-debug",
+                "--no-delete-first",
+                "--no-force-copy"]
             options = vintagebackup.parse_command_line(command_line_options)
             self.assertFalse(vintagebackup.toggle_is_set(options, "whole_file"))
             self.assertFalse(vintagebackup.toggle_is_set(options, "debug"))
@@ -1341,25 +1395,28 @@ class ErrorTest(unittest.TestCase):
               self.assertRaises(RuntimeError) as error):
             user_path = Path(user_folder)
             backup_path = Path(backup_folder)
-            vintagebackup.create_new_backup(user_path,
-                                            backup_path,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_path,
+                backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
 
             other_user_path = Path(other_user_folder)
-            vintagebackup.create_new_backup(other_user_path,
-                                            backup_path,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                other_user_path,
+                backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
 
-        expected_error_message = ("Previous backup stored a different user folder. Previously: "
-                                  f"{user_path}; Now: {other_user_path}")
+        expected_error_message = (
+            "Previous backup stored a different user folder. Previously: "
+            f"{user_path}; Now: {other_user_path}")
         self.assertEqual(error.exception.args, (expected_error_message,))
 
     def test_warning_printed_if_no_user_data_is_backed_up(self) -> None:
@@ -1369,13 +1426,14 @@ class ErrorTest(unittest.TestCase):
             user_path = Path(user_folder)
             backup_path = Path(backup_folder)
             with self.assertLogs(level=logging.WARNING) as assert_log:
-                vintagebackup.create_new_backup(user_path,
-                                                backup_path,
-                                                filter_file=None,
-                                                examine_whole_file=False,
-                                                force_copy=False,
-                                                copy_probability=0.0,
-                                                timestamp=unique_timestamp())
+                vintagebackup.create_new_backup(
+                    user_path,
+                    backup_path,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    copy_probability=0.0,
+                    timestamp=unique_timestamp())
             self.assertIn("WARNING:vintagebackup:No files were backed up!", assert_log.output)
             self.assertEqual(os.listdir(backup_path), ["vintagebackup.source.txt"])
 
@@ -1385,13 +1443,14 @@ class ErrorTest(unittest.TestCase):
               tempfile.TemporaryDirectory() as backup_folder):
             user_path = Path(user_folder)
             backup_path = Path(backup_folder)
-            vintagebackup.create_new_backup(user_path,
-                                            backup_path,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_path,
+                backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
             self.assertEqual(os.listdir(backup_path), ["vintagebackup.source.txt"])
 
     def test_warning_printed_if_all_user_files_filtered_out(self) -> None:
@@ -1408,13 +1467,14 @@ class ErrorTest(unittest.TestCase):
             backup_path = Path(backup_folder)
 
             with self.assertLogs(level=logging.WARNING) as assert_log:
-                vintagebackup.create_new_backup(user_path,
-                                                backup_path,
-                                                filter_file=filter_path,
-                                                examine_whole_file=False,
-                                                force_copy=False,
-                                                copy_probability=0.0,
-                                                timestamp=unique_timestamp())
+                vintagebackup.create_new_backup(
+                    user_path,
+                    backup_path,
+                    filter_file=filter_path,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    copy_probability=0.0,
+                    timestamp=unique_timestamp())
             self.assertIn("WARNING:vintagebackup:No files were backed up!", assert_log.output)
             self.assertEqual(os.listdir(backup_path), ["vintagebackup.source.txt"])
 
@@ -1429,37 +1489,40 @@ class RestorationTest(unittest.TestCase):
             user_path = Path(user_folder)
             create_user_data(user_path)
             backup_path = Path(backup_folder)
-            vintagebackup.create_new_backup(user_path,
-                                            backup_path,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_path,
+                backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
 
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
 
             first_extra_file = user_path/"extra_file1.txt"
             first_extra_file.write_text("extra 1\n")
 
-            vintagebackup.create_new_backup(user_path,
-                                            backup_path,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_path,
+                backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
 
             second_extra_file = user_path/"extra_file2.txt"
             second_extra_file.write_text("extra 2\n")
 
-            exit_code = vintagebackup.main(["--restore",
-                                            "--user-folder", user_folder,
-                                            "--backup-folder", backup_folder,
-                                            "--last-backup", "--delete-extra",
-                                            "--log", os.devnull,
-                                            "--skip-prompt"])
+            exit_code = vintagebackup.main([
+                "--restore",
+                "--user-folder", user_folder,
+                "--backup-folder", backup_folder,
+                "--last-backup", "--delete-extra",
+                "--log", os.devnull,
+                "--skip-prompt"])
 
             self.assertEqual(exit_code, 0)
             last_backup = vintagebackup.find_previous_backup(backup_path)
@@ -1476,37 +1539,40 @@ class RestorationTest(unittest.TestCase):
             user_path = Path(user_folder)
             create_user_data(user_path)
             backup_path = Path(backup_folder)
-            vintagebackup.create_new_backup(user_path,
-                                            backup_path,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_path,
+                backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
 
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
 
             first_extra_file = user_path/"extra_file1.txt"
             first_extra_file.write_text("extra 1\n")
 
-            vintagebackup.create_new_backup(user_path,
-                                            backup_path,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_path,
+                backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
 
             second_extra_file = user_path/"extra_file2.txt"
             second_extra_file.write_text("extra 2\n")
 
-            exit_code = vintagebackup.main(["--restore",
-                                            "--user-folder", user_folder,
-                                            "--backup-folder", backup_folder,
-                                            "--last-backup", "--keep-extra",
-                                            "--log", os.devnull,
-                                            "--skip-prompt"])
+            exit_code = vintagebackup.main([
+                "--restore",
+                "--user-folder", user_folder,
+                "--backup-folder", backup_folder,
+                "--last-backup", "--keep-extra",
+                "--log", os.devnull,
+                "--skip-prompt"])
 
             self.assertEqual(exit_code, 0)
             last_backup = vintagebackup.find_previous_backup(backup_path)
@@ -1524,39 +1590,42 @@ class RestorationTest(unittest.TestCase):
             user_path = Path(user_folder)
             create_user_data(user_path)
             backup_path = Path(backup_folder)
-            vintagebackup.create_new_backup(user_path,
-                                            backup_path,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_path,
+                backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
 
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
 
             first_extra_file = user_path/"extra_file1.txt"
             first_extra_file.write_text("extra 1\n")
 
-            vintagebackup.create_new_backup(user_path,
-                                            backup_path,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_path,
+                backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
 
             second_extra_file = user_path/"extra_file2.txt"
             second_extra_file.write_text("extra 2\n")
 
             choice = 0
-            exit_code = vintagebackup.main(["--restore",
-                                            "--user-folder", user_folder,
-                                            "--backup-folder", backup_folder,
-                                            "--choose-backup", "--delete-extra",
-                                            "--log", os.devnull,
-                                            "--choice", str(choice),
-                                            "--skip-prompt"])
+            exit_code = vintagebackup.main([
+                "--restore",
+                "--user-folder", user_folder,
+                "--backup-folder", backup_folder,
+                "--choose-backup", "--delete-extra",
+                "--log", os.devnull,
+                "--choice", str(choice),
+                "--skip-prompt"])
 
             self.assertEqual(exit_code, 0)
             restored_backup = vintagebackup.all_backups(backup_path)[choice]
@@ -1571,39 +1640,42 @@ class RestorationTest(unittest.TestCase):
             user_path = Path(user_folder)
             create_user_data(user_path)
             backup_path = Path(backup_folder)
-            vintagebackup.create_new_backup(user_path,
-                                            backup_path,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_path,
+                backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
 
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 1)
 
             first_extra_file = user_path/"extra_file1.txt"
             first_extra_file.write_text("extra 1\n")
 
-            vintagebackup.create_new_backup(user_path,
-                                            backup_path,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_path,
+                backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
             self.assertEqual(len(vintagebackup.all_backups(backup_path)), 2)
 
             second_extra_file = user_path/"extra_file2.txt"
             second_extra_file.write_text("extra 2\n")
 
             choice = 0
-            exit_code = vintagebackup.main(["--restore",
-                                            "--user-folder", user_folder,
-                                            "--backup-folder", backup_folder,
-                                            "--choose-backup", "--keep-extra",
-                                            "--log", os.devnull,
-                                            "--choice", str(choice),
-                                            "--skip-prompt"])
+            exit_code = vintagebackup.main([
+                "--restore",
+                "--user-folder", user_folder,
+                "--backup-folder", backup_folder,
+                "--choose-backup", "--keep-extra",
+                "--log", os.devnull,
+                "--choice", str(choice),
+                "--skip-prompt"])
 
             self.assertEqual(exit_code, 0)
             restored_backup = vintagebackup.all_backups(backup_path)[choice]
@@ -1621,21 +1693,23 @@ class RestorationTest(unittest.TestCase):
             user_path = Path(user_folder)
             create_user_data(user_path)
             backup_path = Path(backup_folder)
-            vintagebackup.create_new_backup(user_path,
-                                            backup_path,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_path,
+                backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
 
-            exit_code = vintagebackup.main(["--restore",
-                                            "--user-folder", user_folder,
-                                            "--backup-folder", backup_folder,
-                                            "--last-backup", "--delete-extra",
-                                            "--log", os.devnull,
-                                            "--destination", destination_folder,
-                                            "--skip-prompt"])
+            exit_code = vintagebackup.main([
+                "--restore",
+                "--user-folder", user_folder,
+                "--backup-folder", backup_folder,
+                "--last-backup", "--delete-extra",
+                "--log", os.devnull,
+                "--destination", destination_folder,
+                "--skip-prompt"])
 
             self.assertEqual(exit_code, 0)
             destination_path = Path(destination_folder)
@@ -1653,26 +1727,28 @@ class RestorationTest(unittest.TestCase):
             user_path = Path(user_folder)
             create_user_data(user_path)
             backup_path = Path(backup_folder)
-            vintagebackup.create_new_backup(user_path,
-                                            backup_path,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_path,
+                backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
 
             destination_path = Path(destination_folder)
             extra_file = destination_path/"extra_file1.txt"
             with extra_file.open("w") as file1:
                 file1.write("extra 1\n")
 
-            exit_code = vintagebackup.main(["--restore",
-                                            "--user-folder", user_folder,
-                                            "--backup-folder", backup_folder,
-                                            "--last-backup", "--keep-extra",
-                                            "--log", os.devnull,
-                                            "--destination", destination_folder,
-                                            "--skip-prompt"])
+            exit_code = vintagebackup.main([
+                "--restore",
+                "--user-folder", user_folder,
+                "--backup-folder", backup_folder,
+                "--last-backup", "--keep-extra",
+                "--log", os.devnull,
+                "--destination", destination_folder,
+                "--skip-prompt"])
 
             self.assertEqual(exit_code, 0)
             self.assertTrue(extra_file.is_file(follow_symlinks=False))
@@ -1690,23 +1766,26 @@ class RestorationTest(unittest.TestCase):
             user_path = Path(user_folder)
             create_user_data(user_path)
             backup_path = Path(backup_folder)
-            vintagebackup.create_new_backup(user_path,
-                                            backup_path,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_path,
+                backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
 
             with self.assertLogs(level=logging.ERROR) as no_extra_log:
-                exit_code = vintagebackup.main(["--restore",
-                                                "--user-folder", user_folder,
-                                                "--backup-folder", backup_folder,
-                                                "--last-backup",
-                                                "--log", os.devnull])
+                exit_code = vintagebackup.main([
+                    "--restore",
+                    "--user-folder", user_folder,
+                    "--backup-folder", backup_folder,
+                    "--last-backup",
+                    "--log", os.devnull])
             self.assertEqual(exit_code, 1)
-            expected_logs = ["ERROR:vintagebackup:One of the following are required: "
-                             "--delete-extra or --keep-extra"]
+            expected_logs = [
+                "ERROR:vintagebackup:One of the following are required: "
+                "--delete-extra or --keep-extra"]
             self.assertEqual(expected_logs, no_extra_log.output)
 
     def test_restore_without_last_backup_or_choose_backup_is_an_error(self) -> None:
@@ -1716,22 +1795,25 @@ class RestorationTest(unittest.TestCase):
             user_path = Path(user_folder)
             create_user_data(user_path)
             backup_path = Path(backup_folder)
-            vintagebackup.create_new_backup(user_path,
-                                            backup_path,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_path,
+                backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
             with self.assertLogs(level=logging.ERROR) as no_backup_choice_log:
-                exit_code = vintagebackup.main(["--restore",
-                                                "--user-folder", user_folder,
-                                                "--backup-folder", backup_folder,
-                                                "--keep-extra",
-                                                "--log", os.devnull])
+                exit_code = vintagebackup.main([
+                    "--restore",
+                    "--user-folder", user_folder,
+                    "--backup-folder", backup_folder,
+                    "--keep-extra",
+                    "--log", os.devnull])
             self.assertEqual(exit_code, 1)
-            expected_logs = ["ERROR:vintagebackup:One of the following are required: "
-                             "--last-backup or --choose-backup"]
+            expected_logs = [
+                "ERROR:vintagebackup:One of the following are required: "
+                "--last-backup or --choose-backup"]
             self.assertEqual(expected_logs, no_backup_choice_log.output)
 
     def test_restore_with_bad_response_to_overwrite_confirmation_is_an_error(self) -> None:
@@ -1741,26 +1823,29 @@ class RestorationTest(unittest.TestCase):
             user_path = Path(user_folder)
             create_user_data(user_path)
             backup_path = Path(backup_folder)
-            vintagebackup.create_new_backup(user_path,
-                                            backup_path,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_path,
+                backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
             with self.assertLogs(level=logging.INFO) as bad_prompt_log:
-                exit_code = vintagebackup.main(["--restore",
-                                                "--user-folder", user_folder,
-                                                "--backup-folder", backup_folder,
-                                                "--choose-backup",
-                                                "--delete-extra",
-                                                "--log", os.devnull,
-                                                "--skip-prompt",
-                                                "--bad-input",
-                                                "--choice", "0"])
+                exit_code = vintagebackup.main([
+                    "--restore",
+                    "--user-folder", user_folder,
+                    "--backup-folder", backup_folder,
+                    "--choose-backup",
+                    "--delete-extra",
+                    "--log", os.devnull,
+                    "--skip-prompt",
+                    "--bad-input",
+                    "--choice", "0"])
             self.assertEqual(exit_code, 0)
-            rejection_line = ('INFO:vintagebackup:The response was "no" and not "yes", so the '
-                              'restoration is cancelled.')
+            rejection_line = (
+                'INFO:vintagebackup:The response was "no" and not "yes", so the '
+                'restoration is cancelled.')
             self.assertIn(rejection_line, bad_prompt_log.output)
 
 
@@ -1775,19 +1860,20 @@ class BackupLockTest(unittest.TestCase):
             create_user_data(user_path)
             backup_path = Path(backup_folder)
             with vintagebackup.Backup_Lock(backup_path, "no wait test"):
-                exit_code = run_backup(Invocation.cli,
-                                       user_path,
-                                       backup_path,
-                                       filter_file=None,
-                                       examine_whole_file=False,
-                                       force_copy=False,
-                                       timestamp=unique_timestamp())
+                exit_code = run_backup(
+                    Invocation.cli,
+                    user_path,
+                    backup_path,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    timestamp=unique_timestamp())
                 self.assertNotEqual(exit_code, 0)
 
                 with self.assertRaises(vintagebackup.ConcurrencyError):
                     options = vintagebackup.argument_parser()
-                    args = options.parse_args(["--user-folder", user_folder,
-                                               "--backup-folder", backup_folder])
+                    args = options.parse_args(
+                        ["--user-folder", user_folder, "--backup-folder", backup_folder])
                     vintagebackup.start_backup(args)
 
     def test_lock_writes_process_info_to_lock_file_and_deletes_on_exit(self) -> None:
@@ -1817,12 +1903,12 @@ class CopyProbabilityTest(unittest.TestCase):
             user_path = Path(user_folder)
             create_user_data(user_path)
             backup_path = Path(backup_folder)
-            arguments = ["--user-folder", user_folder,
-                         "--backup-folder", backup_folder,
-                         "--hard-link-count", "1",
-                         "--log", os.devnull,
-                         "--timestamp",
-                         unique_timestamp().strftime(vintagebackup.backup_date_format)]
+            arguments = [
+                "--user-folder", user_folder,
+                "--backup-folder", backup_folder,
+                "--hard-link-count", "1",
+                "--log", os.devnull,
+                "--timestamp", unique_timestamp().strftime(vintagebackup.backup_date_format)]
             exit_code = vintagebackup.main(arguments)
             self.assertEqual(exit_code, 0)
             arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
@@ -1839,23 +1925,24 @@ class CopyProbabilityTest(unittest.TestCase):
         """Test that all inputs to --hard-link-count besides positive whole numbers are errors."""
         with (tempfile.TemporaryDirectory() as user_folder,
               tempfile.TemporaryDirectory() as backup_folder):
-            arguments = ["--user-folder", user_folder,
-                         "--backup-folder", backup_folder,
-                         "--log", os.devnull,
-                         "--hard-link-count", "Z"]
+            arguments = [
+                "--user-folder", user_folder,
+                "--backup-folder", backup_folder,
+                "--log", os.devnull,
+                "--hard-link-count", "Z"]
             with self.assertLogs(level=logging.ERROR) as error_log:
                 exit_code = vintagebackup.main(arguments)
             self.assertEqual(exit_code, 1)
-            self.assertEqual(error_log.output,
-                             ["ERROR:vintagebackup:Invalid value for hard link count: Z"])
+            self.assertEqual(
+                error_log.output, ["ERROR:vintagebackup:Invalid value for hard link count: Z"])
 
             arguments[-1] = "0"
             with self.assertLogs(level=logging.ERROR) as error_log:
                 exit_code = vintagebackup.main(arguments)
             self.assertEqual(exit_code, 1)
-            self.assertEqual(error_log.output,
-                             ["ERROR:vintagebackup:Hard link count must be a positive whole number."
-                              " Got: 0"])
+            self.assertEqual(
+                error_log.output,
+                ["ERROR:vintagebackup:Hard link count must be a positive whole number. Got: 0"])
 
     def test_copy_probability_decimal_must_be_between_zero_and_one(self) -> None:
         """Test that only values from 0.0 to 1.0 are valid for --copy-probability."""
@@ -1883,12 +1970,12 @@ class CopyProbabilityTest(unittest.TestCase):
             user_path = Path(user_folder)
             create_user_data(user_path)
             backup_path = Path(backup_folder)
-            arguments = ["--user-folder", user_folder,
-                         "--backup-folder", backup_folder,
-                         "--copy-probability", "0",
-                         "--log", os.devnull,
-                         "--timestamp",
-                         unique_timestamp().strftime(vintagebackup.backup_date_format)]
+            arguments = [
+                "--user-folder", user_folder,
+                "--backup-folder", backup_folder,
+                "--copy-probability", "0",
+                "--log", os.devnull,
+                "--timestamp", unique_timestamp().strftime(vintagebackup.backup_date_format)]
             exit_code = vintagebackup.main(arguments)
             self.assertEqual(exit_code, 0)
             arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
@@ -1906,11 +1993,11 @@ class CopyProbabilityTest(unittest.TestCase):
             user_path = Path(user_folder)
             create_user_data(user_path)
             backup_path = Path(backup_folder)
-            arguments = ["--user-folder", user_folder,
-                         "--backup-folder", backup_folder,
-                         "--log", os.devnull,
-                         "--timestamp",
-                         unique_timestamp().strftime(vintagebackup.backup_date_format)]
+            arguments = [
+                "--user-folder", user_folder,
+                "--backup-folder", backup_folder,
+                "--log", os.devnull,
+                "--timestamp", unique_timestamp().strftime(vintagebackup.backup_date_format)]
             exit_code = vintagebackup.main(arguments)
             self.assertEqual(exit_code, 0)
             arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
@@ -1928,12 +2015,12 @@ class CopyProbabilityTest(unittest.TestCase):
             user_path = Path(user_folder)
             create_user_data(user_path)
             backup_path = Path(backup_folder)
-            arguments = ["--user-folder", user_folder,
-                         "--backup-folder", backup_folder,
-                         "--copy-probability", "1",
-                         "--log", os.devnull,
-                         "--timestamp",
-                         unique_timestamp().strftime(vintagebackup.backup_date_format)]
+            arguments = [
+                "--user-folder", user_folder,
+                "--backup-folder", backup_folder,
+                "--copy-probability", "1",
+                "--log", os.devnull,
+                "--timestamp", unique_timestamp().strftime(vintagebackup.backup_date_format)]
             exit_code = vintagebackup.main(arguments)
             self.assertEqual(exit_code, 0)
             arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
@@ -1951,12 +2038,12 @@ class CopyProbabilityTest(unittest.TestCase):
             user_path = Path(user_folder)
             create_user_data(user_path)
             backup_path = Path(backup_folder)
-            arguments = ["--user-folder", user_folder,
-                         "--backup-folder", backup_folder,
-                         "--copy-probability", "50%",
-                         "--log", os.devnull,
-                         "--timestamp",
-                         unique_timestamp().strftime(vintagebackup.backup_date_format)]
+            arguments = [
+                "--user-folder", user_folder,
+                "--backup-folder", backup_folder,
+                "--copy-probability", "50%",
+                "--log", os.devnull,
+                "--timestamp", unique_timestamp().strftime(vintagebackup.backup_date_format)]
             exit_code = vintagebackup.main(arguments)
             self.assertEqual(exit_code, 0)
             arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
@@ -1981,13 +2068,14 @@ class AtomicBackupTests(unittest.TestCase):
             create_user_data(user_path)
             backup_path = Path(backup_folder)
             staging_path = backup_path/"Staging"
-            vintagebackup.create_new_backup(user_path,
-                                            backup_path,
-                                            filter_file=None,
-                                            examine_whole_file=False,
-                                            force_copy=False,
-                                            copy_probability=0.0,
-                                            timestamp=unique_timestamp())
+            vintagebackup.create_new_backup(
+                user_path,
+                backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
             self.assertFalse(staging_path.exists())
 
     def test_staging_folder_deleted_by_new_backup(self) -> None:
@@ -2001,16 +2089,18 @@ class AtomicBackupTests(unittest.TestCase):
             staging_path.mkdir()
             (staging_path/"leftover_file.txt").write_text("Leftover from last backup\n")
             with self.assertLogs(level=logging.INFO) as logs:
-                vintagebackup.create_new_backup(user_path,
-                                                backup_path,
-                                                filter_file=None,
-                                                examine_whole_file=False,
-                                                force_copy=False,
-                                                copy_probability=0.0,
-                                                timestamp=unique_timestamp())
+                vintagebackup.create_new_backup(
+                    user_path,
+                    backup_path,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    copy_probability=0.0,
+                    timestamp=unique_timestamp())
             self.assertFalse(staging_path.exists())
-            staging_message = ("INFO:vintagebackup:There is a staging folder "
-                               "leftover from previous incomplete backup.")
+            staging_message = (
+                "INFO:vintagebackup:There is a staging folder "
+                "leftover from previous incomplete backup.")
             self.assertIn(staging_message, logs.output)
             deletion_message = f"INFO:vintagebackup:Deleting {staging_path} ..."
             self.assertIn(deletion_message, logs.output)
@@ -2028,20 +2118,19 @@ class PurgeTests(unittest.TestCase):
             number_of_backups = 5
             backup_path = Path(backup_folder)
             for _ in range(number_of_backups):
-                vintagebackup.create_new_backup(user_path,
-                                                backup_path,
-                                                filter_file=None,
-                                                examine_whole_file=False,
-                                                force_copy=False,
-                                                copy_probability=0.0,
-                                                timestamp=unique_timestamp())
+                vintagebackup.create_new_backup(
+                    user_path,
+                    backup_path,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    copy_probability=0.0,
+                    timestamp=unique_timestamp())
 
             purged_file = user_path/"sub_directory_2"/"sub_sub_directory_1"/"file_0.txt"
             self.assertTrue(purged_file.is_file())
-            purge_command_line = vintagebackup.parse_command_line(["--purge",
-                                                                   str(purged_file),
-                                                                   "--backup-folder",
-                                                                   str(backup_path)])
+            purge_command_line = vintagebackup.parse_command_line(
+                ["--purge", str(purged_file), "--backup-folder", str(backup_path)])
             vintagebackup.start_backup_purge(purge_command_line, "y")
             relative_purge_file = purged_file.relative_to(user_path)
             for backup in vintagebackup.all_backups(backup_path):
@@ -2056,20 +2145,19 @@ class PurgeTests(unittest.TestCase):
             number_of_backups = 5
             backup_path = Path(backup_folder)
             for _ in range(number_of_backups):
-                vintagebackup.create_new_backup(user_path,
-                                                backup_path,
-                                                filter_file=None,
-                                                examine_whole_file=False,
-                                                force_copy=False,
-                                                copy_probability=0.0,
-                                                timestamp=unique_timestamp())
+                vintagebackup.create_new_backup(
+                    user_path,
+                    backup_path,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    copy_probability=0.0,
+                    timestamp=unique_timestamp())
 
             purged_folder = user_path/"sub_directory_2"/"sub_sub_directory_1"
             self.assertTrue(purged_folder.is_dir())
-            purge_command_line = vintagebackup.parse_command_line(["--purge",
-                                                                   str(purged_folder),
-                                                                   "--backup-folder",
-                                                                   str(backup_path)])
+            purge_command_line = vintagebackup.parse_command_line(
+                ["--purge", str(purged_folder), "--backup-folder", str(backup_path)])
             vintagebackup.start_backup_purge(purge_command_line, "y")
             relative_purge_folder = purged_folder.relative_to(user_path)
             for backup in vintagebackup.all_backups(backup_path):
@@ -2084,40 +2172,42 @@ class PurgeTests(unittest.TestCase):
             number_of_backups = 5
             backup_path = Path(backup_folder)
             for _ in range(number_of_backups):
-                vintagebackup.create_new_backup(user_path,
-                                                backup_path,
-                                                filter_file=None,
-                                                examine_whole_file=False,
-                                                force_copy=False,
-                                                copy_probability=0.0,
-                                                timestamp=unique_timestamp())
+                vintagebackup.create_new_backup(
+                    user_path,
+                    backup_path,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    copy_probability=0.0,
+                    timestamp=unique_timestamp())
 
             purged_path = user_path/"sub_directory_2"/"sub_sub_directory_1"
             vintagebackup.delete_directory_tree(purged_path)
             purged_path.touch()
 
             for _ in range(number_of_backups):
-                vintagebackup.create_new_backup(user_path,
-                                                backup_path,
-                                                filter_file=None,
-                                                examine_whole_file=False,
-                                                force_copy=False,
-                                                copy_probability=0.0,
-                                                timestamp=unique_timestamp())
+                vintagebackup.create_new_backup(
+                    user_path,
+                    backup_path,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    copy_probability=0.0,
+                    timestamp=unique_timestamp())
 
             self.assertTrue(purged_path.is_file())
             purged_path.unlink()
-            purge_command_line = vintagebackup.parse_command_line(["--purge",
-                                                                   str(purged_path),
-                                                                   "--backup-folder",
-                                                                   str(backup_path),
-                                                                   "--choice", "0"])
+            purge_command_line = vintagebackup.parse_command_line([
+                "--purge", str(purged_path),
+                "--backup-folder", str(backup_path),
+                "--choice", "0"])
             vintagebackup.start_backup_purge(purge_command_line, "y")
             relative_purge_file = purged_path.relative_to(user_path)
             for backup in vintagebackup.all_backups(backup_path):
                 backup_file_path = backup/relative_purge_file
-                self.assertTrue(vintagebackup.is_real_directory(backup_file_path)
-                                or not backup_file_path.exists())
+                self.assertTrue(
+                    vintagebackup.is_real_directory(backup_file_path)
+                    or not backup_file_path.exists())
 
     def test_folder_purge_with_prompt_only_deletes_folders(self) -> None:
         """Test that a purging a non-existent folder only deletes folders in backups."""
@@ -2128,34 +2218,35 @@ class PurgeTests(unittest.TestCase):
             number_of_backups = 5
             backup_path = Path(backup_folder)
             for _ in range(number_of_backups):
-                vintagebackup.create_new_backup(user_path,
-                                                backup_path,
-                                                filter_file=None,
-                                                examine_whole_file=False,
-                                                force_copy=False,
-                                                copy_probability=0.0,
-                                                timestamp=unique_timestamp())
+                vintagebackup.create_new_backup(
+                    user_path,
+                    backup_path,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    copy_probability=0.0,
+                    timestamp=unique_timestamp())
 
             purged_path = user_path/"sub_directory_2"/"sub_sub_directory_1"
             vintagebackup.delete_directory_tree(purged_path)
             purged_path.touch()
 
             for _ in range(number_of_backups):
-                vintagebackup.create_new_backup(user_path,
-                                                backup_path,
-                                                filter_file=None,
-                                                examine_whole_file=False,
-                                                force_copy=False,
-                                                copy_probability=0.0,
-                                                timestamp=unique_timestamp())
+                vintagebackup.create_new_backup(
+                    user_path,
+                    backup_path,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    copy_probability=0.0,
+                    timestamp=unique_timestamp())
 
             self.assertTrue(purged_path.is_file())
             purged_path.unlink()
-            purge_command_line = vintagebackup.parse_command_line(["--purge",
-                                                                   str(purged_path),
-                                                                   "--backup-folder",
-                                                                   str(backup_path),
-                                                                   "--choice", "1"])
+            purge_command_line = vintagebackup.parse_command_line([
+                "--purge", str(purged_path),
+                "--backup-folder", str(backup_path),
+                "--choice", "1"])
             vintagebackup.start_backup_purge(purge_command_line, "y")
             relative_purge_file = purged_path.relative_to(user_path)
             for backup in vintagebackup.all_backups(backup_path):
@@ -2171,20 +2262,20 @@ class PurgeTests(unittest.TestCase):
             number_of_backups = 5
             backup_path = Path(backup_folder)
             for _ in range(number_of_backups):
-                vintagebackup.create_new_backup(user_path,
-                                                backup_path,
-                                                filter_file=None,
-                                                examine_whole_file=False,
-                                                force_copy=False,
-                                                copy_probability=0.0,
-                                                timestamp=unique_timestamp())
+                vintagebackup.create_new_backup(
+                    user_path,
+                    backup_path,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    copy_probability=0.0,
+                    timestamp=unique_timestamp())
 
             purged_path = user_path/"sub_directory_2"/"sub_sub_directory_1"
             self.assertTrue(purged_path.is_dir(follow_symlinks=False))
-            purge_command_line = vintagebackup.parse_command_line(["--purge",
-                                                                   str(purged_path),
-                                                                   "--backup-folder",
-                                                                   str(backup_path)])
+            purge_command_line = vintagebackup.parse_command_line([
+                "--purge", str(purged_path),
+                "--backup-folder", str(backup_path)])
             vintagebackup.start_backup_purge(purge_command_line, "thing")
 
             for backup in vintagebackup.all_backups(backup_path):
@@ -2199,35 +2290,36 @@ class PurgeTests(unittest.TestCase):
             number_of_backups = 5
             backup_path = Path(backup_folder)
             for _ in range(number_of_backups):
-                vintagebackup.create_new_backup(user_path,
-                                                backup_path,
-                                                filter_file=None,
-                                                examine_whole_file=False,
-                                                force_copy=False,
-                                                copy_probability=0.0,
-                                                timestamp=unique_timestamp())
+                vintagebackup.create_new_backup(
+                    user_path,
+                    backup_path,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    copy_probability=0.0,
+                    timestamp=unique_timestamp())
 
             purged_path = user_path/"sub_directory_2"/"sub_sub_directory_0"
             vintagebackup.delete_directory_tree(purged_path)
             purged_path.touch()
 
             for _ in range(number_of_backups):
-                vintagebackup.create_new_backup(user_path,
-                                                backup_path,
-                                                filter_file=None,
-                                                examine_whole_file=False,
-                                                force_copy=False,
-                                                copy_probability=0.0,
-                                                timestamp=unique_timestamp())
+                vintagebackup.create_new_backup(
+                    user_path,
+                    backup_path,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    copy_probability=0.0,
+                    timestamp=unique_timestamp())
 
             self.assertTrue(purged_path.is_file())
             purged_path.unlink()
             search_directory = purged_path.parent
-            purge_command_line = vintagebackup.parse_command_line(["--purge-list",
-                                                                   str(search_directory),
-                                                                   "--backup-folder",
-                                                                   str(backup_path),
-                                                                   "--choice", "2"])
+            purge_command_line = vintagebackup.parse_command_line([
+                "--purge-list", str(search_directory),
+                "--backup-folder", str(backup_path),
+                "--choice", "2"])
             vintagebackup.choose_purge_target_from_backups(purge_command_line, "y")
             relative_purge_file = purged_path.relative_to(user_path)
             for backup in vintagebackup.all_backups(backup_path):
@@ -2244,20 +2336,20 @@ class PurgeTests(unittest.TestCase):
             number_of_backups = 5
             backup_path = Path(backup_folder)
             for _ in range(number_of_backups):
-                vintagebackup.create_new_backup(user_path,
-                                                backup_path,
-                                                filter_file=None,
-                                                examine_whole_file=False,
-                                                force_copy=False,
-                                                copy_probability=0.0,
-                                                timestamp=unique_timestamp())
+                vintagebackup.create_new_backup(
+                    user_path,
+                    backup_path,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    copy_probability=0.0,
+                    timestamp=unique_timestamp())
 
             purged_file = user_path/"sub_directory_2"/"sub_sub_directory_1"/"file_0.txt"
             self.assertTrue(purged_file.is_file())
-            purge_command_line = vintagebackup.parse_command_line(["--purge",
-                                                                   str(purged_file),
-                                                                   "--backup-folder",
-                                                                   str(backup_path)])
+            purge_command_line = vintagebackup.parse_command_line([
+                "--purge", str(purged_file),
+                "--backup-folder", str(backup_path)])
             with self.assertLogs() as log_lines:
                 vintagebackup.start_backup_purge(purge_command_line, "y")
             relative_purge_file = purged_file.relative_to(user_path)
@@ -2272,20 +2364,20 @@ class PurgeTests(unittest.TestCase):
             number_of_backups = 5
             backup_path = Path(backup_folder)
             for _ in range(number_of_backups):
-                vintagebackup.create_new_backup(user_path,
-                                                backup_path,
-                                                filter_file=None,
-                                                examine_whole_file=False,
-                                                force_copy=False,
-                                                copy_probability=0.0,
-                                                timestamp=unique_timestamp())
+                vintagebackup.create_new_backup(
+                    user_path,
+                    backup_path,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    copy_probability=0.0,
+                    timestamp=unique_timestamp())
 
             purged_file = user_path/"sub_directory_2"
             self.assertTrue(purged_file.is_dir())
-            purge_command_line = vintagebackup.parse_command_line(["--purge",
-                                                                   str(purged_file),
-                                                                   "--backup-folder",
-                                                                   str(backup_path)])
+            purge_command_line = vintagebackup.parse_command_line([
+                "--purge", str(purged_file),
+                "--backup-folder", str(backup_path)])
             with self.assertLogs() as log_lines:
                 vintagebackup.start_backup_purge(purge_command_line, "y")
             relative_purge_file = purged_file.relative_to(user_path)/"**"
@@ -2354,13 +2446,14 @@ class AllBackupsTests(unittest.TestCase):
             for _ in range(backups_to_create):
                 timestamp = unique_timestamp()
                 timestamps.append(timestamp)
-                vintagebackup.create_new_backup(user_path,
-                                                backup_path,
-                                                filter_file=None,
-                                                examine_whole_file=False,
-                                                force_copy=False,
-                                                copy_probability=0.0,
-                                                timestamp=timestamp)
+                vintagebackup.create_new_backup(
+                    user_path,
+                    backup_path,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    copy_probability=0.0,
+                    timestamp=timestamp)
             backups = vintagebackup.all_backups(backup_path)
             for timestamp, backup in zip(timestamps, backups, strict=True):
                 year_path = str(timestamp.year)
@@ -2380,13 +2473,14 @@ class AllBackupsTests(unittest.TestCase):
             for _ in range(backups_to_create):
                 timestamp = unique_timestamp()
                 timestamps.append(timestamp)
-                vintagebackup.create_new_backup(user_path,
-                                                backup_path,
-                                                filter_file=None,
-                                                examine_whole_file=False,
-                                                force_copy=False,
-                                                copy_probability=0.0,
-                                                timestamp=timestamp)
+                vintagebackup.create_new_backup(
+                    user_path,
+                    backup_path,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    copy_probability=0.0,
+                    timestamp=timestamp)
 
             # Create entries that should be left out of all_backups() list
             (backup_path/"extra year folder"/"extra backup folder").mkdir(parents=True)
@@ -2408,8 +2502,8 @@ class BackupNameTests(unittest.TestCase):
     def test_backup_name_and_backup_datetime_are_inverse_functions(self) -> None:
         """Test that a timestamp is preserved in a backup name."""
         now = datetime.datetime.now()
-        timestamp = datetime.datetime(now.year, now.month, now.day,
-                                      now.hour, now.minute, now.second)
+        timestamp = datetime.datetime(
+            now.year, now.month, now.day, now.hour, now.minute, now.second)
         backup = vintagebackup.backup_name(timestamp)
         backup_timestamp = vintagebackup.backup_datetime(backup)
         self.assertEqual(timestamp, backup_timestamp)
@@ -2579,8 +2673,8 @@ This is the fourth paragraph."""
             self.assertLessEqual(line_length, max_line_length)
 
             # Line not broken too early
-            self.assertTrue(line_length + first_word_length > max_line_length
-                            or first_word_length == 0)
+            self.assertTrue(
+                line_length + first_word_length > max_line_length or first_word_length == 0)
 
             first_word_length = len(line.split()[0])
 

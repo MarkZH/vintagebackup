@@ -61,8 +61,9 @@ class Backup_Lock:
             except FileNotFoundError:
                 continue
 
-            raise ConcurrencyError(f"Vintage Backup already running {other_operation} on "
-                                   f"{self.lock_file_path.parent} (PID {other_pid})")
+            raise ConcurrencyError(
+                f"Vintage Backup already running {other_operation} on "
+                f"{self.lock_file_path.parent} (PID {other_pid})")
 
     def __exit__(self, *_: object) -> None:
         """Release the file lock."""
@@ -179,16 +180,17 @@ class Backup_Set:
                 sign = line[0]
 
                 if sign not in "-+#":
-                    raise ValueError(f"Line #{line_number} ({line}): The first symbol "
-                                     "of each line in the filter file must be -, +, or #.")
+                    raise ValueError(
+                        f"Line #{line_number} ({line}): The first symbol "
+                        "of each line in the filter file must be -, +, or #.")
 
                 if sign == "#":
                     continue
 
                 pattern = user_folder/line[1:].strip()
                 if not pattern.is_relative_to(user_folder):
-                    raise ValueError(f"Line #{line_number} ({line}): Filter looks at paths "
-                                     "outside user folder.")
+                    raise ValueError(
+                        f"Line #{line_number} ({line}): Filter looks at paths outside user folder.")
 
                 logger.debug(f"Filter added: {line} --> {sign} {pattern}")
                 self.entries.append((line_number, sign, pattern))
@@ -213,12 +215,13 @@ class Backup_Set:
             if path.full_match(pattern):
                 self.lines_used.add(line_number)
                 is_included = should_include
-                logger.debug("File: %s %s by line %d: %s %s",
-                             path,
-                             "included" if is_included else "excluded",
-                             line_number,
-                             sign,
-                             pattern)
+                logger.debug(
+                    "File: %s %s by line %d: %s %s",
+                    path,
+                    "included" if is_included else "excluded",
+                    line_number,
+                    sign,
+                    pattern)
 
         return is_included
 
@@ -226,8 +229,8 @@ class Backup_Set:
         """Warn the user if any of the lines in the filter file had no effect on the backup."""
         for line_number, sign, pattern in self.entries:
             if line_number not in self.lines_used:
-                logger.info(f"{self.filter_file}: line #{line_number}"
-                            f" ({sign} {pattern}) had no effect.")
+                logger.info(
+                    f"{self.filter_file}: line #{line_number} ({sign} {pattern}) had no effect.")
 
 
 def get_user_location_record(backup_location: Path) -> Path:
@@ -262,9 +265,10 @@ def confirm_user_location_is_unchanged(user_data_location: Path, backup_location
     try:
         recorded_user_folder = backup_source(backup_location)
         if not recorded_user_folder.samefile(user_data_location):
-            raise RuntimeError("Previous backup stored a different user folder."
-                               f" Previously: {absolute_path(recorded_user_folder)};"
-                               f" Now: {absolute_path(user_data_location)}")
+            raise RuntimeError(
+                "Previous backup stored a different user folder."
+                f" Previously: {absolute_path(recorded_user_folder)};"
+                f" Now: {absolute_path(user_data_location)}")
     except FileNotFoundError:
         # This is probably the first backup, hence no user folder record.
         pass
@@ -289,11 +293,12 @@ def random_filter(probability: float) -> Callable[[Any], bool]:
     return actual_random_filter
 
 
-def compare_to_backup(user_directory: Path,
-                      backup_directory: Path | None,
-                      file_names: list[str],
-                      examine_whole_file: bool,
-                      copy_probability: float) -> tuple[list[str], list[str], list[str]]:
+def compare_to_backup(
+        user_directory: Path,
+        backup_directory: Path | None,
+        file_names: list[str],
+        examine_whole_file: bool,
+        copy_probability: float) -> tuple[list[str], list[str], list[str]]:
     """
     Sort a list of files according to whether they have changed since the last backup.
 
@@ -323,16 +328,18 @@ def compare_to_backup(user_directory: Path,
     return matches, mismatches, errors
 
 
-def deep_comparison(user_directory: Path,
-                    backup_directory: Path,
-                    file_names: list[str]) -> tuple[list[str], list[str], list[str]]:
+def deep_comparison(
+        user_directory: Path,
+        backup_directory: Path,
+        file_names: list[str]) -> tuple[list[str], list[str], list[str]]:
     """Inspect file contents to determine if files match the most recent backup."""
     return filecmp.cmpfiles(user_directory, backup_directory, file_names, shallow=False)
 
 
-def shallow_comparison(user_directory: Path,
-                       backup_directory: Path,
-                       file_names: list[str]) -> tuple[list[str], list[str], list[str]]:
+def shallow_comparison(
+        user_directory: Path,
+        backup_directory: Path,
+        file_names: list[str]) -> tuple[list[str], list[str], list[str]]:
     """Decide which files match the previous backup based on quick stat information."""
     def scan_directory(directory: Path) -> dict[str, os.stat_result]:
         with os.scandir(directory) as scan:
@@ -409,14 +416,15 @@ def separate[T](items: Iterable[T], predicate: Callable[[T], bool]) -> tuple[lis
     return true_items, false_items
 
 
-def backup_directory(user_data_location: Path,
-                     new_backup_path: Path,
-                     last_backup_path: Path | None,
-                     current_user_path: Path,
-                     user_file_names: list[str],
-                     examine_whole_file: bool,
-                     copy_probability: float,
-                     action_counter: Counter[str]) -> None:
+def backup_directory(
+        user_data_location: Path,
+        new_backup_path: Path,
+        last_backup_path: Path | None,
+        current_user_path: Path,
+        user_file_names: list[str],
+        examine_whole_file: bool,
+        copy_probability: float,
+        action_counter: Counter[str]) -> None:
     """
     Backup the files in a subfolder in the user's directory.
 
@@ -435,11 +443,12 @@ def backup_directory(user_data_location: Path,
     new_backup_directory = new_backup_path/relative_path
     new_backup_directory.mkdir(parents=True)
     previous_backup_directory = last_backup_path/relative_path if last_backup_path else None
-    matching, mismatching, errors = compare_to_backup(current_user_path,
-                                                      previous_backup_directory,
-                                                      user_file_names,
-                                                      examine_whole_file,
-                                                      copy_probability)
+    matching, mismatching, errors = compare_to_backup(
+        current_user_path,
+        previous_backup_directory,
+        user_file_names,
+        examine_whole_file,
+        copy_probability)
 
     for file_name in matching:
         previous_backup = cast(Path, previous_backup_directory)/file_name
@@ -471,15 +480,16 @@ def backup_name(backup_datetime: datetime.datetime | str | None) -> Path:
     return Path(str(now.year))/now.strftime(backup_date_format)
 
 
-def create_new_backup(user_data_location: Path,
-                      backup_location: Path,
-                      *,
-                      filter_file: Path | None,
-                      examine_whole_file: bool,
-                      force_copy: bool,
-                      copy_probability: float,
-                      timestamp: datetime.datetime | str | None,
-                      is_backup_move: bool = False) -> None:
+def create_new_backup(
+        user_data_location: Path,
+        backup_location: Path,
+        *,
+        filter_file: Path | None,
+        examine_whole_file: bool,
+        force_copy: bool,
+        copy_probability: float,
+        timestamp: datetime.datetime | str | None,
+        is_backup_move: bool = False) -> None:
     """
     Create a new dated backup.
 
@@ -531,14 +541,15 @@ def create_new_backup(user_data_location: Path,
     paths_to_backup = Backup_Set(user_data_location, filter_file)
     logger.info("Running backup ...")
     for current_user_path, user_file_names in paths_to_backup:
-        backup_directory(user_data_location,
-                            staging_backup_path,
-                            last_backup_path,
-                            current_user_path,
-                            user_file_names,
-                            examine_whole_file,
-                            copy_probability,
-                            action_counter)
+        backup_directory(
+            user_data_location,
+            staging_backup_path,
+            last_backup_path,
+            current_user_path,
+            user_file_names,
+            examine_whole_file,
+            copy_probability,
+            action_counter)
 
     if staging_backup_path.is_dir():
         new_backup_path.parent.mkdir(parents=True, exist_ok=True)
@@ -567,9 +578,10 @@ def report_backup_file_counts(action_counter: Counter[str]) -> None:
         logger.warning("No files were backed up!")
 
 
-def check_paths_for_validity(user_data_location: Path,
-                             backup_location: Path,
-                             filter_file: Path | None) -> None:
+def check_paths_for_validity(
+        user_data_location: Path,
+        backup_location: Path,
+        filter_file: Path | None) -> None:
     """Check the given paths for validity and raise an exception for improper inputs."""
     if not user_data_location.is_dir():
         raise CommandLineError(f"The user folder path is not a folder: {user_data_location}")
@@ -578,9 +590,10 @@ def check_paths_for_validity(user_data_location: Path,
         raise CommandLineError("Backup location exists but is not a folder.")
 
     if backup_location.is_relative_to(user_data_location):
-        raise CommandLineError("Backup destination cannot be inside user's folder:"
-                               f" User data: {user_data_location}"
-                               f"; Backup location: {backup_location}")
+        raise CommandLineError(
+            "Backup destination cannot be inside user's folder:"
+            f" User data: {user_data_location}"
+            f"; Backup location: {backup_location}")
 
     if filter_file and not filter_file.is_file():
         raise CommandLineError(f"Filter file not found: {filter_file}")
@@ -595,10 +608,11 @@ def setup_log_file(logger: logging.Logger, log_file_path: str) -> None:
         logger.addHandler(log_file)
 
 
-def search_backups(search_directory: Path,
-                   backup_folder: Path,
-                   operation: str,
-                   choice: int | None = None) -> Path | None:
+def search_backups(
+        search_directory: Path,
+        backup_folder: Path,
+        operation: str,
+        choice: int | None = None) -> Path | None:
     """
     Decide which path to restore among all backups for all items in the given directory.
 
@@ -715,8 +729,9 @@ def path_relative_to_backups(user_path: Path, backup_location: Path) -> Path:
     try:
         return user_path.relative_to(user_data_location)
     except ValueError:
-        raise CommandLineError(f"{user_path} is not contained in the backup set "
-                               f"{backup_location}, which contains {user_data_location}.") from None
+        raise CommandLineError(
+            f"{user_path} is not contained in the backup set "
+            f"{backup_location}, which contains {user_data_location}.") from None
 
 
 def choose_from_menu(menu_choices: list[str], prompt: str) -> int:
@@ -777,9 +792,10 @@ def delete_directory_tree(backup_path: Path) -> None:
     shutil.rmtree(backup_path, onexc=remove_readonly)
 
 
-def delete_oldest_backups_for_space(backup_location: Path,
-                                    space_requirement: str | None,
-                                    min_backups_remaining: int = 1) -> None:
+def delete_oldest_backups_for_space(
+        backup_location: Path,
+        space_requirement: str | None,
+        min_backups_remaining: int = 1) -> None:
     """
     Delete backups--starting with the oldest--until enough space is free on the backup destination.
 
@@ -802,9 +818,10 @@ def delete_oldest_backups_for_space(backup_location: Path,
                                f" than exists at {backup_location} ({byte_units(total_storage)})")
 
     current_free_space = shutil.disk_usage(backup_location).free
-    first_deletion_message = ("Deleting old backups to free up "
-                              f"{byte_units(free_storage_required)},"
-                              f" ({byte_units(current_free_space)} currently free).")
+    first_deletion_message = (
+        "Deleting old backups to free up "
+        f"{byte_units(free_storage_required)},"
+        f" ({byte_units(current_free_space)} currently free).")
 
     def stop(backup: Path) -> bool:
         return shutil.disk_usage(backup).free > free_storage_required
@@ -850,8 +867,9 @@ def parse_storage_space(space_requirement: str) -> float:
         raise CommandLineError(f"Invalid storage space value: {space_requirement}") from None
 
 
-def parse_time_span_to_timepoint(time_span: str,
-                                 now: datetime.datetime | None = None) -> datetime.datetime:
+def parse_time_span_to_timepoint(
+        time_span: str,
+        now: datetime.datetime | None = None) -> datetime.datetime:
     """
     Parse a string representing a time span into a datetime representing a date that long ago.
 
@@ -928,9 +946,10 @@ def fix_end_of_month(year: int, month: int, day: int) -> datetime.date:
             day -= 1
 
 
-def delete_backups_older_than(backup_folder: Path,
-                              time_span: str | None,
-                              min_backups_remaining: int = 1) -> None:
+def delete_backups_older_than(
+        backup_folder: Path,
+        time_span: str | None,
+        min_backups_remaining: int = 1) -> None:
     """
     Delete backups older than a given timespan.
 
@@ -944,8 +963,8 @@ def delete_backups_older_than(backup_folder: Path,
         return
 
     timestamp_to_keep = parse_time_span_to_timepoint(time_span)
-    first_deletion_message = ("Deleting backups prior to "
-                              f"{timestamp_to_keep.strftime('%Y-%m-%d %H:%M:%S')}.")
+    first_deletion_message = (
+        f"Deleting backups prior to {timestamp_to_keep.strftime('%Y-%m-%d %H:%M:%S')}.")
 
     def stop(backup: Path) -> bool:
         return backup_datetime(backup) >= timestamp_to_keep
@@ -955,16 +974,18 @@ def delete_backups_older_than(backup_folder: Path,
     if oldest_backup_date < timestamp_to_keep:
         backups_remaining = len(all_backups(backup_folder))
         if backups_remaining == 1:
-            logger.warning(f"Could not delete all backups older than {timestamp_to_keep} without"
-                           " deleting most recent backup.")
+            logger.warning(
+                f"Could not delete all backups older than {timestamp_to_keep} without"
+                " deleting most recent backup.")
         else:
             logger.info("Stopped after reaching maximum number of deletions.")
 
 
-def delete_backups(backup_folder: Path,
-                   min_backups_remaining: int,
-                   first_deletion_message: str,
-                   stop_deletion_condition: Callable[[Path], bool]) -> None:
+def delete_backups(
+        backup_folder: Path,
+        min_backups_remaining: int,
+        first_deletion_message: str,
+        stop_deletion_condition: Callable[[Path], bool]) -> None:
     """
     Delete backups until a condition is met.
 
@@ -1021,9 +1042,10 @@ def plural_noun(count: int, word: str) -> str:
     return f"{count} {word}{'' if count == 1 else 's'}"
 
 
-def move_backups(old_backup_location: Path,
-                 new_backup_location: Path,
-                 backups_to_move: list[Path]) -> None:
+def move_backups(
+        old_backup_location: Path,
+        new_backup_location: Path,
+        backups_to_move: list[Path]) -> None:
     """Move a set of backups to a new location."""
     move_count = len(backups_to_move)
     logger.info(f"Moving {plural_noun(move_count, "backup")}")
@@ -1031,14 +1053,15 @@ def move_backups(old_backup_location: Path,
     logger.info(f"to   {new_backup_location}")
 
     for backup in backups_to_move:
-        create_new_backup(backup,
-                          new_backup_location,
-                          filter_file=None,
-                          examine_whole_file=False,
-                          force_copy=False,
-                          copy_probability=0.0,
-                          is_backup_move=True,
-                          timestamp=backup_datetime(backup))
+        create_new_backup(
+            backup,
+            new_backup_location,
+            filter_file=None,
+            examine_whole_file=False,
+            force_copy=False,
+            copy_probability=0.0,
+            is_backup_move=True,
+            timestamp=backup_datetime(backup))
 
         backup_source_file = get_user_location_record(new_backup_location)
         backup_source_file.unlink()
@@ -1048,10 +1071,11 @@ def move_backups(old_backup_location: Path,
     record_user_location(original_backup_source, new_backup_location)
 
 
-def verify_last_backup(user_folder: Path,
-                       backup_folder: Path,
-                       filter_file: Path | None,
-                       result_folder: Path) -> None:
+def verify_last_backup(
+        user_folder: Path,
+        backup_folder: Path,
+        filter_file: Path | None,
+        result_folder: Path) -> None:
     """
     Verify the most recent backup by comparing with the user's files.
 
@@ -1084,10 +1108,11 @@ def verify_last_backup(user_folder: Path,
         for directory, file_names in Backup_Set(user_folder, filter_file):
             relative_directory = directory.relative_to(user_folder)
             backup_directory = last_backup_folder/relative_directory
-            matches, mismatches, errors = filecmp.cmpfiles(directory,
-                                                           backup_directory,
-                                                           file_names,
-                                                           shallow=False)
+            matches, mismatches, errors = filecmp.cmpfiles(
+                directory,
+                backup_directory,
+                file_names,
+                shallow=False)
 
             def file_name_line(file_name: str) -> str:
                 """Create a relative path for recording to a file."""
@@ -1098,10 +1123,11 @@ def verify_last_backup(user_folder: Path,
             error_file.writelines(map(file_name_line, errors))
 
 
-def restore_backup(dated_backup_folder: Path,
-                   user_folder: Path,
-                   *,
-                   delete_extra_files: bool) -> None:
+def restore_backup(
+        dated_backup_folder: Path,
+        user_folder: Path,
+        *,
+        delete_extra_files: bool) -> None:
     """
     Return a user's folder to a previously backed up state.
 
@@ -1125,8 +1151,8 @@ def restore_backup(dated_backup_folder: Path,
             try:
                 source = current_backup_path/file_name
                 destination = current_user_path/file_name
-                logger.debug(f"Copying {file_name} from {current_backup_path} "
-                             f"to {current_user_path}")
+                logger.debug(
+                    f"Copying {file_name} from {current_backup_path} to {current_user_path}")
                 shutil.copy2(source, destination, follow_symlinks=False)
             except Exception as error:
                 logger.warning(f"Could not restore {destination} from {source}: {error}")
@@ -1169,10 +1195,11 @@ def print_backup_storage_stats(backup_location: Path) -> None:
     percent_used = round(100*backup_storage.used/backup_storage.total)
     percent_free = round(100*backup_storage.free/backup_storage.total)
     logger.info("")
-    logger.info("Backup storage space: "
-                f"Total = {byte_units(backup_storage.total)}  "
-                f"Used = {byte_units(backup_storage.used)} ({percent_used}%)  "
-                f"Free = {byte_units(backup_storage.free)} ({percent_free}%)")
+    logger.info(
+        "Backup storage space: "
+        f"Total = {byte_units(backup_storage.total)}  "
+        f"Used = {byte_units(backup_storage.used)} ({percent_used}%)  "
+        f"Free = {byte_units(backup_storage.free)} ({percent_free}%)")
     backups = all_backups(backup_location)
     logger.info(f"Backups stored: {len(backups)}")
     logger.info(f"Earliest backup: {backups[0].name}")
@@ -1191,8 +1218,8 @@ def read_configuation_file(config_file_name: str) -> list[str]:
 
                 parameter = "-".join(parameter_raw.lower().split())
                 if parameter == "config":
-                    raise CommandLineError("The parameter `config` within a configuration file"
-                                           " has no effect.")
+                    raise CommandLineError(
+                        "The parameter `config` within a configuration file has no effect.")
                 arguments.append(f"--{parameter}")
 
                 value = remove_quotes(value_raw)
@@ -1320,8 +1347,8 @@ def copy_probability_from_hard_link_count(hard_link_count: str) -> float:
         raise CommandLineError(f"Invalid value for hard link count: {hard_link_count}") from None
 
     if average_hard_link_count < 1:
-        raise CommandLineError("Hard link count must be a positive whole number. "
-                               f"Got: {hard_link_count}")
+        raise CommandLineError(
+            f"Hard link count must be a positive whole number. Got: {hard_link_count}")
 
     logger.info(f"Maximum average hard link count = {average_hard_link_count}")
     return 1/(average_hard_link_count + 1)
@@ -1383,8 +1410,9 @@ def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
         recover_path(chosen_recovery_path, backup_folder)
 
 
-def choose_purge_target_from_backups(args: argparse.Namespace,
-                                     confirmation_response: str | None = None) -> None:
+def choose_purge_target_from_backups(
+        args: argparse.Namespace,
+        confirmation_response: str | None = None) -> None:
     """Choose which path to purge from a list of everything backed up from a folder."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     chosen_purge_path = choose_target_path_from_backups(args)
@@ -1450,21 +1478,26 @@ def start_backup_restore(args: argparse.Namespace) -> None:
     print_run_title(args, "Restoring user data from backup")
 
     required_response = "yes"
-    logger.info(f"This will overwrite all files in {user_folder} and subfolders with files "
-                f"in {restore_source}.")
+    logger.info(
+        f"This will overwrite all files in {user_folder} and subfolders with files "
+        f"in {restore_source}.")
     if delete_extra_files:
-        logger.info("Any files that were not backed up, including newly created files and "
-                    "files not backed up because of --filter, will be deleted.")
+        logger.info(
+            "Any files that were not backed up, including newly created files and "
+            "files not backed up because of --filter, will be deleted.")
     automatic_response = "no" if args.bad_input else required_response
-    response = (automatic_response if args.skip_prompt
-                else input(f'Do you want to continue? Type "{required_response}" to proceed '
-                           f'or press {cancel_key()} to cancel: '))
+    response = (
+        automatic_response if args.skip_prompt
+        else input(
+            f'Do you want to continue? Type "{required_response}" to proceed '
+            f'or press {cancel_key()} to cancel: '))
 
     if response.strip().lower() == required_response:
         restore_backup(restore_source, destination, delete_extra_files=delete_extra_files)
     else:
-        logger.info(f'The response was "{response}" and not "{required_response}", '
-                    'so the restoration is cancelled.')
+        logger.info(
+            f'The response was "{response}" and not "{required_response}", '
+            'so the restoration is cancelled.')
 
 
 def classify_path(path: Path | os.DirEntry[str]) -> str:
@@ -1483,10 +1516,11 @@ def start_backup_purge(args: argparse.Namespace, confirmation_reponse: str | Non
     purge_path(purge_target, backup_folder, confirmation_reponse, args.choice)
 
 
-def purge_path(purge_target: Path,
-               backup_folder: Path,
-               confirmation_reponse: str | None,
-               arg_choice: str | None) -> None:
+def purge_path(
+        purge_target: Path,
+        backup_folder: Path,
+        confirmation_reponse: str | None,
+        arg_choice: str | None) -> None:
     """Purge a file/folder by deleting it from all backups."""
     relative_purge_target = path_relative_to_backups(purge_target, backup_folder)
 
@@ -1517,8 +1551,9 @@ def purge_path(purge_target: Path,
 
     last_backup = find_previous_backup(backup_folder)
     if backup_list[-1] != last_backup or backup_staging_folder(backup_folder).exists():
-        logger.warning(f"A backup to {backup_folder} ran during purging. You may want to rerun the "
-                       "purge after the backup completes.")
+        logger.warning(
+            f"A backup to {backup_folder} ran during purging. You may want to rerun the "
+            "purge after the backup completes.")
     logger.info("If you want to prevent the purged item from being backed up in the future,")
     logger.info("consider adding the following line to a filter file:")
     filter_line = (relative_purge_target/"**" if is_real_directory(purge_target)
@@ -1526,15 +1561,17 @@ def purge_path(purge_target: Path,
     logger.info(f"- {filter_line}")
 
 
-def choose_types_to_delete(paths_to_delete: list[Path],
-                           path_type_counts: Counter[str],
-                           test_choice: str | None) -> list[str]:
+def choose_types_to_delete(
+        paths_to_delete: list[Path],
+        path_type_counts: Counter[str],
+        test_choice: str | None) -> list[str]:
     """If a purge target has more than one type in backups, choose which type to delete."""
     if len(path_type_counts) == 1:
         return [classify_path(paths_to_delete[0])]
     else:
-        menu_choices = [f"{path_type}s ({count} items)"
-                        for path_type, count in sorted(path_type_counts.items())]
+        menu_choices = [
+            f"{path_type}s ({count} items)"
+            for path_type, count in sorted(path_type_counts.items())]
         all_choice = f"All ({len(paths_to_delete)} items)"
         menu_choices.append(all_choice)
         prompt = "Multiple types of paths were found. Which one should be deleted?\nChoice"
@@ -1574,13 +1611,14 @@ def start_backup(args: argparse.Namespace) -> None:
     with Backup_Lock(backup_folder, "backup"):
         print_run_title(args, "Starting new backup")
         free_space_before_backup = shutil.disk_usage(backup_folder).free
-        create_new_backup(user_folder,
-                          backup_folder,
-                          filter_file=path_or_none(args.filter),
-                          examine_whole_file=toggle_is_set(args, "whole_file"),
-                          force_copy=toggle_is_set(args, "force_copy"),
-                          copy_probability=copy_probability(args),
-                          timestamp=args.timestamp)
+        create_new_backup(
+            user_folder,
+            backup_folder,
+            filter_file=path_or_none(args.filter),
+            examine_whole_file=toggle_is_set(args, "whole_file"),
+            force_copy=toggle_is_set(args, "force_copy"),
+            copy_probability=copy_probability(args),
+            timestamp=args.timestamp)
 
         free_space_after_backup = shutil.disk_usage(backup_folder).free
         backup_space_taken = free_space_before_backup - free_space_after_backup
@@ -1617,8 +1655,9 @@ def parse_probability(probability_str: str) -> float:
     number = float(probability_str.rstrip("%"))
     probability = number/divisor
     if probability < 0.0 or probability > 1.0:
-        raise CommandLineError("Value of --copy-probability must be between 0.0 and 1.0 "
-                                f"(or 0% and 100%): {probability_str}")
+        raise CommandLineError(
+            "Value of --copy-probability must be between 0.0 and 1.0 "
+            f"(or 0% and 100%): {probability_str}")
     return probability
 
 
@@ -1651,10 +1690,11 @@ def delete_before_backup(args: argparse.Namespace) -> None:
 
 def argument_parser() -> argparse.ArgumentParser:
     """Create the parser for command line arguments."""
-    user_input = argparse.ArgumentParser(add_help=False,
-                                         formatter_class=argparse.RawTextHelpFormatter,
-                                         allow_abbrev=False,
-                                         description=format_text("""
+    user_input = argparse.ArgumentParser(
+        add_help=False,
+        formatter_class=argparse.RawTextHelpFormatter,
+        allow_abbrev=False,
+        description=format_text("""
 A backup utility that combines the best aspects of full and incremental backups.
 
 Every time Vintage Backup runs, a new folder is created at the backup location
@@ -1708,15 +1748,21 @@ recovered, then all available backup dates will be options.
 This option requires the --backup-folder option to specify which
 backup location to search."""))
 
-    only_one_action_group.add_argument("--list", metavar="DIRECTORY", nargs="?", const=".",
-                                       help=format_help("""
+    only_one_action_group.add_argument(
+        "--list",
+        metavar="DIRECTORY",
+        nargs="?",
+        const=".",
+        help=format_help("""
 Recover a file or folder in the directory specified by the argument by first choosing what to
 recover from a list of everything that's ever been backed up. If there is no folder specified
 after --list, then the current directory is used. The backup location argument --backup-folder
 is required."""))
 
-    only_one_action_group.add_argument("--move-backup", metavar="NEW_BACKUP_LOCATION",
-                                       help=format_help("""
+    only_one_action_group.add_argument(
+        "--move-backup",
+        metavar="NEW_BACKUP_LOCATION",
+        help=format_help("""
 Move a backup set to a new location. The value of this argument is the new location. The
 --backup-folder option is required to specify the current location of the backup set, and one
 of --move-count, --move-age, or --move-since is required to specify how many of the most recent
@@ -1741,8 +1787,12 @@ parameters."""))
 Delete a file or folder from all backups. The argument is the path to delete. This requires the
 --backup-folder argument."""))
 
-    only_one_action_group.add_argument("--purge-list", metavar="DIRECTORY", nargs="?", const=".",
-                                       help=format_help("""
+    only_one_action_group.add_argument(
+        "--purge-list",
+        metavar="DIRECTORY",
+        nargs="?",
+        const=".",
+        help=format_help("""
 Purge a file or folder from all backups in the directory specified by the argument by first choosing
 what to purge from a list of everything that's ever been backed up. If there is no folder specified
 after --purge-list, then the current directory is used. If the file exists in the user's folder, it
@@ -1894,22 +1944,30 @@ optional."""))
 
     choose_restore_backup_group = restore_group.add_mutually_exclusive_group()
 
-    choose_restore_backup_group.add_argument("--last-backup", action="store_true",
-                                             help=format_help("""
+    choose_restore_backup_group.add_argument(
+        "--last-backup",
+        action="store_true",
+        help=format_help("""
 Restore from the most recent backup."""))
 
-    choose_restore_backup_group.add_argument("--choose-backup", action="store_true",
-                                             help=format_help("""
+    choose_restore_backup_group.add_argument(
+        "--choose-backup",
+        action="store_true",
+        help=format_help("""
 Choose which backup to restore from a list."""))
 
     restore_preservation_group = restore_group.add_mutually_exclusive_group()
 
-    restore_preservation_group.add_argument("--delete-extra", action="store_true",
-                                            help=format_help("""
+    restore_preservation_group.add_argument(
+        "--delete-extra",
+        action="store_true",
+        help=format_help("""
 Delete any extra files that are not in the backup."""))
 
-    restore_preservation_group.add_argument("--keep-extra", action="store_true",
-                                            help=format_help("""
+    restore_preservation_group.add_argument(
+        "--keep-extra",
+        action="store_true",
+        help=format_help("""
 Preserve any extra files that are not in the backup."""))
 
     restore_group.add_argument("--destination", help=format_help("""
@@ -1962,8 +2020,10 @@ Log information on all actions during a program run."""))
     add_no_option(other_group, "debug")
 
     default_log_file_name = Path.home()/"vintagebackup.log"
-    other_group.add_argument("-l", "--log", default=str(default_log_file_name),
-                             help=format_help(f"""
+    other_group.add_argument(
+        "-l", "--log",
+        default=str(default_log_file_name),
+        help=format_help(f"""
 Where to log the activity of this program. The default is
 {default_log_file_name.name} in the user's home folder. If no
 log file is desired, use the file name {os.devnull}."""))
