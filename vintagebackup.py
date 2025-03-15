@@ -297,6 +297,7 @@ def compare_to_backup(
         user_directory: Path,
         backup_directory: Path | None,
         file_names: list[str],
+        *,
         examine_whole_file: bool,
         copy_probability: float) -> tuple[list[str], list[str], list[str]]:
     """
@@ -422,9 +423,10 @@ def backup_directory(
         last_backup_path: Path | None,
         current_user_path: Path,
         user_file_names: list[str],
+        action_counter: Counter[str],
+        *,
         examine_whole_file: bool,
-        copy_probability: float,
-        action_counter: Counter[str]) -> None:
+        copy_probability: float) -> None:
     """
     Backup the files in a subfolder in the user's directory.
 
@@ -447,8 +449,8 @@ def backup_directory(
         current_user_path,
         previous_backup_directory,
         user_file_names,
-        examine_whole_file,
-        copy_probability)
+        examine_whole_file=examine_whole_file,
+        copy_probability=copy_probability)
 
     for file_name in matching:
         previous_backup = cast(Path, previous_backup_directory)/file_name
@@ -547,9 +549,9 @@ def create_new_backup(
             last_backup_path,
             current_user_path,
             user_file_names,
-            examine_whole_file,
-            copy_probability,
-            action_counter)
+            action_counter,
+            examine_whole_file=examine_whole_file,
+            copy_probability=copy_probability)
 
     if staging_backup_path.is_dir():
         new_backup_path.parent.mkdir(parents=True, exist_ok=True)

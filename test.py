@@ -165,6 +165,7 @@ def run_backup(
         user_data: Path,
         backup_location: Path,
         filter_file: Path | None,
+        *,
         examine_whole_file: bool,
         force_copy: bool,
         timestamp: datetime.datetime) -> int:
