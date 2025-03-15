@@ -1279,7 +1279,8 @@ class VerificationTest(unittest.TestCase):
                         verify_file_path = verification_location/file_name
                         with open(verify_file_path, encoding="utf8") as verify_file:
                             verify_file.readline()
-                            files_from_verify = {Path(line.strip("\n")) for line in verify_file}
+                            files_from_verify = {
+                                Path(line.removesuffix("\n")) for line in verify_file}
 
                         self.assertEqual(files_from_verify, path_set)
 
