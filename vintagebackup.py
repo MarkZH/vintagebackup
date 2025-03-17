@@ -123,20 +123,17 @@ def byte_units(size: float) -> str:
 
 def all_backups(backup_location: Path) -> list[Path]:
     """Return a sorted list of all backups at the given location."""
-    def is_valid_directory(date_folder: os.DirEntry[str]) -> bool:
+    def is_valid_directory(date_folder: Path) -> bool:
         try:
-            backup_path = Path(date_folder)
-            year = datetime.datetime.strptime(backup_path.parent.name, "%Y").year
-            date = datetime.datetime.strptime(backup_path.name, backup_date_format)
-            return year == date.year and is_real_directory(backup_path)
+            year = datetime.datetime.strptime(date_folder.parent.name, "%Y").year
+            date = datetime.datetime.strptime(date_folder.name, backup_date_format)
+            return year == date.year and is_real_directory(date_folder)
         except ValueError:
             return False
 
     all_backup_list: list[Path] = []
-    with os.scandir(backup_location) as year_scan:
-        for year in filter(is_real_directory, year_scan):
-            with os.scandir(year) as dated_backup_scan:
-                all_backup_list.extend(map(Path, filter(is_valid_directory, dated_backup_scan)))
+    for year_folder in filter(is_real_directory, backup_location.iterdir()):
+        all_backup_list.extend(filter(is_valid_directory, year_folder.iterdir()))
 
     return sorted(all_backup_list)
 
@@ -149,7 +146,7 @@ def find_previous_backup(backup_location: Path) -> Path | None:
         return None
 
 
-def is_real_directory(path: Path | os.DirEntry[str]) -> bool:
+def is_real_directory(path: Path) -> bool:
     """Return True if path is a directory and not a symlink."""
     return path.is_dir(follow_symlinks=False)
 
@@ -631,8 +628,8 @@ def search_backups(
     for backup in all_backups(backup_folder):
         backup_search_directory = backup/target_relative_path
         try:
-            with os.scandir(backup_search_directory) as backup_scan:
-                all_paths.update((item.name, classify_path(item)) for item in backup_scan)
+            all_paths.update(
+                (item.name, classify_path(item)) for item in backup_search_directory.iterdir())
         except FileNotFoundError:
             continue
 
@@ -1159,8 +1156,7 @@ def restore_backup(
 
         if delete_extra_files:
             backed_up_paths = set(folder_names) | set(file_names)
-            with os.scandir(current_user_path) as user_data_scan:
-                user_paths = {entry.name for entry in user_data_scan}
+            user_paths = {entry.name for entry in current_user_path.iterdir()}
             for new_name in user_paths - backed_up_paths:
                 new_path = current_user_path/new_name
                 logger.debug(f"Deleting extra file {new_path}")
@@ -1500,7 +1496,7 @@ def start_backup_restore(args: argparse.Namespace) -> None:
             'so the restoration is cancelled.')
 
 
-def classify_path(path: Path | os.DirEntry[str]) -> str:
+def classify_path(path: Path) -> str:
     """Return a text description of the item at the given path (file, folder, etc.)."""
     return ("Symlink" if path.is_symlink()
             else "Folder" if path.is_dir()
