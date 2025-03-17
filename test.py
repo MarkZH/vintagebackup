@@ -447,8 +447,9 @@ class BackupTest(unittest.TestCase):
                 r"larger than the --free-up parameter \(1\.000 B\)")
             self.assertEqual(len(log_lines.output), 2)
             self.assertTrue(space_warning.fullmatch(log_lines.output[0]))
-            self.assertEqual(log_lines.output[1],
-                             f"{prefix}Consider increasing the size of the --free-up parameter.")
+            self.assertEqual(
+                log_lines.output[1],
+                f"{prefix}Consider increasing the size of the --free-up parameter.")
 
     def test_warn_when_backup_is_nearly_as_large_as_free_up(self) -> None:
         """Test that a warning is logged when a backup is more than 90% of the free-up argument."""
@@ -470,8 +471,9 @@ class BackupTest(unittest.TestCase):
                 r"nearly as large as the --free-up parameter \(51\.00 MB\)")
             self.assertEqual(len(log_lines.output), 2)
             self.assertTrue(space_warning.fullmatch(log_lines.output[0]))
-            self.assertEqual(log_lines.output[1],
-                             f"{prefix}Consider increasing the size of the --free-up parameter.")
+            self.assertEqual(
+                log_lines.output[1],
+                f"{prefix}Consider increasing the size of the --free-up parameter.")
 
     def test_info_when_backup_is_smaller_than_free_up(self) -> None:
         """Test that a warning is not logged when a backup is smaller that the free-up argument."""
@@ -1181,8 +1183,9 @@ class MoveBackupsTest(unittest.TestCase):
                     new_backups = vintagebackup.all_backups(new_backup_location)
                     new_backup_names = [p.relative_to(new_backup_location) for p in new_backups]
                     self.assertEqual(old_backup_names, new_backup_names)
-                    self.assertEqual(vintagebackup.backup_source(backup_location),
-                                     vintagebackup.backup_source(new_backup_location))
+                    self.assertEqual(
+                        vintagebackup.backup_source(backup_location),
+                        vintagebackup.backup_source(new_backup_location))
                     for backup_1, backup_2 in itertools.pairwise(new_backups):
                         self.assertTrue(directories_are_completely_hardlinked(backup_1, backup_2))
 
@@ -2593,13 +2596,15 @@ class ParseStorageTests(unittest.TestCase):
     def test_parse_storage_space_is_unaffected_by_presense_or_absence_of_b(self) -> None:
         """Test that adding or removing 'B' from byte unit does not affect returned value."""
         for unit in vintagebackup.storage_prefixes:
-            self.assertEqual(vintagebackup.parse_storage_space(f"3{unit}"),
-                             vintagebackup.parse_storage_space(f"3{unit}b"))
+            self.assertEqual(
+                vintagebackup.parse_storage_space(f"3{unit}"),
+                vintagebackup.parse_storage_space(f"3{unit}b"))
 
     def test_parse_storage_space_is_unaffected_by_space_between_number_and_unit(self) -> None:
         """Test that spaces don't matter when parsing storage space."""
-        self.assertEqual(vintagebackup.parse_storage_space("4 GB"),
-                         vintagebackup.parse_storage_space("4GB"))
+        self.assertEqual(
+            vintagebackup.parse_storage_space("4 GB"),
+            vintagebackup.parse_storage_space("4GB"))
 
     def test_each_storage_prefix_is_a_thousand_times_larger_than_the_last(self) -> None:
         """Test that storage prefixes are interpretted correctly."""
