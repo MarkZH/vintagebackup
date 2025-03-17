@@ -369,7 +369,7 @@ class BackupTest(unittest.TestCase):
                     (backup_1/file).stat().st_ino == (backup_2/file).stat().st_ino)
 
     def test_symlinks_are_always_copied_as_symlinks(self) -> None:
-        """Test that backups correctly handle symbolic links in user data."""
+        """Test that symlinks in user data are symlinks in backups."""
         if platform.system() == "Windows":
             self.skipTest("Cannot create symlinks on Windows without elevated privileges.")
 
@@ -397,6 +397,39 @@ class BackupTest(unittest.TestCase):
             last_backup = cast(Path, last_backup)
             self.assertTrue((last_backup/directory_symlink_name).is_symlink())
             self.assertTrue((last_backup/file_symlink_name).is_symlink())
+
+    def test_symlinks_are_never_hardlinked(self) -> None:
+        """Test that multiple backups of symlinks are always copied."""
+        if platform.system() == "Windows":
+            self.skipTest("Cannot create symlinks on Windows without elevated privileges.")
+
+        with (tempfile.TemporaryDirectory() as user_data_folder,
+              tempfile.TemporaryDirectory() as backup_location_folder):
+            user_data_path = Path(user_data_folder)
+            create_user_data(user_data_path)
+            directory_symlink_name = "directory_symlink"
+            (user_data_path/directory_symlink_name).symlink_to(user_data_path/"sub_directory_1")
+            file_symlink_name = "file_symlink.txt"
+            file_link_target = user_data_path/"sub_directory_1"/"sub_sub_directory_1"/"file_2.txt"
+            (user_data_path/file_symlink_name).symlink_to(file_link_target)
+
+            backup_path = Path(backup_location_folder)
+            for _ in range(2):
+                vintagebackup.create_new_backup(
+                    user_data_path,
+                    backup_path,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    copy_probability=0.0,
+                    timestamp=unique_timestamp())
+            backup_1, backup_2 = vintagebackup.all_backups(backup_path)
+            self.assertNotEqual(
+                (backup_1/directory_symlink_name).stat(follow_symlinks=False).st_ino,
+                (backup_2/directory_symlink_name).stat(follow_symlinks=False).st_ino)
+            self.assertNotEqual(
+                (backup_1/file_symlink_name).stat(follow_symlinks=False).st_ino,
+                (backup_2/file_symlink_name).stat(follow_symlinks=False).st_ino)
 
     def test_backing_up_different_folder_to_existing_backup_set_is_an_error(self) -> None:
         """Test that backing up different folders to the same backup folder raises an exception."""

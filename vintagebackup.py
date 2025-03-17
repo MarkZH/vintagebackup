@@ -369,7 +369,7 @@ def create_hard_link(previous_backup: Path, new_backup: Path) -> bool:
     Return True if successful, False if linking failed.
     """
     try:
-        os.link(previous_backup, new_backup, follow_symlinks=False)
+        new_backup.hardlink_to(previous_backup)
         return True
     except Exception as error:
         logger.debug(f"Could not create hard link due to error: {error}")
