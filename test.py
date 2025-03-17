@@ -2442,11 +2442,6 @@ class PurgeTests(unittest.TestCase):
             self.assertEqual(log_lines.output[-1], f"INFO:vintagebackup:- {relative_purge_file}")
 
 
-def is_even(n: int) -> bool:
-    """Return whether an integer is even."""
-    return n % 2 == 0
-
-
 class EndOfMonthFixTests(unittest.TestCase):
     """Test date fixing function."""
 
@@ -2572,6 +2567,11 @@ class BackupNameTests(unittest.TestCase):
         backup_folder = vintagebackup.backup_name(timestamp)
         backup_timestamp = vintagebackup.backup_datetime(backup_folder)
         self.assertEqual(int(backup_folder.parent.name), backup_timestamp.year)
+
+
+def is_even(n: int) -> bool:
+    """Return whether an integer is even."""
+    return n % 2 == 0
 
 
 class SeparateTests(unittest.TestCase):
