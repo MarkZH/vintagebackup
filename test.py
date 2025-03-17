@@ -357,9 +357,10 @@ class BackupTest(unittest.TestCase):
             contents_2 = directory_contents(backup_2)
             self.assertEqual(contents_1, contents_2)
             relative_changed_file = changed_file_name.relative_to(user_data)
-            for file in (f for f in contents_1 if (backup_1/f).is_file()):
-                self.assertEqual((file != relative_changed_file),
-                                 ((backup_1/file).stat().st_ino == (backup_2/file).stat().st_ino))
+            for file in filter(lambda f: (backup_1/f).is_file(), contents_1):
+                self.assertEqual(
+                    file != relative_changed_file,
+                    (backup_1/file).stat().st_ino == (backup_2/file).stat().st_ino)
 
     def test_symlinks_are_always_copied_as_symlinks(self) -> None:
         """Test that backups correctly handle symbolic links in user data."""
