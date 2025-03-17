@@ -1619,17 +1619,35 @@ def start_backup(args: argparse.Namespace) -> None:
             copy_probability=copy_probability(args),
             timestamp=args.timestamp)
 
+        logger.info("")
         free_space_after_backup = shutil.disk_usage(backup_folder).free
         backup_space_taken = free_space_before_backup - free_space_after_backup
-        free_up = parse_storage_space(args.free_up or "0")
-        logger.info("")
-        if free_up > 0 and backup_space_taken > free_up:
-            logger.warning(f"The size of the last backup ({byte_units(backup_space_taken)}) is "
-                           f"larger than the --free-up parameter ({byte_units(free_up)})")
-        else:
-            logger.info(f"Backup space used: {byte_units(backup_space_taken)}")
+        log_backup_size(args.free_up, backup_space_taken)
 
         delete_old_backups(args)
+
+
+def log_backup_size(free_up_parameter: str | None, backup_space_taken: int) -> None:
+    """
+    Log size of previous backup and warn user if backup is near or over --free-up parameter.
+
+    This should warn the user that a future backup may not have enough storage space to complete
+    sucessfully.
+    """
+    free_up = parse_storage_space(free_up_parameter or "0")
+    free_up_warning_limit = 0.9*free_up
+    if free_up > 0 and backup_space_taken > free_up_warning_limit:
+        if backup_space_taken > free_up:
+            logger.warning(
+                    f"The size of the last backup ({byte_units(backup_space_taken)}) is "
+                    f"larger than the --free-up parameter ({byte_units(free_up)})")
+        else:
+            logger.warning(
+                    f"The size of the last backup ({byte_units(backup_space_taken)}) is "
+                    f"nearly as large as the --free-up parameter ({byte_units(free_up)})")
+        logger.warning("Consider increasing the size of the --free-up parameter.")
+    else:
+        logger.info(f"Backup space used: {byte_units(backup_space_taken)}")
 
 
 def absolute_path(path: Path | str, *, strict: bool = False) -> Path:

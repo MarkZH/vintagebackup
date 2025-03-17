@@ -435,12 +435,38 @@ class BackupTest(unittest.TestCase):
                 exit_code = vintagebackup.main(arguments)
             self.assertEqual(exit_code, 0)
 
+            prefix = r"WARNING:vintagebackup:"
             space_warning = re.compile(
-                r"WARNING:vintagebackup:"
-                r"The size of the last backup \(50\.0. MB\) is "
+                rf"{prefix}The size of the last backup \(50\.0. MB\) is "
                 r"larger than the --free-up parameter \(1\.000 B\)")
-            self.assertEqual(len(log_lines.output), 1)
+            self.assertEqual(len(log_lines.output), 2)
             self.assertTrue(space_warning.fullmatch(log_lines.output[0]))
+            self.assertEqual(log_lines.output[1],
+                             f"{prefix}Consider increasing the size of the --free-up parameter.")
+
+    def test_warn_when_backup_is_nearly_as_large_as_free_up(self) -> None:
+        """Test that a warning is logged when a backup is more than 90% of the free-up argument."""
+        with (tempfile.TemporaryDirectory() as user_folder,
+              tempfile.TemporaryDirectory() as backup_folder):
+            create_large_files(Path(user_folder), 50_000_000)
+            arguments = [
+                "--user-folder", user_folder,
+                "--backup-folder", backup_folder,
+                "--free-up", "51 MB",
+                "--log", os.devnull]
+
+            with self.assertLogs(level=logging.WARNING) as log_lines:
+                exit_code = vintagebackup.main(arguments)
+            self.assertEqual(exit_code, 0)
+
+            prefix = r"WARNING:vintagebackup:"
+            space_warning = re.compile(
+                rf"{prefix}The size of the last backup \(50\.0. MB\) is "
+                r"nearly as large as the --free-up parameter \(51\.00 MB\)")
+            self.assertEqual(len(log_lines.output), 2)
+            self.assertTrue(space_warning.fullmatch(log_lines.output[0]))
+            self.assertEqual(log_lines.output[1],
+                             f"{prefix}Consider increasing the size of the --free-up parameter.")
 
     def test_info_when_backup_is_smaller_than_free_up(self) -> None:
         """Test that a warning is not logged when a backup is smaller that the free-up argument."""
@@ -2845,6 +2871,44 @@ class RemoveQuotesTests(unittest.TestCase):
         """Test that a string consisting of a single quotation mark is not changed."""
         s = '"'
         self.assertEqual(s, vintagebackup.remove_quotes(s))
+
+
+class BackupsSpaceWarningsTests(unittest.TestCase):
+    """Test warning messages when backup size exceeds --free-up parameter."""
+
+    def test_backup_space_logged_when_no_free_up_parameter(self) -> None:
+        """Test backup space taken reported if no --free-up parameter."""
+        with self.assertLogs(level=logging.INFO) as logs:
+            vintagebackup.log_backup_size(None, 1)
+        self.assertEqual(logs.output, ["INFO:vintagebackup:Backup space used: 1.000 B"])
+
+    def test_backup_space_logged_when_backup_smaller_than_free_up_parameter(self) -> None:
+        """Test space taken reported if backup's size is smaller than --free-up parameter."""
+        with self.assertLogs(level=logging.INFO) as logs:
+            vintagebackup.log_backup_size("10", 2)
+        self.assertEqual(logs.output, ["INFO:vintagebackup:Backup space used: 2.000 B"])
+
+    def test_warning_if_backup_space_close_to_free_up_parameter(self) -> None:
+        """Test warning logged if space taken by backup is close to --free-up parameter."""
+        with self.assertLogs(level=logging.INFO) as logs:
+            vintagebackup.log_backup_size("100", 91)
+        prefix = "WARNING:vintagebackup:"
+        space_warning = (
+            f"{prefix}The size of the last backup (91.00 B) is "
+            "nearly as large as the --free-up parameter (100.0 B)")
+        consider_warning = f"{prefix}Consider increasing the size of the --free-up parameter."
+        self.assertEqual(logs.output, [space_warning, consider_warning])
+
+    def test_warning_if_backup_space_bigger_than_free_up_parameter(self) -> None:
+        """Test warning logged if space taken by backup is larger than --free-up parameter."""
+        with self.assertLogs(level=logging.INFO) as logs:
+            vintagebackup.log_backup_size("100", 101)
+        prefix = "WARNING:vintagebackup:"
+        space_warning = (
+            f"{prefix}The size of the last backup (101.0 B) is "
+            "larger than the --free-up parameter (100.0 B)")
+        consider_warning = f"{prefix}Consider increasing the size of the --free-up parameter."
+        self.assertEqual(logs.output, [space_warning, consider_warning])
 
 
 if __name__ == "__main__":
