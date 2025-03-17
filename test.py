@@ -16,6 +16,7 @@ import string
 import platform
 from typing import cast
 import re
+import io
 
 testing_timestamp = datetime.datetime.now()
 
@@ -2910,6 +2911,22 @@ class BackupsSpaceWarningsTests(unittest.TestCase):
             "larger than the --free-up parameter (100.0 B)")
         consider_warning = f"{prefix}Consider increasing the size of the --free-up parameter."
         self.assertEqual(logs.output, [space_warning, consider_warning])
+
+
+class HelpTests(unittest.TestCase):
+    """Make sure argument parser help commands run without error."""
+
+    def test_full_help_text_prints_without_error(self) -> None:
+        """Test help text has no errors."""
+        with self.assertNoLogs():
+            ignore = io.StringIO()
+            vintagebackup.print_help(ignore)
+
+    def test_usage_text_prints_without_error(self) -> None:
+        """Test help text has no errors."""
+        with self.assertNoLogs():
+            ignore = io.StringIO()
+            vintagebackup.print_usage(ignore)
 
 
 if __name__ == "__main__":

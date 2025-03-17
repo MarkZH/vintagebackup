@@ -12,6 +12,7 @@ import itertools
 import textwrap
 import math
 import random
+import io
 from collections import Counter
 from collections.abc import Callable, Iterator, Iterable
 from pathlib import Path
@@ -2078,14 +2079,14 @@ def parse_command_line(argv: list[str]) -> argparse.Namespace:
         return command_line_args
 
 
-def print_usage() -> None:
+def print_usage(destination: io.TextIOBase | None = None) -> None:
     """Print short instructions for the command line options."""
-    argument_parser().print_usage()
+    argument_parser().print_usage(destination)
 
 
-def print_help() -> None:
+def print_help(destination: io.TextIOBase | None = None) -> None:
     """Print full manual for Vintage Backup."""
-    argument_parser().print_help()
+    argument_parser().print_help(destination)
 
 
 def main(argv: list[str]) -> int:
