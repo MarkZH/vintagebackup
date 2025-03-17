@@ -357,7 +357,7 @@ class BackupTest(unittest.TestCase):
             contents_2 = directory_contents(backup_2)
             self.assertEqual(contents_1, contents_2)
             relative_changed_file = changed_file_name.relative_to(user_data)
-            for file in (f for f in contents_1 if f.is_file()):
+            for file in (f for f in contents_1 if (backup_1/f).is_file()):
                 self.assertEqual((file != relative_changed_file),
                                  ((backup_1/file).stat().st_ino == (backup_2/file).stat().st_ino))
 
