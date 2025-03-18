@@ -8,7 +8,6 @@ import sys
 import logging
 import filecmp
 import stat
-import itertools
 import textwrap
 import math
 import random
@@ -294,7 +293,7 @@ def compare_to_backup(
         file_names: list[str],
         *,
         examine_whole_file: bool,
-        copy_probability: float) -> tuple[list[str], list[str], list[str]]:
+        copy_probability: float) -> tuple[list[str], list[str]]:
     """
     Sort a list of files according to whether they have changed since the last backup.
 
@@ -306,13 +305,12 @@ def compare_to_backup(
     :param copy_probability: Instead of hard-linking a file that hasn't changed since the last
     backup, copy it anyway with a given probability.
 
-    The file names will be sorted into three lists and returned in this order: (1) matching files
-    that have not changed since the last backup, (2) mismatched files that have changed, (3) error
-    files that could not be compared for some reason (usually because it is a new file with no
-    previous backup). Files that are symbolic links will be put in the errors list for copying.
+    The file names will be sorted into two lists and returned in this order: (1) matching files
+    that will be hard-linked, (2) files that will be copied due to being new, changed, unreadable,
+    or randomly chosen for copying. Symbolic links will be put in the second list for copying.
     """
     if not backup_directory:
-        return [], [], file_names
+        return [], file_names
 
     file_names, links = separate_links(user_directory, file_names)
     comparison_function = deep_comparison if examine_whole_file else shallow_comparison
@@ -321,7 +319,7 @@ def compare_to_backup(
     errors.extend(move_to_errors)
     errors.extend(links)
 
-    return matches, mismatches, errors
+    return matches, mismatches + errors
 
 
 def deep_comparison(
@@ -440,7 +438,7 @@ def backup_directory(
     new_backup_directory = new_backup_path/relative_path
     new_backup_directory.mkdir(parents=True)
     previous_backup_directory = last_backup_path/relative_path if last_backup_path else None
-    matching, mismatching, errors = compare_to_backup(
+    matching, mismatching = compare_to_backup(
         current_user_path,
         previous_backup_directory,
         user_file_names,
@@ -455,9 +453,9 @@ def backup_directory(
             action_counter["linked files"] += 1
             logger.debug(f"Linked {previous_backup} to {new_backup}")
         else:
-            errors.append(file_name)
+            mismatching.append(file_name)
 
-    for file_name in itertools.chain(mismatching, errors):
+    for file_name in mismatching:
         new_backup_file = new_backup_directory/file_name
         user_file = current_user_path/file_name
         try:
