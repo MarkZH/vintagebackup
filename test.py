@@ -2129,6 +2129,24 @@ class CopyProbabilityTest(unittest.TestCase):
             self.assertFalse(directories_are_completely_hardlinked(*all_backups))
             self.assertFalse(directories_are_completely_copied(*all_backups))
 
+    def test_copy_probability_returns_zero_if_no_hard_link_argument_present(self) -> None:
+        """Test if no --hard-link-count argument is present, probability of copy is zero."""
+        user_input = vintagebackup.argument_parser()
+        no_arguments = user_input.parse_args([])
+        self.assertEqual(vintagebackup.copy_probability(no_arguments), 0.0)
+
+    def test_copy_probability_with_non_positive_argument_is_an_error(self) -> None:
+        """Any argument to --hard-link-count that is not a positive integer raises an exception."""
+        for bad_arg in ("-1", "0", "z"):
+            with self.assertRaises(vintagebackup.CommandLineError):
+                vintagebackup.copy_probability_from_hard_link_count(bad_arg)
+
+    def test_copy_probability_returns_one_over_n_plus_one_for_n_hard_links(self) -> None:
+        """Test that the probability for N hard links is 1/(N + 1)."""
+        for n in range(1, 10):
+            probability = vintagebackup.copy_probability_from_hard_link_count(str(n))
+            self.assertAlmostEqual(1/(n + 1), probability)
+
 
 class AtomicBackupTests(unittest.TestCase):
     """Test atomicity of backups."""
@@ -2672,28 +2690,6 @@ class ParseStorageTests(unittest.TestCase):
             text = vintagebackup.byte_units(number)
             number_part = float(text.split()[0])
             self.assertLess(number_part, 1000)
-
-
-class CopyProbabilityTests(unittest.TestCase):
-    """Tests for --copy-probability and --hard-link-count parsing."""
-
-    def test_copy_probability_returns_zero_if_no_hard_link_argument_present(self) -> None:
-        """Test if no --hard-link-count argument is present, probability of copy is zero."""
-        user_input = vintagebackup.argument_parser()
-        no_arguments = user_input.parse_args([])
-        self.assertEqual(vintagebackup.copy_probability(no_arguments), 0.0)
-
-    def test_copy_probability_with_non_positive_argument_is_an_error(self) -> None:
-        """Any argument to --hard-link-count that is not a positive integer raises an exception."""
-        for bad_arg in ("-1", "0", "z"):
-            with self.assertRaises(vintagebackup.CommandLineError):
-                vintagebackup.copy_probability_from_hard_link_count(bad_arg)
-
-    def test_copy_probability_returns_one_over_n_plus_one_for_n_hard_links(self) -> None:
-        """Test that the probability for N hard links is 1/(N + 1)."""
-        for n in range(1, 10):
-            probability = vintagebackup.copy_probability_from_hard_link_count(str(n))
-            self.assertAlmostEqual(1/(n + 1), probability)
 
 
 class HelpFormatterTests(unittest.TestCase):
