@@ -295,7 +295,7 @@ def compare_to_backup(
         examine_whole_file: bool,
         copy_probability: float) -> tuple[list[str], list[str]]:
     """
-    Sort a list of files according to whether they have changed since the last backup.
+    Sort a list of files according to whether they will be hard-linked or copied.
 
     :param user_directory: The subfolder of the user's data currently being walked through
     :param backup_directory: The backup folder that corresponds with the user_directory
@@ -438,14 +438,14 @@ def backup_directory(
     new_backup_directory = new_backup_path/relative_path
     new_backup_directory.mkdir(parents=True)
     previous_backup_directory = last_backup_path/relative_path if last_backup_path else None
-    matching, mismatching = compare_to_backup(
+    files_to_link, files_to_copy = compare_to_backup(
         current_user_path,
         previous_backup_directory,
         user_file_names,
         examine_whole_file=examine_whole_file,
         copy_probability=copy_probability)
 
-    for file_name in matching:
+    for file_name in files_to_link:
         previous_backup = cast(Path, previous_backup_directory)/file_name
         new_backup = new_backup_directory/file_name
 
@@ -453,9 +453,9 @@ def backup_directory(
             action_counter["linked files"] += 1
             logger.debug(f"Linked {previous_backup} to {new_backup}")
         else:
-            mismatching.append(file_name)
+            files_to_copy.append(file_name)
 
-    for file_name in mismatching:
+    for file_name in files_to_copy:
         new_backup_file = new_backup_directory/file_name
         user_file = current_user_path/file_name
         try:
