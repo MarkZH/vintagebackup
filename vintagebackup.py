@@ -815,7 +815,7 @@ def delete_oldest_backups_for_space(
     current_free_space = shutil.disk_usage(backup_location).free
     first_deletion_message = (
         "Deleting old backups to free up "
-        f"{byte_units(free_storage_required)},"
+        f"{byte_units(free_storage_required)}"
         f" ({byte_units(current_free_space)} currently free).")
 
     def stop(backup: Path) -> bool:
