@@ -1630,19 +1630,14 @@ def log_backup_size(free_up_parameter: str | None, backup_space_taken: int) -> N
     sucessfully.
     """
     free_up = parse_storage_space(free_up_parameter or "0")
-    free_up_warning_limit = 0.9*free_up
-    if free_up > 0 and backup_space_taken > free_up_warning_limit:
-        if backup_space_taken > free_up:
-            logger.warning(
-                    f"The size of the last backup ({byte_units(backup_space_taken)}) is "
-                    f"larger than the --free-up parameter ({byte_units(free_up)})")
-        else:
-            logger.warning(
-                    f"The size of the last backup ({byte_units(backup_space_taken)}) is "
-                    f"nearly as large as the --free-up parameter ({byte_units(free_up)})")
+    free_up_percent = math.ceil(100*backup_space_taken/free_up) if free_up else 0
+    free_up_text = f" ({free_up_percent}% of --free-up)" if free_up else ""
+    free_up_warning_percent = 90
+    is_warning = free_up_percent >= free_up_warning_percent
+    log_destination = logger.warning if is_warning else logger.info
+    log_destination(f"Backup space used: {byte_units(backup_space_taken)}{free_up_text}")
+    if is_warning:
         logger.warning("Consider increasing the size of the --free-up parameter.")
-    else:
-        logger.info(f"Backup space used: {byte_units(backup_space_taken)}")
 
 
 def absolute_path(path: Path | str, *, strict: bool = False) -> Path:
