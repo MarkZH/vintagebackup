@@ -2610,29 +2610,27 @@ def is_even(n: int) -> bool:
 class SeparateTests(unittest.TestCase):
     """Tests for the separate() function."""
 
+    def setUp(self) -> None:
+        """Set up lists for testing separate()."""
+        super().setUp()
+        self.numbers = list(range(100))
+        self.evens, self.odds = vintagebackup.separate(self.numbers, is_even)
+
     def test_separate_results_are_disjoint(self) -> None:
         """Test that separate() result lists have no items in common."""
-        numbers = list(range(100))
-        evens, odds = vintagebackup.separate(numbers, is_even)
-        self.assertTrue(set(evens).isdisjoint(odds))
+        self.assertTrue(set(self.evens).isdisjoint(self.odds))
 
     def test_separate_results_union_equals_the_original_list(self) -> None:
         """Test that the combined separate() results contain every item in the original list."""
-        numbers = list(range(100))
-        evens, odds = vintagebackup.separate(numbers, is_even)
-        self.assertEqual(sorted(evens + odds), numbers)
+        self.assertEqual(sorted(self.evens + self.odds), self.numbers)
 
     def test_separate_first_results_always_satisfy_predicate(self) -> None:
         """Test that every member of the first separate() list satisfies predicate."""
-        numbers = list(range(100))
-        evens, _ = vintagebackup.separate(numbers, is_even)
-        self.assertTrue(all(map(is_even, evens)))
+        self.assertTrue(all(map(is_even, self.evens)))
 
     def test_separate_second_results_always_fail_predicate(self) -> None:
         """Test that every member of the first separate() list satisfies predicate."""
-        numbers = list(range(100))
-        _, odds = vintagebackup.separate(numbers, is_even)
-        self.assertTrue(not any(map(is_even, odds)))
+        self.assertTrue(not any(map(is_even, self.odds)))
 
 
 class ParseStorageTests(unittest.TestCase):
