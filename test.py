@@ -1756,11 +1756,9 @@ class BackupLockTest(TestCaseWithTemporaryFilesAndFolders):
         test_operation = "lock data test"
         with vintagebackup.Backup_Lock(self.backup_path, test_operation):
             lock_path = self.backup_path/"vintagebackup.lock"
-            with lock_path.open() as lock_file:
-                lock_pid, lock_operation = (s.strip() for s in lock_file)
-
-            self.assertEqual(lock_pid, test_pid)
-            self.assertEqual(lock_operation, test_operation)
+            pid, operation = filter(None, lock_path.read_text(encoding="utf8").split("\n"))
+            self.assertEqual(pid, test_pid)
+            self.assertEqual(operation, test_operation)
 
         self.assertFalse(lock_path.is_file(follow_symlinks=False))
 
