@@ -514,7 +514,7 @@ class FilterTest(TestCaseWithTemporaryFilesAndFolders):
     def test_paths_excluded_in_filter_file_do_not_appear_in_backup(self) -> None:
         """Test that filter files with only exclusions result in the right files being excluded."""
         create_user_data(self.user_path)
-        with self.filter_path.open("w") as filter_file:
+        with self.filter_path.open("w", encoding="utf8") as filter_file:
             filter_file.write("- sub_directory_2/**\n\n")
             filter_file.write(str(Path("- *")/"sub_sub_directory_0/**\n\n"))
 
@@ -547,7 +547,7 @@ class FilterTest(TestCaseWithTemporaryFilesAndFolders):
     def test_path_excluded_with_absolute_file_name_in_filter_file_are_not_in_backup(self) -> None:
         """Test that filter files with absolute paths excluded exclude the right paths."""
         create_user_data(self.user_path)
-        with self.filter_path.open("w") as filter_file:
+        with self.filter_path.open("w", encoding="utf8") as filter_file:
             filter_file.write(f"- {self.user_path/'sub_directory_2'/'**'}\n\n")
         user_paths = directory_contents(self.user_path)
         expected_backups = user_paths.copy()
@@ -576,7 +576,7 @@ class FilterTest(TestCaseWithTemporaryFilesAndFolders):
     def test_paths_included_after_exclusions_appear_in_backup(self) -> None:
         """Test that filter files with inclusions and exclusions work properly."""
         create_user_data(self.user_path)
-        with self.filter_path.open("w") as filter_file:
+        with self.filter_path.open("w", encoding="utf8") as filter_file:
             filter_file.write("- sub_directory_2/**\n\n")
             filter_file.write(str(Path("- *")/"sub_sub_directory_0/**\n\n"))
             filter_file.write(str(Path("+ sub_directory_1")/"sub_sub_directory_0"/"file_1.txt\n\n"))
@@ -611,7 +611,7 @@ class FilterTest(TestCaseWithTemporaryFilesAndFolders):
         """Test that filter lines with no effect on the backup files are detected."""
         create_user_data(self.user_path)
 
-        with self.filter_path.open("w") as filter_file:
+        with self.filter_path.open("w", encoding="utf8") as filter_file:
             filter_file.write("- sub_directory_1/**\n")
 
             bad_lines = [
@@ -639,7 +639,7 @@ class FilterTest(TestCaseWithTemporaryFilesAndFolders):
 
     def test_invalid_filter_symbol_raises_exception(self) -> None:
         """Test that a filter symbol not in "+-#" raises an exceptions."""
-        self.filter_path.write_text("* invalid_sign\n")
+        self.filter_path.write_text("* invalid_sign\n", encoding="utf8")
         with self.assertRaises(ValueError) as error:
             vintagebackup.Backup_Set(Path(), self.filter_path)
         self.assertIn("The first symbol of each line", error.exception.args[0])
@@ -647,7 +647,7 @@ class FilterTest(TestCaseWithTemporaryFilesAndFolders):
     def test_path_outside_user_folder_in_filter_file_raises_exception(self) -> None:
         """Test that adding a path outside the user folder (--user-folder) raises an exception."""
         create_user_data(self.user_path)
-        self.filter_path.write_text("- /other_place/sub_directory_0")
+        self.filter_path.write_text("- /other_place/sub_directory_0", encoding="utf8")
         with self.assertRaises(ValueError) as error:
             vintagebackup.Backup_Set(self.user_path, self.filter_path)
         self.assertIn("outside user folder", error.exception.args[0])
@@ -1237,7 +1237,7 @@ backup folder:   {backup_folder}
 FiLteR    :    {filter_file}
 force-copy:
 whole    file :
-""")
+""", encoding="utf8")
         command_line = vintagebackup.read_configuation_file(str(self.config_path))
         expected_command_line = [
             "--user-folder", user_folder,
@@ -1263,7 +1263,7 @@ Backup Folder: temp_back
 filter: filter.txt
 log: temp_log.txt
 whole file:
-Debug:""")
+Debug:""", encoding="utf8")
         actual_backup_folder = "temp_back2"
         actual_log_file = "temporary_log.log"
         command_line_options = [
@@ -1284,7 +1284,7 @@ whole file:
 Debug:
 delete first:
 force copy:
-""")
+""", encoding="utf8")
         command_line_options = [
             "-c", str(self.config_path),
             "--no-whole-file",
@@ -1299,7 +1299,7 @@ force copy:
 
     def test_recursive_config_files_are_not_allowed(self) -> None:
         """Test that putting a config parameter in a configuration file raises an exception."""
-        self.config_path.write_text("config: config_file_2.txt")
+        self.config_path.write_text("config: config_file_2.txt", encoding="utf8")
         with self.assertRaises(vintagebackup.CommandLineError):
             vintagebackup.read_configuation_file(str(self.config_path))
 

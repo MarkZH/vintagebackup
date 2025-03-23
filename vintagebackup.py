@@ -168,7 +168,7 @@ class Backup_Set:
         if not filter_file:
             return
 
-        with filter_file.open() as filters:
+        with filter_file.open(encoding="utf8") as filters:
             logger.info(f"Filtering items according to {filter_file} ...")
             for line_number, line_raw in enumerate(filters, 1):
                 line = line_raw.strip()
