@@ -1891,8 +1891,7 @@ The most recent backup will not be deleted."""))
 After a successful backup, delete backups if they are older than the time span in the argument.
 The format of the argument is Nt, where N is a whole number and
 t is a single letter: d for days, w for weeks, m for calendar months,
-or y for calendar years. There should be no space between the number
-and letter.
+or y for calendar years.
 
 This can be used at the same time as --free-up.
 
