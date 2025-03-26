@@ -469,9 +469,10 @@ def backup_directory(
 
 def backup_name(backup_datetime: datetime.datetime | str | None) -> Path:
     """Create the name and relative path for the new dated backup."""
-    now = (datetime.datetime.strptime(backup_datetime, backup_date_format)
-           if isinstance(backup_datetime, str)
-           else (backup_datetime or datetime.datetime.now()))
+    now = (
+        datetime.datetime.strptime(backup_datetime, backup_date_format)
+        if isinstance(backup_datetime, str)
+        else (backup_datetime or datetime.datetime.now()))
     return Path(str(now.year))/now.strftime(backup_date_format)
 
 
@@ -561,8 +562,8 @@ def backup_staging_folder(backup_location: Path) -> Path:
 def report_backup_file_counts(action_counter: Counter[str]) -> None:
     """Log the number of files that were backed up, hardlinked, copied, and failed to copy."""
     logger.info("")
-    total_files = sum(count for action, count in action_counter.items()
-                      if not action.startswith("failed"))
+    total_files = sum(
+        count for action, count in action_counter.items() if not action.startswith("failed"))
     action_counter["Backed up files"] = total_files
     name_column_size = max(map(len, action_counter))
     count_column_size = len(str(max(action_counter.values())))
@@ -809,8 +810,9 @@ def delete_oldest_backups_for_space(
     free_storage_required = parse_storage_space(space_requirement)
 
     if free_storage_required > total_storage:
-        raise CommandLineError(f"Cannot free more storage ({byte_units(free_storage_required)})"
-                               f" than exists at {backup_location} ({byte_units(total_storage)})")
+        raise CommandLineError(
+            f"Cannot free more storage ({byte_units(free_storage_required)})"
+            f" than exists at {backup_location} ({byte_units(total_storage)})")
 
     current_free_space = shutil.disk_usage(backup_location).free
     first_deletion_message = (
@@ -827,8 +829,9 @@ def delete_oldest_backups_for_space(
     if final_free_space < free_storage_required:
         backups_remaining = len(all_backups(backup_location))
         if backups_remaining == 1:
-            logger.warning(f"Could not free up {byte_units(free_storage_required)} of storage"
-                           " without deleting most recent backup.")
+            logger.warning(
+                f"Could not free up {byte_units(free_storage_required)} of storage"
+                " without deleting most recent backup.")
         else:
             logger.info("Stopped after reaching maximum number of deletions.")
 
@@ -1278,8 +1281,8 @@ def format_paragraphs(lines: str, line_length: int) -> str:
         if not paragraph:
             continue
 
-        paragraphs.append(paragraph if paragraph[0].isspace()
-                          else textwrap.fill(paragraph, line_length))
+        paragraphs.append(
+            paragraph if paragraph[0].isspace() else textwrap.fill(paragraph, line_length))
 
     return "\n\n".join(paragraphs)
 
@@ -1462,9 +1465,9 @@ def start_backup_restore(args: argparse.Namespace) -> None:
 
     confirm_choice_made(args, "last_backup", "choose_backup")
     choice = None if args.choice is None else int(args.choice)
-    restore_source = (find_previous_backup(backup_folder)
-                      if args.last_backup else
-                      choose_backup(backup_folder, choice))
+    restore_source = (
+        find_previous_backup(backup_folder) if args.last_backup
+        else choose_backup(backup_folder, choice))
 
     if not restore_source:
         raise CommandLineError(f"No backups found in {backup_folder}")
@@ -1550,8 +1553,8 @@ def purge_path(
             "purge after the backup completes.")
     logger.info("If you want to prevent the purged item from being backed up in the future,")
     logger.info("consider adding the following line to a filter file:")
-    filter_line = (relative_purge_target/"**" if is_real_directory(purge_target)
-                   else relative_purge_target)
+    filter_line = (
+        relative_purge_target/"**" if is_real_directory(purge_target) else relative_purge_target)
     logger.info(f"- {filter_line}")
 
 
@@ -2093,16 +2096,17 @@ def main(argv: list[str]) -> int:
         logger.setLevel(logging.DEBUG if toggle_is_set(args, "debug") else logging.INFO)
         logger.debug(args)
 
-        action = (start_recovery_from_backup if args.recover
-                  else choose_recovery_target_from_backups if args.list
-                  else start_move_backups if args.move_backup
-                  else start_verify_backup if args.verify
-                  else start_backup_restore if args.restore
-                  else start_backup_purge if args.purge
-                  else choose_purge_target_from_backups if args.purge_list
-                  else delete_old_backups if args.delete_only
-                  else delete_before_backup if toggle_is_set(args, "delete_first")
-                  else start_backup)
+        action = (
+            start_recovery_from_backup if args.recover
+            else choose_recovery_target_from_backups if args.list
+            else start_move_backups if args.move_backup
+            else start_verify_backup if args.verify
+            else start_backup_restore if args.restore
+            else start_backup_purge if args.purge
+            else choose_purge_target_from_backups if args.purge_list
+            else delete_old_backups if args.delete_only
+            else delete_before_backup if toggle_is_set(args, "delete_first")
+            else start_backup)
         action(args)
         return 0
     except CommandLineError as error:

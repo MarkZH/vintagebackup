@@ -1128,7 +1128,7 @@ class MoveBackupsTest(TestCaseWithTemporaryFilesAndFolders):
             copy_probability=0.0,
             timestamp=unique_timestamp())
         with (self.assertLogs(level=logging.ERROR) as no_move_choice_log,
-                tempfile.TemporaryDirectory() as move_destination):
+              tempfile.TemporaryDirectory() as move_destination):
             exit_code = main_no_log([
                 "--move-backup", move_destination,
                 "--user-folder", str(self.user_path),
@@ -1745,9 +1745,9 @@ class BackupLockTest(TestCaseWithTemporaryFilesAndFolders):
 
             with self.assertRaises(vintagebackup.ConcurrencyError):
                 options = vintagebackup.argument_parser()
-                args = options.parse_args(
-                    ["--user-folder", str(self.user_path),
-                     "--backup-folder", str(self.backup_path)])
+                args = options.parse_args([
+                    "--user-folder", str(self.user_path),
+                    "--backup-folder", str(self.backup_path)])
                 vintagebackup.start_backup(args)
 
     def test_lock_writes_process_info_to_lock_file_and_deletes_on_exit(self) -> None:
@@ -2153,8 +2153,8 @@ class PurgeTests(TestCaseWithTemporaryFilesAndFolders):
         relative_purge_file = purged_path.relative_to(self.user_path)
         for backup in vintagebackup.all_backups(self.backup_path):
             backup_file_path = backup/relative_purge_file
-            self.assertTrue(vintagebackup.is_real_directory(backup_file_path)
-                            or not backup_file_path.exists())
+            self.assertTrue(
+                vintagebackup.is_real_directory(backup_file_path) or not backup_file_path.exists())
 
     def test_purge_file_suggests_filter_line(self) -> None:
         """Test that purging a file logs a filter line for the purged file."""
