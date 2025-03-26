@@ -1231,7 +1231,8 @@ class ConfigurationFileTest(TestCaseWithTemporaryFilesAndFolders):
         user_folder = r"C:\Files"
         backup_folder = r"D:\Backup"
         filter_file = "filter_file.txt"
-        self.config_path.write_text(rf"""
+        self.config_path.write_text(
+rf"""
 USER FOLDER:     {user_folder}
 backup folder:   {backup_folder}
 FiLteR    :    {filter_file}
@@ -1257,7 +1258,8 @@ whole    file :
     def test_command_line_options_override_config_file_options(self) -> None:
         """Test that command line options override file configurations and leave others alone."""
         user_folder = r"C:\Users\Test User"
-        self.config_path.write_text(rf"""
+        self.config_path.write_text(
+rf"""
 User Folder : {user_folder}
 Backup Folder: temp_back
 filter: filter.txt
@@ -1279,7 +1281,8 @@ Debug:""", encoding="utf8")
 
     def test_negating_command_line_parameters_override_config_file(self) -> None:
         """Test that command line options like --no-X override file configurations."""
-        self.config_path.write_text(r"""
+        self.config_path.write_text(
+r"""
 whole file:
 Debug:
 delete first:

@@ -1301,8 +1301,8 @@ def format_help(lines: str) -> str:
 
 def add_no_option(user_input: argparse.ArgumentParser | argparse._ArgumentGroup, name: str) -> None:
     """Add negating option for boolean command line arguments."""
-    user_input.add_argument(f"--no-{name}", action="store_true", help=format_help(f"""
-Disable the --{name} option. This is primarily used if "{name}" appears in a
+    user_input.add_argument(f"--no-{name}", action="store_true", help=format_help(
+f"""Disable the --{name} option. This is primarily used if "{name}" appears in a
 configuration file. This option has priority even if --{name} is listed later."""))
 
 
@@ -1704,8 +1704,8 @@ def argument_parser() -> argparse.ArgumentParser:
         add_help=False,
         formatter_class=argparse.RawTextHelpFormatter,
         allow_abbrev=False,
-        description=format_text("""
-A backup utility that combines the best aspects of full and incremental backups.
+        description=format_text(
+"""A backup utility that combines the best aspects of full and incremental backups.
 
 Every time Vintage Backup runs, a new folder is created at the backup location
 that contains copies of all of the files in the directory being backed up.
@@ -1740,17 +1740,17 @@ file systems (NTFS, ext4, APFS, etc.), hard links may not be created due to diff
 modification times are recorded. Using the --whole-file option may mitigate this, but backups will
 take much more time."""))
 
-    action_group = user_input.add_argument_group("Actions", format_text("""
-The default action when vintage backups is run is to create a new backup. If one of the following
+    action_group = user_input.add_argument_group("Actions", format_text(
+"""The default action when vintage backups is run is to create a new backup. If one of the following
 options are chosen, then that action is performed instead."""))
 
     only_one_action_group = action_group.add_mutually_exclusive_group()
 
-    only_one_action_group.add_argument("-h", "--help", action="store_true", help=format_help("""
-Show this help message and exit."""))
+    only_one_action_group.add_argument("-h", "--help", action="store_true", help=format_help(
+"""Show this help message and exit."""))
 
-    only_one_action_group.add_argument("-r", "--recover", help=format_help("""
-Recover a file or folder from the backup. The user will be able
+    only_one_action_group.add_argument("-r", "--recover", help=format_help(
+"""Recover a file or folder from the backup. The user will be able
 to pick which version to recover by choosing the backup date as
 the source. If a file is being recovered, only backup dates where
 the file was modified will be presented. If a folder is being
@@ -1763,8 +1763,8 @@ backup location to search."""))
         metavar="DIRECTORY",
         nargs="?",
         const=".",
-        help=format_help("""
-Recover a file or folder in the directory specified by the argument by first choosing what to
+        help=format_help(
+"""Recover a file or folder in the directory specified by the argument by first choosing what to
 recover from a list of everything that's ever been backed up. If there is no folder specified
 after --list, then the current directory is used. The backup location argument --backup-folder
 is required."""))
@@ -1772,29 +1772,29 @@ is required."""))
     only_one_action_group.add_argument(
         "--move-backup",
         metavar="NEW_BACKUP_LOCATION",
-        help=format_help("""
-Move a backup set to a new location. The value of this argument is the new location. The
+        help=format_help(
+"""Move a backup set to a new location. The value of this argument is the new location. The
 --backup-folder option is required to specify the current location of the backup set, and one
 of --move-count, --move-age, or --move-since is required to specify how many of the most recent
 backups to move. Moving each dated backup will take just as long as a normal backup to move since
 the hard links to previous backups will be recreated to preserve the space savings, so some planning
 is needed when deciding how many backups should be moved."""))
 
-    only_one_action_group.add_argument("--verify", metavar="RESULT_DIR", help=format_help("""
-Verify the latest backup by comparing them against the original files. The result of the comparison
-will be placed in the folder RESULT_DIR. The result is three files: a list of files that match, a
-list of files that do not match, and a list of files that caused errors during the comparison. The
-arguments --user-folder and --backup-folder are required. If a filter file was used to create the
-backup, then --filter should be supplied as well."""))
+    only_one_action_group.add_argument("--verify", metavar="RESULT_DIR", help=format_help(
+"""Verify the latest backup by comparing them against the original files. The result of the
+comparison will be placed in the folder RESULT_DIR. The result is three files: a list of files that
+match, a list of files that do not match, and a list of files that caused errors during the
+comparison. The arguments --user-folder and --backup-folder are required. If a filter file was used
+to create the backup, then --filter should be supplied as well."""))
 
-    only_one_action_group.add_argument("--restore", action="store_true", help=format_help("""
-This action restores the user's folder to a previous, backed up state. Any existing user files that
-have the same name as one in the backup will be overwritten. The --backup-folder is required to
+    only_one_action_group.add_argument("--restore", action="store_true", help=format_help(
+"""This action restores the user's folder to a previous, backed up state. Any existing user files
+that have the same name as one in the backup will be overwritten. The --backup-folder is required to
 specify from where to restore. See the Restore Options section below for the other required
 parameters."""))
 
-    only_one_action_group.add_argument("--purge", help=format_help("""
-Delete a file or folder from all backups. The argument is the path to delete. This requires the
+    only_one_action_group.add_argument("--purge", help=format_help(
+"""Delete a file or folder from all backups. The argument is the path to delete. This requires the
 --backup-folder argument."""))
 
     only_one_action_group.add_argument(
@@ -1802,30 +1802,30 @@ Delete a file or folder from all backups. The argument is the path to delete. Th
         metavar="DIRECTORY",
         nargs="?",
         const=".",
-        help=format_help("""
-Purge a file or folder from all backups in the directory specified by the argument by first choosing
-what to purge from a list of everything that's ever been backed up. If there is no folder specified
-after --purge-list, then the current directory is used. If the file exists in the user's folder, it
-is not deleted. The backup location argument --backup-folder is required."""))
+        help=format_help(
+"""Purge a file or folder from all backups in the directory specified by the argument by first
+choosing what to purge from a list of everything that's ever been backed up. If there is no folder
+specified after --purge-list, then the current directory is used. If the file exists in the user's
+folder, it is not deleted. The backup location argument --backup-folder is required."""))
 
-    only_one_action_group.add_argument("--delete-only", action="store_true", help=format_help("""
-Delete old backups according to --free-up or --delete-after without running a backup first."""))
+    only_one_action_group.add_argument("--delete-only", action="store_true", help=format_help(
+"""Delete old backups according to --free-up or --delete-after without running a backup first."""))
 
     common_group = user_input.add_argument_group("Options needed for all actions")
 
-    common_group.add_argument("-b", "--backup-folder", help=format_help("""
-The destination of the backed up files. This folder will
+    common_group.add_argument("-b", "--backup-folder", help=format_help(
+"""The destination of the backed up files. This folder will
 contain a set of folders labeled by year, and each year's
 folder will contain all of that year's backups."""))
 
     backup_group = user_input.add_argument_group("Options for backing up")
 
-    backup_group.add_argument("-u", "--user-folder", help=format_help("""
-The directory to be backed up. The contents of this
+    backup_group.add_argument("-u", "--user-folder", help=format_help(
+"""The directory to be backed up. The contents of this
 folder and all subfolders will be backed up recursively."""))
 
-    backup_group.add_argument("-f", "--filter", metavar="FILTER_FILE_NAME", help=format_help("""
-Filter the set of files that will be backed up. The value of this argument should be the name of
+    backup_group.add_argument("-f", "--filter", metavar="FILTER_FILE_NAME", help=format_help(
+"""Filter the set of files that will be backed up. The value of this argument should be the name of
 a text file that contains lines specifying what files to include or exclude.
 
 Each line in the file consists of a symbol followed by a path. The symbol must be a minus (-),
@@ -1867,8 +1867,8 @@ are some examples of such patterns:
     # This line will exclude dir1 and all of its contents.
     - dir1/**"""))
 
-    backup_group.add_argument("-w", "--whole-file", action="store_true", help=format_help("""
-Examine the entire contents of a file to determine if it has
+    backup_group.add_argument("-w", "--whole-file", action="store_true", help=format_help(
+"""Examine the entire contents of a file to determine if it has
 changed and needs to be copied to the new backup. Without this
 option, only the file's size, type, and modification date are
 checked for differences. Using this option will make backups
@@ -1876,8 +1876,8 @@ take considerably longer."""))
 
     add_no_option(backup_group, "whole-file")
 
-    backup_group.add_argument("--free-up", metavar="SPACE", help=format_help("""
-After a successful backup, delete old backups until the amount of free space on the
+    backup_group.add_argument("--free-up", metavar="SPACE", help=format_help(
+"""After a successful backup, delete old backups until the amount of free space on the
 backup destination is at least SPACE.
 
 The argument should be a bare number or a number followed by letters that
@@ -1890,29 +1890,28 @@ This can be used at the same time as --delete-after.
 
 The most recent backup will not be deleted."""))
 
-    backup_group.add_argument("--delete-after", metavar="TIME", help=format_help("""
-After a successful backup, delete backups if they are older than the time span in the argument.
-The format of the argument is Nt, where N is a whole number and
-t is a single letter: d for days, w for weeks, m for calendar months,
-or y for calendar years.
+    backup_group.add_argument("--delete-after", metavar="TIME", help=format_help(
+"""After a successful backup, delete backups if they are older than the time span in the argument.
+The format of the argument is Nt, where N is a whole number and t is a single letter: d for days, w
+for weeks, m for calendar months, or y for calendar years.
 
 This can be used at the same time as --free-up.
 
 The most recent backup will not be deleted."""))
 
-    backup_group.add_argument("--max-deletions", help=format_help("""
-Specify the maximum number of deletions per program run."""))
+    backup_group.add_argument("--max-deletions", help=format_help(
+"""Specify the maximum number of deletions per program run."""))
 
-    backup_group.add_argument("--delete-first", action="store_true", help=format_help("""
-Delete old backups (according to --free-up, --delete-after, and --max-deletions) to make room prior
-to starting a new backup.
+    backup_group.add_argument("--delete-first", action="store_true", help=format_help(
+"""Delete old backups (according to --free-up, --delete-after, and --max-deletions) to make room
+prior to starting a new backup.
 
 The most recent backup will never be deleted."""))
 
     add_no_option(backup_group, "delete-first")
 
-    backup_group.add_argument("--force-copy", action="store_true", help=format_help("""
-Copy all files instead of linking to files previous backups. The
+    backup_group.add_argument("--force-copy", action="store_true", help=format_help(
+"""Copy all files instead of linking to files previous backups. The
 new backup will contain new copies of all of the user's files,
 so the backup location will require much more space than a normal
 backup."""))
@@ -1921,33 +1920,34 @@ backup."""))
 
     link_copy_probability_group = backup_group.add_mutually_exclusive_group()
 
-    link_copy_probability_group.add_argument("--hard-link-count", help=format_help("""
-Specify the average number of hard links Vintage Backup should create for an unchanged file before
-copying it again. The argument HARD_LINK_COUNT should be an integer. If specified, every unchanged
-file will be copied with a probability of 1/(HARD_LINK_COUNT + 1)."""))
+    link_copy_probability_group.add_argument("--hard-link-count", help=format_help(
+"""Specify the average number of hard links Vintage Backup should create for an unchanged file
+before copying it again. The argument HARD_LINK_COUNT should be an integer. If specified, every
+unchanged file will be copied with a probability of 1/(HARD_LINK_COUNT + 1)."""))
 
-    link_copy_probability_group.add_argument("--copy-probability", help=format_help("""
-Specify the probability that an unchanged file will be copied instead of hard-linked during a
+    link_copy_probability_group.add_argument("--copy-probability", help=format_help(
+"""Specify the probability that an unchanged file will be copied instead of hard-linked during a
 backup. The probability can be expressed as a decimal (0.1) or as a percent (10%%). This is an
 alternate to --hard-link-count and cannot be used together with it."""))
 
-    move_group = user_input.add_argument_group("Move backup options", format_text("""
-Use exactly one of these options to specify which backups to move when using --move-backup."""))
+    move_group = user_input.add_argument_group("Move backup options", format_text(
+"""Use exactly one of these options to specify which backups to move when using --move-backup."""))
 
     only_one_move_group = move_group.add_mutually_exclusive_group()
 
-    only_one_move_group.add_argument("--move-count", help=format_help("""
-Specify the number of the most recent backups to move or "all" if every backup should be moved
+    only_one_move_group.add_argument("--move-count", help=format_help(
+"""Specify the number of the most recent backups to move or "all" if every backup should be moved
 to the new location."""))
 
-    only_one_move_group.add_argument("--move-age", help=format_help("""
-Specify the maximum age of backups to move. See --delete-after for the time span format to use."""))
+    only_one_move_group.add_argument("--move-age", help=format_help(
+"""Specify the maximum age of backups to move. See --delete-after for the time span format to use.
+"""))
 
-    only_one_move_group.add_argument("--move-since", help=format_help("""
-Move all backups made on or after the specified date (YYYY-MM-DD)."""))
+    only_one_move_group.add_argument("--move-since", help=format_help(
+"""Move all backups made on or after the specified date (YYYY-MM-DD)."""))
 
-    restore_group = user_input.add_argument_group("Restore Options", format_help("""
-Exactly one of each of the following option pairs(--last-backup/--choose-backup and
+    restore_group = user_input.add_argument_group("Restore Options", format_help(
+"""Exactly one of each of the following option pairs(--last-backup/--choose-backup and
 --delete-extra/--keep-extra) is required when restoring a backup. The --destination option is
 optional."""))
 
@@ -1956,37 +1956,33 @@ optional."""))
     choose_restore_backup_group.add_argument(
         "--last-backup",
         action="store_true",
-        help=format_help("""
-Restore from the most recent backup."""))
+        help=format_help("""Restore from the most recent backup."""))
 
     choose_restore_backup_group.add_argument(
         "--choose-backup",
         action="store_true",
-        help=format_help("""
-Choose which backup to restore from a list."""))
+        help=format_help("""Choose which backup to restore from a list."""))
 
     restore_preservation_group = restore_group.add_mutually_exclusive_group()
 
     restore_preservation_group.add_argument(
         "--delete-extra",
         action="store_true",
-        help=format_help("""
-Delete any extra files that are not in the backup."""))
+        help=format_help("""Delete any extra files that are not in the backup."""))
 
     restore_preservation_group.add_argument(
         "--keep-extra",
         action="store_true",
-        help=format_help("""
-Preserve any extra files that are not in the backup."""))
+        help=format_help("""Preserve any extra files that are not in the backup."""))
 
-    restore_group.add_argument("--destination", help=format_help("""
-Specify a different destination for the backup restoration. Either this or the --user-folder option
-is required when recovering from a backup."""))
+    restore_group.add_argument("--destination", help=format_help(
+"""Specify a different destination for the backup restoration. Either this or
+the --user-folder option is required when recovering from a backup."""))
 
     other_group = user_input.add_argument_group("Other options")
 
-    other_group.add_argument("-c", "--config", metavar="FILE_NAME", help=format_help(r"""
-Read options from a configuration file instead of command-line arguments. The format
+    other_group.add_argument("-c", "--config", metavar="FILE_NAME", help=format_help(
+r"""Read options from a configuration file instead of command-line arguments. The format
 of the file should be one option per line with a colon separating the parameter name
 and value. The parameter names have the same names as the double-dashed command line options
 (i.e., "user-folder", not "u"). If a parameter does not take a value, like "whole-file",
@@ -2023,8 +2019,8 @@ line options override the config file options.
 A final note: recursive configuration files are not supported. Using the parameter "config" inside
 a configuration file will cause the program to quit with an error."""))
 
-    other_group.add_argument("--debug", action="store_true", help=format_help("""
-Log information on all actions during a program run."""))
+    other_group.add_argument("--debug", action="store_true", help=format_help(
+        """Log information on all actions during a program run."""))
 
     add_no_option(other_group, "debug")
 
@@ -2032,8 +2028,8 @@ Log information on all actions during a program run."""))
     other_group.add_argument(
         "-l", "--log",
         default=str(default_log_file_name),
-        help=format_help(f"""
-Where to log the activity of this program. The default is
+        help=format_help(
+f"""Where to log the activity of this program. The default is
 {default_log_file_name.name} in the user's home folder. If no
 log file is desired, use the file name {os.devnull}."""))
 
