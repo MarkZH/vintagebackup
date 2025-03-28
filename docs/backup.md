@@ -64,9 +64,15 @@ Second, on some file systems, adding new hard links to a file that already has m
 On an NTFS (Windows) file system where I was backing up 150,000 files, each backup after the tenth took a minute longer than the previous one.
 After four months (~120 backups), each backup was taking two hours while copying every file would only take one hour.
 
+There is a trade-off.
+Smaller values of `--hard-link-count` will cause each backup to take more space.
+Larger values will make each back up (and backup deletion) take a longer time to complete.
+
 Technical detail: this parameter specifies an average since files will be randomly chosen for copying based on a probability calculated from this parameter.
 If the user adds the parameter `--hard-link-count N`, where $N$ is some positive number, the probability of copying an unchanged file is $1/(N + 1)$.
 So, `--hard-link-count 9` would have unchanged files copied with a probability of 10%.
+
+The option `--copy-probability` is an alternative way of controlling how often files get copied.
 
 ### `--filter`
 
@@ -127,7 +133,7 @@ This option is overridden by `--no-force-copy`.
 
 Specify the probability that an unchanged file will be copied instead of hard-linked.
 The parameter is specified either as a decimal (0.25) or as a percent (25%).
-This is an alternative to `--hard-link-count`.
+This is an alternative to `--hard-link-count` and has the same trade-offs.
 
 ## Other details
 
