@@ -18,3 +18,14 @@ This was inspired by the Kevlin Henney talk [Seven Ineffective Coding Habits of 
 If an argument list makes a function declaration or call too long, put all of the arguments on the next line indented, leaving the opening parentheses on the same line as the function name. Function arguments declarations are indented by 8 spaces (to distinguish them from the following code), call arguments by 4. The closing parenthesis (and colon for declarations) are on the same line as the last argument.
 
 Container literals are similar. The opening parenthesis, brace, or bracket is left on the same line as the variable declaration, and all items are moved to the next line, indented by 4 spaces. The closing parenthesis, brace, or bracket is on the same line as the last item.
+
+If a `with`-block contains multiple context managers that are too long for one line, put each context manager one it's own line starting one the same line as the with block.
+Each subsequent line is indented four spaces.
+Leave a blank line after the last one to indicate where the code block starts.
+```python
+with (context_manager_A() as A,
+    context_manager_B() as B,
+    context_manager_C() as C):
+
+    # do the things
+```
