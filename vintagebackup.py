@@ -1104,8 +1104,8 @@ def verify_last_backup(
     error_file_name = result_folder/f"{prefix} error files.txt"
 
     with (matching_file_name.open("w", encoding="utf8") as matching_file,
-          mismatching_file_name.open("w", encoding="utf8") as mismatching_file,
-          error_file_name.open("w", encoding="utf8") as error_file):
+        mismatching_file_name.open("w", encoding="utf8") as mismatching_file,
+        error_file_name.open("w", encoding="utf8") as error_file):
 
         for file in (matching_file, mismatching_file, error_file):
             file.write(f"Comparison: {user_folder} <---> {backup_folder}\n")

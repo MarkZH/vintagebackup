@@ -1128,7 +1128,8 @@ class MoveBackupsTest(TestCaseWithTemporaryFilesAndFolders):
             copy_probability=0.0,
             timestamp=unique_timestamp())
         with (self.assertLogs(level=logging.ERROR) as no_move_choice_log,
-              tempfile.TemporaryDirectory() as move_destination):
+            tempfile.TemporaryDirectory() as move_destination):
+
             exit_code = main_no_log([
                 "--move-backup", move_destination,
                 "--user-folder", str(self.user_path),
@@ -1336,7 +1337,8 @@ class ErrorTest(TestCaseWithTemporaryFilesAndFolders):
     def test_backing_up_different_user_folders_to_same_backup_location_is_an_error(self) -> None:
         """Check that error is raised when attempted to change the source of a backup set."""
         with (tempfile.TemporaryDirectory() as other_user_folder,
-              self.assertRaises(RuntimeError) as error):
+            self.assertRaises(RuntimeError) as error):
+
             vintagebackup.create_new_backup(
                 self.user_path,
                 self.backup_path,
