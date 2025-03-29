@@ -1,4 +1,5 @@
 """A backup utility that uses hardlinks to save space when making full backups."""
+
 import os
 import shutil
 import datetime
@@ -122,6 +123,7 @@ def byte_units(size: float) -> str:
 
 def all_backups(backup_location: Path) -> list[Path]:
     """Return a sorted list of all backups at the given location."""
+
     def is_valid_directory(date_folder: Path) -> bool:
         try:
             year = datetime.datetime.strptime(date_folder.parent.name, "%Y").year
@@ -282,8 +284,10 @@ def shallow_stats(stats: os.stat_result) -> tuple[int, int, int]:
 
 def random_filter(probability: float) -> Callable[[Any], bool]:
     """Create a filter that chooses items with the given probability."""
+
     def actual_random_filter(_: Any) -> bool:
         return random.random() < probability
+
     return actual_random_filter
 
 
@@ -335,6 +339,7 @@ def shallow_comparison(
         backup_directory: Path,
         file_names: list[str]) -> tuple[list[str], list[str], list[str]]:
     """Decide which files match the previous backup based on quick stat information."""
+
     def scan_directory(directory: Path) -> dict[str, os.stat_result]:
         with os.scandir(directory) as scan:
             return {entry.name: entry.stat() for entry in scan}
@@ -387,6 +392,7 @@ def separate_links(directory: Path, path_names: list[str]) -> tuple[list[str], l
 
     :returns Two lists: the first a list of regular files, the second a list of symlinks.
     """
+
     def is_not_link(name: str) -> bool:
         return not (directory/name).is_symlink()
 
@@ -776,6 +782,7 @@ def choose_backup(backup_folder: Path, choice: int | None) -> Path | None:
 
 def delete_directory_tree(backup_path: Path) -> None:
     """Delete a single backup."""
+
     def remove_readonly(func: Callable[..., Any], path: str, _: Any) -> None:
         """
         Clear the readonly bit and reattempt the removal.
@@ -1180,6 +1187,7 @@ def last_n_backups(backup_location: Path, n: str | int) -> list[Path]:
 
 def backups_since(oldest_backup_date: datetime.datetime, backup_location: Path) -> list[Path]:
     """Return a list of the backups created since a given date."""
+
     def recent_enough(backup_folder: Path) -> bool:
         return backup_datetime(backup_folder) >= oldest_backup_date
 
