@@ -1670,7 +1670,7 @@ def absolute_path(path: Path | str, *, strict: bool = False) -> Path:
     Relative path segments (..) are removed. Symlinks are not resolved.
 
     :param path: The path to be made absolute.
-    :param stict: Require that the path exists. An FileNotFoundError is raised if not. Symlinks are
+    :param stict: If True, raise a FileNotFoundError if the path does not exist. Symlinks are
     not followed, so an existing symlink to a non-existent file or folder does not raise an error.
     """
     abs_path = Path(os.path.abspath(path))
