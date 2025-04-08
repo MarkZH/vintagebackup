@@ -1187,7 +1187,7 @@ def last_n_backups(backup_location: Path, n: str | int) -> list[Path]:
 
     count = int(n)
     if count < 1 or count != float(n):
-        raise ValueError(f"Value must be apositive whole number: {n}")
+        raise ValueError(f"Value must be a positive whole number: {n}")
 
     return backups[-count:]
 
