@@ -1182,7 +1182,14 @@ def last_n_backups(backup_location: Path, n: str | int) -> list[Path]:
     :param n: A positive integer to get the last n backups, or "all" to get all backups.
     """
     backups = all_backups(backup_location)
-    return backups if n == "all" else backups[-int(n):]
+    if str(n).lower() == "all":
+        return backups
+
+    count = int(n)
+    if count < 1 or count != float(n):
+        raise ValueError(f"Value must be apositive whole number: {n}")
+
+    return backups[-count:]
 
 
 def backups_since(oldest_backup_date: datetime.datetime, backup_location: Path) -> list[Path]:

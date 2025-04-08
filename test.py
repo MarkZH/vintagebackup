@@ -2660,6 +2660,56 @@ class BackupsSpaceWarningsTests(unittest.TestCase):
         self.assertEqual(logs.output, [space_message, consider_warning])
 
 
+class LastNBackupTests(TestCaseWithTemporaryFilesAndFolders):
+    """Test calls to last_n_backups()."""
+
+    def setUp(self) -> None:
+        """Set up old backups for retrieval."""
+        super().setUp()
+        self.backup_count = 10
+        create_old_backups(self.backup_path, self.backup_count)
+
+    def test_last_n_backups_with_number_argument_returns_correct_number_of_backups(self) -> None:
+        """Test that last_n_backups() returns correct number of backups."""
+        for n in range(1, self.backup_count + 1):
+            self.assertEqual(n, len(vintagebackup.last_n_backups(self.backup_path, n)))
+
+    def test_last_n_backups_with_string_argument_returns_correct_number_of_backups(self) -> None:
+        """Test that last_n_backups() returns correct number of backups if argument is a string."""
+        for n in range(1, self.backup_count + 1):
+            self.assertEqual(n, len(vintagebackup.last_n_backups(self.backup_path, str(n))))
+
+    def test_last_n_backups_with_all_argument_returns_all_backups(self) -> None:
+        """Test that the argument 'all' returns all backups."""
+        all_backups = vintagebackup.all_backups(self.backup_path)
+        all_n_backups = vintagebackup.last_n_backups(self.backup_path, "all")
+        self.assertEqual(all_backups, all_n_backups)
+
+    def test_all_argument_is_case_insensitive(self) -> None:
+        """Test that capitalization does not matter for value 'all'."""
+        all_backups = vintagebackup.all_backups(self.backup_path)
+        all_n_backups = vintagebackup.last_n_backups(self.backup_path, "All")
+        self.assertEqual(all_backups, all_n_backups)
+
+    def test_non_positive_argument_is_an_error(self) -> None:
+        """Test that negative or zero arguments raise an exception."""
+        with self.assertRaises(ValueError):
+            vintagebackup.last_n_backups(self.backup_path, 0)
+
+        with self.assertRaises(ValueError):
+            vintagebackup.last_n_backups(self.backup_path, "-1")
+
+    def test_non_numeric_argument_besides_all_is_error(self) -> None:
+        """Test that any other string argument besides 'all' is an error."""
+        with self.assertRaises(ValueError):
+            vintagebackup.last_n_backups(self.backup_path, "most")
+
+    def test_non_whole_number_arguments_are_errors(self) -> None:
+        """Test that decimal number result in errors."""
+        with self.assertRaises(ValueError):
+            vintagebackup.last_n_backups(self.backup_path, "3.14")
+
+
 class HelpTests(unittest.TestCase):
     """Make sure argument parser help commands run without error."""
 
