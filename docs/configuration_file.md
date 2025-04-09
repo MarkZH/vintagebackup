@@ -6,6 +6,8 @@ Instead of configuring Vintage Backup with command line parameters, which may re
 
 ## Format
 
+### Options and parameters
+
 Within a configuration file, put one parameter per line like so:
 
 `<parameter>: <value>`
@@ -26,11 +28,17 @@ If a parameter does not take a value (`--whole-file`, `--delete-first`, `--force
 Force copy:
 ```
 
+### Comments
+
+Lines starting with `#` are ignored by Vintage Backup, so they may be used for comments and descriptions of settings.
+
+### Quoting to preserve leading and trailing spaces in file names
+
 Normally, and leading or trailing spaces will be trimmed from the parameter values.
 If the value needs to retain those spaces, then put double quotes around the value.
 
 ```
-Filter: " name with spaces at ends.txt  "
+Filter: " name with spaces at both ends.txt  "
 ```
 
 In this example, the single space before name and two spaces at the end will be kept as part of the file name.
@@ -43,14 +51,21 @@ Filter: ""file name that is quoted.txt""
 In this example, the file name that will be passed to Vintage backup is `"file name that is quoted.txt"`.
 Quotes will only be removed in they are at both the start and end of a parameter value, and only one pair will be removed.
 
+### Example configuration file
+
 Here's an example of a complete configuration file that can be used for regular backups:
 
 ```
+# Main options
 User folder: /home/bob
 Backup folder: /mnt/backups/bobs backups
 Filter: /home/bob/backup filter.txt
+
+# Save lots of space
 Hard link count: 50
 Free up: 20GB
+
+# Write a lot more information to the log file
 Debug:
 ```
 
@@ -61,10 +76,6 @@ python3 vintagebackup.py --user-folder /home/bob --backup-folder "/mnt/backups/b
 ```
 
 Like the command line, the order of different parameters does not matter. If a parameter appears more than once, the last parameter value is used.
-
-## Comments
-
-Lines starting with `#` are ignored by Vintage Backup, so they may be used for comments and descriptions of settings.
 
 ## Overriding configuration files
 
