@@ -51,7 +51,7 @@ If a parameter value begins and ends with quotation marks that need to be kept, 
 Filter: ""file name that is quoted.txt""
 ```
 
-In this example, the file name that will be passed to Vintage backup is `"file name that is quoted.txt"`.
+In this example, the file name that will be passed to Vintage Backup is `"file name that is quoted.txt"`.
 
 Quotes will only be removed in they are at both the start and end of a parameter value, and only one pair will be removed. Otherwise, quotes are not removed. For example,
 
