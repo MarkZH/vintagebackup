@@ -26,7 +26,7 @@ The specified files must be inside the `--user-folder` directory tree.
 
 Glob patterns have the following characters with special meaning:
 - `?` - Matches any single character: `c?b` matches `cab` and `cub` but not `club`
-- `*` - Matches zero or more characters with a single directory or file name: `c*b` matches `cab`, `carb`, and `climb`
+- `*` - Matches zero or more characters with a single directory or file name: `c*b` matches `cb`, `cab`, `curb`, and `climb`
 - `**` - Matches any sequence of nested directories: `a/**/b.txt` matches `a/b.txt`, `a/d1/b.txt``a/d1/d2/b.txt`, `a/d1/d2/d3/b.txt`
 - `[sequence]` - Matches a single character between the brackets: `[bcdr]ough` matches `bough`, `cough`, `dough`, and `rough`.
   - This can also be used to make characters be no longer treated as special. `why[?].csv` will only match the file named `why?.csv`.
