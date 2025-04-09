@@ -42,6 +42,9 @@ Filter: " name with spaces at both ends.txt  "
 ```
 
 In this example, the single space before name and two spaces at the end will be kept as part of the file name.
+File and folder names with newlines will not be handled correctly.
+Use names without newlines or use the command line if they cannot be renamed.
+
 If a parameter value begins and ends with quotation marks that need to be kept, use another set of quotations marks.
 
 ```
