@@ -52,7 +52,15 @@ Filter: ""file name that is quoted.txt""
 ```
 
 In this example, the file name that will be passed to Vintage backup is `"file name that is quoted.txt"`.
-Quotes will only be removed in they are at both the start and end of a parameter value, and only one pair will be removed.
+
+Quotes will only be removed in they are at both the start and end of a parameter value, and only one pair will be removed. Otherwise, quotes are not removed. For example,
+
+```
+Filter: the "alleged" filter file.txt
+```
+
+will result in `the "alleged" filter file.txt` being passed as the `--filter` argument to Vintage Backup.
+
 
 ### Example configuration file
 
