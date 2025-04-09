@@ -18,4 +18,4 @@ Once a selection is made, that path will be purged from all backups as if `--pur
 
 ### `--backup-folder`, `-b`
 
-The purging function needs to know where the backups are stored.
+The purging functions need to know where the backups are stored.
