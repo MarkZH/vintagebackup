@@ -31,4 +31,4 @@ as the first backup.
 Unchanged files will be linked to earlier backups so they don't take up more space, while new or changed files will be copied to the backup.
 This can result in years of daily backups fitting on a single external drive with every backup folder containing every backed up file, making restoring these files as easy as drag-and-drop.
 
-Running `python vintagebackup.py -h` displays help about all the options.
+Run `python vintagebackup.py -h` to read about all the options, or read the [wiki](wiki/contents.md).
