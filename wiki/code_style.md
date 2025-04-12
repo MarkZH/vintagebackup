@@ -11,7 +11,8 @@ Either everything is on one line, or the changing names and arguments/items are 
 Either way, renaming no longer leaves the first argument/item misaligned with the others.
 This also makes it easier to change the indentation level of a code block when adding or removing loops, conditional, and try-except blocks.
 
-This was inspired by the Kevlin Henney talk [Seven Ineffective Coding Habits of Many Programmers](https://www.youtube.com/watch?v=SUIUZ09mnwM&t=1214s)
+This was inspired by the Kevlin Henney talk [Seven Ineffective Coding Habits of Many Programmers](https://www.youtube.com/watch?v=SUIUZ09mnwM&t=1214s).
+It is similar to the formating produced by the program [black](https://black.readthedocs.io/en/stable/), but there are too many aspects of that style that annoy me--most prominently, closing braces/brackets/parenetheses on separate lines by themselves.
 
 ### Rules
 
