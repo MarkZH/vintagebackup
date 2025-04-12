@@ -4,7 +4,7 @@
 
 Most codestyle is enforce by [ruff](https://docs.astral.sh/ruff/) with the ruff.toml configuration in the testing directory.
 
-## Make alignment safe from renaming
+## Make alignment safe from renaming and reindenting
 
 The purpose of this formatting is to allow for variables and functions to be renamed without needing to fix the alignment of the arguments and container items on the following lines.
 Either everything is on one line, or the changing names and arguments/items are on separate lines.
