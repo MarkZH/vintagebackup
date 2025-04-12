@@ -1130,7 +1130,7 @@ def verify_last_backup(
 
 def restore_backup(
         dated_backup_folder: Path,
-        user_folder: Path,
+        destination: Path,
         *,
         delete_extra_files: bool) -> None:
     """
@@ -1139,34 +1139,37 @@ def restore_backup(
     Existing files that were backed up will be overwritten with the backup.
 
     :param dated_backup_folder: The backup from which to restore files and folders
-    :param user_folder: The folder that will be restored to a previous state.
+    :param destination: The folder that will be restored to a backed up state.
     :param delete_extra_files: Whether to delete files and folders that are not present in the
     backup.
     """
+    user_folder = backup_source(dated_backup_folder.parent.parent)
     logger.info(f"Restoring: {user_folder}")
     logger.info(f"From     : {dated_backup_folder}")
     logger.info(f"Deleting extra files: {delete_extra_files}")
-    for current_backup_folder, folder_names, file_names in dated_backup_folder.walk():
-        current_backup_path = Path(current_backup_folder)
-        current_user_path = user_folder/current_backup_path.relative_to(dated_backup_folder)
-        logger.debug(f"Creating {current_user_path}")
-        current_user_path.mkdir(parents=True, exist_ok=True)
+    if not user_folder.samefile(destination):
+        logger.info(f"Restoring to: {destination}")
+
+    for current_backup_path, folder_names, file_names in dated_backup_folder.walk():
+        current_user_folder = destination/current_backup_path.relative_to(dated_backup_folder)
+        logger.debug(f"Creating {current_user_folder}")
+        current_user_folder.mkdir(parents=True, exist_ok=True)
 
         for file_name in file_names:
             try:
-                source = current_backup_path/file_name
-                destination = current_user_path/file_name
+                file_source = current_backup_path/file_name
+                file_destination = current_user_folder/file_name
                 logger.debug(
-                    f"Copying {file_name} from {current_backup_path} to {current_user_path}")
-                shutil.copy2(source, destination, follow_symlinks=False)
+                    f"Copying {file_name} from {current_backup_path} to {current_user_folder}")
+                shutil.copy2(file_source, file_destination, follow_symlinks=False)
             except Exception as error:
-                logger.warning(f"Could not restore {destination} from {source}: {error}")
+                logger.warning(f"Could not restore {file_destination} from {file_source}: {error}")
 
         if delete_extra_files:
             backed_up_paths = set(folder_names) | set(file_names)
-            user_paths = {entry.name for entry in current_user_path.iterdir()}
+            user_paths = {entry.name for entry in current_user_folder.iterdir()}
             for new_name in user_paths - backed_up_paths:
-                new_path = current_user_path/new_name
+                new_path = current_user_folder/new_name
                 logger.debug(f"Deleting extra file {new_path}")
                 if is_real_directory(new_path):
                     delete_directory_tree(new_path)
