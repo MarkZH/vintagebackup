@@ -1136,7 +1136,7 @@ class MoveBackupsTest(TestCaseWithTemporaryFilesAndFolders):
                 "--backup-folder", str(self.backup_path)])
         self.assertEqual(exit_code, 1)
         expected_logs = [
-            "ERROR:vintagebackup:One of the following are required: "
+            "ERROR:vintagebackup:Exactly one of the following is required: "
             "--move-count, --move-age, or --move-since"]
         self.assertEqual(expected_logs, no_move_choice_log.output)
 
@@ -1608,7 +1608,6 @@ class RestorationTest(TestCaseWithTemporaryFilesAndFolders):
 
             exit_code = main_no_log([
                 "--restore",
-                "--user-folder", str(self.user_path),
                 "--backup-folder", str(self.backup_path),
                 "--last-backup", "--delete-extra",
                 "--destination", destination_folder,
@@ -1641,7 +1640,6 @@ class RestorationTest(TestCaseWithTemporaryFilesAndFolders):
 
             exit_code = main_no_log([
                 "--restore",
-                "--user-folder", str(self.user_path),
                 "--backup-folder", str(self.backup_path),
                 "--last-backup", "--keep-extra",
                 "--destination", destination_folder,
@@ -1676,7 +1674,7 @@ class RestorationTest(TestCaseWithTemporaryFilesAndFolders):
                 "--last-backup"])
         self.assertEqual(exit_code, 1)
         expected_logs = [
-            "ERROR:vintagebackup:One of the following are required: "
+            "ERROR:vintagebackup:Exactly one of the following is required: "
             "--delete-extra or --keep-extra"]
         self.assertEqual(expected_logs, no_extra_log.output)
 
@@ -1699,7 +1697,7 @@ class RestorationTest(TestCaseWithTemporaryFilesAndFolders):
                 "--keep-extra"])
         self.assertEqual(exit_code, 1)
         expected_logs = [
-            "ERROR:vintagebackup:One of the following are required: "
+            "ERROR:vintagebackup:Exactly one of the following is required: "
             "--last-backup or --choose-backup"]
         self.assertEqual(expected_logs, no_backup_choice_log.output)
 
@@ -2708,6 +2706,31 @@ class LastNBackupTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that decimal number result in errors."""
         with self.assertRaises(ValueError):
             vintagebackup.last_n_backups(self.backup_path, "3.14")
+
+
+class ConfirmChoiceMadeTests(unittest.TestCase):
+    """Test that confirm_choice_made() limits how options are used."""
+
+    def setUp(self) -> None:
+        """Set up test command line arguments."""
+        super().setUp()
+        self.args = vintagebackup.parse_command_line([
+            "--user-folder", "a",
+            "--backup-folder", "b"])
+
+    def test_zero_choices_is_an_error(self) -> None:
+        """Test that choosing none of a required set is an error."""
+        with self.assertRaises(vintagebackup.CommandLineError):
+            vintagebackup.confirm_choice_made(self.args, "no_argument_1", "no_argument_2")
+
+    def test_one_choice_is_not_an_error(self) -> None:
+        """Test that choosing one option has no error."""
+        vintagebackup.confirm_choice_made(self.args, "user_folder", "filter")
+
+    def test_two_choices_is_an_error(self) -> None:
+        """Test that picking two choices when one is required is an error."""
+        with self.assertRaises(vintagebackup.CommandLineError):
+            vintagebackup.confirm_choice_made(self.args, "user_folder", "backup_folder")
 
 
 class HelpTests(unittest.TestCase):

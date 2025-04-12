@@ -1593,17 +1593,12 @@ def choose_types_to_delete(
 
 
 def confirm_choice_made(args: argparse.Namespace, *options: str) -> None:
-    """
-    Make sure that at least one of the argument parameters are present.
-
-    This function only checks if at least one of the options is chosen. It should be used with a
-    mutually exclusive option set if exactly one choice is desired.
-    """
+    """Make sure that exactly one of the argument parameters is present."""
     args_dict = vars(args)
-    if not any(map(args_dict.get, options)):
+    if len(list(filter(None, map(args_dict.get, options)))) != 1:
         option_list = [f"--{option.replace("_", "-")}" for option in options]
         comma = ", "
-        message = "One of the following are required: " + comma.join(option_list)
+        message = "Exactly one of the following is required: " + comma.join(option_list)
         if message.count(comma) == 1:
             message = message.replace(comma, " or ")
         else:
