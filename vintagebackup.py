@@ -1467,13 +1467,13 @@ def start_backup_restore(args: argparse.Namespace) -> None:
     """Parse command line arguments for a backup recovery."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
 
-    if args.destination:
-        destination = absolute_path(args.destination)
-        user_folder = None
-    else:
-        user_folder = get_existing_path(args.user_folder, "user folder")
-        confirm_user_location_is_unchanged(user_folder, backup_folder)
-        destination = user_folder
+    confirm_choice_made(args, "destination", "user_folder")
+    destination = (
+        absolute_path(args.destination) if args.destination
+        else get_existing_path(args.user_folder, "user folder"))
+
+    if args.user_folder:
+        confirm_user_location_is_unchanged(destination, backup_folder)
 
     confirm_choice_made(args, "delete_extra", "keep_extra")
     delete_extra_files = bool(args.delete_extra)
@@ -1491,7 +1491,7 @@ def start_backup_restore(args: argparse.Namespace) -> None:
 
     required_response = "yes"
     logger.info(
-        f"This will overwrite all files in {user_folder} and subfolders with files "
+        f"This will overwrite all files in {destination} and subfolders with files "
         f"in {restore_source}.")
     if delete_extra_files:
         logger.info(
