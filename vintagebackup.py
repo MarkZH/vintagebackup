@@ -1076,7 +1076,7 @@ def move_backups(
     record_user_location(original_backup_source, new_backup_location)
 
 
-def verify_last_backup(backup_folder: Path, filter_file: Path | None, result_folder: Path) -> None:
+def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Path | None) -> None:
     """
     Verify the most recent backup by comparing with the user's files.
 
@@ -1460,7 +1460,7 @@ def start_verify_backup(args: argparse.Namespace) -> None:
     filter_file = path_or_none(args.filter)
     result_folder = absolute_path(args.verify)
     print_run_title(args, "Verifying last backup")
-    verify_last_backup(backup_folder, filter_file, result_folder)
+    verify_last_backup(result_folder, backup_folder, filter_file)
 
 
 def start_backup_restore(args: argparse.Namespace) -> None:

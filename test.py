@@ -1183,7 +1183,7 @@ class VerificationTest(TestCaseWithTemporaryFilesAndFolders):
             with tempfile.TemporaryDirectory() as verification_folder:
                 verification_location = Path(verification_folder)
                 if method == Invocation.function:
-                    vintagebackup.verify_last_backup(self.backup_path, None, verification_location)
+                    vintagebackup.verify_last_backup(verification_location, self.backup_path, None)
                 else:
                     exit_code = main_no_log([
                         "--user-folder", str(self.user_path),
