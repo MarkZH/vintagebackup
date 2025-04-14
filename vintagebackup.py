@@ -1076,20 +1076,18 @@ def move_backups(
     record_user_location(original_backup_source, new_backup_location)
 
 
-def verify_last_backup(
-        user_folder: Path,
-        backup_folder: Path,
-        filter_file: Path | None,
-        result_folder: Path) -> None:
+def verify_last_backup(backup_folder: Path, filter_file: Path | None, result_folder: Path) -> None:
     """
     Verify the most recent backup by comparing with the user's files.
 
-    :param user_folder: The source of the backed up data.
     :param backup_folder: The location of the backed up data.
     :param filter_file: The file that filters which files are backed up.
     :param result_folder: Where the resulting files will be saved.
     """
-    confirm_user_location_is_unchanged(user_folder, backup_folder)
+    user_folder = backup_source(backup_folder)
+    if not user_folder.is_dir():
+        raise FileNotFoundError(f"Could not find user folder: {user_folder}")
+
     last_backup_folder = find_previous_backup(backup_folder)
 
     if last_backup_folder is None:
@@ -1458,12 +1456,11 @@ def start_move_backups(args: argparse.Namespace) -> None:
 
 def start_verify_backup(args: argparse.Namespace) -> None:
     """Parse command line options for verifying backups."""
-    user_folder = get_existing_path(args.user_folder, "user's folder")
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     filter_file = path_or_none(args.filter)
     result_folder = absolute_path(args.verify)
     print_run_title(args, "Verifying last backup")
-    verify_last_backup(user_folder, backup_folder, filter_file, result_folder)
+    verify_last_backup(backup_folder, filter_file, result_folder)
 
 
 def start_backup_restore(args: argparse.Namespace) -> None:
@@ -1802,7 +1799,7 @@ is needed when deciding how many backups should be moved."""))
 """Verify the latest backup by comparing them against the original files. The result of the
 comparison will be placed in the folder RESULT_DIR. The result is three files: a list of files that
 match, a list of files that do not match, and a list of files that caused errors during the
-comparison. The arguments --user-folder and --backup-folder are required. If a filter file was used
+comparison. The --backup-folder argument is required. If a filter file was used
 to create the backup, then --filter should be supplied as well."""))
 
     only_one_action_group.add_argument("--restore", action="store_true", help=format_help(

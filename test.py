@@ -1183,11 +1183,7 @@ class VerificationTest(TestCaseWithTemporaryFilesAndFolders):
             with tempfile.TemporaryDirectory() as verification_folder:
                 verification_location = Path(verification_folder)
                 if method == Invocation.function:
-                    vintagebackup.verify_last_backup(
-                        self.user_path,
-                        self.backup_path,
-                        None,
-                        verification_location)
+                    vintagebackup.verify_last_backup(self.backup_path, None, verification_location)
                 else:
                     exit_code = main_no_log([
                         "--user-folder", str(self.user_path),
@@ -1208,11 +1204,14 @@ class VerificationTest(TestCaseWithTemporaryFilesAndFolders):
                         else mismatching_path_set if " mismatching " in file_name
                         else error_path_set)
 
-                    verify_file_path = verification_location/file_name
-                    with open(verify_file_path, encoding="utf8") as verify_file:
-                        verify_file.readline()
-                        files_from_verify = {
-                            Path(line.removesuffix("\n")) for line in verify_file}
+                    with open(verification_location/file_name, encoding="utf8") as verify_file:
+                        first_line = verify_file.readline()
+                        first_line_format = "Comparison: (.*) <---> (.*)\n"
+                        matches = cast(re.Match[str], re.match(first_line_format, first_line))
+                        user_folder, backup_folder = matches.groups()
+                        self.assertTrue(self.user_path.samefile(user_folder))
+                        self.assertTrue(self.backup_path.samefile(backup_folder))
+                        files_from_verify = {Path(line.removesuffix("\n")) for line in verify_file}
 
                     self.assertEqual(files_from_verify, path_set)
 
