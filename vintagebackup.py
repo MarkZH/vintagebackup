@@ -261,7 +261,7 @@ def confirm_user_location_is_unchanged(user_data_location: Path, backup_location
     try:
         recorded_user_folder = backup_source(backup_location)
         if not recorded_user_folder.samefile(user_data_location):
-            raise RuntimeError(
+            raise CommandLineError(
                 "Previous backup stored a different user folder."
                 f" Previously: {absolute_path(recorded_user_folder)};"
                 f" Now: {absolute_path(user_data_location)}")

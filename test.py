@@ -440,7 +440,7 @@ class BackupTest(TestCaseWithTemporaryFilesAndFolders):
                 timestamp=unique_timestamp())
 
             create_user_data(self.user_path)
-            with self.assertRaises(RuntimeError):
+            with self.assertRaises(vintagebackup.CommandLineError):
                 vintagebackup.create_new_backup(
                     self.user_path,
                     self.backup_path,
@@ -1336,7 +1336,7 @@ class ErrorTest(TestCaseWithTemporaryFilesAndFolders):
     def test_backing_up_different_user_folders_to_same_backup_location_is_an_error(self) -> None:
         """Check that error is raised when attempted to change the source of a backup set."""
         with (tempfile.TemporaryDirectory() as other_user_folder,
-            self.assertRaises(RuntimeError) as error):
+            self.assertRaises(vintagebackup.CommandLineError) as error):
 
             vintagebackup.create_new_backup(
                 self.user_path,
