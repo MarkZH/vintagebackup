@@ -1468,11 +1468,16 @@ def start_backup_restore(args: argparse.Namespace) -> None:
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
 
     confirm_choice_made(args, "destination", "user_folder")
-    destination = (
-        absolute_path(args.destination) if args.destination
-        else get_existing_path(args.user_folder, "user folder"))
-
-    if args.user_folder:
+    if args.destination:
+        destination = absolute_path(args.destination)
+        user_folder = backup_source(backup_folder)
+        if destination.samefile(user_folder):
+            raise CommandLineError(
+                f"The --destination argument {destination} is the same as the original location "
+                "of the user folder. Either choose another destination, or use the --user-folder "
+                "option.")
+    else:
+        destination = get_existing_path(args.user_folder, "user folder")
         confirm_user_location_is_unchanged(destination, backup_folder)
 
     confirm_choice_made(args, "delete_extra", "keep_extra")
