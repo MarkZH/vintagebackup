@@ -2732,6 +2732,43 @@ class ConfirmChoiceMadeTests(unittest.TestCase):
             vintagebackup.confirm_choice_made(self.args, "user_folder", "backup_folder")
 
 
+class ConfirmUserLocationIsUnchangedTests(TestCaseWithTemporaryFilesAndFolders):
+    """Tests for the funciton confirm_user_location_is_unchanged."""
+
+    def test_no_backups_is_not_an_error(self) -> None:
+        """Calling the function before any backups is not an error."""
+        vintagebackup.confirm_user_location_is_unchanged(self.user_path, self.backup_path)
+
+    def test_unchanged_user_folder_is_not_an_error(self) -> None:
+        """Pass test if the backup location has not changed after a backup."""
+        vintagebackup.create_new_backup(
+            self.user_path,
+            self.backup_path,
+            filter_file=None,
+            examine_whole_file=False,
+            force_copy=False,
+            copy_probability=0.0,
+            timestamp=None)
+
+        vintagebackup.confirm_user_location_is_unchanged(self.user_path, self.backup_path)
+
+    def test_changed_user_folder_is_an_error(self) -> None:
+        """Raise exception if the backup location has changed after a backup."""
+        vintagebackup.create_new_backup(
+            self.user_path,
+            self.backup_path,
+            filter_file=None,
+            examine_whole_file=False,
+            force_copy=False,
+            copy_probability=0.0,
+            timestamp=None)
+
+        with self.assertRaises(vintagebackup.CommandLineError) as error:
+            vintagebackup.confirm_user_location_is_unchanged(self.backup_path, self.backup_path)
+
+        self.assertIn("different user folder", error.exception.args[0])
+
+
 class HelpTests(unittest.TestCase):
     """Make sure argument parser help commands run without error."""
 
