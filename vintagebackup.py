@@ -780,7 +780,7 @@ def choose_backup(backup_folder: Path, choice: int | None) -> Path | None:
     return backup_choices[choose_from_menu(menu_choices, "Backup to restore")]
 
 
-def delete_directory_tree(backup_path: Path) -> None:
+def delete_directory_tree(directory: Path) -> None:
     """Delete a single backup."""
 
     def remove_readonly(func: Callable[..., Any], path: str, _: Any) -> None:
@@ -792,7 +792,7 @@ def delete_directory_tree(backup_path: Path) -> None:
         os.chmod(path, stat.S_IWRITE, follow_symlinks=False)
         func(path)
 
-    shutil.rmtree(backup_path, onexc=remove_readonly)
+    shutil.rmtree(directory, onexc=remove_readonly)
 
 
 def delete_oldest_backups_for_space(
