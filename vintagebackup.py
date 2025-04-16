@@ -780,7 +780,7 @@ def choose_backup(backup_folder: Path, choice: int | None) -> Path | None:
     return backup_choices[choose_from_menu(menu_choices, "Backup to restore")]
 
 
-def delete_directory_tree(backup_path: Path) -> None:
+def delete_directory_tree(backup_path: Path, *, ignore_errors: bool = False) -> None:
     """Delete a single backup."""
 
     def remove_readonly(func: Callable[..., Any], path: str, _: Any) -> None:
@@ -789,8 +789,14 @@ def delete_directory_tree(backup_path: Path) -> None:
 
         Copied from https://docs.python.org/3/library/shutil.html#rmtree-example
         """
-        os.chmod(path, stat.S_IWRITE, follow_symlinks=False)
-        func(path)
+        try:
+            os.chmod(path, stat.S_IWRITE, follow_symlinks=False)
+            func(path)
+        except Exception as error:
+            if ignore_errors:
+                logger.error(f"Could not delete {path}: {error}")
+            else:
+                raise
 
     shutil.rmtree(backup_path, onexc=remove_readonly)
 
@@ -1013,7 +1019,7 @@ def delete_backups(
             logger.info(first_deletion_message)
 
         logger.info(f"Deleting oldest backup: {backup}")
-        delete_directory_tree(backup)
+        delete_directory_tree(backup, ignore_errors=True)
 
         try:
             year_folder = backup.parent
