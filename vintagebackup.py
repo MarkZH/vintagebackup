@@ -780,7 +780,7 @@ def choose_backup(backup_folder: Path, choice: int | None) -> Path | None:
     return backup_choices[choose_from_menu(menu_choices, "Backup to restore")]
 
 
-def delete_directory_tree(backup_path: Path, *, ignore_errors: bool = False) -> None:
+def delete_directory_tree(directory: Path, *, ignore_errors: bool = False) -> None:
     """
     Delete a single backup.
 
@@ -803,7 +803,7 @@ def delete_directory_tree(backup_path: Path, *, ignore_errors: bool = False) -> 
             else:
                 raise
 
-    shutil.rmtree(backup_path, onexc=remove_readonly)
+    shutil.rmtree(directory, onexc=remove_readonly)
 
 
 def delete_oldest_backups_for_space(
