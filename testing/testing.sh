@@ -1,5 +1,3 @@
-#!/bin/sh
-
 echo upgrade
 python3.13 -m pip install --upgrade pip
 python3.13 -m pip install --upgrade mypy ruff
