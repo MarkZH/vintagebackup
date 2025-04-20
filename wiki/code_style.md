@@ -7,8 +7,9 @@ Most codestyle is enforced by [`ruff`](https://docs.astral.sh/ruff/) with the ru
 ## Make alignment safe from renaming and reindenting
 
 The purpose of this formatting is to allow for variables and functions to be renamed without needing to fix the alignment of the arguments and container items on the following lines.
-Either everything is on one line, or the changing names and arguments/items are on separate lines.
-Either way, renaming no longer leaves the first argument/item misaligned with the others.
+Either everything is on one line, or lines are broken with one indentation for the continuation of the line.
+The new lines are not aligned to parentheses, brackets, or braces on previous lines.
+Renaming should not leave the first argument/item misaligned with the others.
 This also makes it easier to change the indentation level of a code block when adding or removing loops, conditional, and try-except blocks.
 
 This was inspired by the Kevlin Henney talk [Seven Ineffective Coding Habits of Many Programmers](https://www.youtube.com/watch?v=SUIUZ09mnwM&t=1214s).
