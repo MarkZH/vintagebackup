@@ -616,7 +616,7 @@ def search_backups(
         operation: str,
         choice: int | None = None) -> Path | None:
     """
-    Decide which path to restore among all backups for all items in the given directory.
+    Choose a path from among all backups for all items in the given directory.
 
     The user will pick from a list of all files and folders in search_directory that have ever been
     backed up.
