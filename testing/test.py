@@ -1983,9 +1983,10 @@ class PurgeTests(TestCaseWithTemporaryFilesAndFolders):
         purge_command_line = vintagebackup.parse_command_line(
             ["--purge", str(purged_file), "--backup-folder", str(self.backup_path)])
         vintagebackup.start_backup_purge(purge_command_line, "y")
-        relative_purge_file = purged_file.relative_to(self.user_path)
+        expected_contents = directory_contents(self.user_path)
+        expected_contents.remove(purged_file.relative_to(self.user_path))
         for backup in vintagebackup.all_backups(self.backup_path):
-            self.assertFalse((backup/relative_purge_file).exists())
+            self.assertEqual(expected_contents, directory_contents(backup))
 
     def test_folder_purge(self) -> None:
         """Test that a purged folder is deleted from all backups."""
@@ -2006,9 +2007,12 @@ class PurgeTests(TestCaseWithTemporaryFilesAndFolders):
         purge_command_line = vintagebackup.parse_command_line(
             ["--purge", str(purged_folder), "--backup-folder", str(self.backup_path)])
         vintagebackup.start_backup_purge(purge_command_line, "y")
-        relative_purge_folder = purged_folder.relative_to(self.user_path)
+        expected_contents = directory_contents(self.user_path)
+        purged_contents = set(filter(
+            lambda p: (self.user_path/p).is_relative_to(purged_folder), expected_contents))
+        expected_contents.difference_update(purged_contents)
         for backup in vintagebackup.all_backups(self.backup_path):
-            self.assertFalse((backup/relative_purge_folder).exists())
+            self.assertEqual(expected_contents, directory_contents(backup))
 
     def test_file_purge_with_prompt_only_deletes_files(self) -> None:
         """Test that a purging a non-existent file only deletes files in backups."""

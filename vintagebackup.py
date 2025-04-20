@@ -616,7 +616,7 @@ def search_backups(
         operation: str,
         choice: int | None = None) -> Path | None:
     """
-    Decide which path to restore among all backups for all items in the given directory.
+    Choose a path from among all backups for all items in the given directory.
 
     The user will pick from a list of all files and folders in search_directory that have ever been
     backed up.
@@ -780,8 +780,13 @@ def choose_backup(backup_folder: Path, choice: int | None) -> Path | None:
     return backup_choices[choose_from_menu(menu_choices, "Backup to restore")]
 
 
-def delete_directory_tree(backup_path: Path) -> None:
-    """Delete a single backup."""
+def delete_directory_tree(directory: Path, *, ignore_errors: bool = False) -> None:
+    """
+    Delete a single backup.
+
+    If ignore_errors is True, skip files and folders that cannot be deleted and continue deleting
+    the rest of the directory's contents. Otherwise, the function will raise an exception.
+    """
 
     def remove_readonly(func: Callable[..., Any], path: str, _: Any) -> None:
         """
@@ -789,10 +794,16 @@ def delete_directory_tree(backup_path: Path) -> None:
 
         Copied from https://docs.python.org/3/library/shutil.html#rmtree-example
         """
-        os.chmod(path, stat.S_IWRITE, follow_symlinks=False)
-        func(path)
+        try:
+            os.chmod(path, stat.S_IWRITE, follow_symlinks=False)
+            func(path)
+        except Exception as error:
+            if ignore_errors:
+                logger.error(f"Could not delete {path}: {error}")
+            else:
+                raise
 
-    shutil.rmtree(backup_path, onexc=remove_readonly)
+    shutil.rmtree(directory, onexc=remove_readonly)
 
 
 def delete_oldest_backups_for_space(
@@ -1013,7 +1024,7 @@ def delete_backups(
             logger.info(first_deletion_message)
 
         logger.info(f"Deleting oldest backup: {backup}")
-        delete_directory_tree(backup)
+        delete_directory_tree(backup, ignore_errors=True)
 
         try:
             year_folder = backup.parent
@@ -1559,11 +1570,20 @@ def purge_path(
     if confirmation.lower() != "y":
         return
 
+    def purge_directory(directory: Path) -> None:
+        delete_directory_tree(directory, ignore_errors=True)
+
+    def purge_file(file: Path) -> None:
+        try:
+            file.unlink()
+        except Exception as error:
+            logger.error(f"Could not delete {file}: {error}")
+
     for path in paths_to_delete:
         path_type = classify_path(path)
         if path_type in types_to_delete:
             logger.info(f"Deleting {path_type} {path} ...")
-            action = delete_directory_tree if path_type == "Folder" else Path.unlink
+            action = purge_directory if path_type == "Folder" else purge_file
             action(path)
 
     last_backup = find_previous_backup(backup_folder)
