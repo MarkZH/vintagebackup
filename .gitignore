@@ -3,9 +3,7 @@
 *.pyproj
 *.sln
 .vscode/*
-*.bat
 *.txt
 temp_*
 *.pyc
 .coverage
-*.toml
