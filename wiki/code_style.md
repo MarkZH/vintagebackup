@@ -2,7 +2,7 @@
 
 ## General
 
-Most codestyle is enforce by [ruff](https://docs.astral.sh/ruff/) with the ruff.toml configuration in the testing directory.
+Most codestyle is enforced by [`ruff`](https://docs.astral.sh/ruff/) with the ruff.toml configuration in the testing directory.
 
 ## Make alignment safe from renaming and reindenting
 
