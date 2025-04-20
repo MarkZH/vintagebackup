@@ -17,4 +17,4 @@ The `--help` or `-h` parameter also prints an overview of the program's command 
 # Contributing to this project
 
 1. Create issues to report bugs or request features.
-2. Submit pull requests (see the [code style guide]).
+2. Submit pull requests (see the [code style guide](code_style.md) and the [testing information](testing.md)).
