@@ -1573,11 +1573,17 @@ def purge_path(
     def purge_directory(directory: Path) -> None:
         delete_directory_tree(directory, ignore_errors=True)
 
+    def purge_file(file: Path) -> None:
+        try:
+            file.unlink()
+        except Exception as error:
+            logger.error(f"Could not delete {file}: {error}")
+
     for path in paths_to_delete:
         path_type = classify_path(path)
         if path_type in types_to_delete:
             logger.info(f"Deleting {path_type} {path} ...")
-            action = purge_directory if path_type == "Folder" else Path.unlink
+            action = purge_directory if path_type == "Folder" else purge_file
             action(path)
 
     last_backup = find_previous_backup(backup_folder)
