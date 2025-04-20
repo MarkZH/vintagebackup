@@ -18,3 +18,4 @@ The `--help` or `-h` parameter also prints an overview of the program's command 
 
 1. Create issues to report bugs or request features.
 2. Submit pull requests (see the [code style guide](code_style.md) and the [testing information](testing.md)).
+3. Improve this documentation by editting the files in the `wiki` folder and submitting a pull request.
