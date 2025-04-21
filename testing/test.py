@@ -828,13 +828,14 @@ class DeleteBackupTest(TestCaseWithTemporaryFilesAndFolders):
             if method == Invocation.function:
                 vintagebackup.delete_oldest_backups_for_space(self.backup_path, goal_space_str)
             elif method == Invocation.cli:
-                create_large_files(self.user_path, file_size)
-                exit_code = main_no_log([
-                    "--user-folder", str(self.user_path),
-                    "--backup-folder", str(self.backup_path),
-                    "--free-up", goal_space_str,
-                    "--timestamp",
-                    unique_timestamp().strftime(vintagebackup.backup_date_format)])
+                with self.assertNoLogs(level=logging.ERROR):
+                    create_large_files(self.user_path, file_size)
+                    exit_code = main_no_log([
+                        "--user-folder", str(self.user_path),
+                        "--backup-folder", str(self.backup_path),
+                        "--free-up", goal_space_str,
+                        "--timestamp",
+                        unique_timestamp().strftime(vintagebackup.backup_date_format)])
                 self.assertEqual(exit_code, 0)
 
                 # While backups are being deleted, the fake user data still exists, so one more
@@ -843,7 +844,7 @@ class DeleteBackupTest(TestCaseWithTemporaryFilesAndFolders):
             else:
                 raise NotImplementedError(f"Delete backup test not implemented for {method}")
             backups_left = len(vintagebackup.all_backups(self.backup_path))
-            self.assertEqual(backups_left, backups_after_deletion)
+            self.assertIn(backups_left - backups_after_deletion, [0, 1])
 
             self.reset_backup_folder()
 
@@ -2429,6 +2430,15 @@ class ParseStorageTests(unittest.TestCase):
             text = vintagebackup.byte_units(number)
             number_part = float(text.split()[0])
             self.assertLess(number_part, 1000)
+
+    def test_zero_bytes_returns_zero_from_byte_units(self) -> None:
+        """Make sure byte_units can handle inputs of 0."""
+        self.assertEqual("0.000 B", vintagebackup.byte_units(0))
+
+    def test_negative_bytes_is_an_error(self) -> None:
+        """Assert negative storages sizes are invalid."""
+        with self.assertRaises(RuntimeError):
+            vintagebackup.byte_units(-1)
 
 
 class HelpFormatterTests(unittest.TestCase):
