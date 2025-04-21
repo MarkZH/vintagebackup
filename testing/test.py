@@ -828,13 +828,14 @@ class DeleteBackupTest(TestCaseWithTemporaryFilesAndFolders):
             if method == Invocation.function:
                 vintagebackup.delete_oldest_backups_for_space(self.backup_path, goal_space_str)
             elif method == Invocation.cli:
-                create_large_files(self.user_path, file_size)
-                exit_code = main_no_log([
-                    "--user-folder", str(self.user_path),
-                    "--backup-folder", str(self.backup_path),
-                    "--free-up", goal_space_str,
-                    "--timestamp",
-                    unique_timestamp().strftime(vintagebackup.backup_date_format)])
+                with self.assertNoLogs(level=logging.ERROR):
+                    create_large_files(self.user_path, file_size)
+                    exit_code = main_no_log([
+                        "--user-folder", str(self.user_path),
+                        "--backup-folder", str(self.backup_path),
+                        "--free-up", goal_space_str,
+                        "--timestamp",
+                        unique_timestamp().strftime(vintagebackup.backup_date_format)])
                 self.assertEqual(exit_code, 0)
 
                 # While backups are being deleted, the fake user data still exists, so one more
