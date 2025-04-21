@@ -2431,6 +2431,15 @@ class ParseStorageTests(unittest.TestCase):
             number_part = float(text.split()[0])
             self.assertLess(number_part, 1000)
 
+    def test_zero_bytes_returns_zero_from_byte_units(self) -> None:
+        """Make sure byte_units can handle inputs of 0."""
+        self.assertEqual("0.000 B", vintagebackup.byte_units(0))
+
+    def test_negative_bytes_is_an_error(self) -> None:
+        """Assert negative storages sizes are invalid."""
+        with self.assertRaises(RuntimeError):
+            vintagebackup.byte_units(-1)
+
 
 class HelpFormatterTests(unittest.TestCase):
     """Tests for functions that format --help paragraphs."""
