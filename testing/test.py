@@ -2440,6 +2440,10 @@ class ParseStorageTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             vintagebackup.byte_units(-1)
 
+    def test_one_byte_results_in_one_byte(self) -> None:
+        """Assert input of 1 results in 1.000."""
+        self.assertEqual(vintagebackup.byte_units(1), "1.000 B")
+
 
 class HelpFormatterTests(unittest.TestCase):
     """Tests for functions that format --help paragraphs."""
