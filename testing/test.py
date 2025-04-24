@@ -539,6 +539,7 @@ class BackupTest(TestCaseWithTemporaryFilesAndFolders):
             r"INFO:vintagebackup:Backup space used: 50\.0. MB \(51% of --free-up\)")
         self.assertTrue(any(expected_message.fullmatch(line) for line in logs.output))
         self.assertFalse(any(line.startswith("WARNING:") for line in logs.output))
+        self.assertFalse(any(line.startswith("ERROR:") for line in logs.output))
 
 
 class FilterTest(TestCaseWithTemporaryFilesAndFolders):
@@ -1044,6 +1045,10 @@ class DeleteBackupTest(TestCaseWithTemporaryFilesAndFolders):
             if log_line.startswith(deletion_log_prefix):
                 deletions_after_backup += 1
         self.assertEqual(deletions_after_backup, 0)
+
+        for log_line in logs.output:
+            self.assertFalse(log_line.startswith("WARNING:"))
+            self.assertFalse(log_line.startswith("ERROR:"))
 
 
 class MoveBackupsTest(TestCaseWithTemporaryFilesAndFolders):
