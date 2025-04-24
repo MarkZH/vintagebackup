@@ -865,14 +865,14 @@ class DeleteBackupTest(TestCaseWithTemporaryFilesAndFolders):
             if method == Invocation.function:
                 vintagebackup.delete_oldest_backups_for_space(self.backup_path, goal_space_str)
             elif method == Invocation.cli:
-                with self.assertNoLogs(level=logging.ERROR):
-                    create_large_files(self.user_path, file_size)
-                    exit_code = main_no_log([
-                        "--user-folder", str(self.user_path),
-                        "--backup-folder", str(self.backup_path),
-                        "--free-up", goal_space_str,
-                        "--timestamp",
-                        unique_timestamp().strftime(vintagebackup.backup_date_format)])
+                create_large_files(self.user_path, file_size)
+                exit_code = main_assert_no_error_log([
+                    "--user-folder", str(self.user_path),
+                    "--backup-folder", str(self.backup_path),
+                    "--free-up", goal_space_str,
+                    "--timestamp",
+                    unique_timestamp().strftime(vintagebackup.backup_date_format)],
+                    self)
                 self.assertEqual(exit_code, 0)
 
                 # While backups are being deleted, the fake user data still exists, so one more
@@ -924,12 +924,13 @@ class DeleteBackupTest(TestCaseWithTemporaryFilesAndFolders):
                 create_user_data(self.user_path)
                 most_recent_backup = vintagebackup.last_n_backups(self.backup_path, 1)[0]
                 vintagebackup.delete_directory_tree(most_recent_backup)
-                exit_code = main_no_log([
+                exit_code = main_assert_no_error_log([
                     "--user-folder", str(self.user_path),
                     "--backup-folder", str(self.backup_path),
                     "--delete-after", max_age,
                     "--timestamp",
-                    unique_timestamp().strftime(vintagebackup.backup_date_format)])
+                    unique_timestamp().strftime(vintagebackup.backup_date_format)],
+                    self)
                 self.assertEqual(exit_code, 0)
             else:
                 raise NotImplementedError(f"Delete backup test not implemented for {method}")
@@ -1001,7 +1002,7 @@ class DeleteBackupTest(TestCaseWithTemporaryFilesAndFolders):
             "--backup-folder", str(self.backup_path),
             "--delete-after", f"{oldest_backup_age.days}d",
             "--delete-only"]
-        exit_code = main_no_log(arguments)
+        exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
         backups = vintagebackup.all_backups(self.backup_path)
         self.assertEqual(len(backups), 4)  # 120 days = 4 months
@@ -1080,10 +1081,11 @@ class MoveBackupsTest(TestCaseWithTemporaryFilesAndFolders):
                         new_backup_location,
                         backups_to_move)
                 elif method == Invocation.cli:
-                    exit_code = main_no_log([
+                    exit_code = main_assert_no_error_log([
                         "--backup-folder", str(self.backup_path),
                         "--move-backup", new_backup_folder,
-                        "--move-count", "all"])
+                        "--move-count", "all"],
+                        self)
                     self.assertEqual(exit_code, 0)
                 else:
                     raise NotImplementedError(f"Move backup test not implemented for {method}.")
@@ -1127,10 +1129,11 @@ class MoveBackupsTest(TestCaseWithTemporaryFilesAndFolders):
                         new_backup_location,
                         backups_to_move)
                 elif method == Invocation.cli:
-                    exit_code = main_no_log([
+                    exit_code = main_assert_no_error_log([
                         "--backup-folder", str(self.backup_path),
                         "--move-backup", new_backup_folder,
-                        "--move-count", str(move_count)])
+                        "--move-count", str(move_count)],
+                        self)
                     self.assertEqual(exit_code, 0)
                 else:
                     raise NotImplementedError(f"Move backup test not implemented for {method}")
@@ -1227,10 +1230,11 @@ class VerificationTest(TestCaseWithTemporaryFilesAndFolders):
                 if method == Invocation.function:
                     vintagebackup.verify_last_backup(verification_location, self.backup_path, None)
                 else:
-                    exit_code = main_no_log([
+                    exit_code = main_assert_no_error_log([
                         "--user-folder", str(self.user_path),
                         "--backup-folder", str(self.backup_path),
-                        "--verify", verification_folder])
+                        "--verify", verification_folder],
+                        self)
                     self.assertEqual(exit_code, 0)
 
                 verify_files = os.listdir(verification_location)
@@ -1481,12 +1485,13 @@ class RestorationTest(TestCaseWithTemporaryFilesAndFolders):
         second_extra_file = self.user_path/"extra_file2.txt"
         second_extra_file.write_text("extra 2\n", encoding="utf8")
 
-        exit_code = main_no_log([
+        exit_code = main_assert_no_error_log([
             "--restore",
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
             "--last-backup", "--delete-extra",
-            "--skip-prompt"])
+            "--skip-prompt"],
+            self)
 
         self.assertEqual(exit_code, 0)
         last_backup = vintagebackup.find_previous_backup(self.backup_path)
@@ -1526,12 +1531,13 @@ class RestorationTest(TestCaseWithTemporaryFilesAndFolders):
         second_extra_file = self.user_path/"extra_file2.txt"
         second_extra_file.write_text("extra 2\n", encoding="utf8")
 
-        exit_code = main_no_log([
+        exit_code = main_assert_no_error_log([
             "--restore",
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
             "--last-backup", "--keep-extra",
-            "--skip-prompt"])
+            "--skip-prompt"],
+            self)
 
         self.assertEqual(exit_code, 0)
         last_backup = vintagebackup.find_previous_backup(self.backup_path)
@@ -1573,13 +1579,14 @@ class RestorationTest(TestCaseWithTemporaryFilesAndFolders):
         second_extra_file.write_text("extra 2\n", encoding="utf8")
 
         choice = 0
-        exit_code = main_no_log([
+        exit_code = main_assert_no_error_log([
             "--restore",
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
             "--choose-backup", "--delete-extra",
             "--choice", str(choice),
-            "--skip-prompt"])
+            "--skip-prompt"],
+            self)
 
         self.assertEqual(exit_code, 0)
         restored_backup = vintagebackup.all_backups(self.backup_path)[choice]
@@ -1618,13 +1625,14 @@ class RestorationTest(TestCaseWithTemporaryFilesAndFolders):
         second_extra_file.write_text("extra 2\n", encoding="utf8")
 
         choice = 0
-        exit_code = main_no_log([
+        exit_code = main_assert_no_error_log([
             "--restore",
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
             "--choose-backup", "--keep-extra",
             "--choice", str(choice),
-            "--skip-prompt"])
+            "--skip-prompt"],
+            self)
 
         self.assertEqual(exit_code, 0)
         restored_backup = vintagebackup.all_backups(self.backup_path)[choice]
@@ -1647,12 +1655,13 @@ class RestorationTest(TestCaseWithTemporaryFilesAndFolders):
                 copy_probability=0.0,
                 timestamp=unique_timestamp())
 
-            exit_code = main_no_log([
+            exit_code = main_assert_no_error_log([
                 "--restore",
                 "--backup-folder", str(self.backup_path),
                 "--last-backup", "--delete-extra",
                 "--destination", destination_folder,
-                "--skip-prompt"])
+                "--skip-prompt"],
+                self)
 
             self.assertEqual(exit_code, 0)
             destination_path = Path(destination_folder)
@@ -1679,12 +1688,13 @@ class RestorationTest(TestCaseWithTemporaryFilesAndFolders):
             extra_file = destination_path/"extra_file1.txt"
             extra_file.write_text("extra 1\n", encoding="utf8")
 
-            exit_code = main_no_log([
+            exit_code = main_assert_no_error_log([
                 "--restore",
                 "--backup-folder", str(self.backup_path),
                 "--last-backup", "--keep-extra",
                 "--destination", destination_folder,
-                "--skip-prompt"])
+                "--skip-prompt"],
+                self)
 
             self.assertEqual(exit_code, 0)
             self.assertTrue(extra_file.is_file(follow_symlinks=False))
@@ -1818,10 +1828,10 @@ class CopyProbabilityTest(TestCaseWithTemporaryFilesAndFolders):
             "--backup-folder", str(self.backup_path),
             "--hard-link-count", "1",
             "--timestamp", unique_timestamp().strftime(vintagebackup.backup_date_format)]
-        exit_code = main_no_log(arguments)
+        exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
         arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
-        exit_code = main_no_log(arguments)
+        exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
 
         all_backups = vintagebackup.all_backups(self.backup_path)
@@ -1877,10 +1887,10 @@ class CopyProbabilityTest(TestCaseWithTemporaryFilesAndFolders):
             "--backup-folder", str(self.backup_path),
             "--copy-probability", "0",
             "--timestamp", unique_timestamp().strftime(vintagebackup.backup_date_format)]
-        exit_code = main_no_log(arguments)
+        exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
         arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
-        exit_code = main_no_log(arguments)
+        exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
 
         all_backups = vintagebackup.all_backups(self.backup_path)
@@ -1894,10 +1904,10 @@ class CopyProbabilityTest(TestCaseWithTemporaryFilesAndFolders):
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
             "--timestamp", unique_timestamp().strftime(vintagebackup.backup_date_format)]
-        exit_code = main_no_log(arguments)
+        exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
         arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
-        exit_code = main_no_log(arguments)
+        exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
 
         all_backups = vintagebackup.all_backups(self.backup_path)
@@ -1912,10 +1922,10 @@ class CopyProbabilityTest(TestCaseWithTemporaryFilesAndFolders):
             "--backup-folder", str(self.backup_path),
             "--copy-probability", "1",
             "--timestamp", unique_timestamp().strftime(vintagebackup.backup_date_format)]
-        exit_code = main_no_log(arguments)
+        exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
         arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
-        exit_code = main_no_log(arguments)
+        exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
 
         all_backups = vintagebackup.all_backups(self.backup_path)
@@ -1930,10 +1940,10 @@ class CopyProbabilityTest(TestCaseWithTemporaryFilesAndFolders):
             "--backup-folder", str(self.backup_path),
             "--copy-probability", "50%",
             "--timestamp", unique_timestamp().strftime(vintagebackup.backup_date_format)]
-        exit_code = main_no_log(arguments)
+        exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
         arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
-        exit_code = main_no_log(arguments)
+        exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
 
         all_backups = vintagebackup.all_backups(self.backup_path)
