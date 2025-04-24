@@ -20,8 +20,14 @@ import io
 
 
 def main_no_log(args: list[str]) -> int:
-    """Run the main() function without logging."""
+    """Run the main() function without logging to a file."""
     return vintagebackup.main([*args, "--log", os.devnull])
+
+
+def main_assert_no_error_log(args: list[str], testcase: unittest.TestCase) -> int:
+    """Run the main() function to assert there are no errors logged without logging to a file."""
+    with testcase.assertNoLogs(level=logging.ERROR):
+        return main_no_log(args)
 
 
 testing_timestamp = datetime.datetime.now()
@@ -204,6 +210,28 @@ def run_backup(
         raise NotImplementedError(f"Backup test with {run_method} not implemented.")
 
 
+def run_backup_assert_no_error_logs(
+        testcase: unittest.TestCase,
+        run_method: Invocation,
+        user_data: Path,
+        backup_location: Path,
+        filter_file: Path | None,
+        *,
+        examine_whole_file: bool,
+        force_copy: bool,
+        timestamp: datetime.datetime) -> int:
+    """Run backup while asserting that no errors are logged."""
+    with testcase.assertNoLogs(level=logging.ERROR):
+        return run_backup(
+            run_method,
+            user_data,
+            backup_location,
+            filter_file,
+            examine_whole_file=examine_whole_file,
+            force_copy=force_copy,
+            timestamp=timestamp)
+
+
 class TestCaseWithTemporaryFilesAndFolders(unittest.TestCase):
     """Base class that sets up temporary files and folders."""
 
@@ -232,7 +260,8 @@ class BackupTest(TestCaseWithTemporaryFilesAndFolders):
         """Test that the first default backup copies everything in user data."""
         create_user_data(self.user_path)
         for method in Invocation:
-            exit_code = run_backup(
+            exit_code = run_backup_assert_no_error_logs(
+                self,
                 method,
                 self.user_path,
                 self.backup_path,
@@ -252,7 +281,8 @@ class BackupTest(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         for method in Invocation:
             for _ in range(2):
-                exit_code = run_backup(
+                exit_code = run_backup_assert_no_error_logs(
+                    self,
                     method,
                     self.user_path,
                     self.backup_path,
@@ -272,7 +302,8 @@ class BackupTest(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         for method in Invocation:
             for _ in range(2):
-                exit_code = run_backup(
+                exit_code = run_backup_assert_no_error_logs(
+                    self,
                     method,
                     self.user_path,
                     self.backup_path,
@@ -297,7 +328,8 @@ class BackupTest(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         for method in Invocation:
             for _ in range(2):
-                exit_code = run_backup(
+                exit_code = run_backup_assert_no_error_logs(
+                    self,
                     method,
                     self.user_path,
                     self.backup_path,
@@ -321,7 +353,8 @@ class BackupTest(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         for method in Invocation:
             for _ in range(2):
-                exit_code = run_backup(
+                exit_code = run_backup_assert_no_error_logs(
+                    self,
                     method,
                     self.user_path,
                     self.backup_path,
@@ -526,7 +559,8 @@ class FilterTest(TestCaseWithTemporaryFilesAndFolders):
             path for path in user_paths if "sub_sub_directory_0" in path.parts)
 
         for method in Invocation:
-            exit_code = run_backup(
+            exit_code = run_backup_assert_no_error_logs(
+                self,
                 method,
                 self.user_path,
                 self.backup_path,
@@ -555,7 +589,8 @@ class FilterTest(TestCaseWithTemporaryFilesAndFolders):
             path for path in user_paths if "sub_directory_2" in path.parts)
 
         for method in Invocation:
-            exit_code = run_backup(
+            exit_code = run_backup_assert_no_error_logs(
+                self,
                 method,
                 self.user_path,
                 self.backup_path,
