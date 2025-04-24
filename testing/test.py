@@ -722,7 +722,8 @@ class RecoveryTest(TestCaseWithTemporaryFilesAndFolders):
             file = self.user_path/"sub_directory_0"/"sub_sub_directory_0"/"file_0.txt"
             moved_file_path = file.parent/(file.name + "_moved")
             file.rename(moved_file_path)
-            exit_code = run_recovery(method, self.backup_path, file)
+            with self.assertNoLogs(level=logging.ERROR):
+                exit_code = run_recovery(method, self.backup_path, file)
             self.assertEqual(exit_code, 0)
             self.assertTrue(filecmp.cmp(file, moved_file_path, shallow=False))
 
