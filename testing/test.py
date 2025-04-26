@@ -499,7 +499,7 @@ class BackupTest(TestCaseWithTemporaryFilesAndFolders):
         space_warning = re.compile(
             rf"{prefix}Backup space used: 50\.0. MB \(500.% of --free-up\)")
         self.assertEqual(len(log_lines.output), 2)
-        self.assertTrue(space_warning.fullmatch(log_lines.output[0]))
+        self.assertTrue(space_warning.fullmatch(log_lines.output[0]), log_lines.output[0])
         self.assertEqual(
             log_lines.output[1],
             f"{prefix}Consider increasing the size of the --free-up parameter.")
@@ -520,7 +520,7 @@ class BackupTest(TestCaseWithTemporaryFilesAndFolders):
         space_warning = re.compile(
             rf"{prefix}Backup space used: 50\.0. MB \(99% of --free-up\)")
         self.assertEqual(len(log_lines.output), 2)
-        self.assertTrue(space_warning.fullmatch(log_lines.output[0]))
+        self.assertTrue(space_warning.fullmatch(log_lines.output[0]), log_lines.output[0])
         self.assertEqual(
             log_lines.output[1],
             f"{prefix}Consider increasing the size of the --free-up parameter.")
@@ -537,9 +537,9 @@ class BackupTest(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(exit_code, 0)
         expected_message = re.compile(
             r"INFO:vintagebackup:Backup space used: 50\.0. MB \(51% of --free-up\)")
-        self.assertTrue(any(expected_message.fullmatch(line) for line in logs.output))
-        self.assertFalse(any(line.startswith("WARNING:") for line in logs.output))
-        self.assertFalse(any(line.startswith("ERROR:") for line in logs.output))
+        self.assertTrue(any(expected_message.fullmatch(line) for line in logs.output), logs.output)
+        self.assertFalse(any(line.startswith("WARNING:") for line in logs.output), logs.output)
+        self.assertFalse(any(line.startswith("ERROR:") for line in logs.output), logs.output)
 
     def test_no_user_folder_specified_for_backup_is_an_error(self) -> None:
         """Test that omitting the user folder prints the correct error message."""
@@ -766,7 +766,9 @@ class FilterTest(TestCaseWithTemporaryFilesAndFolders):
                 f"({sign} {self.user_path/path}) had no effect.",
                 log_assert.output)
 
-        self.assertTrue(all("Ineffective" not in message for message in log_assert.output))
+        self.assertTrue(
+            all("Ineffective" not in message for message in log_assert.output),
+            log_assert.output)
 
     def test_invalid_filter_symbol_raises_exception(self) -> None:
         """Test that a filter symbol not in "+-#" raises an exceptions."""
@@ -1144,8 +1146,8 @@ class DeleteBackupTest(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(deletions_after_backup, 0)
 
         for log_line in logs.output:
-            self.assertFalse(log_line.startswith("WARNING:"))
-            self.assertFalse(log_line.startswith("ERROR:"))
+            self.assertFalse(log_line.startswith("WARNING:"), log_line)
+            self.assertFalse(log_line.startswith("ERROR:"), log_line)
 
 
 class MoveBackupsTest(TestCaseWithTemporaryFilesAndFolders):
