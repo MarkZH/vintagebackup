@@ -2407,7 +2407,7 @@ class SeparateTests(unittest.TestCase):
 
     def test_separate_second_results_always_fail_predicate(self) -> None:
         """Test that every member of the first separate() list satisfies predicate."""
-        self.assertTrue(not any(map(is_even, self.odds)))
+        self.assertFalse(any(map(is_even, self.odds)))
 
     def test_separate_lists_retain_order_of_original_list(self) -> None:
         """Test that each element of each list keeps original elements in same order."""
