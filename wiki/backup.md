@@ -57,7 +57,7 @@ This has two benefits.
 
 First, it safeguards against backed up files being corrupted by having multiple copies of a file at the backup location.
 If no new copies were ever created, then there would be only one actual copy of the backed up data, with every other backup containing hard links to that one copy.
-If anything should happen to that one copy (disk sector goes bad, errant write, cosmic ray), then the backup is no good.
+If anything should happen to that one copy (disk sector goes bad, errant write, cosmic ray), then every backup of that file is no longer good.
 Copying a file to the backup location, even if it hasn't changed, mitigates this risk.
 
 Second, on some file systems, adding new hard links to a file that already has many hard links gets slower and slower over time.
@@ -66,7 +66,10 @@ After four months (~120 backups), each backup was taking two hours while copying
 
 There is a trade-off.
 Smaller values of `--hard-link-count` will cause each backup to take more space.
-Larger values will make each back up (and backup deletion) take a longer time to complete.
+Larger values will result in fewer independent copies of data at the backup location (and, on some systems, make each back up and deletion take a longer time to complete).
+
+If the `--free-up` option is being used, check the logs after a backup to see how much space the backup took.
+If the space taken by the backup is larger than the `--free-up` parameter, either increase the `--hard-link-count` parameter (to create more hard links and shrink the backup size) or increase the `--free-up` paramter to keep more space free.
 
 Technical detail: this parameter specifies an average since files will be randomly chosen for copying based on a probability calculated from this parameter.
 If the user adds the parameter `--hard-link-count N`, where $N$ is some positive number, the probability of copying an unchanged file is $1/(N + 1)$.
