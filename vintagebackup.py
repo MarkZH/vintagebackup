@@ -63,7 +63,7 @@ class Backup_Lock:
                 continue
 
             raise ConcurrencyError(
-                f"Vintage Backup already running {other_operation} on "
+                f"Vintage Backup is already running {other_operation} on "
                 f"{self.lock_file_path.parent} (PID {other_pid})")
 
     def __exit__(self, *_: object) -> None:
@@ -2154,6 +2154,8 @@ def main(argv: list[str]) -> int:
     except CommandLineError as error:
         if __name__ == "__main__":
             print_usage()
+        logger.error(error)
+    except ConcurrencyError as error:
         logger.error(error)
     except Exception:
         logger.exception("The program ended unexpectedly with an error:")
