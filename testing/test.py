@@ -541,6 +541,101 @@ class BackupTest(TestCaseWithTemporaryFilesAndFolders):
         self.assertFalse(any(line.startswith("WARNING:") for line in logs.output))
         self.assertFalse(any(line.startswith("ERROR:") for line in logs.output))
 
+    def test_no_user_folder_specified_for_backup_is_an_error(self) -> None:
+        """Test that omitting the user folder prints the correct error message."""
+        with self.assertLogs(level=logging.ERROR) as log_check:
+            exit_code = main_no_log(["-b", "backup_folder"])
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(log_check.output, ["ERROR:vintagebackup:User's folder not specified."])
+
+    def test_no_backup_folder_specified_for_backup_error(self) -> None:
+        """Test that omitting the backup folder prints the correct error message."""
+        with self.assertLogs(level=logging.ERROR) as log_check:
+            exit_code = main_no_log(["-u", str(self.user_path)])
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(log_check.output, ["ERROR:vintagebackup:Backup folder not specified."])
+
+    def test_non_existent_user_folder_in_a_backup_is_an_error(self) -> None:
+        """Test that non-existent user folder prints correct error message."""
+        user_folder = random_string(50)
+        with self.assertLogs(level=logging.ERROR) as log_check:
+            exit_code = main_no_log(["-u", user_folder])
+        self.assertEqual(exit_code, 1)
+        expected_logs = [f"ERROR:vintagebackup:Could not find user's folder: {user_folder}"]
+        self.assertEqual(log_check.output, expected_logs)
+
+    def test_backing_up_different_user_folders_to_same_backup_location_is_an_error(self) -> None:
+        """Check that error is raised when attempted to change the source of a backup set."""
+        with (tempfile.TemporaryDirectory() as other_user_folder,
+            self.assertRaises(vintagebackup.CommandLineError) as error):
+
+            vintagebackup.create_new_backup(
+                self.user_path,
+                self.backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
+
+            other_user_path = Path(other_user_folder)
+            vintagebackup.create_new_backup(
+                other_user_path,
+                self.backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
+
+        expected_error_message = (
+            "Previous backup stored a different user folder. Previously: "
+            f"{self.user_path}; Now: {other_user_path}")
+        self.assertEqual(error.exception.args, (expected_error_message,))
+
+    def test_warning_printed_if_no_user_data_is_backed_up(self) -> None:
+        """Make sure a warning is printed if no files are backed up."""
+        with self.assertLogs(level=logging.WARNING) as assert_log:
+            vintagebackup.create_new_backup(
+                self.user_path,
+                self.backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
+        self.assertIn("WARNING:vintagebackup:No files were backed up!", assert_log.output)
+        self.assertEqual(os.listdir(self.backup_path), ["vintagebackup.source.txt"])
+
+    def test_no_dated_backup_folder_created_if_no_data_backed_up(self) -> None:
+        """Test that a dated backup folder is not created if there is no data to back up."""
+        vintagebackup.create_new_backup(
+            self.user_path,
+            self.backup_path,
+            filter_file=None,
+            examine_whole_file=False,
+            force_copy=False,
+            copy_probability=0.0,
+            timestamp=unique_timestamp())
+        self.assertEqual(os.listdir(self.backup_path), ["vintagebackup.source.txt"])
+
+    def test_warning_printed_if_all_user_files_filtered_out(self) -> None:
+        """Make sure the user is warned if a filter file removes all files from the backup set."""
+        create_user_data(self.user_path)
+        self.filter_path.write_text("- **/*.txt\n", encoding="utf8")
+
+        with self.assertLogs(level=logging.WARNING) as assert_log:
+            vintagebackup.create_new_backup(
+                self.user_path,
+                self.backup_path,
+                filter_file=self.filter_path,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
+        self.assertIn("WARNING:vintagebackup:No files were backed up!", assert_log.output)
+        self.assertEqual(os.listdir(self.backup_path), ["vintagebackup.source.txt"])
+
 
 class FilterTest(TestCaseWithTemporaryFilesAndFolders):
     """Test that filter files work properly."""
@@ -1351,105 +1446,6 @@ force copy:
         self.config_path.write_text("config: config_file_2.txt", encoding="utf8")
         with self.assertRaises(vintagebackup.CommandLineError):
             vintagebackup.read_configuation_file(str(self.config_path))
-
-
-class ErrorTest(TestCaseWithTemporaryFilesAndFolders):
-    """Test that bad user inputs raise correct exceptions."""
-
-    def test_no_user_folder_specified_for_backup_is_an_error(self) -> None:
-        """Test that omitting the user folder prints the correct error message."""
-        with self.assertLogs(level=logging.ERROR) as log_check:
-            exit_code = main_no_log(["-b", "backup_folder"])
-        self.assertEqual(exit_code, 1)
-        self.assertEqual(log_check.output, ["ERROR:vintagebackup:User's folder not specified."])
-
-    def test_no_backup_folder_specified_for_backup_error(self) -> None:
-        """Test that omitting the backup folder prints the correct error message."""
-        with self.assertLogs(level=logging.ERROR) as log_check:
-            exit_code = main_no_log(["-u", str(self.user_path)])
-        self.assertEqual(exit_code, 1)
-        self.assertEqual(log_check.output, ["ERROR:vintagebackup:Backup folder not specified."])
-
-    def test_non_existent_user_folder_in_a_backup_is_an_error(self) -> None:
-        """Test that non-existent user folder prints correct error message."""
-        user_folder = random_string(50)
-        with self.assertLogs(level=logging.ERROR) as log_check:
-            exit_code = main_no_log(["-u", user_folder])
-        self.assertEqual(exit_code, 1)
-        expected_logs = [f"ERROR:vintagebackup:Could not find user's folder: {user_folder}"]
-        self.assertEqual(log_check.output, expected_logs)
-
-    def test_backing_up_different_user_folders_to_same_backup_location_is_an_error(self) -> None:
-        """Check that error is raised when attempted to change the source of a backup set."""
-        with (tempfile.TemporaryDirectory() as other_user_folder,
-            self.assertRaises(vintagebackup.CommandLineError) as error):
-
-            vintagebackup.create_new_backup(
-                self.user_path,
-                self.backup_path,
-                filter_file=None,
-                examine_whole_file=False,
-                force_copy=False,
-                copy_probability=0.0,
-                timestamp=unique_timestamp())
-
-            other_user_path = Path(other_user_folder)
-            vintagebackup.create_new_backup(
-                other_user_path,
-                self.backup_path,
-                filter_file=None,
-                examine_whole_file=False,
-                force_copy=False,
-                copy_probability=0.0,
-                timestamp=unique_timestamp())
-
-        expected_error_message = (
-            "Previous backup stored a different user folder. Previously: "
-            f"{self.user_path}; Now: {other_user_path}")
-        self.assertEqual(error.exception.args, (expected_error_message,))
-
-    def test_warning_printed_if_no_user_data_is_backed_up(self) -> None:
-        """Make sure a warning is printed if no files are backed up."""
-        with self.assertLogs(level=logging.WARNING) as assert_log:
-            vintagebackup.create_new_backup(
-                self.user_path,
-                self.backup_path,
-                filter_file=None,
-                examine_whole_file=False,
-                force_copy=False,
-                copy_probability=0.0,
-                timestamp=unique_timestamp())
-        self.assertIn("WARNING:vintagebackup:No files were backed up!", assert_log.output)
-        self.assertEqual(os.listdir(self.backup_path), ["vintagebackup.source.txt"])
-
-    def test_no_dated_backup_folder_created_if_no_data_backed_up(self) -> None:
-        """Test that a dated backup folder is not created if there is no data to back up."""
-        vintagebackup.create_new_backup(
-            self.user_path,
-            self.backup_path,
-            filter_file=None,
-            examine_whole_file=False,
-            force_copy=False,
-            copy_probability=0.0,
-            timestamp=unique_timestamp())
-        self.assertEqual(os.listdir(self.backup_path), ["vintagebackup.source.txt"])
-
-    def test_warning_printed_if_all_user_files_filtered_out(self) -> None:
-        """Make sure the user is warned if a filter file removes all files from the backup set."""
-        create_user_data(self.user_path)
-        self.filter_path.write_text("- **/*.txt\n", encoding="utf8")
-
-        with self.assertLogs(level=logging.WARNING) as assert_log:
-            vintagebackup.create_new_backup(
-                self.user_path,
-                self.backup_path,
-                filter_file=self.filter_path,
-                examine_whole_file=False,
-                force_copy=False,
-                copy_probability=0.0,
-                timestamp=unique_timestamp())
-        self.assertIn("WARNING:vintagebackup:No files were backed up!", assert_log.output)
-        self.assertEqual(os.listdir(self.backup_path), ["vintagebackup.source.txt"])
 
 
 class RestorationTest(TestCaseWithTemporaryFilesAndFolders):
