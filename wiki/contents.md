@@ -14,6 +14,14 @@ The `--help` or `-h` parameter also prints an overview of the program's command 
 
 [Using a configuration file](configuration_file.md)
 
+# Automating backups
+
+The best way to make sure your data is regularly backed up is to automate the backup process.
+The sections below have instructions for scheduling backups on various operating systems.
+
+1. [Windows with Task Scheduler](automating_windows_backups.md)
+2. [Linux with cron](automating_linux_backups.md)
+
 # Contributing to this project
 
 1. Create issues to report bugs or request features.
