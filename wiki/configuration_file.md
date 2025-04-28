@@ -125,7 +125,7 @@ Backup folder: D:\Backups
 User folder: C:\Users\Alice\
 Filter: C:\Users\Alice\backup_filter.txt
 Free up: 10 GB
-Log: C:\Users\markz\vintagebackup.log
+Log: C:\Users\Alice\vintagebackup.log
 ```
 The `Log` line is always included in the config file. In this case, the default log file location is used.
 
