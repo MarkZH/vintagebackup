@@ -2,20 +2,22 @@
 
 The easiest way to set up a backup schedule has these steps:
 
-1. Create a batch script to call Vintage Backup with the configuration file.
-2. Create a VB script to call the batch script without opening a terminal window.
+1. Create a batch script to call Vintage Backup.
+2. Create a VB script to call the batch script.
 3. Call the VB script in Windows Task Scheduler.
 
 One may want to skip making the VB script and put the batch script into Windows Scheduler.
-However, this would cause a terminal window to open every time the backup runs, which may be annoying.
-One may also want to skip making the batch script and put the command line into the VB script.
-The nested quotation marks makes this complicated.
+However, the VB script can be configured to run in the background without opening a window.
+One may also want to skip making the batch script and put the backup command line into the VB script.
+A command line with options can be difficult to format correctly if quotation marks are needed.
 
 In the example below, Alice will backup her home directory to an external backup drive every night at 2AM. She keeps the Vintage Backup script at `C:\Users\Alice\vintagebackup\vintagebackup.py` and a configuration file at `C:\Users\Alice\vintage_backup_config.txt`.
 
 ## 1. Batch file
 
-This batch file is saved at `C:\Users\Alice\vintagebackup\home_backup.bat`.
+In this example, this batch file is saved at `C:\Users\Alice\vintagebackup\home_backup.bat`.
+This path will be copied into the VB script file in the next section.
+The paths to the `vintagebackup.py` script and the configuration file need to be changed to their actual locations.
 The full paths should be written out for both the Vintage Backup script and the configuration file.
 Quotation marks are required if any of the paths have spaces in them.
 
@@ -28,6 +30,7 @@ Using a configuration file is recommended to keep the script line short and to m
 ## 2. VB Script
 
 In this example, the script is saved at `C:\Users\Alice\vintagebackup\home_backup.vbs`.
+The only thing that needs customization in this file is the location of the `.bat` batch script.
 The full path to the batch script should be written out.
 
 ```vb
