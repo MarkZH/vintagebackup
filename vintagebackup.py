@@ -1671,6 +1671,34 @@ def start_backup(args: argparse.Namespace) -> None:
         delete_old_backups(args)
 
 
+def generate_config(args: argparse.Namespace) -> None:
+    """Generate a configuration file from the arguments and return the path of that file."""
+    config_path = Path(args.generate_config)
+    no_arguments: list[str] = []
+    no_prefix = "no_"
+    arguments: list[tuple[str, str]] = []
+    for option, value in vars(args).items():
+        if not value or option in {"generate_config", "config"}:
+            continue
+
+        if option.startswith(no_prefix) and value:
+            no_arguments.append(option.removeprefix(no_prefix))
+            continue
+
+        arguments.append((option, value))
+
+    with config_path.open("w", encoding="utf8") as config_file:
+        for option, value in arguments:
+            if not value or option in no_arguments:
+                continue
+
+            parameter = option.replace("_", " ").capitalize()
+            parameter_string = "" if value is True else str(value)
+            needs_quotes = (parameter_string.strip() != parameter_string)
+            parameter_value = f'"{parameter_string}"' if needs_quotes else parameter_string
+            config_file.write(f"{parameter}: {parameter_value}".strip() + "\n")
+
+
 def log_backup_size(free_up_parameter: str | None, backup_space_taken: int) -> None:
     """
     Log size of previous backup and warn user if backup is near or over --free-up parameter.
@@ -2079,6 +2107,9 @@ f"""Where to log the activity of this program. The default is
 {default_log_file_name.name} in the user's home folder. If no
 log file is desired, use the file name {os.devnull}."""))
 
+    other_group.add_argument("--generate-config", metavar="FILE_NAME", help=format_help(
+""""Generate a configuration file that matches the other arguments in the call."""))
+
     # The following arguments are only used for testing.
 
     # Bypass keyboard input when testing functions that ask for a choice from a menu.
@@ -2139,7 +2170,8 @@ def main(argv: list[str]) -> int:
         logger.debug(args)
 
         action = (
-            start_recovery_from_backup if args.recover
+            generate_config if args.generate_config
+            else start_recovery_from_backup if args.recover
             else choose_recovery_target_from_backups if args.list
             else start_move_backups if args.move_backup
             else start_verify_backup if args.verify

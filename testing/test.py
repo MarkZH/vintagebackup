@@ -2836,6 +2836,106 @@ class ConfirmUserLocationIsUnchangedTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertIn("different user folder", error.exception.args[0])
 
 
+class GenerateConfigTests(TestCaseWithTemporaryFilesAndFolders):
+    """Test the generation of configuration files."""
+
+    def test_generation_of_config_files_with_windows_path_parameters(self) -> None:
+        """"Test that command line options with Windows path arguements are correctly recorded."""
+        command_line = [
+            "--user-folder", r"C:\Users\Alice",
+            "--backup-folder", r"D:\Backups",
+            "--generate-config", str(self.config_path)]
+
+        main_no_log(command_line)
+
+        expected_config_data = fr"""Backup folder: D:\Backups
+User folder: C:\Users\Alice
+Log: {os.devnull}
+"""
+        config_data = self.config_path.read_text(encoding="utf8")
+        self.assertEqual(expected_config_data, config_data)
+
+    def test_generation_of_config_files_with_unix_like_path_parameters(self) -> None:
+        """"Test that command line options with Unix-like path arguements are correctly recorded."""
+        command_line = [
+            "--user-folder", "/home/bob",
+            "--backup-folder", r"/mnt/backups/",
+            "--generate-config", str(self.config_path)]
+
+        main_no_log(command_line)
+
+        # The
+        expected_config_data = f"""Backup folder: /mnt/backups/
+User folder: /home/bob
+Log: {os.devnull}
+"""
+        config_data = self.config_path.read_text(encoding="utf8")
+        self.assertEqual(expected_config_data, config_data)
+
+    def test_generation_of_config_files_with_short_path_parameters(self) -> None:
+        """"Test that short options (-u, -b, etc.) arguments are correctly recorded."""
+        command_line = [
+            "-u", r"C:\Users\Alice",
+            "-b", r"D:\Backups",
+            "-f", r"C:\Users\Alice\AppData\vintage_backup_config.txt",
+            "--generate-config", str(self.config_path)]
+
+        main_no_log(command_line)
+
+        expected_config_data = fr"""Backup folder: D:\Backups
+User folder: C:\Users\Alice
+Filter: C:\Users\Alice\AppData\vintage_backup_config.txt
+Log: {os.devnull}
+"""
+        config_data = self.config_path.read_text(encoding="utf8")
+        self.assertEqual(expected_config_data, config_data)
+
+    def test_generation_of_config_files_with_toggle_parameters(self) -> None:
+        """Test that command line options with toggle parameters (no arguments) are recorded."""
+        command_line = [
+            "--whole-file",
+            "--generate-config", str(self.config_path)]
+
+        main_no_log(command_line)
+
+        expected_config_data = f"""Whole file:
+Log: {os.devnull}
+"""
+        config_data = self.config_path.read_text(encoding="utf8")
+        self.assertEqual(expected_config_data, config_data)
+
+    def test_generation_of_config_files_with_negated_toggle_parameters(self) -> None:
+        """Test that command line options with negated toggle parameters are not recorded."""
+        command_line = [
+            "--whole-file",
+            "--no-whole-file",
+            "--generate-config", str(self.config_path)]
+
+        main_no_log(command_line)
+
+        expected_config_data = f"""Log: {os.devnull}
+"""
+        config_data = self.config_path.read_text(encoding="utf8")
+        self.assertEqual(expected_config_data, config_data)
+
+    def test_generation_of_config_files_from_another_config_file(self) -> None:
+        """Test that the parameters in a --config file get included into the new config file."""
+        self.config_path.write_text(fr"""Backup folder: {self.backup_path}
+User folder: {self.user_path}
+Filter: {self.filter_path}
+Log: {os.devnull}
+""",
+encoding="utf8")
+
+        generated_config_path = self.user_path/"gen_config.txt"
+        main_no_log([
+            "--config", str(self.config_path),
+            "--generate-config", str(generated_config_path)])
+        self.assertEqual(
+            self.config_path.read_text(encoding="utf8"),
+            generated_config_path.read_text(encoding="utf8"))
+
+
 class HelpTests(unittest.TestCase):
     """Make sure argument parser help commands run without error."""
 
