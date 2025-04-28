@@ -109,7 +109,7 @@ The `--no-debug` parameter negates the `--debug` parameter.
 ## No recursion
 
 The only command line parameter that is not supported is `--config`.
-This means that recursive configuration files that contain `Config: another_config_file.txt` parameter are not allowed.
+This means that recursive configuration files that contain a line like `Config: another_config_file.txt` are not allowed.
 
 ## Generating a configuration file
 
