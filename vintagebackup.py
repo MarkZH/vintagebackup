@@ -1665,7 +1665,7 @@ def start_backup(args: argparse.Namespace) -> None:
 
         logger.info("")
         free_space_after_backup = shutil.disk_usage(backup_folder).free
-        backup_space_taken = free_space_before_backup - free_space_after_backup
+        backup_space_taken = max(free_space_before_backup - free_space_after_backup, 0)
         log_backup_size(args.free_up, backup_space_taken)
 
         delete_old_backups(args)
