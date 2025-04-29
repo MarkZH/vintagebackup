@@ -1711,7 +1711,7 @@ def generate_windows_scripts(args: argparse.Namespace) -> None:
     generate_config(args)
 
     batch_file = destination/"batch_script.bat"
-    script_path = cast(str, getsourcefile(lambda: 0))
+    script_path = cast(str, getsourcefile(generate_windows_scripts))
     script_location = absolute_path(script_path)
     batch_file.write_text(f'py -3.13 "{script_location}" --config "{config_path}"\n')
 
