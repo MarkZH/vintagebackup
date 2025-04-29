@@ -2841,6 +2841,9 @@ class GenerateConfigTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_generation_of_config_files_with_windows_path_parameters(self) -> None:
         """"Test that command line options with Windows path arguements are correctly recorded."""
+        if platform.system() != "Windows":
+            self.skipTest("This test assumes Windows-style paths.")
+
         command_line = [
             "--user-folder", r"C:\Users\Alice",
             "--backup-folder", r"D:\Backups",
@@ -2857,6 +2860,9 @@ Log: {os.devnull}
 
     def test_generation_of_config_files_with_unix_like_path_parameters(self) -> None:
         """"Test that command line options with Unix-like path arguements are correctly recorded."""
+        if platform.system() == "Windows":
+            self.skipTest("This test assumes Unix-style paths.")
+
         command_line = [
             "--user-folder", "/home/bob",
             "--backup-folder", r"/mnt/backups/",
@@ -2872,8 +2878,11 @@ Log: {os.devnull}
         config_data = self.config_path.read_text(encoding="utf8")
         self.assertEqual(expected_config_data, config_data)
 
-    def test_generation_of_config_files_with_short_path_parameters(self) -> None:
+    def test_generation_of_config_files_with_short_windows_path_parameters(self) -> None:
         """"Test that short options (-u, -b, etc.) arguments are correctly recorded."""
+        if platform.system() != "Windows":
+            self.skipTest("This test assumes Windows-style paths.")
+
         command_line = [
             "-u", r"C:\Users\Alice",
             "-b", r"D:\Backups",
@@ -2885,6 +2894,27 @@ Log: {os.devnull}
         expected_config_data = fr"""Backup folder: D:\Backups
 User folder: C:\Users\Alice
 Filter: C:\Users\Alice\AppData\vintage_backup_config.txt
+Log: {os.devnull}
+"""
+        config_data = self.config_path.read_text(encoding="utf8")
+        self.assertEqual(expected_config_data, config_data)
+
+    def test_generation_of_config_files_with_short_unix_path_parameters(self) -> None:
+        """"Test that short options (-u, -b, etc.) arguments are correctly recorded."""
+        if platform.system() == "Windows":
+            self.skipTest("This test assumes Unix-style paths.")
+
+        command_line = [
+            "-u", r"/home/bob",
+            "-b", r"/mnt/backups",
+            "-f", r"/home/bob/.config/vintage_backup_config.txt",
+            "--generate-config", str(self.config_path)]
+
+        main_no_log(command_line)
+
+        expected_config_data = fr"""Backup folder: /mnt/backups
+User folder: /home/bob
+Filter: /home/bob/.config/vintage_backup_config.txt
 Log: {os.devnull}
 """
         config_data = self.config_path.read_text(encoding="utf8")
