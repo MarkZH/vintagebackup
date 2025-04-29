@@ -16,6 +16,7 @@ import io
 from collections import Counter
 from collections.abc import Callable, Iterator, Iterable
 from pathlib import Path
+from inspect import getsourcefile
 from typing import Any, cast
 
 backup_date_format = "%Y-%m-%d %H-%M-%S"
@@ -1678,7 +1679,7 @@ def generate_config(args: argparse.Namespace) -> None:
     no_prefix = "no_"
     arguments: list[tuple[str, str]] = []
     for option, value in vars(args).items():
-        if not value or option in {"generate_config", "config"}:
+        if not value or option in {"generate_config", "generate_windows_scripts", "config"}:
             continue
 
         if option.startswith(no_prefix) and value:
@@ -1700,6 +1701,27 @@ def generate_config(args: argparse.Namespace) -> None:
             needs_quotes = (value_string.strip() != value_string)
             parameter_value = f'"{value_string}"' if needs_quotes else value_string
             config_file.write(f"{parameter}: {parameter_value}".strip() + "\n")
+
+
+def generate_windows_scripts(args: argparse.Namespace) -> None:
+    """Generate files for use with Windows Task Scheduler."""
+    destination = absolute_path(args.generate_windows_scripts)
+    config_path = destination/"config.txt"
+    args.generate_config = str(config_path)
+    generate_config(args)
+
+    batch_file = destination/"batch_script.bat"
+    script_path = cast(str, getsourcefile(lambda: 0))
+    script_location = absolute_path(script_path)
+    batch_file.write_text(f'py -3.13 "{script_location}" --config "{config_path}"\n')
+
+    vb_script_file = destination/"vb_script.vbs"
+    vb_script_file.write_text(
+f'''Dim WinScriptHost
+Set WinScriptHost = CreateObject("WScript.Shell")
+WinScriptHost.Run """{batch_file}""", 0, true
+Set WinScriptHost = Nothing
+''')
 
 
 def log_backup_size(free_up_parameter: str | None, backup_space_taken: int) -> None:
@@ -1890,6 +1912,12 @@ folder, it is not deleted. The backup location argument --backup-folder is requi
 
     only_one_action_group.add_argument("--generate-config", metavar="FILE_NAME", help=format_help(
 """Generate a configuration file that matches the other arguments in the call."""))
+
+    only_one_action_group.add_argument(
+        "--generate-windows-scripts",
+        metavar="DIRECTORY",
+        help=format_help(
+"""Generate scripts and config files for use with Windows Task Scheduler."""))
 
     common_group = user_input.add_argument_group("Options needed for all actions")
 
@@ -2174,6 +2202,7 @@ def main(argv: list[str]) -> int:
 
         action = (
             generate_config if args.generate_config
+            else generate_windows_scripts if args.generate_windows_scripts
             else start_recovery_from_backup if args.recover
             else choose_recovery_target_from_backups if args.list
             else start_move_backups if args.move_backup

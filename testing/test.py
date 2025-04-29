@@ -17,6 +17,7 @@ import platform
 from typing import cast
 import re
 import io
+from inspect import getsourcefile
 
 
 def main_no_log(args: list[str]) -> int:
@@ -2964,6 +2965,57 @@ encoding="utf8")
         self.assertEqual(
             self.config_path.read_text(encoding="utf8"),
             generated_config_path.read_text(encoding="utf8"))
+
+
+class GenerateWindowsScriptFilesTests(TestCaseWithTemporaryFilesAndFolders):
+    """Make sure that script files for Windows Scheduler are generated correctly."""
+
+    def test_that_scripts_are_generated_correctly(self) -> None:
+        """Make sure that the config file, batch script, and VB script are generated correctly."""
+        if platform.system() != "Windows":
+            self.skipTest("Only applicable to Windows systems.")
+
+        # Generate all scripts
+        args = [
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "-w",
+            "-f", str(self.user_path/"filter.txt"),
+            "--generate-windows-scripts", str(self.user_path)]
+
+        main_assert_no_error_log(args, self)
+
+        # Check contents of configuration file
+        expected_config_contents = f"""Backup folder: {self.backup_path}
+User folder: {self.user_path}
+Filter: {self.user_path/'filter.txt'}
+Whole file:
+Log: nul
+"""
+        config_path = self.user_path/"config.txt"
+        actual_config_contents = config_path.read_text()
+        self.assertEqual(expected_config_contents, actual_config_contents)
+
+        # Check contents of batch script file
+        test_file_location = cast(str, getsourcefile(lambda: 0))
+        test_file = vintagebackup.absolute_path(test_file_location)
+        vintage_backup_source_file = test_file.parent.parent/"vintagebackup.py"
+        expected_batch_script_contents = (
+            f'py -3.13 "{vintage_backup_source_file}" --config "{config_path}"\n')
+        batch_script_path = self.user_path/"batch_script.bat"
+        actual_batch_script_contents = batch_script_path.read_text()
+        self.assertEqual(expected_batch_script_contents, actual_batch_script_contents)
+
+        # Check contents of VB script file
+        expected_vb_script_contents = (
+f'''Dim WinScriptHost
+Set WinScriptHost = CreateObject("WScript.Shell")
+WinScriptHost.Run """{batch_script_path}""", 0, true
+Set WinScriptHost = Nothing
+''')
+        vb_script_path = self.user_path/"vb_script.vbs"
+        actual_vb_script_contents = vb_script_path.read_text()
+        self.assertEqual(expected_vb_script_contents, actual_vb_script_contents)
 
 
 class HelpTests(unittest.TestCase):
