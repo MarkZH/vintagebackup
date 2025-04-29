@@ -2997,14 +2997,11 @@ Log: nul
         self.assertEqual(expected_config_contents, actual_config_contents)
 
         # Check contents of batch script file
-        test_file_location = cast(str, getsourcefile(lambda: 0))
-        test_file = vintagebackup.absolute_path(test_file_location)
-        vintage_backup_source_file = test_file.parent.parent/"vintagebackup.py"
-        expected_batch_script_contents = (
-            f'py -3.13 "{vintage_backup_source_file}" --config "{config_path}"\n')
+        vintage_backup_file = vintagebackup.absolute_path(cast(str, getsourcefile(vintagebackup)))
+        expected_batch_script = (f'py -3.13 "{vintage_backup_file}" --config "{config_path}"\n')
         batch_script_path = self.user_path/"batch_script.bat"
-        actual_batch_script_contents = batch_script_path.read_text()
-        self.assertEqual(expected_batch_script_contents, actual_batch_script_contents)
+        actual_batch_script = batch_script_path.read_text()
+        self.assertEqual(expected_batch_script, actual_batch_script)
 
         # Check contents of VB script file
         expected_vb_script_contents = (
