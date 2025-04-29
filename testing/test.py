@@ -2872,7 +2872,7 @@ Log: {os.devnull}
 
         # The
         expected_config_data = f"""Backup folder: /mnt/backups/
-User folder: /home/bob
+User folder: /home/bob/
 Log: {os.devnull}
 """
         config_data = self.config_path.read_text(encoding="utf8")
@@ -2912,8 +2912,8 @@ Log: {os.devnull}
 
         main_no_log(command_line)
 
-        expected_config_data = fr"""Backup folder: /mnt/backups
-User folder: /home/bob
+        expected_config_data = fr"""Backup folder: /mnt/backups/
+User folder: /home/bob/
 Filter: /home/bob/.config/vintage_backup_config.txt
 Log: {os.devnull}
 """
