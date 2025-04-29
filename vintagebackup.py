@@ -1693,9 +1693,12 @@ def generate_config(args: argparse.Namespace) -> None:
                 continue
 
             parameter = option.replace("_", " ").capitalize()
-            parameter_string = "" if value is True else str(value)
-            needs_quotes = (parameter_string.strip() != parameter_string)
-            parameter_value = f'"{parameter_string}"' if needs_quotes else parameter_string
+            value_string = "" if value is True else str(value)
+            if (option in {"user_folder", "backup_folder", "filter", "destination"}
+                    or (option == "log" and value_string != os.devnull)):
+                value_string = str(absolute_path(value_string))
+            needs_quotes = (value_string.strip() != value_string)
+            parameter_value = f'"{value_string}"' if needs_quotes else value_string
             config_file.write(f"{parameter}: {parameter_value}".strip() + "\n")
 
 
