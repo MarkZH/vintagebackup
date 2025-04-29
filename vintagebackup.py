@@ -1885,6 +1885,9 @@ folder, it is not deleted. The backup location argument --backup-folder is requi
     only_one_action_group.add_argument("--delete-only", action="store_true", help=format_help(
 """Delete old backups according to --free-up or --delete-after without running a backup first."""))
 
+    only_one_action_group.add_argument("--generate-config", metavar="FILE_NAME", help=format_help(
+"""Generate a configuration file that matches the other arguments in the call."""))
+
     common_group = user_input.add_argument_group("Options needed for all actions")
 
     common_group.add_argument("-b", "--backup-folder", help=format_help(
@@ -2106,9 +2109,6 @@ a configuration file will cause the program to quit with an error."""))
 f"""Where to log the activity of this program. The default is
 {default_log_file_name.name} in the user's home folder. If no
 log file is desired, use the file name {os.devnull}."""))
-
-    other_group.add_argument("--generate-config", metavar="FILE_NAME", help=format_help(
-""""Generate a configuration file that matches the other arguments in the call."""))
 
     # The following arguments are only used for testing.
 
