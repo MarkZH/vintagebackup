@@ -2976,6 +2976,26 @@ encoding="utf8")
             self.config_path.read_text(encoding="utf8"),
             generated_config_path.read_text(encoding="utf8"))
 
+    def test_generation_of_config_files_when_name_already_exists(self) -> None:
+        """Test that a generated config file does not clobber an existing file."""
+        command_line = [
+            "--whole-file",
+            "--generate-config", str(self.config_path)]
+
+        self.config_path.touch()
+        with self.assertLogs(level=logging.INFO) as logs:
+            main_no_log(command_line)
+        actual_config_path = self.config_path.with_suffix(f".1{self.config_path.suffix}")
+        self.assertEqual(
+            logs.output,
+            [f"INFO:vintagebackup:Generated configuration file: {actual_config_path}"])
+
+        expected_config_data = f"""Whole file:
+Log: {os.devnull}
+"""
+        config_data = actual_config_path.read_text(encoding="utf8")
+        self.assertEqual(expected_config_data, config_data)
+
 
 class GenerateWindowsScriptFilesTests(TestCaseWithTemporaryFilesAndFolders):
     """Make sure that script files for Windows Scheduler are generated correctly."""
@@ -3030,6 +3050,62 @@ Set WinScriptHost = Nothing
 ''')
         vb_script_path = self.user_path/"vb_script.vbs"
         actual_vb_script_contents = vb_script_path.read_text()
+        self.assertEqual(expected_vb_script_contents, actual_vb_script_contents)
+
+    def test_that_generated_scripts_do_not_clobber_existing_files(self) -> None:
+        """Make sure that no existing files are clobbered when generating files."""
+        if platform.system() != "Windows":
+            self.skipTest("Only applicable to Windows systems.")
+
+        # Create all files before generating
+        for file_name in ("config.txt", "batch_script.bat", "vb_script.vbs"):
+            (self.user_path/file_name).touch()
+
+        # Generate all scripts
+        args = [
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "-w",
+            "-f", str(self.user_path/"filter.txt"),
+            "--generate-windows-scripts", str(self.user_path)]
+
+        with self.assertLogs(level=logging.INFO) as logs:
+            main_no_log(args)
+
+        actual_config_path = self.user_path/"config.1.txt"
+        actual_batch_path = self.user_path/"batch_script.1.bat"
+        actual_vb_path = self.user_path/"vb_script.1.vbs"
+        prefix = "INFO:vintagebackup:"
+        self.assertEqual(
+            logs.output, [
+                f"{prefix}Generated configuration file: {actual_config_path}",
+                f"{prefix}Generated batch script: {actual_batch_path}",
+                f"{prefix}Generated VB script: {actual_vb_path}"])
+
+        # Check contents of configuration file
+        expected_config_contents = f"""Backup folder: {self.backup_path}
+User folder: {self.user_path}
+Filter: {self.user_path/'filter.txt'}
+Whole file:
+Log: nul
+"""
+        actual_config_contents = actual_config_path.read_text()
+        self.assertEqual(expected_config_contents, actual_config_contents)
+
+        # Check contents of batch script file
+        vintage_backup_file = vintagebackup.absolute_path(cast(str, getsourcefile(vintagebackup)))
+        expected_batch_script = (f'py -3.13 "{vintage_backup_file}" --config "{actual_config_path}"\n')
+        actual_batch_script = actual_batch_path.read_text()
+        self.assertEqual(expected_batch_script, actual_batch_script)
+
+        # Check contents of VB script file
+        expected_vb_script_contents = (
+f'''Dim WinScriptHost
+Set WinScriptHost = CreateObject("WScript.Shell")
+WinScriptHost.Run """{actual_batch_path}""", 0, true
+Set WinScriptHost = Nothing
+''')
+        actual_vb_script_contents = actual_vb_path.read_text()
         self.assertEqual(expected_vb_script_contents, actual_vb_script_contents)
 
 

@@ -1674,7 +1674,6 @@ def start_backup(args: argparse.Namespace) -> None:
 
 def generate_config(args: argparse.Namespace) -> None:
     """Generate a configuration file from the arguments and return the path of that file."""
-    config_path = Path(args.generate_config)
     no_arguments: list[str] = []
     no_prefix = "no_"
     arguments: list[tuple[str, str]] = []
@@ -1688,6 +1687,7 @@ def generate_config(args: argparse.Namespace) -> None:
 
         arguments.append((option, value))
 
+    config_path = unique_path_name(Path(args.generate_config))
     with config_path.open("w", encoding="utf8") as config_file:
         for option, value in arguments:
             if not value or option in no_arguments:
@@ -1708,17 +1708,17 @@ def generate_config(args: argparse.Namespace) -> None:
 def generate_windows_scripts(args: argparse.Namespace) -> None:
     """Generate files for use with Windows Task Scheduler."""
     destination = absolute_path(args.generate_windows_scripts)
-    config_path = destination/"config.txt"
+    config_path = unique_path_name(destination/"config.txt")
     args.generate_config = str(config_path)
     generate_config(args)
 
-    batch_file = destination/"batch_script.bat"
+    batch_file = unique_path_name(destination/"batch_script.bat")
     script_path = cast(str, getsourcefile(generate_windows_scripts))
     script_location = absolute_path(script_path)
     batch_file.write_text(f'py -3.13 "{script_location}" --config "{config_path}"\n')
     logger.info(f"Generated batch script: {batch_file}")
 
-    vb_script_file = destination/"vb_script.vbs"
+    vb_script_file = unique_path_name(destination/"vb_script.vbs")
     vb_script_file.write_text(
 f'''Dim WinScriptHost
 Set WinScriptHost = CreateObject("WScript.Shell")
