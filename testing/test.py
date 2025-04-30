@@ -2944,8 +2944,7 @@ Log: {os.devnull}
 
         main_no_log(command_line)
 
-        expected_config_data = f"""Log: {os.devnull}
-"""
+        expected_config_data = f"Log: {os.devnull}\n"
         config_data = self.config_path.read_text(encoding="utf8")
         self.assertEqual(expected_config_data, config_data)
 
