@@ -2840,6 +2840,17 @@ class ConfirmUserLocationIsUnchangedTests(TestCaseWithTemporaryFilesAndFolders):
 class GenerateConfigTests(TestCaseWithTemporaryFilesAndFolders):
     """Test the generation of configuration files."""
 
+    def assert_config_file_creation(self, command_line: list[str]) -> None:
+        """Assert that the config file was created with no errors and with the correct path."""
+        with self.assertLogs(level=logging.INFO) as logs:
+            main_no_log(command_line)
+
+        gen_config_index = command_line.index("--generate-config")
+        config_file_name = command_line[gen_config_index + 1]
+        self.assertEqual(
+            logs.output,
+            [f"INFO:vintagebackup:Generated configuration file: {config_file_name}"])
+
     def test_generation_of_config_files_with_windows_path_parameters(self) -> None:
         """"Test that command line options with Windows path arguements are correctly recorded."""
         if platform.system() != "Windows":
@@ -2850,7 +2861,7 @@ class GenerateConfigTests(TestCaseWithTemporaryFilesAndFolders):
             "--backup-folder", r"D:\Backups",
             "--generate-config", str(self.config_path)]
 
-        main_no_log(command_line)
+        self.assert_config_file_creation(command_line)
 
         expected_config_data = fr"""Backup folder: D:\Backups
 User folder: C:\Users\Alice
@@ -2869,7 +2880,7 @@ Log: {os.devnull}
             "--backup-folder", r"/mnt/backups/",
             "--generate-config", str(self.config_path)]
 
-        main_no_log(command_line)
+        self.assert_config_file_creation(command_line)
 
         # The
         expected_config_data = f"""Backup folder: /mnt/backups
@@ -2890,7 +2901,7 @@ Log: {os.devnull}
             "-f", r"C:\Users\Alice\AppData\vintage_backup_config.txt",
             "--generate-config", str(self.config_path)]
 
-        main_no_log(command_line)
+        self.assert_config_file_creation(command_line)
 
         expected_config_data = fr"""Backup folder: D:\Backups
 User folder: C:\Users\Alice
@@ -2911,7 +2922,7 @@ Log: {os.devnull}
             "-f", r"/home/bob/.config/vintage_backup_config.txt",
             "--generate-config", str(self.config_path)]
 
-        main_no_log(command_line)
+        self.assert_config_file_creation(command_line)
 
         expected_config_data = fr"""Backup folder: /mnt/backups
 User folder: /home/bob
@@ -2927,7 +2938,7 @@ Log: {os.devnull}
             "--whole-file",
             "--generate-config", str(self.config_path)]
 
-        main_no_log(command_line)
+        self.assert_config_file_creation(command_line)
 
         expected_config_data = f"""Whole file:
 Log: {os.devnull}
@@ -2942,7 +2953,7 @@ Log: {os.devnull}
             "--no-whole-file",
             "--generate-config", str(self.config_path)]
 
-        main_no_log(command_line)
+        self.assert_config_file_creation(command_line)
 
         expected_config_data = f"Log: {os.devnull}\n"
         config_data = self.config_path.read_text(encoding="utf8")
@@ -2958,7 +2969,7 @@ Log: {os.devnull}
 encoding="utf8")
 
         generated_config_path = self.user_path/"gen_config.txt"
-        main_no_log([
+        self.assert_config_file_creation([
             "--config", str(self.config_path),
             "--generate-config", str(generated_config_path)])
         self.assertEqual(
@@ -2982,7 +2993,15 @@ class GenerateWindowsScriptFilesTests(TestCaseWithTemporaryFilesAndFolders):
             "-f", str(self.user_path/"filter.txt"),
             "--generate-windows-scripts", str(self.user_path)]
 
-        main_assert_no_error_log(args, self)
+        with self.assertLogs(level=logging.INFO) as logs:
+            main_no_log(args)
+
+        prefix = "INFO:vintagebackup:"
+        self.assertEqual(
+            logs.output, [
+                f"{prefix}Generated configuration file: {self.user_path/'config.txt'}",
+                f"{prefix}Generated batch script: {self.user_path/'batch_script.bat'}",
+                f"{prefix}Generated VB script: {self.user_path/'vb_script.vbs'}"])
 
         # Check contents of configuration file
         expected_config_contents = f"""Backup folder: {self.backup_path}

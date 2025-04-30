@@ -1702,6 +1702,8 @@ def generate_config(args: argparse.Namespace) -> None:
             parameter_value = f'"{value_string}"' if needs_quotes else value_string
             config_file.write(f"{parameter}: {parameter_value}".strip() + "\n")
 
+    logger.info(f"Generated configuration file: {config_path}")
+
 
 def generate_windows_scripts(args: argparse.Namespace) -> None:
     """Generate files for use with Windows Task Scheduler."""
@@ -1714,6 +1716,7 @@ def generate_windows_scripts(args: argparse.Namespace) -> None:
     script_path = cast(str, getsourcefile(generate_windows_scripts))
     script_location = absolute_path(script_path)
     batch_file.write_text(f'py -3.13 "{script_location}" --config "{config_path}"\n')
+    logger.info(f"Generated batch script: {batch_file}")
 
     vb_script_file = destination/"vb_script.vbs"
     vb_script_file.write_text(
@@ -1722,6 +1725,7 @@ Set WinScriptHost = CreateObject("WScript.Shell")
 WinScriptHost.Run """{batch_file}""", 0, true
 Set WinScriptHost = Nothing
 ''')
+    logger.info(f"Generated VB script: {vb_script_file}")
 
 
 def log_backup_size(free_up_parameter: str | None, backup_space_taken: int) -> None:
