@@ -3094,7 +3094,8 @@ Log: nul
 
         # Check contents of batch script file
         vintage_backup_file = vintagebackup.absolute_path(cast(str, getsourcefile(vintagebackup)))
-        expected_batch_script = (f'py -3.13 "{vintage_backup_file}" --config "{actual_config_path}"\n')
+        expected_batch_script = (
+            f'py -3.13 "{vintage_backup_file}" --config "{actual_config_path}"\n')
         actual_batch_script = actual_batch_path.read_text()
         self.assertEqual(expected_batch_script, actual_batch_script)
 
