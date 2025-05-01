@@ -133,4 +133,5 @@ Now, the same backup routine can be run with
 ```
 py -3.13 vintagebackup.py --config C:\Users\Alice\backup_config.txt
 ```
-To make the resulting configuration file usable anywhere, arguments that take paths (`--user-folder`, `--backup-folder`, `--filter`, etc.) should have the full absolute path.
+To make the resulting configuration file usable anywhere, arguments that take paths (`--user-folder`, `--backup-folder`, `--filter`, etc.) will have the full absolute paths written to the configuration file.
+These should be checked for correctness after being generated.
