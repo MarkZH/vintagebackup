@@ -177,7 +177,6 @@ class Backup_Set:
             return
 
         with filter_file.open(encoding="utf8") as filters:
-            logger.info(f"Filtering items according to {filter_file} ...")
             for line_number, line_raw in enumerate(filters, 1):
                 line = line_raw.strip()
                 if not line:
@@ -546,9 +545,10 @@ def create_new_backup(
     logger.info(f"Reading file contents = {examine_whole_file}")
 
     action_counter: Counter[str] = Counter()
-    paths_to_backup = Backup_Set(user_data_location, filter_file)
+    if filter_file:
+        logger.info(f"Filtering items according to {filter_file}")
     logger.info("Running backup ...")
-    for current_user_path, user_file_names in paths_to_backup:
+    for current_user_path, user_file_names in Backup_Set(user_data_location, filter_file):
         backup_directory(
             user_data_location,
             staging_backup_path,
@@ -1110,7 +1110,9 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
     if last_backup_folder is None:
         raise CommandLineError(f"No backups found in {backup_folder}.")
 
-    logger.info(f"Verifying backup in {backup_folder} by comparing against {user_folder}")
+    if filter_file:
+        logger.info(f"Filtering items according to {filter_file}")
+    logger.info(f"Verifying backup in {backup_folder} by comparing against {user_folder} ...")
 
     result_folder.mkdir(parents=True, exist_ok=True)
     matching_file_name = unique_path_name(result_folder/"matching files.txt")
