@@ -546,8 +546,7 @@ def create_new_backup(
     logger.info(f"Reading file contents = {examine_whole_file}")
 
     action_counter: Counter[str] = Counter()
-    if filter_file:
-        logger.info(f"Filtering items according to {filter_file}")
+    logger.info(f"Filter file: {filter_file}")
     logger.info("Running backup ...")
     for current_user_path, user_file_names in Backup_Set(user_data_location, filter_file):
         backup_directory(
@@ -1111,8 +1110,7 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
     if last_backup_folder is None:
         raise CommandLineError(f"No backups found in {backup_folder}.")
 
-    if filter_file:
-        logger.info(f"Filtering items according to {filter_file}")
+    logger.info(f"Filter file: {filter_file}")
     logger.info(f"Verifying backup in {backup_folder} by comparing against {user_folder} ...")
 
     result_folder.mkdir(parents=True, exist_ok=True)
