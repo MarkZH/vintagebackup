@@ -31,6 +31,8 @@ Force copy:
 ### Comments
 
 Lines starting with `#` are ignored by Vintage Backup, so they may be used for comments and descriptions of settings.
+Only `#` symbols at the beginning of a line work this way.
+Because this character can be part of a file name, `#` symbols elsewhere in a line are treated like any other text.
 
 ### Quoting to preserve leading and trailing spaces in file names
 
@@ -106,9 +108,13 @@ python3 vintagebackup.py --user-folder /home/bob --backup-folder "/mnt/backups/b
 
 The `--no-debug` parameter negates the `--debug` parameter.
 
+## No multiple configuration files
+
+If the `--config` command line option is used multiple times, only the last configuration file will be used.
+
 ## No recursion
 
-The only command line parameter that is not supported is `--config`.
+The only command line parameter that is not supported in a configuration file is `--config`.
 This means that recursive configuration files that contain a line like `Config: another_config_file.txt` are not allowed.
 
 ## Generating a configuration file
