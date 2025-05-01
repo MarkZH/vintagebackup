@@ -1334,17 +1334,13 @@ class VerificationTest(TestCaseWithTemporaryFilesAndFolders):
                         self)
                     self.assertEqual(exit_code, 0)
 
-                verify_files = os.listdir(verification_location)
-                verify_endings = {p.split(maxsplit=2)[2] for p in verify_files}
-                expected_endings = {
-                    "matching files.txt",
-                    "mismatching files.txt",
-                    "error files.txt"}
-                self.assertEqual(verify_endings, expected_endings)
+                verify_files = set(os.listdir(verification_location))
+                expected_files = {"matching files.txt", "mismatching files.txt", "error files.txt"}
+                self.assertEqual(verify_files, expected_files)
                 for file_name in verify_files:
                     path_set = (
-                        matching_path_set if " matching " in file_name
-                        else mismatching_path_set if " mismatching " in file_name
+                        matching_path_set if file_name.startswith("matching ")
+                        else mismatching_path_set if file_name.startswith("mismatching ")
                         else error_path_set)
 
                     with open(verification_location/file_name, encoding="utf8") as verify_file:
@@ -1357,6 +1353,30 @@ class VerificationTest(TestCaseWithTemporaryFilesAndFolders):
                         files_from_verify = {Path(line.removesuffix("\n")) for line in verify_file}
 
                     self.assertEqual(files_from_verify, path_set)
+
+    def test_verification_files_do_not_overwrite_existing_files(self) -> None:
+        """Make sure that the verifying function does not clobber existing files."""
+        create_user_data(self.user_path)
+        vintagebackup.create_new_backup(
+            self.user_path,
+            self.backup_path,
+            filter_file=None,
+            examine_whole_file=False,
+            force_copy=False,
+            copy_probability=0.0,
+            timestamp=unique_timestamp())
+
+        file_names = ("matching files.txt", "mismatching files.txt", "error files.txt")
+        for file_name in file_names:
+            (self.user_path/file_name).touch()
+
+        vintagebackup.verify_last_backup(self.user_path, self.backup_path, None)
+
+        for file_name in file_names:
+            fake_verify_file = self.user_path/file_name
+            self.assertEqual(fake_verify_file.read_text(), "")
+            actual_verify_file = fake_verify_file.with_suffix(f".1{fake_verify_file.suffix}")
+            self.assertTrue(actual_verify_file.is_file(follow_symlinks=False))
 
 
 class ConfigurationFileTest(TestCaseWithTemporaryFilesAndFolders):
