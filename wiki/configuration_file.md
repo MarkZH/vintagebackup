@@ -31,6 +31,8 @@ Force copy:
 ### Comments
 
 Lines starting with `#` are ignored by Vintage Backup, so they may be used for comments and descriptions of settings.
+Only `#` symbols at the beginning of a line work this way.
+Because this character can be part of a file name, `#` symbols elsewhere in a line are treated like any other text.
 
 ### Quoting to preserve leading and trailing spaces in file names
 
