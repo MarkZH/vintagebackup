@@ -1,4 +1,5 @@
 """Testing code for Vintage Backup."""
+import sys
 import unittest
 import tempfile
 import os
@@ -3094,8 +3095,9 @@ Log: nul
 
         # Check contents of batch script file
         vintage_backup_file = vintagebackup.absolute_path(cast(str, getsourcefile(vintagebackup)))
+        python_version = f"{sys.version_info[0]}.{sys.version_info[1]}"
         expected_batch_script = (
-            f'py -3.13 "{vintage_backup_file}" --config "{actual_config_path}"\n')
+            f'py -{python_version} "{vintage_backup_file}" --config "{actual_config_path}"\n')
         actual_batch_script = actual_batch_path.read_text()
         self.assertEqual(expected_batch_script, actual_batch_script)
 

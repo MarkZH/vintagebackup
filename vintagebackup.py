@@ -1715,7 +1715,8 @@ def generate_windows_scripts(args: argparse.Namespace) -> None:
     batch_file = unique_path_name(destination/"batch_script.bat")
     script_path = cast(str, getsourcefile(generate_windows_scripts))
     script_location = absolute_path(script_path)
-    batch_file.write_text(f'py -3.13 "{script_location}" --config "{config_path}"\n')
+    python_version = f"{sys.version_info[0]}.{sys.version_info[1]}"
+    batch_file.write_text(f'py -{python_version} "{script_location}" --config "{config_path}"\n')
     logger.info(f"Generated batch script: {batch_file}")
 
     vb_script_file = unique_path_name(destination/"vb_script.vbs")
