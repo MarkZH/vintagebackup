@@ -16,6 +16,7 @@ import io
 from collections import Counter
 from collections.abc import Callable, Iterator, Iterable
 from pathlib import Path
+from inspect import getsourcefile
 from typing import Any, cast
 
 backup_date_format = "%Y-%m-%d %H-%M-%S"
@@ -545,8 +546,7 @@ def create_new_backup(
     logger.info(f"Reading file contents = {examine_whole_file}")
 
     action_counter: Counter[str] = Counter()
-    if filter_file:
-        logger.info(f"Filtering items according to {filter_file}")
+    logger.info(f"Filter file: {filter_file}")
     logger.info("Running backup ...")
     for current_user_path, user_file_names in Backup_Set(user_data_location, filter_file):
         backup_directory(
@@ -1110,8 +1110,7 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
     if last_backup_folder is None:
         raise CommandLineError(f"No backups found in {backup_folder}.")
 
-    if filter_file:
-        logger.info(f"Filtering items according to {filter_file}")
+    logger.info(f"Filter file: {filter_file}")
     logger.info(f"Verifying backup in {backup_folder} by comparing against {user_folder} ...")
 
     result_folder.mkdir(parents=True, exist_ok=True)
@@ -1672,6 +1671,63 @@ def start_backup(args: argparse.Namespace) -> None:
         delete_old_backups(args)
 
 
+def generate_config(args: argparse.Namespace) -> None:
+    """Generate a configuration file from the arguments and return the path of that file."""
+    no_arguments: list[str] = []
+    no_prefix = "no_"
+    arguments: list[tuple[str, str]] = []
+    for option, value in vars(args).items():
+        if not value or option in {"generate_config", "generate_windows_scripts", "config"}:
+            continue
+
+        if option.startswith(no_prefix) and value:
+            no_arguments.append(option.removeprefix(no_prefix))
+            continue
+
+        arguments.append((option, value))
+
+    config_path = unique_path_name(Path(args.generate_config))
+    with config_path.open("w", encoding="utf8") as config_file:
+        for option, value in arguments:
+            if not value or option in no_arguments:
+                continue
+
+            parameter = option.replace("_", " ").capitalize()
+            value_string = "" if value is True else str(value)
+            if (option in {"user_folder", "backup_folder", "filter", "destination"}
+                    or (option == "log" and value_string != os.devnull)):
+                value_string = str(absolute_path(value_string))
+            needs_quotes = (value_string.strip() != value_string)
+            parameter_value = f'"{value_string}"' if needs_quotes else value_string
+            config_file.write(f"{parameter}: {parameter_value}".strip() + "\n")
+
+    logger.info(f"Generated configuration file: {config_path}")
+
+
+def generate_windows_scripts(args: argparse.Namespace) -> None:
+    """Generate files for use with Windows Task Scheduler."""
+    destination = absolute_path(args.generate_windows_scripts)
+    config_path = unique_path_name(destination/"config.txt")
+    args.generate_config = str(config_path)
+    generate_config(args)
+
+    batch_file = unique_path_name(destination/"batch_script.bat")
+    script_path = cast(str, getsourcefile(main))
+    script_location = absolute_path(script_path)
+    python_version = f"{sys.version_info[0]}.{sys.version_info[1]}"
+    batch_file.write_text(f'py -{python_version} "{script_location}" --config "{config_path}"\n')
+    logger.info(f"Generated batch script: {batch_file}")
+
+    vb_script_file = unique_path_name(destination/"vb_script.vbs")
+    vb_script_file.write_text(
+f'''Dim WinScriptHost
+Set WinScriptHost = CreateObject("WScript.Shell")
+WinScriptHost.Run """{batch_file}""", 0, true
+Set WinScriptHost = Nothing
+''')
+    logger.info(f"Generated VB script: {vb_script_file}")
+
+
 def log_backup_size(free_up_parameter: str | None, backup_space_taken: int) -> None:
     """
     Log size of previous backup and warn user if backup is near or over --free-up parameter.
@@ -1857,6 +1913,15 @@ folder, it is not deleted. The backup location argument --backup-folder is requi
 
     only_one_action_group.add_argument("--delete-only", action="store_true", help=format_help(
 """Delete old backups according to --free-up or --delete-after without running a backup first."""))
+
+    only_one_action_group.add_argument("--generate-config", metavar="FILE_NAME", help=format_help(
+"""Generate a configuration file that matches the other arguments in the call."""))
+
+    only_one_action_group.add_argument(
+        "--generate-windows-scripts",
+        metavar="DIRECTORY",
+        help=format_help(
+"""Generate scripts and config files for use with Windows Task Scheduler."""))
 
     common_group = user_input.add_argument_group("Options needed for all actions")
 
@@ -2140,7 +2205,9 @@ def main(argv: list[str]) -> int:
         logger.debug(args)
 
         action = (
-            start_recovery_from_backup if args.recover
+            generate_config if args.generate_config
+            else generate_windows_scripts if args.generate_windows_scripts
+            else start_recovery_from_backup if args.recover
             else choose_recovery_target_from_backups if args.list
             else start_move_backups if args.move_backup
             else start_verify_backup if args.verify
