@@ -3132,6 +3132,30 @@ Set WinScriptHost = Nothing
         self.assertEqual(expected_vb_script_contents, actual_vb_script_contents)
 
 
+class UniquePathNameTests(TestCaseWithTemporaryFilesAndFolders):
+    """Tests that unique_path_name() prevents file overwriting."""
+
+    def test_non_existing_file_name_returns_same_name(self) -> None:
+        """Test that if a path name does not exist, the same name is returned."""
+        path = self.user_path/"non-existent.txt"
+        self.assertEqual(path, vintagebackup.unique_path_name(path))
+
+    def test_existing_file_name_result_in_1_appended_to_name(self) -> None:
+        """Test that an existing path name is replaced with a 1 just before the suffix."""
+        path = self.user_path/"existing.txt"
+        path.touch()
+        self.assertEqual(self.user_path/"existing.1.txt", vintagebackup.unique_path_name(path))
+
+    def test_multiple_existing_file_names_result_in_increasing_appended_numbers(self) -> None:
+        """Test that the appended number increases until a non-existent name is found."""
+        path = self.user_path/"existing.txt"
+        path.touch()
+        for number in range(1, 10):
+            new_path_name = self.user_path/f"existing.{number}.txt"
+            self.assertEqual(new_path_name, vintagebackup.unique_path_name(path))
+            new_path_name.touch()
+
+
 class HelpTests(unittest.TestCase):
     """Make sure argument parser help commands run without error."""
 
