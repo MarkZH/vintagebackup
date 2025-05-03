@@ -3064,10 +3064,10 @@ Log: nul
 
         # Check contents of VB script file
         expected_vb_script_contents = (
-f'''Dim WinScriptHost
-Set WinScriptHost = CreateObject("WScript.Shell")
-WinScriptHost.Run """{batch_script_path}""", 0, true
-Set WinScriptHost = Nothing
+f'''Dim Shell
+Set Shell = CreateObject("WScript.Shell")
+Shell.Run """{batch_script_path}""", 0, true
+Set Shell = Nothing
 ''')
         vb_script_path = self.user_path/"vb_script.vbs"
         actual_vb_script_contents = vb_script_path.read_text()
@@ -3123,10 +3123,10 @@ Log: nul
 
         # Check contents of VB script file
         expected_vb_script_contents = (
-f'''Dim WinScriptHost
-Set WinScriptHost = CreateObject("WScript.Shell")
-WinScriptHost.Run """{actual_batch_path}""", 0, true
-Set WinScriptHost = Nothing
+f'''Dim Shell
+Set Shell = CreateObject("WScript.Shell")
+Shell.Run """{actual_batch_path}""", 0, true
+Set Shell = Nothing
 ''')
         actual_vb_script_contents = actual_vb_path.read_text()
         self.assertEqual(expected_vb_script_contents, actual_vb_script_contents)

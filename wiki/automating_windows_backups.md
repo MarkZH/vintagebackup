@@ -40,10 +40,10 @@ The only thing that needs customization in this file is the location of the `.ba
 The full path to the batch script should be written out.
 
 ```vb
-Dim WinScriptHost
-Set WinScriptHost = CreateObject("WScript.Shell")
-WinScriptHost.Run """C:\Users\Alice\vintagebackup\home_backup.bat""", 0, true
-Set WinScriptHost = Nothing
+Dim Shell
+Set Shell = CreateObject("WScript.Shell")
+Shell.Run """C:\Users\Alice\vintagebackup\home_backup.bat""", 0, true
+Set Shell = Nothing
 ```
 
 Don't for get the `, 0, true` at the end of the third line. The `0` prevents a terminal window from opening when the scheduled backup runs. The `true` causes the script to wait for the backup to finish before exiting, which will stop two instances of a backup process from being run at the same time in case one scheduled backup takes longer than expected to complete.

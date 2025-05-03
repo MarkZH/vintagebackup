@@ -1720,10 +1720,10 @@ def generate_windows_scripts(args: argparse.Namespace) -> None:
 
     vb_script_file = unique_path_name(destination/"vb_script.vbs")
     vb_script_file.write_text(
-f'''Dim WinScriptHost
-Set WinScriptHost = CreateObject("WScript.Shell")
-WinScriptHost.Run """{batch_file}""", 0, true
-Set WinScriptHost = Nothing
+f'''Dim Shell
+Set Shell = CreateObject("WScript.Shell")
+Shell.Run """{batch_file}""", 0, true
+Set Shell = Nothing
 ''')
     logger.info(f"Generated VB script: {vb_script_file}")
 
