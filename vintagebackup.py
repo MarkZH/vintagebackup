@@ -1694,8 +1694,9 @@ def generate_config(args: argparse.Namespace) -> Path:
 
             parameter = option.replace("_", " ").capitalize()
             value_string = "" if value is True else str(value)
-            if (option in {"user_folder", "backup_folder", "filter", "destination"}
-                    or (option == "log" and value_string != os.devnull)):
+            is_path = option in {"user_folder", "backup_folder", "filter", "destination"}
+            is_non_null_log = option == "log" and value_string != os.devnull
+            if is_path or is_non_null_log:
                 value_string = str(absolute_path(value_string))
             needs_quotes = (value_string.strip() != value_string)
             parameter_value = f'"{value_string}"' if needs_quotes else value_string
