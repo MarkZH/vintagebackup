@@ -2982,7 +2982,8 @@ Log: {os.devnull}
 
     def test_generation_of_config_files_from_another_config_file(self) -> None:
         """Test that the parameters in a --config file get included into the new config file."""
-        self.config_path.write_text(fr"""Backup folder: {self.backup_path}
+        self.config_path.write_text(
+fr"""Backup folder: {self.backup_path}
 User folder: {self.user_path}
 Filter: {self.filter_path}
 Log: {os.devnull}
