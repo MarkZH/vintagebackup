@@ -1671,7 +1671,7 @@ def start_backup(args: argparse.Namespace) -> None:
         delete_old_backups(args)
 
 
-def generate_config(args: argparse.Namespace) -> None:
+def generate_config(args: argparse.Namespace) -> Path:
     """Generate a configuration file from the arguments and return the path of that file."""
     no_arguments: list[str] = []
     no_prefix = "no_"
@@ -1702,14 +1702,14 @@ def generate_config(args: argparse.Namespace) -> None:
             config_file.write(f"{parameter}: {parameter_value}".strip() + "\n")
 
     logger.info(f"Generated configuration file: {config_path}")
+    return config_path
 
 
 def generate_windows_scripts(args: argparse.Namespace) -> None:
     """Generate files for use with Windows Task Scheduler."""
     destination = absolute_path(args.generate_windows_scripts)
-    config_path = unique_path_name(destination/"config.txt")
-    args.generate_config = str(config_path)
-    generate_config(args)
+    args.generate_config = str(destination/"config.txt")
+    config_path = generate_config(args)
 
     batch_file = unique_path_name(destination/"batch_script.bat")
     script_path = cast(str, getsourcefile(main))
