@@ -1,6 +1,7 @@
 # Recovering data from backups
 
-These functions can be used to recover data by copying it from backups to its original location.
+Every backup contains every file from the user's folder, so the backup location can be explored just like any other folder on the computer without using Vintage Backup.
+In addition, these functions can be used to find and recover data by copying it from backups to its original location.
 There are two functions for choosing which file to restore and which version to restore.
 
 ### `--recover`, `-r`
