@@ -1168,11 +1168,10 @@ def restore_backup(
         current_user_folder.mkdir(parents=True, exist_ok=True)
 
         for file_name in file_names:
+            file_source = current_backup_path/file_name
+            file_destination = current_user_folder/file_name
+            logger.debug(f"Copying {file_name} from {current_backup_path} to {current_user_folder}")
             try:
-                file_source = current_backup_path/file_name
-                file_destination = current_user_folder/file_name
-                logger.debug(
-                    f"Copying {file_name} from {current_backup_path} to {current_user_folder}")
                 shutil.copy2(file_source, file_destination, follow_symlinks=False)
             except Exception as error:
                 logger.warning(f"Could not restore {file_destination} from {file_source}: {error}")
@@ -1461,6 +1460,8 @@ def start_move_backups(args: argparse.Namespace) -> None:
     elif args.move_since:
         oldest_backup_date = datetime.datetime.strptime(args.move_since, "%Y-%m-%d")
         backups_to_move = backups_since(oldest_backup_date, old_backup_location)
+    else:
+        raise AssertionError("Should never reach here.")
 
     new_backup_location.mkdir(parents=True, exist_ok=True)
     with Backup_Lock(new_backup_location, "backup move"):

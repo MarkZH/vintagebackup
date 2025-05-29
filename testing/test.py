@@ -568,27 +568,26 @@ class BackupTest(TestCaseWithTemporaryFilesAndFolders):
 
     def test_backing_up_different_user_folders_to_same_backup_location_is_an_error(self) -> None:
         """Check that error is raised when attempted to change the source of a backup set."""
-        with (tempfile.TemporaryDirectory() as other_user_folder,
-            self.assertRaises(vintagebackup.CommandLineError) as error):
-
-            vintagebackup.create_new_backup(
-                self.user_path,
-                self.backup_path,
-                filter_file=None,
-                examine_whole_file=False,
-                force_copy=False,
-                copy_probability=0.0,
-                timestamp=unique_timestamp())
-
+        with tempfile.TemporaryDirectory() as other_user_folder:
             other_user_path = Path(other_user_folder)
-            vintagebackup.create_new_backup(
-                other_user_path,
-                self.backup_path,
-                filter_file=None,
-                examine_whole_file=False,
-                force_copy=False,
-                copy_probability=0.0,
-                timestamp=unique_timestamp())
+            with self.assertRaises(vintagebackup.CommandLineError) as error:
+                vintagebackup.create_new_backup(
+                    self.user_path,
+                    self.backup_path,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    copy_probability=0.0,
+                    timestamp=unique_timestamp())
+
+                vintagebackup.create_new_backup(
+                    other_user_path,
+                    self.backup_path,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    copy_probability=0.0,
+                    timestamp=unique_timestamp())
 
         expected_error_message = (
             "Previous backup stored a different user folder. Previously: "
@@ -2369,6 +2368,7 @@ class AllBackupsTests(TestCaseWithTemporaryFilesAndFolders):
                 timestamp=timestamp)
 
         # Create entries that should be left out of all_backups() list
+        timestamp = timestamps[-1]
         (self.backup_path/"extra year folder"/"extra backup folder").mkdir(parents=True)
         (self.backup_path/"extra year file").touch()
         (self.backup_path/str(timestamp.year)/"extra backup folder").mkdir()
