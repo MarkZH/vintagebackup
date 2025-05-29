@@ -2515,6 +2515,10 @@ class ParseStorageTests(unittest.TestCase):
         """Assert input of 1 results in 1.000."""
         self.assertEqual(vintagebackup.byte_units(1), "1.000 B")
 
+    def test_arbitrary_byte_size(self) -> None:
+        """Test a random number."""
+        self.assertEqual(vintagebackup.byte_units(123456789), "123.5 MB")
+
 
 class HelpFormatterTests(unittest.TestCase):
     """Tests for functions that format --help paragraphs."""

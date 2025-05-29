@@ -117,12 +117,9 @@ def byte_units(size: float) -> str:
         raise RuntimeError(f"Got invalid value for byte_units(): {size}")
 
     prefix_step = 1000
-    for index in range(len(storage_prefixes)):
-        prefix_size = prefix_step**index
-        size_in_units = size/prefix_size
-        if size_in_units < prefix_step:
-            break
-
+    index = int(math.log10(size)/math.log10(prefix_step))
+    prefix_size: int = prefix_step**index
+    size_in_units = size/prefix_size
     prefix = storage_prefixes[index]
     decimal_digits = 4 - math.floor(math.log10(size_in_units) + 1)
     return f"{size_in_units:.{decimal_digits}f} {prefix}B"
