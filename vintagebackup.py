@@ -322,11 +322,8 @@ def compare_to_backup(
     file_names, links = separate_links(user_directory, file_names)
     comparison_function = deep_comparison if examine_whole_file else shallow_comparison
     matches, mismatches, errors = comparison_function(user_directory, backup_directory, file_names)
-    move_to_errors, matches = separate(matches, random_filter(copy_probability))
-    errors.extend(move_to_errors)
-    errors.extend(links)
-
-    return matches, mismatches + errors
+    random_copies, matches = separate(matches, random_filter(copy_probability))
+    return matches, mismatches + errors + random_copies + links
 
 
 def deep_comparison(
