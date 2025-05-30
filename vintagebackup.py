@@ -1670,7 +1670,7 @@ def generate_config(args: argparse.Namespace) -> Path:
     """Generate a configuration file from the arguments and return the path of that file."""
     no_arguments: list[str] = []
     no_prefix = "no_"
-    arguments: list[tuple[str, str]] = []
+    arguments: list[tuple[str, Any]] = []
     for option, value in vars(args).items():
         if not value or option in {"generate_config", "generate_windows_scripts", "config"}:
             continue
