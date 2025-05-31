@@ -1919,18 +1919,16 @@ folder, it is not deleted. The backup location argument --backup-folder is requi
         help=format_help(
 """Generate scripts and config files for use with Windows Task Scheduler."""))
 
-    common_group = user_input.add_argument_group("Options needed for all actions")
-
-    common_group.add_argument("-b", "--backup-folder", help=format_help(
-"""The destination of the backed up files. This folder will
-contain a set of folders labeled by year, and each year's
-folder will contain all of that year's backups."""))
-
     backup_group = user_input.add_argument_group("Options for backing up")
 
     backup_group.add_argument("-u", "--user-folder", help=format_help(
 """The directory to be backed up. The contents of this
 folder and all subfolders will be backed up recursively."""))
+
+    backup_group.add_argument("-b", "--backup-folder", help=format_help(
+"""The destination of the backed up files. This folder will
+contain a set of folders labeled by year, and each year's
+folder will contain all of that year's backups."""))
 
     backup_group.add_argument("-f", "--filter", metavar="FILTER_FILE_NAME", help=format_help(
 """Filter the set of files that will be backed up. The value of this argument should be the name of

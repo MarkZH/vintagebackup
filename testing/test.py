@@ -2888,10 +2888,11 @@ class GenerateConfigTests(TestCaseWithTemporaryFilesAndFolders):
 
         self.assert_config_file_creation(command_line)
 
-        expected_config_data = fr"""Backup folder: D:\Backups
-User folder: C:\Users\Alice
+        expected_config_data = (
+fr"""User folder: C:\Users\Alice
+Backup folder: D:\Backups
 Log: {os.devnull}
-"""
+""")
         config_data = self.config_path.read_text(encoding="utf8")
         self.assertEqual(expected_config_data, config_data)
 
@@ -2908,10 +2909,11 @@ Log: {os.devnull}
         self.assert_config_file_creation(command_line)
 
         # The
-        expected_config_data = f"""Backup folder: /mnt/backups
-User folder: /home/bob
+        expected_config_data = (
+f"""User folder: /home/bob
+Backup folder: /mnt/backups
 Log: {os.devnull}
-"""
+""")
         config_data = self.config_path.read_text(encoding="utf8")
         self.assertEqual(expected_config_data, config_data)
 
@@ -2928,11 +2930,12 @@ Log: {os.devnull}
 
         self.assert_config_file_creation(command_line)
 
-        expected_config_data = fr"""Backup folder: D:\Backups
-User folder: C:\Users\Alice
+        expected_config_data = (
+fr"""User folder: C:\Users\Alice
+Backup folder: D:\Backups
 Filter: C:\Users\Alice\AppData\vintage_backup_config.txt
 Log: {os.devnull}
-"""
+""")
         config_data = self.config_path.read_text(encoding="utf8")
         self.assertEqual(expected_config_data, config_data)
 
@@ -2949,11 +2952,12 @@ Log: {os.devnull}
 
         self.assert_config_file_creation(command_line)
 
-        expected_config_data = fr"""Backup folder: /mnt/backups
-User folder: /home/bob
+        expected_config_data = (
+fr"""User folder: /home/bob
+Backup folder: /mnt/backups
 Filter: /home/bob/.config/vintage_backup_config.txt
 Log: {os.devnull}
-"""
+""")
         config_data = self.config_path.read_text(encoding="utf8")
         self.assertEqual(expected_config_data, config_data)
 
@@ -2987,8 +2991,8 @@ Log: {os.devnull}
     def test_generation_of_config_files_from_another_config_file(self) -> None:
         """Test that the parameters in a --config file get included into the new config file."""
         self.config_path.write_text(
-fr"""Backup folder: {self.backup_path}
-User folder: {self.user_path}
+fr"""User folder: {self.user_path}
+Backup folder: {self.backup_path}
 Filter: {self.filter_path}
 Log: {os.devnull}
 """,
@@ -3050,12 +3054,13 @@ class GenerateWindowsScriptFilesTests(TestCaseWithTemporaryFilesAndFolders):
                 f"{prefix}Generated VB script: {self.user_path/'vb_script.vbs'}"])
 
         # Check contents of configuration file
-        expected_config_contents = f"""Backup folder: {self.backup_path}
-User folder: {self.user_path}
+        expected_config_contents = (
+f"""User folder: {self.user_path}
+Backup folder: {self.backup_path}
 Filter: {self.user_path/'filter.txt'}
 Whole file:
 Log: nul
-"""
+""")
         config_path = self.user_path/"config.txt"
         actual_config_contents = config_path.read_text()
         self.assertEqual(expected_config_contents, actual_config_contents)
@@ -3109,12 +3114,13 @@ Set Shell = Nothing
                 f"{prefix}Generated VB script: {actual_vb_path}"])
 
         # Check contents of configuration file
-        expected_config_contents = f"""Backup folder: {self.backup_path}
-User folder: {self.user_path}
+        expected_config_contents = (
+f"""User folder: {self.user_path}
+Backup folder: {self.backup_path}
 Filter: {self.user_path/'filter.txt'}
 Whole file:
 Log: nul
-"""
+""")
         actual_config_contents = actual_config_path.read_text()
         self.assertEqual(expected_config_contents, actual_config_contents)
 
