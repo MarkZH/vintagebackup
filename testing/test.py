@@ -2890,8 +2890,8 @@ class GenerateConfigTests(TestCaseWithTemporaryFilesAndFolders):
         self.assert_config_file_creation(command_line)
 
         expected_config_data = (
-fr"""Backup folder: D:\Backups
-User folder: C:\Users\Alice
+fr"""User folder: C:\Users\Alice
+Backup folder: D:\Backups
 Log: {os.devnull}
 """)
         config_data = self.config_path.read_text(encoding="utf8")
@@ -2911,8 +2911,8 @@ Log: {os.devnull}
 
         # The
         expected_config_data = (
-f"""Backup folder: /mnt/backups
-User folder: /home/bob
+f"""User folder: /home/bob
+Backup folder: /mnt/backups
 Log: {os.devnull}
 """)
         config_data = self.config_path.read_text(encoding="utf8")
@@ -2932,8 +2932,8 @@ Log: {os.devnull}
         self.assert_config_file_creation(command_line)
 
         expected_config_data = (
-fr"""Backup folder: D:\Backups
-User folder: C:\Users\Alice
+fr"""User folder: C:\Users\Alice
+Backup folder: D:\Backups
 Filter: C:\Users\Alice\AppData\vintage_backup_config.txt
 Log: {os.devnull}
 """)
@@ -2954,8 +2954,8 @@ Log: {os.devnull}
         self.assert_config_file_creation(command_line)
 
         expected_config_data = (
-fr"""Backup folder: /mnt/backups
-User folder: /home/bob
+fr"""User folder: /home/bob
+Backup folder: /mnt/backups
 Filter: /home/bob/.config/vintage_backup_config.txt
 Log: {os.devnull}
 """)
@@ -2993,8 +2993,8 @@ Log: {os.devnull}
     def test_generation_of_config_files_from_another_config_file(self) -> None:
         """Test that the parameters in a --config file get included into the new config file."""
         self.config_path.write_text(
-fr"""Backup folder: {self.backup_path}
-User folder: {self.user_path}
+fr"""User folder: {self.user_path}
+Backup folder: {self.backup_path}
 Filter: {self.filter_path}
 Log: {os.devnull}
 """,
@@ -3058,8 +3058,8 @@ class GenerateWindowsScriptFilesTests(TestCaseWithTemporaryFilesAndFolders):
 
         # Check contents of configuration file
         expected_config_contents = (
-f"""Backup folder: {self.backup_path}
-User folder: {self.user_path}
+f"""User folder: {self.user_path}
+Backup folder: {self.backup_path}
 Filter: {self.user_path/'filter.txt'}
 Whole file:
 Log: nul
@@ -3118,8 +3118,8 @@ Set Shell = Nothing
 
         # Check contents of configuration file
         expected_config_contents = (
-f"""Backup folder: {self.backup_path}
-User folder: {self.user_path}
+f"""User folder: {self.user_path}
+Backup folder: {self.backup_path}
 Filter: {self.user_path/'filter.txt'}
 Whole file:
 Log: nul
