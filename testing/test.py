@@ -2549,13 +2549,14 @@ This is the third paragraph.
 
 This is the fourth paragraph."""
 
-        expected_wrapped_text = """The is the first paragraph.
+        expected_wrapped_text = (
+"""The is the first paragraph.
 
 This is the second paragraph.
 
 This is the third paragraph.
 
-This is the fourth paragraph."""
+This is the fourth paragraph.""")
 
         wrapped_text = vintagebackup.format_paragraphs(text, 100)
         self.assertEqual(wrapped_text, expected_wrapped_text)
@@ -2888,10 +2889,11 @@ class GenerateConfigTests(TestCaseWithTemporaryFilesAndFolders):
 
         self.assert_config_file_creation(command_line)
 
-        expected_config_data = fr"""Backup folder: D:\Backups
+        expected_config_data = (
+fr"""Backup folder: D:\Backups
 User folder: C:\Users\Alice
 Log: {os.devnull}
-"""
+""")
         config_data = self.config_path.read_text(encoding="utf8")
         self.assertEqual(expected_config_data, config_data)
 
@@ -2908,10 +2910,11 @@ Log: {os.devnull}
         self.assert_config_file_creation(command_line)
 
         # The
-        expected_config_data = f"""Backup folder: /mnt/backups
+        expected_config_data = (
+f"""Backup folder: /mnt/backups
 User folder: /home/bob
 Log: {os.devnull}
-"""
+""")
         config_data = self.config_path.read_text(encoding="utf8")
         self.assertEqual(expected_config_data, config_data)
 
@@ -2928,11 +2931,12 @@ Log: {os.devnull}
 
         self.assert_config_file_creation(command_line)
 
-        expected_config_data = fr"""Backup folder: D:\Backups
+        expected_config_data = (
+fr"""Backup folder: D:\Backups
 User folder: C:\Users\Alice
 Filter: C:\Users\Alice\AppData\vintage_backup_config.txt
 Log: {os.devnull}
-"""
+""")
         config_data = self.config_path.read_text(encoding="utf8")
         self.assertEqual(expected_config_data, config_data)
 
@@ -2949,11 +2953,12 @@ Log: {os.devnull}
 
         self.assert_config_file_creation(command_line)
 
-        expected_config_data = fr"""Backup folder: /mnt/backups
+        expected_config_data = (
+fr"""Backup folder: /mnt/backups
 User folder: /home/bob
 Filter: /home/bob/.config/vintage_backup_config.txt
 Log: {os.devnull}
-"""
+""")
         config_data = self.config_path.read_text(encoding="utf8")
         self.assertEqual(expected_config_data, config_data)
 
@@ -2965,9 +2970,10 @@ Log: {os.devnull}
 
         self.assert_config_file_creation(command_line)
 
-        expected_config_data = f"""Whole file:
+        expected_config_data = (
+f"""Whole file:
 Log: {os.devnull}
-"""
+""")
         config_data = self.config_path.read_text(encoding="utf8")
         self.assertEqual(expected_config_data, config_data)
 
@@ -3016,9 +3022,10 @@ encoding="utf8")
             logs.output,
             [f"INFO:vintagebackup:Generated configuration file: {actual_config_path}"])
 
-        expected_config_data = f"""Whole file:
+        expected_config_data = (
+f"""Whole file:
 Log: {os.devnull}
-"""
+""")
         config_data = actual_config_path.read_text(encoding="utf8")
         self.assertEqual(expected_config_data, config_data)
 
@@ -3050,12 +3057,13 @@ class GenerateWindowsScriptFilesTests(TestCaseWithTemporaryFilesAndFolders):
                 f"{prefix}Generated VB script: {self.user_path/'vb_script.vbs'}"])
 
         # Check contents of configuration file
-        expected_config_contents = f"""Backup folder: {self.backup_path}
+        expected_config_contents = (
+f"""Backup folder: {self.backup_path}
 User folder: {self.user_path}
 Filter: {self.user_path/'filter.txt'}
 Whole file:
 Log: nul
-"""
+""")
         config_path = self.user_path/"config.txt"
         actual_config_contents = config_path.read_text()
         self.assertEqual(expected_config_contents, actual_config_contents)
@@ -3109,12 +3117,13 @@ Set Shell = Nothing
                 f"{prefix}Generated VB script: {actual_vb_path}"])
 
         # Check contents of configuration file
-        expected_config_contents = f"""Backup folder: {self.backup_path}
+        expected_config_contents = (
+f"""Backup folder: {self.backup_path}
 User folder: {self.user_path}
 Filter: {self.user_path/'filter.txt'}
 Whole file:
 Log: nul
-"""
+""")
         actual_config_contents = actual_config_path.read_text()
         self.assertEqual(expected_config_contents, actual_config_contents)
 
