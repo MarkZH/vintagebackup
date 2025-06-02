@@ -2716,7 +2716,7 @@ class RemoveQuotesTests(unittest.TestCase):
         self.assertEqual(s, vintagebackup.remove_quotes(s))
 
 
-class BackupsSpaceWarningsTests(unittest.TestCase):
+class BackupSpaceWarningTests(unittest.TestCase):
     """Test warning messages when backup size exceeds --free-up parameter."""
 
     def test_backup_space_logged_when_no_free_up_parameter(self) -> None:
