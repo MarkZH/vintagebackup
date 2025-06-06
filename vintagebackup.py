@@ -1910,10 +1910,10 @@ folder, it is not deleted. The backup location argument --backup-folder is requi
     only_one_action_group.add_argument("--delete-only", action="store_true", help=format_help(
 """Delete old backups according to --free-up or --delete-after without running a backup first."""))
 
-    only_one_action_group.add_argument("--generate-config", metavar="FILE_NAME", help=format_help(
+    action_group.add_argument("--generate-config", metavar="FILE_NAME", help=format_help(
 """Generate a configuration file that matches the other arguments in the call."""))
 
-    only_one_action_group.add_argument(
+    action_group.add_argument(
         "--generate-windows-scripts",
         metavar="DIRECTORY",
         help=format_help(

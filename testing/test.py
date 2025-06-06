@@ -3029,6 +3029,25 @@ Log: {os.devnull}
         config_data = actual_config_path.read_text(encoding="utf8")
         self.assertEqual(expected_config_data, config_data)
 
+    def test_generate_config_for_verify_action(self) -> None:
+        """Test that config files for non-backup actions can be scripted."""
+        command_line = [
+            "--generate-config", str(self.config_path),
+            "--verify", str(self.user_path),
+            "--user-folder", str(self.user_path),
+            "--backup-folder", str(self.backup_path)]
+
+        self.assert_config_file_creation(command_line)
+
+        expected_config_data = (
+f"""Verify: {self.user_path}
+User folder: {self.user_path}
+Backup folder: {self.backup_path}
+Log: {os.devnull}
+""")
+        actual_config_data = self.config_path.read_text(encoding="utf8")
+        self.assertEqual(actual_config_data, expected_config_data)
+
 
 class GenerateWindowsScriptFilesTests(TestCaseWithTemporaryFilesAndFolders):
     """Make sure that script files for Windows Scheduler are generated correctly."""
