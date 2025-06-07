@@ -1797,6 +1797,33 @@ def delete_before_backup(args: argparse.Namespace) -> None:
     start_backup(args)
 
 
+def tree_listing(
+        listing: Iterable[tuple[Path, list[str]]],
+        output: io.TextIOBase | None = None) -> None:
+    """
+    Print an indented listing of paths to show a simple tree structure.
+
+    :param listing: The list of paths. Each entry should be a directory path and the files it
+    contains. The first directory should be the root directory that contains all other paths.
+    :param output: An alternate destination for the printed output.
+    """
+    root: Path | None = None
+    for directory, file_names in listing:
+        if not root:
+            root = directory
+
+        single_indent = "  "
+        depth = len(directory.relative_to(root).parts)
+        indent = single_indent*depth
+        if depth == 0:
+            print(f"{absolute_path(root)}{os.sep}", file=output)
+        else:
+            print(f"{indent}{directory.name}{os.sep}", file=output)
+
+        for file_name in file_names:
+            print(f"{indent}{single_indent}{file_name}", file=output)
+
+
 def argument_parser() -> argparse.ArgumentParser:
     """Create the parser for command line arguments."""
     user_input = argparse.ArgumentParser(
