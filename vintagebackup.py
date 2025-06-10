@@ -1812,17 +1812,17 @@ def tree_listing(
     :param output: An alternate destination for the printed output.
     """
     root: Path | None = None
+    single_indent = "  "
     for directory, file_names in listing:
         if not root:
             root = directory
+            to_print = absolute_path(root)
+        else:
+            to_print = directory.name
 
-        single_indent = "  "
         depth = len(directory.relative_to(root).parts)
         indent = single_indent*depth
-        if depth == 0:
-            print(f"{absolute_path(root)}{os.sep}", file=output)
-        else:
-            print(f"{indent}{directory.name}{os.sep}", file=output)
+        print(f"{indent}{to_print}{os.sep}", file=output)
 
         for file_name in file_names:
             print(f"{indent}{single_indent}{file_name}", file=output)
