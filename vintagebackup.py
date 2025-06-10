@@ -1828,6 +1828,22 @@ def tree_listing(
             print(f"{indent}{single_indent}{file_name}", file=output)
 
 
+def short_listing(
+        listing: Iterable[tuple[Path, list[str]]],
+        output: io.TextIOBase | None = None) -> None:
+    """
+    Print a list of paths with file names listed under their directories.
+
+    :param listing: The list of paths. Each entry should be a directory path and the files it
+    contains. The first directory should be the root directory that contains all other paths.
+    :param output: An alternate destination for the printed output.
+    """
+    for directory, file_names in listing:
+        print(f"{absolute_path(directory)}{os.sep}", file=output)
+        for file_name in file_names:
+            print(f"    {file_name}", file=output)
+
+
 def argument_parser() -> argparse.ArgumentParser:
     """Create the parser for command line arguments."""
     user_input = argparse.ArgumentParser(
