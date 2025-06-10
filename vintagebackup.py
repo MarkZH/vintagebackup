@@ -1803,6 +1803,10 @@ def tree_listing(
     """
     Print an indented listing of paths to show a simple tree structure.
 
+    The first line of the output will be the base directory whose absolute path will be printed in
+    full. The rest of the lines will be printed relative to this base directory and indented to show
+    how paths are nested.
+
     :param listing: The list of paths. Each entry should be a directory path and the files it
     contains. The first directory should be the root directory that contains all other paths.
     :param output: An alternate destination for the printed output.
