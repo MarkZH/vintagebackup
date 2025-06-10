@@ -1813,6 +1813,7 @@ def tree_listing(
     """
     root: Path | None = None
     single_indent = "  "
+    to_print: Path | str
     for directory, file_names in listing:
         if not root:
             root = directory
