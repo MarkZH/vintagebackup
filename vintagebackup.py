@@ -1844,6 +1844,22 @@ def short_listing(
             print(f"    {file_name}", file=output)
 
 
+def listing(
+        listing: Iterable[tuple[Path, list[str]]],
+        output: io.TextIOBase | None = None) -> None:
+    """
+    Print a list of file paths.
+
+    :param listing: The list of paths. Each entry should be a directory path and the files it
+    contains.
+    :param output: An alternate destination for the printed output.
+    """
+    for directory, file_names in listing:
+        abs_directory = absolute_path(directory)
+        for file_name in file_names:
+            print(f"{abs_directory/file_name}", file=output)
+
+
 def argument_parser() -> argparse.ArgumentParser:
     """Create the parser for command line arguments."""
     user_input = argparse.ArgumentParser(
