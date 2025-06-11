@@ -1813,6 +1813,18 @@ def path_listing(
             print(f"    {file_name}", file=output)
 
 
+def preview_filter(args: argparse.Namespace) -> None:
+    """Print a list of files that will make it through the --filter file."""
+    user_folder = get_existing_path(args.user_folder, "user folder")
+    filter_file = path_or_none(args.filter)
+    output_file = path_or_none(args.preview_filter)
+    if output_file:
+        with open(output_file, "w", encoding="utf8") as output:
+            path_listing(Backup_Set(user_folder, filter_file), output)
+    else:
+        path_listing(Backup_Set(user_folder, filter_file), None)
+
+
 def argument_parser() -> argparse.ArgumentParser:
     """Create the parser for command line arguments."""
     user_input = argparse.ArgumentParser(
@@ -1901,6 +1913,16 @@ comparison will be placed in the folder RESULT_DIR. The result is three files: a
 match, a list of files that do not match, and a list of files that caused errors during the
 comparison. The --backup-folder argument is required. If a filter file was used
 to create the backup, then --filter should be supplied as well."""))
+
+    only_one_action_group.add_argument(
+        "--preview-filter",
+        metavar="FILE_NAME",
+        nargs="?",
+        const=False,
+        help=format_help(
+"""Create a list of the files and folders that will be backed up after being filtered by the
+--filter file argument. The argument is a file name where the list will be written. If there is no
+argument, the list will be written to the console. The --user-folder argument is required."""))
 
     only_one_action_group.add_argument("--restore", action="store_true", help=format_help(
 """This action restores the user's folder to a previous, backed up state. Any existing user files
@@ -2226,6 +2248,7 @@ def main(argv: list[str]) -> int:
             else choose_purge_target_from_backups if args.purge_list
             else delete_old_backups if args.delete_only
             else delete_before_backup if toggle_is_set(args, "delete_first")
+            else preview_filter if args.preview_filter is not None
             else start_backup)
         action(args)
         return 0
