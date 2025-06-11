@@ -1797,39 +1797,7 @@ def delete_before_backup(args: argparse.Namespace) -> None:
     start_backup(args)
 
 
-def tree_listing(
-        listing: Iterable[tuple[Path, list[str]]],
-        output: io.TextIOBase | None = None) -> None:
-    """
-    Print an indented listing of paths to show a simple tree structure.
-
-    The first line of the output will be the base directory whose absolute path will be printed in
-    full. The rest of the lines will be printed relative to this base directory and indented to show
-    how paths are nested.
-
-    :param listing: The list of paths. Each entry should be a directory path and the files it
-    contains. The first directory should be the root directory that contains all other paths.
-    :param output: An alternate destination for the printed output.
-    """
-    root: Path | None = None
-    single_indent = "  "
-    to_print: Path | str
-    for directory, file_names in listing:
-        if not root:
-            root = directory
-            to_print = absolute_path(root)
-        else:
-            to_print = directory.name
-
-        depth = len(directory.relative_to(root).parts)
-        indent = single_indent*depth
-        print(f"{indent}{to_print}{os.sep}", file=output)
-
-        for file_name in file_names:
-            print(f"{indent}{single_indent}{file_name}", file=output)
-
-
-def short_listing(
+def path_listing(
         listing: Iterable[tuple[Path, list[str]]],
         output: io.TextIOBase | None = None) -> None:
     """
@@ -1843,22 +1811,6 @@ def short_listing(
         print(f"{absolute_path(directory)}{os.sep}", file=output)
         for file_name in file_names:
             print(f"    {file_name}", file=output)
-
-
-def listing(
-        listing: Iterable[tuple[Path, list[str]]],
-        output: io.TextIOBase | None = None) -> None:
-    """
-    Print a list of file paths.
-
-    :param listing: The list of paths. Each entry should be a directory path and the files it
-    contains.
-    :param output: An alternate destination for the printed output.
-    """
-    for directory, file_names in listing:
-        abs_directory = absolute_path(directory)
-        for file_name in file_names:
-            print(f"{abs_directory/file_name}", file=output)
 
 
 def argument_parser() -> argparse.ArgumentParser:
