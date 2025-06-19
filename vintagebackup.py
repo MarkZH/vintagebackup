@@ -1121,8 +1121,8 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
 
         def write_directory(output: io.TextIOBase, directory: Path, file_names: list[str]) -> None:
             if file_names:
-                output.write(f"{directory}\n")
-                output.writelines(f"{name}\n" for name in file_names)
+                output.write(f"{absolute_path(directory)}{os.sep}\n")
+                output.writelines(f"    {name}\n" for name in file_names)
 
         for directory, file_names in Backup_Set(user_folder, filter_file):
             relative_directory = directory.relative_to(user_folder)

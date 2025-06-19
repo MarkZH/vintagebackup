@@ -1292,7 +1292,7 @@ def read_verify_file(verify_file: io.TextIOBase) -> set[Path]:
         if os.sep in line:
             current_directory = Path(line.removesuffix("\n"))
         else:
-            files_from_verify.add(current_directory/line.removesuffix("\n"))
+            files_from_verify.add(current_directory/line.removeprefix("    ").removesuffix("\n"))
     return files_from_verify
 
 
