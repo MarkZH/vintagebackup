@@ -1284,6 +1284,18 @@ class MoveBackupsTest(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(expected_logs, no_move_choice_log.output)
 
 
+def read_verify_file(verify_file: io.TextIOBase) -> set[Path]:
+    """Read an opened verification file and return the path contents."""
+    files_from_verify: set[Path] = set()
+    current_directory = Path()
+    for line in verify_file:
+        if os.sep in line:
+            current_directory = Path(line.removesuffix("\n"))
+        else:
+            files_from_verify.add(current_directory/line.removesuffix("\n"))
+    return files_from_verify
+
+
 class VerificationTest(TestCaseWithTemporaryFilesAndFolders):
     """Test backup verification."""
 
@@ -1299,15 +1311,15 @@ class VerificationTest(TestCaseWithTemporaryFilesAndFolders):
             copy_probability=0.0,
             timestamp=unique_timestamp())
 
-        mismatch_file = Path("sub_directory_1")/"sub_sub_directory_2"/"file_0.txt"
-        with open(self.user_path/mismatch_file, "a", encoding="utf8") as file:
+        mismatch_file = self.user_path/"sub_directory_1"/"sub_sub_directory_2"/"file_0.txt"
+        with open(mismatch_file, "a", encoding="utf8") as file:
             file.write("\naddition\n")
 
-        error_file = Path("sub_directory_2")/"sub_sub_directory_0"/"file_1.txt"
+        error_file = self.user_path/"sub_directory_2"/"sub_sub_directory_0"/"file_1.txt"
         last_backup = vintagebackup.find_previous_backup(self.backup_path)
         self.assertTrue(last_backup)
         last_backup = cast(Path, last_backup)
-        (last_backup/error_file).unlink()
+        (last_backup/error_file.relative_to(self.user_path)).unlink()
 
         matching_path_set: set[Path] = set()
         mismatching_path_set: set[Path] = set()
@@ -1315,7 +1327,7 @@ class VerificationTest(TestCaseWithTemporaryFilesAndFolders):
         user_paths = vintagebackup.Backup_Set(self.user_path, None)
         for directory, file_names in user_paths:
             for file_name in file_names:
-                path = (directory/file_name).relative_to(self.user_path)
+                path = directory/file_name
                 path_set = (
                     mismatching_path_set if path == mismatch_file
                     else error_path_set if path == error_file
@@ -1351,9 +1363,8 @@ class VerificationTest(TestCaseWithTemporaryFilesAndFolders):
                         user_folder, backup_folder = matches.groups()
                         self.assertTrue(self.user_path.samefile(user_folder))
                         self.assertTrue(self.backup_path.samefile(backup_folder))
-                        files_from_verify = {Path(line.removesuffix("\n")) for line in verify_file}
-
-                    self.assertEqual(files_from_verify, path_set)
+                        files_from_verify = read_verify_file(verify_file)
+                        self.assertEqual(files_from_verify, path_set)
 
     def test_verification_files_do_not_overwrite_existing_files(self) -> None:
         """Make sure that the verifying function does not clobber existing files."""

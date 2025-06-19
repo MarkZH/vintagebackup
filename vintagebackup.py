@@ -1119,8 +1119,10 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
         for file in (matching_file, mismatching_file, error_file):
             file.write(f"Comparison: {user_folder} <---> {backup_folder}\n")
 
-        def file_name_line_writer(relative_directory: Path) -> Callable[[str], str]:
-            return lambda file_name: f"{relative_directory/file_name}\n"
+        def write_directory(output: io.TextIOBase, directory: Path, file_names: list[str]) -> None:
+            if file_names:
+                output.write(f"{directory}\n")
+                output.writelines(f"{name}\n" for name in file_names)
 
         for directory, file_names in Backup_Set(user_folder, filter_file):
             relative_directory = directory.relative_to(user_folder)
@@ -1131,10 +1133,9 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
                 file_names,
                 shallow=False)
 
-            stringifier = file_name_line_writer(relative_directory)
-            matching_file.writelines(map(stringifier, matches))
-            mismatching_file.writelines(map(stringifier, mismatches))
-            error_file.writelines(map(stringifier, errors))
+            write_directory(matching_file, directory, matches)
+            write_directory(mismatching_file, directory, mismatches)
+            write_directory(error_file, directory, errors)
 
 
 def restore_backup(
