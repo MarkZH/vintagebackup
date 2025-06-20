@@ -786,6 +786,39 @@ class FilterTest(TestCaseWithTemporaryFilesAndFolders):
             vintagebackup.Backup_Set(self.user_path, self.filter_path)
         self.assertIn("outside user folder", error.exception.args[0])
 
+    def test_filter_preview_lists_correct_files(self) -> None:
+        """Test that previewing a filter matches the files that are backed up."""
+        create_user_data(self.user_path)
+        self.filter_path.write_text("- **/*1.txt\n")
+        preview_path = self.user_path/"preview.txt"
+        main_assert_no_error_log([
+            "--user-folder", str(self.user_path),
+            "--filter", str(self.filter_path),
+            "--preview-filter", str(preview_path)],
+            self)
+
+        with preview_path.open() as preview:
+            previewed_paths = read_verify_file(preview)
+        previewed_paths = {path.relative_to(self.user_path) for path in previewed_paths}
+
+        main_assert_no_error_log([
+            "--user-folder", str(self.user_path),
+            "--backup-folder", str(self.backup_path),
+            "--filter", str(self.filter_path)],
+            self)
+
+        backup_list_path = self.user_path/"backed_up.txt"
+        last_backup = cast(Path, vintagebackup.find_previous_backup(self.backup_path))
+        with backup_list_path.open("w") as backup_list:
+            for directory, _, files in last_backup.walk():
+                vintagebackup.write_directory(backup_list, directory, files)
+
+        with backup_list_path.open() as backup_list:
+            backed_up_paths = read_verify_file(backup_list)
+        backed_up_paths = {path.relative_to(last_backup) for path in backed_up_paths}
+
+        self.assertEqual(previewed_paths, backed_up_paths)
+
 
 def run_recovery(method: Invocation, backup_location: Path, file_path: Path) -> int:
     """Test file recovery through a direct function call or a CLI invocation."""
@@ -1287,11 +1320,13 @@ class MoveBackupsTest(TestCaseWithTemporaryFilesAndFolders):
 def read_verify_file(verify_file: io.TextIOBase) -> set[Path]:
     """Read an opened verification file and return the path contents."""
     files_from_verify: set[Path] = set()
-    current_directory = Path()
+    current_directory: Path | None = None
     for line in verify_file:
         if os.sep in line:
             current_directory = Path(line.removesuffix("\n"))
         else:
+            if not current_directory:
+                raise ValueError("File names must be preceded by a directory path.")
             files_from_verify.add(current_directory/line.removeprefix("    ").removesuffix("\n"))
     return files_from_verify
 
