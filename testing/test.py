@@ -798,7 +798,7 @@ class FilterTest(TestCaseWithTemporaryFilesAndFolders):
             self)
 
         with preview_path.open() as preview:
-            previewed_paths = read_verify_file(preview)
+            previewed_paths = read_paths_file(preview)
         previewed_paths = {path.relative_to(self.user_path) for path in previewed_paths}
 
         main_assert_no_error_log([
@@ -814,7 +814,7 @@ class FilterTest(TestCaseWithTemporaryFilesAndFolders):
                 vintagebackup.write_directory(backup_list, directory, files)
 
         with backup_list_path.open() as backup_list:
-            backed_up_paths = read_verify_file(backup_list)
+            backed_up_paths = read_paths_file(backup_list)
         backed_up_paths = {path.relative_to(last_backup) for path in backed_up_paths}
 
         self.assertEqual(previewed_paths, backed_up_paths)
@@ -1317,7 +1317,7 @@ class MoveBackupsTest(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(expected_logs, no_move_choice_log.output)
 
 
-def read_verify_file(verify_file: io.TextIOBase) -> set[Path]:
+def read_paths_file(verify_file: io.TextIOBase) -> set[Path]:
     """Read an opened verification file and return the path contents."""
     files_from_verify: set[Path] = set()
     current_directory: Path | None = None
@@ -1398,7 +1398,7 @@ class VerificationTest(TestCaseWithTemporaryFilesAndFolders):
                         user_folder, backup_folder = matches.groups()
                         self.assertTrue(self.user_path.samefile(user_folder))
                         self.assertTrue(self.backup_path.samefile(backup_folder))
-                        files_from_verify = read_verify_file(verify_file)
+                        files_from_verify = read_paths_file(verify_file)
                         self.assertEqual(files_from_verify, path_set)
 
     def test_verification_files_do_not_overwrite_existing_files(self) -> None:
