@@ -1087,6 +1087,13 @@ def move_backups(
     record_user_location(original_backup_source, new_backup_location)
 
 
+def write_directory(output: io.TextIOBase, directory: Path, file_names: list[str]) -> None:
+    """Write the full path of a directory followed by a list of files it contains."""
+    if file_names:
+        output.write(f"{absolute_path(directory)}{os.sep}\n")
+        output.writelines(f"    {name}\n" for name in file_names)
+
+
 def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Path | None) -> None:
     """
     Verify the most recent backup by comparing with the user's files.
@@ -1119,9 +1126,6 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
         for file in (matching_file, mismatching_file, error_file):
             file.write(f"Comparison: {user_folder} <---> {backup_folder}\n")
 
-        def file_name_line_writer(relative_directory: Path) -> Callable[[str], str]:
-            return lambda file_name: f"{relative_directory/file_name}\n"
-
         for directory, file_names in Backup_Set(user_folder, filter_file):
             relative_directory = directory.relative_to(user_folder)
             backup_directory = last_backup_folder/relative_directory
@@ -1131,10 +1135,9 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
                 file_names,
                 shallow=False)
 
-            stringifier = file_name_line_writer(relative_directory)
-            matching_file.writelines(map(stringifier, matches))
-            mismatching_file.writelines(map(stringifier, mismatches))
-            error_file.writelines(map(stringifier, errors))
+            write_directory(matching_file, directory, matches)
+            write_directory(mismatching_file, directory, mismatches)
+            write_directory(error_file, directory, errors)
 
 
 def restore_backup(
@@ -1797,6 +1800,33 @@ def delete_before_backup(args: argparse.Namespace) -> None:
     start_backup(args)
 
 
+def path_listing(
+        listing: Iterable[tuple[Path, list[str]]],
+        output: io.TextIOBase) -> None:
+    """
+    Print a list of paths with file names listed under their directories.
+
+    :param listing: The list of paths. Each entry should be a directory path and the files it
+    contains. The first directory should be the root directory that contains all other paths.
+    :param output: An alternate destination for the printed output.
+    """
+    for directory, file_names in listing:
+        write_directory(output, directory, file_names)
+
+
+def preview_filter(args: argparse.Namespace) -> None:
+    """Print a list of files that will make it through the --filter file."""
+    user_folder = get_existing_path(args.user_folder, "user folder")
+    filter_file = path_or_none(args.filter)
+    output_file = path_or_none(args.preview_filter)
+    if output_file:
+        with open(output_file, "w", encoding="utf8") as output:
+            path_listing(Backup_Set(user_folder, filter_file), output)
+    else:
+        stdout = cast(io.TextIOBase, sys.stdout)
+        path_listing(Backup_Set(user_folder, filter_file), stdout)
+
+
 def argument_parser() -> argparse.ArgumentParser:
     """Create the parser for command line arguments."""
     user_input = argparse.ArgumentParser(
@@ -1885,6 +1915,16 @@ comparison will be placed in the folder RESULT_DIR. The result is three files: a
 match, a list of files that do not match, and a list of files that caused errors during the
 comparison. The --backup-folder argument is required. If a filter file was used
 to create the backup, then --filter should be supplied as well."""))
+
+    only_one_action_group.add_argument(
+        "--preview-filter",
+        metavar="FILE_NAME",
+        nargs="?",
+        const=False,
+        help=format_help(
+"""Create a list of the files and folders that will be backed up after being filtered by the
+--filter file argument. The argument is a file name where the list will be written. If there is no
+argument, the list will be written to the console. The --user-folder argument is required."""))
 
     only_one_action_group.add_argument("--restore", action="store_true", help=format_help(
 """This action restores the user's folder to a previous, backed up state. Any existing user files
@@ -2210,6 +2250,7 @@ def main(argv: list[str]) -> int:
             else choose_purge_target_from_backups if args.purge_list
             else delete_old_backups if args.delete_only
             else delete_before_backup if toggle_is_set(args, "delete_first")
+            else preview_filter if args.preview_filter is not None
             else start_backup)
         action(args)
         return 0
