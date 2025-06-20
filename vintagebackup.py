@@ -1802,7 +1802,7 @@ def delete_before_backup(args: argparse.Namespace) -> None:
 
 def path_listing(
         listing: Iterable[tuple[Path, list[str]]],
-        output: io.TextIOBase | None = None) -> None:
+        output: io.TextIOBase) -> None:
     """
     Print a list of paths with file names listed under their directories.
 
@@ -1810,7 +1810,6 @@ def path_listing(
     contains. The first directory should be the root directory that contains all other paths.
     :param output: An alternate destination for the printed output.
     """
-    output = output or cast(io.TextIOBase, sys.stdout)
     for directory, file_names in listing:
         write_directory(output, directory, file_names)
 
@@ -1824,7 +1823,8 @@ def preview_filter(args: argparse.Namespace) -> None:
         with open(output_file, "w", encoding="utf8") as output:
             path_listing(Backup_Set(user_folder, filter_file), output)
     else:
-        path_listing(Backup_Set(user_folder, filter_file), None)
+        stdout = cast(io.TextIOBase, sys.stdout)
+        path_listing(Backup_Set(user_folder, filter_file), stdout)
 
 
 def argument_parser() -> argparse.ArgumentParser:
