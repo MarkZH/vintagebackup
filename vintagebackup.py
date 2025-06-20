@@ -1087,6 +1087,13 @@ def move_backups(
     record_user_location(original_backup_source, new_backup_location)
 
 
+def write_directory(output: io.TextIOBase, directory: Path, file_names: list[str]) -> None:
+    """Write the full path of a directory followed by a list of files it contains."""
+    if file_names:
+        output.write(f"{absolute_path(directory)}{os.sep}\n")
+        output.writelines(f"    {name}\n" for name in file_names)
+
+
 def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Path | None) -> None:
     """
     Verify the most recent backup by comparing with the user's files.
@@ -1118,11 +1125,6 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
 
         for file in (matching_file, mismatching_file, error_file):
             file.write(f"Comparison: {user_folder} <---> {backup_folder}\n")
-
-        def write_directory(output: io.TextIOBase, directory: Path, file_names: list[str]) -> None:
-            if file_names:
-                output.write(f"{absolute_path(directory)}{os.sep}\n")
-                output.writelines(f"    {name}\n" for name in file_names)
 
         for directory, file_names in Backup_Set(user_folder, filter_file):
             relative_directory = directory.relative_to(user_folder)
@@ -1808,10 +1810,9 @@ def path_listing(
     contains. The first directory should be the root directory that contains all other paths.
     :param output: An alternate destination for the printed output.
     """
+    output = output or cast(io.TextIOBase, sys.stdout)
     for directory, file_names in listing:
-        print(f"{absolute_path(directory)}{os.sep}", file=output)
-        for file_name in file_names:
-            print(f"    {file_name}", file=output)
+        write_directory(output, directory, file_names)
 
 
 def preview_filter(args: argparse.Namespace) -> None:
