@@ -17,6 +17,8 @@ The configuration file will be generated in the same manner as described in [the
 If files with those names already exist, the generated files will be renamed to prevent overwriting.
 The command line options in `<backup options>` will be placed in the configuration file.
 
+Scripts can be generated for other actions like [backup verification](verification.md) by including the relevant command line option (`--verify`, in this case).
+
 In the example below, Alice will backup her home directory to an external backup drive every night at 2AM. She keeps the Vintage Backup script at `C:\Users\Alice\vintagebackup\vintagebackup.py` and a configuration file at `C:\Users\Alice\vintage_backup_config.txt`.
 
 ## 1. Batch file
