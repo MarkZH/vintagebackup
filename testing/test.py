@@ -245,7 +245,8 @@ class TestCaseWithTemporaryFilesAndFolders(unittest.TestCase):
         self.filter_path = self.user_path/"filter.txt"
 
     def tearDown(self) -> None:
-        """Delete the temporary directories."""
+        """Delete the temporary directories and reset the logger."""
+        vintagebackup.setup_initial_null_logger(vintagebackup.logger)
         for directory in (self.user_path, self.backup_path):
             vintagebackup.delete_directory_tree(directory)
 
@@ -3233,6 +3234,49 @@ class UniquePathNameTests(TestCaseWithTemporaryFilesAndFolders):
             new_path_name = self.user_path/f"existing.{number}.txt"
             self.assertEqual(new_path_name, vintagebackup.unique_path_name(path))
             new_path_name.touch()
+
+
+class ErrorLogTests(TestCaseWithTemporaryFilesAndFolders):
+    """Tests for generating a second log file with only errors."""
+
+    def setUp(self) -> None:
+        """Create path for error log file."""
+        super().setUp()
+        self.error_log = self.user_path/"errors.log"
+
+    def test_no_errors_results_in_no_error_file(self) -> None:
+        """If no warnings or errors are logged, then the error file is not created."""
+        create_user_data(self.user_path)
+        main_assert_no_error_log([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "--error-log", str(self.error_log)],
+            self)
+
+        self.assertFalse(self.error_log.exists())
+
+    def test_errors_result_in_error_file(self) -> None:
+        """If warnings/errors are logged, the error file is created with the warnings/errors."""
+        non_existent_folder = self.user_path.parent/"non-existent"
+        with self.assertLogs(level=logging.WARNING) as error_logs:
+            main_no_log([
+                "-u", str(non_existent_folder),
+                "-b", str(self.backup_path),
+                "--error-log", str(self.error_log)])
+
+        self.assertTrue(self.error_log.exists())
+
+        def error_file_line_message(line: str) -> str:
+            return line.split(maxsplit=3)[-1].removesuffix("\n")
+
+        with self.error_log.open(encoding="utf8") as error_file:
+            error_file_lines = list(map(error_file_line_message, error_file))
+
+        def error_log_line_message(line: str) -> str:
+            return line.split(":", maxsplit=2)[-1]
+
+        error_log_lines = list(map(error_log_line_message, error_logs.output))
+        self.assertEqual(error_log_lines, error_file_lines)
 
 
 class HelpTests(unittest.TestCase):

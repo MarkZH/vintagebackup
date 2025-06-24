@@ -21,9 +21,19 @@ from typing import Any, cast
 
 backup_date_format = "%Y-%m-%d %H-%M-%S"
 
+
+def setup_initial_null_logger(logger: logging.Logger) -> None:
+    """Reset a logger that outputs to null so that no logs are printed during testing."""
+    for handler in logger.handlers:
+        handler.close()
+    logger.handlers.clear()
+
+    logger.addHandler(logging.FileHandler(os.devnull))
+    logger.setLevel(logging.INFO)
+
+
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.FileHandler(os.devnull))
-logger.setLevel(logging.INFO)
+setup_initial_null_logger(logger)
 
 
 class CommandLineError(ValueError):
