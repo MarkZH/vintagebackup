@@ -17,3 +17,4 @@ This starts a text editor for editing the table.
 - Using a configuration file is recommended to keep the `cron` line short and to make it easier to change settings in the future.
 - Other schedules can be implemented by changing the first five entries in the line.
 See the [Wikipedia article](https://en.wikipedia.org/wiki/Cron) for more information.
+- Other actions, such as [backup verifications](verification.md), can be scheduled, as well.
