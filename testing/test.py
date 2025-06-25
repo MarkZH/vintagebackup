@@ -3264,7 +3264,7 @@ class ErrorLogTests(TestCaseWithTemporaryFilesAndFolders):
                 "-b", str(self.backup_path),
                 "--error-log", str(self.error_log)])
 
-        self.assertTrue(self.error_log.exists())
+        self.assertTrue(self.error_log.is_file())
 
         def error_file_line_message(line: str) -> str:
             return line.split(maxsplit=3)[-1].removesuffix("\n")
