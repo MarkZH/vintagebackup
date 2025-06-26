@@ -9,6 +9,7 @@
 7. [Delete old backups](delete.md)
 
 The `--help` or `-h` parameter also prints an overview of the program's command line parameters.
+See [this page](other_options.md) for more options.
 
 # Configuration file
 
