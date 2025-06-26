@@ -11,7 +11,7 @@ The parameter is a file name.
 
 Specify a log file that only receives warnings and errors.
 The parameter is a file name.
-If a backup or othe process runs without errors, this file will not be created.
+If a backup or other process runs without errors, this file will not be created.
 If the file in the parameter is placed in a prominent location (like the Desktop), then the full log does not need to be inspected as often--only when the error log appears to indicate something went wrong.
 
 
@@ -21,7 +21,7 @@ If the file in the parameter is placed in a prominent location (like the Desktop
 
 Check that a [filter file](filter_files.md) is correct by printing a list of everything that will be backed up.
 The list will be printed to a file name in the parameter of this option, or the console if the parameter is blank.
-The `--user-folder` is required. This procedue can be run without a `--filter` option, but everything in the user folder will be printed.
+The `--user-folder` option is required. This procedure can be run without a `--filter` option, which will result in everything in the user folder being printed.
 
 ### `--debug`
 
