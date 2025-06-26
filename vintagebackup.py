@@ -21,9 +21,19 @@ from typing import Any, cast
 
 backup_date_format = "%Y-%m-%d %H-%M-%S"
 
+
+def setup_initial_null_logger(logger: logging.Logger) -> None:
+    """Reset a logger that outputs to null so that no logs are printed during testing."""
+    for handler in logger.handlers:
+        handler.close()
+    logger.handlers.clear()
+
+    logger.addHandler(logging.FileHandler(os.devnull))
+    logger.setLevel(logging.INFO)
+
+
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.FileHandler(os.devnull))
-logger.setLevel(logging.INFO)
+setup_initial_null_logger(logger)
 
 
 class CommandLineError(ValueError):
@@ -601,13 +611,24 @@ def check_paths_for_validity(
         raise CommandLineError(f"Filter file not found: {filter_file}")
 
 
-def setup_log_file(logger: logging.Logger, log_file_path: str) -> None:
+def setup_log_file(
+        logger: logging.Logger,
+        log_file_path: str,
+        error_log_file_path: str | None) -> None:
     """Set up logging to write to a file."""
+    log_format = "%(asctime)s %(levelname)s    %(message)s"
     if log_file_path != os.devnull:
         log_file = logging.FileHandler(log_file_path, encoding="utf8")
-        log_file_format = logging.Formatter(fmt="%(asctime)s %(levelname)s    %(message)s")
+        log_file_format = logging.Formatter(fmt=log_format)
         log_file.setFormatter(log_file_format)
         logger.addHandler(log_file)
+
+    if error_log_file_path:
+        error_log = logging.FileHandler(error_log_file_path, encoding="utf8", delay=True)
+        error_log.setLevel(logging.WARNING)
+        error_log_format = logging.Formatter(fmt=log_format)
+        error_log.setFormatter(error_log_format)
+        logger.addHandler(error_log)
 
 
 def search_backups(
@@ -2179,6 +2200,10 @@ f"""Where to log the activity of this program. The default is
 {default_log_file_name.name} in the user's home folder. If no
 log file is desired, use the file name {os.devnull}."""))
 
+    other_group.add_argument("--error-log", help=format_help(
+"""Where to copy log lines that are warnings or errors. This file will only appear when unexpected
+events occur."""))
+
     # The following arguments are only used for testing.
 
     # Bypass keyboard input when testing functions that ask for a choice from a menu.
@@ -2234,7 +2259,7 @@ def main(argv: list[str]) -> int:
             print_help()
             return 0
 
-        setup_log_file(logger, args.log)
+        setup_log_file(logger, args.log, args.error_log)
         logger.setLevel(logging.DEBUG if toggle_is_set(args, "debug") else logging.INFO)
         logger.debug(args)
 
