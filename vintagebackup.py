@@ -827,6 +827,35 @@ def delete_directory_tree(directory: Path, *, ignore_errors: bool = False) -> No
     shutil.rmtree(directory, onexc=remove_readonly)
 
 
+def delete_file(file_path: Path, *, ignore_errors: bool = False) -> None:
+    """
+    Delete file with option to ignore errors.
+
+    If ignore_errors is True, then an error message is printed. Otherwise, the exception from
+    Path.unlink() is raised.
+    """
+    try:
+        file_path.unlink()
+    except Exception as error:
+        if ignore_errors:
+            logger.error(f"Could not delete {file_path}: {error}")
+        else:
+            raise
+
+
+def delete_path(path: Path, *, ignore_errors: bool = False) -> None:
+    """
+    Delete a path whether it is a file, folder, or something else.
+
+    If ignore_errors is True, then an error message is printed if an exception occurs. Otherwise,
+    the exception from the deletion call is raised.
+    """
+    if is_real_directory(path):
+        delete_directory_tree(path, ignore_errors=ignore_errors)
+    else:
+        delete_file(path, ignore_errors=ignore_errors)
+
+
 def delete_oldest_backups_for_space(
         backup_location: Path,
         space_requirement: str | None,
@@ -1202,11 +1231,8 @@ def restore_backup(
             user_paths = {entry.name for entry in current_user_folder.iterdir()}
             for new_name in user_paths - backed_up_paths:
                 new_path = current_user_folder/new_name
-                logger.debug(f"Deleting extra file {new_path}")
-                if is_real_directory(new_path):
-                    delete_directory_tree(new_path)
-                else:
-                    new_path.unlink()
+                logger.debug(f"Deleting extra item {new_path}")
+                delete_path(new_path, ignore_errors=True)
 
 
 def last_n_backups(backup_location: Path, n: str | int) -> list[Path]:
@@ -1595,21 +1621,11 @@ def purge_path(
     if confirmation.lower() != "y":
         return
 
-    def purge_directory(directory: Path) -> None:
-        delete_directory_tree(directory, ignore_errors=True)
-
-    def purge_file(file: Path) -> None:
-        try:
-            file.unlink()
-        except Exception as error:
-            logger.error(f"Could not delete {file}: {error}")
-
     for path in paths_to_delete:
         path_type = classify_path(path)
         if path_type in types_to_delete:
             logger.info(f"Deleting {path_type} {path} ...")
-            action = purge_directory if path_type == "Folder" else purge_file
-            action(path)
+            delete_path(path, ignore_errors=True)
 
     last_backup = find_previous_backup(backup_folder)
     if backup_list[-1] != last_backup or backup_staging_folder(backup_folder).exists():
