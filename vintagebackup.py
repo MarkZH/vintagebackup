@@ -204,7 +204,7 @@ class Backup_Set:
                     raise ValueError(
                         f"Line #{line_number} ({line}): Filter looks at paths outside user folder.")
 
-                logger.debug(f"Filter added: {line} --> {sign} {pattern}")
+                logger.debug("Filter added: %s --> %s %s", line, sign, pattern)
                 self.entries.append((line_number, sign, pattern))
 
     def __iter__(self) -> Iterator[tuple[Path, list[str]]]:
@@ -241,7 +241,11 @@ class Backup_Set:
         for line_number, sign, pattern in self.entries:
             if line_number not in self.lines_used:
                 logger.info(
-                    f"{self.filter_file}: line #{line_number} ({sign} {pattern}) had no effect.")
+                    "%s: line #%d (%s %s) had no effect.",
+                    self.filter_file,
+                    line_number,
+                    sign,
+                    pattern)
 
 
 def get_user_location_record(backup_location: Path) -> Path:
@@ -253,7 +257,7 @@ def record_user_location(user_location: Path, backup_location: Path) -> None:
     """Write the user directory being backed up to a file in the base backup directory."""
     user_folder_record = get_user_location_record(backup_location)
     resolved_user_location = absolute_path(user_location, strict=True)
-    logger.debug(f"Writing {resolved_user_location} to {user_folder_record}")
+    logger.debug("Writing %s to %s", resolved_user_location, user_folder_record)
     user_folder_record.write_text(f"{resolved_user_location}\n", encoding="utf8")
 
 
@@ -385,9 +389,9 @@ def create_hard_link(previous_backup: Path, new_backup: Path) -> bool:
         new_backup.hardlink_to(previous_backup)
         return True
     except Exception as error:
-        logger.debug(f"Could not create hard link due to error: {error}")
-        logger.debug(f"Previous backed up file: {previous_backup}")
-        logger.debug(f"Attempted link         : {new_backup}")
+        logger.debug("Could not create hard link due to error: %s", error)
+        logger.debug("Previous backed up file: %s", previous_backup)
+        logger.debug("Attempted link         : %s", new_backup)
         return False
 
 
@@ -467,7 +471,7 @@ def backup_directory(
 
         if create_hard_link(previous_backup, new_backup):
             action_counter["linked files"] += 1
-            logger.debug(f"Linked {previous_backup} to {new_backup}")
+            logger.debug("Linked %s to %s", previous_backup, new_backup)
         else:
             files_to_copy.append(file_name)
 
@@ -477,9 +481,9 @@ def backup_directory(
         try:
             shutil.copy2(user_file, new_backup_file, follow_symlinks=False)
             action_counter["copied files"] += 1
-            logger.debug(f"Copied {user_file} to {new_backup_file}")
+            logger.debug("Copied %s to %s", user_file, new_backup_file)
         except Exception as error:
-            logger.warning(f"Could not copy {user_file} ({error})")
+            logger.warning("Could not copy %s (%s)", user_file, error)
             action_counter["failed copies"] += 1
 
 
@@ -524,33 +528,33 @@ def create_new_backup(
     staging_backup_path = backup_staging_folder(backup_location)
     if staging_backup_path.exists():
         logger.info("There is a staging folder leftover from previous incomplete backup.")
-        logger.info(f"Deleting {staging_backup_path} ...")
+        logger.info("Deleting %s ...", staging_backup_path)
         delete_directory_tree(staging_backup_path)
 
     confirm_user_location_is_unchanged(user_data_location, backup_location)
     record_user_location(user_data_location, backup_location)
 
     if is_backup_move:
-        logger.info(f"Original backup  : {user_data_location}")
-        logger.info(f"Temporary backup : {new_backup_path}")
+        logger.info("Original backup  : %s", user_data_location)
+        logger.info("Temporary backup : %s", new_backup_path)
     else:
-        logger.info(f"User's data      : {user_data_location}")
-        logger.info(f"Backup location  : {new_backup_path}")
-    logger.info(f"Staging area     : {staging_backup_path}")
+        logger.info("User's data      : %s", user_data_location)
+        logger.info("Backup location  : %s", new_backup_path)
+    logger.info("Staging area     : %s", staging_backup_path)
 
     last_backup_path = None if force_copy else find_previous_backup(backup_location)
     if last_backup_path:
-        logger.info(f"Previous backup  : {last_backup_path}")
+        logger.info("Previous backup  : %s", last_backup_path)
     elif force_copy:
         logger.info("Copying everything.")
     else:
         logger.info("No previous backups. Copying everything.")
 
     logger.info("")
-    logger.info(f"Reading file contents = {examine_whole_file}")
+    logger.info("Reading file contents = %s", examine_whole_file)
 
     action_counter: Counter[str] = Counter()
-    logger.info(f"Filter file: {filter_file}")
+    logger.info("Filter file: %s", filter_file)
     logger.info("Running backup ...")
     for current_user_path, user_file_names in Backup_Set(user_data_location, filter_file):
         backup_directory(
@@ -584,7 +588,7 @@ def report_backup_file_counts(action_counter: Counter[str]) -> None:
     name_column_size = max(map(len, action_counter))
     count_column_size = len(str(max(action_counter.values())))
     for action, count in action_counter.items():
-        logger.info(f"{action.capitalize():<{name_column_size}} : {count:>{count_column_size}}")
+        logger.info("%*s : %*d", -name_column_size, action.capitalize(), count_column_size, count)
 
     if total_files == 0:
         logger.warning("No files were backed up!")
@@ -660,7 +664,7 @@ def search_backups(
             continue
 
     if not all_paths:
-        logger.info(f"No backups found for the folder {search_directory}")
+        logger.info("No backups found for the folder %s", search_directory)
         return None
 
     menu_list = sorted(all_paths)
@@ -702,7 +706,7 @@ def recover_path(recovery_path: Path, backup_location: Path, choice: int | None 
             unique_backups.setdefault(inode, path)
 
     if not unique_backups:
-        logger.info(f"No backups found for {recovery_path}")
+        logger.info("No backups found for %s", recovery_path)
         return
 
     backup_choices = sorted(unique_backups.values())
@@ -716,7 +720,7 @@ def recover_path(recovery_path: Path, backup_location: Path, choice: int | None 
     chosen_path = backup_choices[choice]
 
     recovered_path = unique_path_name(recovery_path)
-    logger.info(f"Copying {chosen_path} to {recovered_path}")
+    logger.info("Copying %s to %s", chosen_path, recovered_path)
     if is_real_directory(chosen_path):
         shutil.copytree(chosen_path, recovered_path, symlinks=True)
     else:
@@ -820,7 +824,7 @@ def delete_directory_tree(directory: Path, *, ignore_errors: bool = False) -> No
             func(path)
         except Exception as error:
             if ignore_errors:
-                logger.error(f"Could not delete {path}: {error}")
+                logger.error("Could not delete %s: %s", path, error)
             else:
                 raise
 
@@ -838,7 +842,7 @@ def delete_file(file_path: Path, *, ignore_errors: bool = False) -> None:
         file_path.unlink()
     except Exception as error:
         if ignore_errors:
-            logger.error(f"Could not delete {file_path}: {error}")
+            logger.error("Could not delete %s: %s", file_path, error)
         else:
             raise
 
@@ -898,8 +902,8 @@ def delete_oldest_backups_for_space(
         backups_remaining = len(all_backups(backup_location))
         if backups_remaining == 1:
             logger.warning(
-                f"Could not free up {byte_units(free_storage_required)} of storage"
-                " without deleting most recent backup.")
+                "Could not free up %s of storage without deleting most recent backup.",
+                byte_units(free_storage_required))
         else:
             logger.info("Stopped after reaching maximum number of deletions.")
 
@@ -1041,8 +1045,8 @@ def delete_backups_older_than(
         backups_remaining = len(all_backups(backup_folder))
         if backups_remaining == 1:
             logger.warning(
-                f"Could not delete all backups older than {timestamp_to_keep} without"
-                " deleting most recent backup.")
+                "Could not delete all backups older than %s without deleting most recent backup.",
+                timestamp_to_keep)
         else:
             logger.info("Stopped after reaching maximum number of deletions.")
 
@@ -1073,17 +1077,17 @@ def delete_backups(
             logger.info("")
             logger.info(first_deletion_message)
 
-        logger.info(f"Deleting oldest backup: {backup}")
+        logger.info("Deleting oldest backup: %s", backup)
         delete_directory_tree(backup, ignore_errors=True)
 
         try:
             year_folder = backup.parent
             year_folder.rmdir()
-            logger.info(f"Deleted empty year folder {year_folder}")
+            logger.info("Deleted empty year folder %s", year_folder)
         except OSError:
             pass
 
-        logger.info(f"Free space: {byte_units(shutil.disk_usage(backup_folder).free)}")
+        logger.info("Free space: %s", byte_units(shutil.disk_usage(backup_folder).free))
 
 
 def backup_datetime(backup: Path) -> datetime.datetime:
@@ -1114,9 +1118,9 @@ def move_backups(
         backups_to_move: list[Path]) -> None:
     """Move a set of backups to a new location."""
     move_count = len(backups_to_move)
-    logger.info(f"Moving {plural_noun(move_count, "backup")}")
-    logger.info(f"from {old_backup_location}")
-    logger.info(f"to   {new_backup_location}")
+    logger.info("Moving %s", plural_noun(move_count, "backup"))
+    logger.info("from %s", old_backup_location)
+    logger.info("to   %s", new_backup_location)
 
     for backup in backups_to_move:
         create_new_backup(
@@ -1161,8 +1165,8 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
     if last_backup_folder is None:
         raise CommandLineError(f"No backups found in {backup_folder}.")
 
-    logger.info(f"Filter file: {filter_file}")
-    logger.info(f"Verifying backup in {backup_folder} by comparing against {user_folder} ...")
+    logger.info("Filter file: %s", filter_file)
+    logger.info("Verifying backup in %s by comparing against %s ...", backup_folder, user_folder)
 
     result_folder.mkdir(parents=True, exist_ok=True)
     matching_file_name = unique_path_name(result_folder/"matching files.txt")
@@ -1206,32 +1210,40 @@ def restore_backup(
     backup.
     """
     user_folder = backup_source(dated_backup_folder.parent.parent)
-    logger.info(f"Restoring: {user_folder}")
-    logger.info(f"From     : {dated_backup_folder}")
-    logger.info(f"Deleting extra files: {delete_extra_files}")
+    logger.info("Restoring: %s", user_folder)
+    logger.info("From     : %s", dated_backup_folder)
+    logger.info("Deleting extra files: %s", delete_extra_files)
     if not user_folder.samefile(destination):
-        logger.info(f"Restoring to: {destination}")
+        logger.info("Restoring to: %s", destination)
 
     for current_backup_path, folder_names, file_names in dated_backup_folder.walk():
         current_user_folder = destination/current_backup_path.relative_to(dated_backup_folder)
-        logger.debug(f"Creating {current_user_folder}")
+        logger.debug("Creating %s", current_user_folder)
         current_user_folder.mkdir(parents=True, exist_ok=True)
 
         for file_name in file_names:
             file_source = current_backup_path/file_name
             file_destination = current_user_folder/file_name
-            logger.debug(f"Copying {file_name} from {current_backup_path} to {current_user_folder}")
+            logger.debug(
+                "Copying %s from %s to %s",
+                file_name,
+                current_backup_path,
+                current_user_folder)
             try:
                 shutil.copy2(file_source, file_destination, follow_symlinks=False)
             except Exception as error:
-                logger.warning(f"Could not restore {file_destination} from {file_source}: {error}")
+                logger.warning(
+                    "Could not restore %s from %s: %s",
+                    file_destination,
+                    file_source,
+                    error)
 
         if delete_extra_files:
             backed_up_paths = set(folder_names) | set(file_names)
             user_paths = {entry.name for entry in current_user_folder.iterdir()}
             for new_name in user_paths - backed_up_paths:
                 new_path = current_user_folder/new_name
-                logger.debug(f"Deleting extra item {new_path}")
+                logger.debug("Deleting extra item %s", new_path)
                 delete_path(new_path, ignore_errors=True)
 
 
@@ -1269,13 +1281,15 @@ def print_backup_storage_stats(backup_location: Path) -> None:
     percent_free = round(100*backup_storage.free/backup_storage.total)
     logger.info("")
     logger.info(
-        "Backup storage space: "
-        f"Total = {byte_units(backup_storage.total)}  "
-        f"Used = {byte_units(backup_storage.used)} ({percent_used}%)  "
-        f"Free = {byte_units(backup_storage.free)} ({percent_free}%)")
+        "Backup storage space: Total = %s  Used = %s (%d%%)  Free = %s (%d%%)",
+        byte_units(backup_storage.total),
+        byte_units(backup_storage.used),
+        percent_used,
+        byte_units(backup_storage.free),
+        percent_free)
     backups = all_backups(backup_location)
-    logger.info(f"Backups stored: {len(backups)}")
-    logger.info(f"Earliest backup: {backups[0].name}")
+    logger.info("Backups stored: %d", len(backups))
+    logger.info("Earliest backup: %s", backups[0].name)
 
 
 def read_configuation_file(config_file_name: str) -> list[str]:
@@ -1423,7 +1437,7 @@ def copy_probability_from_hard_link_count(hard_link_count: str) -> float:
         raise CommandLineError(
             f"Hard link count must be a positive whole number. Got: {hard_link_count}")
 
-    logger.info(f"Maximum average hard link count = {average_hard_link_count}")
+    logger.info("Maximum average hard link count = %d", average_hard_link_count)
     return 1/(average_hard_link_count + 1)
 
 
@@ -1432,12 +1446,12 @@ def print_run_title(command_line_args: argparse.Namespace, action_title: str) ->
     logger.info("")
     divider = "="*(len(action_title) + 2)
     logger.info(divider)
-    logger.info(f" {action_title}")
+    logger.info(" %s", action_title)
     logger.info(divider)
     logger.info("")
 
     if command_line_args.config:
-        logger.info(f"Reading configuration from file: {Path(command_line_args.config).absolute()}")
+        logger.info("Reading configuration from file: %s", absolute_path(command_line_args.config))
         logger.info("")
 
 
@@ -1470,7 +1484,7 @@ def choose_target_path_from_backups(args: argparse.Namespace) -> Path | None:
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     search_directory = absolute_path(args.list or args.purge_list)
     print_run_title(args, f"Listing files and directories for {operation}")
-    logger.info(f"Searching for everything backed up from {search_directory} ...")
+    logger.info("Searching for everything backed up from %s ...", search_directory)
     test_choice = int(args.choice) if args.choice else None
     return search_backups(search_directory, backup_folder, operation, test_choice)
 
@@ -1558,8 +1572,9 @@ def start_backup_restore(args: argparse.Namespace) -> None:
 
     required_response = "yes"
     logger.info(
-        f"This will overwrite all files in {destination} and subfolders with files "
-        f"in {restore_source}.")
+        "This will overwrite all files in %s and subfolders with files in %s.",
+        destination,
+        restore_source)
     if delete_extra_files:
         logger.info(
             "Any files that were not backed up, including newly created files and "
@@ -1575,8 +1590,9 @@ def start_backup_restore(args: argparse.Namespace) -> None:
         restore_backup(restore_source, destination, delete_extra_files=delete_extra_files)
     else:
         logger.info(
-            f'The response was "{response}" and not "{required_response}", '
-            'so the restoration is cancelled.')
+            'The response was "%s" and not "%s", so the restoration is cancelled.',
+            response,
+            required_response)
 
 
 def classify_path(path: Path) -> str:
@@ -1607,7 +1623,7 @@ def purge_path(
     potential_deletions = (backup/relative_purge_target for backup in backup_list)
     paths_to_delete = list(filter(lambda p: p.exists(follow_symlinks=False), potential_deletions))
     if not paths_to_delete:
-        logger.info(f"Could not find any backed up copies of {purge_target}")
+        logger.info("Could not find any backed up copies of %s", purge_target)
         return
 
     path_type_counts = Counter(map(classify_path, paths_to_delete))
@@ -1615,7 +1631,7 @@ def purge_path(
 
     type_choice_data = [(path_type_counts[path_type], path_type) for path_type in types_to_delete]
     type_list = [f"{plural_noun(count, path_type)}" for count, path_type in type_choice_data]
-    logger.info(f"Path to be purged from backups: {purge_target}")
+    logger.info("Path to be purged from backups: %s", purge_target)
     prompt = f"The following items will be deleted: {", ".join(type_list)}.\nProceed? [y/n] "
     confirmation = confirmation_reponse or input(prompt)
     if confirmation.lower() != "y":
@@ -1624,19 +1640,20 @@ def purge_path(
     for path in paths_to_delete:
         path_type = classify_path(path)
         if path_type in types_to_delete:
-            logger.info(f"Deleting {path_type} {path} ...")
+            logger.info("Deleting %s %s ...", path_type, path)
             delete_path(path, ignore_errors=True)
 
     last_backup = find_previous_backup(backup_folder)
     if backup_list[-1] != last_backup or backup_staging_folder(backup_folder).exists():
         logger.warning(
-            f"A backup to {backup_folder} ran during purging. You may want to rerun the "
-            "purge after the backup completes.")
+            "A backup to %s ran during purging. You may want to rerun the "
+            "purge after the backup completes.",
+            backup_folder)
     logger.info("If you want to prevent the purged item from being backed up in the future,")
     logger.info("consider adding the following line to a filter file:")
     filter_line = (
         relative_purge_target/"**" if is_real_directory(purge_target) else relative_purge_target)
-    logger.info(f"- {filter_line}")
+    logger.info("- %s", filter_line)
 
 
 def choose_types_to_delete(
@@ -1737,7 +1754,7 @@ def generate_config(args: argparse.Namespace) -> Path:
             parameter_value = f'"{value_string}"' if needs_quotes else value_string
             config_file.write(f"{parameter}: {parameter_value}".strip() + "\n")
 
-    logger.info(f"Generated configuration file: {config_path}")
+    logger.info("Generated configuration file: %s", config_path)
     return config_path
 
 
@@ -1752,7 +1769,7 @@ def generate_windows_scripts(args: argparse.Namespace) -> None:
     script_location = absolute_path(script_path)
     python_version = f"{sys.version_info[0]}.{sys.version_info[1]}"
     batch_file.write_text(f'py -{python_version} "{script_location}" --config "{config_path}"\n')
-    logger.info(f"Generated batch script: {batch_file}")
+    logger.info("Generated batch script: %s", batch_file)
 
     vb_script_file = unique_path_name(destination/"vb_script.vbs")
     vb_script_file.write_text(
@@ -1761,7 +1778,7 @@ Set Shell = CreateObject("WScript.Shell")
 Shell.Run """{batch_file}""", 0, true
 Set Shell = Nothing
 ''')
-    logger.info(f"Generated VB script: {vb_script_file}")
+    logger.info("Generated VB script: %s", vb_script_file)
 
 
 def log_backup_size(free_up_parameter: str | None, backup_space_taken: int) -> None:
