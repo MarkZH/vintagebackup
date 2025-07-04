@@ -17,7 +17,6 @@ ignore = [
     "E226", # Missing whitespace around arithmetic operator
     "EM101", # Exception must not use a string literal, assign to variable first
     "EM102", # Exception must not use an f-string literal, assign to variable first
-    "G004", # Logging statement uses f-string
     "I001", # Import block is un-sorted or un-formatted
     "INP001", # File is part of an implicit namespace package. Add an `__init__.py`.
     "N801", # Class name should be CapWords
