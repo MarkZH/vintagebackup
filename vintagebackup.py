@@ -1721,6 +1721,35 @@ def start_backup(args: argparse.Namespace) -> None:
         log_backup_size(args.free_up, backup_space_taken)
 
         delete_old_backups(args)
+        rotate_logs(args)
+
+
+def rotate_logs(args: argparse.Namespace) -> None:
+    """Start a new log file if the current one has logs of deleted backups."""
+    if not toggle_is_set(args, "rotate_old_logs"):
+        return
+
+    log_file = absolute_path(args.log)
+    backup_folder = absolute_path(args.backup_folder)
+    oldest_backup = all_backups(backup_folder)[0]
+    oldest_backup_timestamp = backup_datetime(oldest_backup)
+    earliest_log = oldest_backup_timestamp
+    with log_file.open() as log:
+        for line in log:
+            try:
+                date, time, _ = line.split(maxsplit=2)
+                time = time.split(",")[0]
+                earliest_log = datetime.datetime.fromisoformat(f"{date} {time}")
+                break
+            except Exception as error:
+                logger.debug(error)
+
+    if earliest_log < oldest_backup_timestamp:
+        for handler in logger.handlers:
+            handler.close()
+        logger.handlers.clear()
+        log_file.rename(unique_path_name(log_file))
+        setup_log_file(logger, args.log, args.error_log)
 
 
 def generate_config(args: argparse.Namespace) -> Path:
@@ -2236,6 +2265,12 @@ log file is desired, use the file name {os.devnull}."""))
     other_group.add_argument("--error-log", help=format_help(
 """Where to copy log lines that are warnings or errors. This file will only appear when unexpected
 events occur."""))
+
+    other_group.add_argument("--rotate-old-logs", action="store_true", help=format_help(
+"""When the current log file's oldest entry is older than the oldest backup, start a new log
+file. The former log file will have a number added--e.g., vintagebackup.1.log."""))
+
+    add_no_option(other_group, "rotate-old-logs")
 
     # The following arguments are only used for testing.
 
