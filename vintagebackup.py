@@ -741,9 +741,14 @@ def unique_path_name(destination_path: Path) -> Path:
     unique_id = 0
     while unique_path.exists(follow_symlinks=False):
         unique_id += 1
-        new_path_name = f"{destination_path.stem}.{unique_id}{destination_path.suffix}"
+        new_path_name = create_unique_name(destination_path, unique_id)
         unique_path = destination_path.parent/new_path_name
     return unique_path
+
+
+def create_unique_name(path: Path, addition: int | str) -> str:
+    """Create a path name by inserting the giving string before the path extension."""
+    return f"{path.stem}.{addition}{path.suffix}"
 
 
 def path_relative_to_backups(user_path: Path, backup_location: Path) -> Path:
