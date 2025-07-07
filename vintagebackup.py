@@ -1727,11 +1727,12 @@ def start_backup(args: argparse.Namespace) -> None:
 
         delete_old_backups(args)
         rotate_logs(args)
+        prune_logs(args)
 
 
 def rotate_logs(args: argparse.Namespace) -> None:
     """Start a new log file if the current one has logs of deleted backups."""
-    if not toggle_is_set(args, "rotate_old_logs"):
+    if not toggle_is_set(args, "rotate_old_logs") or not toggle_is_set(args, "prune_old_logs"):
         return
 
     log_file = absolute_path(args.log)
@@ -1757,6 +1758,28 @@ def rotate_logs(args: argparse.Namespace) -> None:
         setup_log_file(logger, args.log, args.error_log)
         logger.info("Starting up logging with new file: %s", log_file)
         logger.info("Old log file moved to %s", rotated_log_file)
+
+
+def prune_logs(args: argparse.Namespace) -> None:
+    """Delete old logs that only have information about deleted backups."""
+    if not toggle_is_set(args, "prune_old_logs"):
+        return
+
+    log_file = absolute_path(args.log)
+    log_file_template = create_unique_name(log_file, "[0-9]*")
+    backup_folder = absolute_path(args.backup_folder)
+    oldest_backup = all_backups(backup_folder)[0]
+    oldest_backup_timestamp = backup_datetime(oldest_backup)
+    for rotated_log_file in log_file.parent.glob(log_file_template):
+        last_timestamp = datetime.datetime.fromtimestamp(rotated_log_file.stat().st_birthtime)
+        with rotated_log_file.open() as log:
+            for line in log:
+                date, time, _ = line.split(maxsplit=2)
+                last_timestamp = datetime.datetime.fromisoformat(f"{date} {time}")
+
+        if last_timestamp < oldest_backup_timestamp:
+            logger.info("Deleting old log file: %s", rotated_log_file)
+            rotated_log_file.unlink()
 
 
 def generate_config(args: argparse.Namespace) -> Path:
@@ -2278,6 +2301,12 @@ events occur."""))
 file. The former log file will have a number added--e.g., vintagebackup.1.log."""))
 
     add_no_option(other_group, "rotate-old-logs")
+
+    other_group.add_argument("--prune-old-logs", action="store_true", help=format_help(
+"""If a rotated log file only has logs about deleted backups, delete it. This option also activates
+--rotate-old-logs."""))
+
+    add_no_option(other_group, "prune-old-logs")
 
     # The following arguments are only used for testing.
 
