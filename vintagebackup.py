@@ -1771,7 +1771,9 @@ def prune_logs(args: argparse.Namespace) -> None:
     oldest_backup = all_backups(backup_folder)[0]
     oldest_backup_timestamp = backup_datetime(oldest_backup)
     for rotated_log_file in log_file.parent.glob(log_file_template):
-        last_timestamp = datetime.datetime.fromtimestamp(rotated_log_file.stat().st_birthtime)
+        stat = rotated_log_file.stat()
+        timestamp = cast(Any, stat).st_birthtime if hasattr(stat, "st_birthtime") else stat.st_ctime
+        last_timestamp = datetime.datetime.fromtimestamp(timestamp)
         with rotated_log_file.open() as log:
             for line in log:
                 date, time, _ = line.split(maxsplit=2)
