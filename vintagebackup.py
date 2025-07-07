@@ -1745,11 +1745,13 @@ def rotate_logs(args: argparse.Namespace) -> None:
                 logger.debug(error)
 
     if earliest_log < oldest_backup_timestamp:
-        for handler in logger.handlers:
-            handler.close()
-        logger.handlers.clear()
-        log_file.rename(unique_path_name(log_file))
+        logger.info("Shutting down logging before rotating log.")
+        setup_initial_null_logger(logger)
+        rotated_log_file = unique_path_name(log_file)
+        log_file.rename(rotated_log_file)
         setup_log_file(logger, args.log, args.error_log)
+        logger.info("Starting up logging with new file: %s", log_file)
+        logger.info("Old log file moved to %s", rotated_log_file)
 
 
 def generate_config(args: argparse.Namespace) -> Path:
