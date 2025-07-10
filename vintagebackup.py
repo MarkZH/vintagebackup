@@ -747,7 +747,7 @@ def unique_path_name(destination_path: Path) -> Path:
 
 
 def create_unique_name(path: Path, addition: int | str) -> str:
-    """Create a path name by inserting the giving string before the path extension."""
+    """Create a path name by inserting the given string before the path extension."""
     return f"{path.stem}.{addition}{path.suffix}"
 
 
