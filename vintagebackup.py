@@ -1743,6 +1743,8 @@ def rotate_logs(args: argparse.Namespace) -> None:
     with log_file.open() as log:
         for line in log:
             try:
+                if "Starting new backup" not in line:
+                    continue
                 date, time, _ = line.split(maxsplit=2)
                 time = time.split(",")[0]
                 earliest_log = datetime.datetime.fromisoformat(f"{date} {time}")
