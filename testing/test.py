@@ -3305,6 +3305,7 @@ class LogRotationTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(len(backups_created), backup_count)
         self.assertTrue(log_file.is_file())
         rotated_log_file = vintagebackup.unique_path_name(log_file)
+        self.assertNotEqual(log_file, rotated_log_file)
         self.assertFalse(rotated_log_file.is_file())
 
         oldest_backup = backups_created[0]
