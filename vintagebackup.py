@@ -1776,8 +1776,11 @@ def prune_logs(args: argparse.Namespace) -> None:
         last_timestamp = datetime.datetime.fromtimestamp(timestamp)
         with rotated_log_file.open() as log:
             for line in log:
-                date, time, _ = line.split(maxsplit=2)
-                last_timestamp = datetime.datetime.fromisoformat(f"{date} {time}")
+                try:
+                    date, time, _ = line.split(maxsplit=2)
+                    last_timestamp = datetime.datetime.fromisoformat(f"{date} {time}")
+                except Exception as error:
+                    logger.debug(error)
 
         if last_timestamp < oldest_backup_timestamp:
             logger.info("Deleting old log file: %s", rotated_log_file)
