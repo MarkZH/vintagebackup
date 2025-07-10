@@ -1,5 +1,6 @@
 """Testing code for Vintage Backup."""
 import sys
+import time
 import unittest
 import tempfile
 import os
@@ -3288,23 +3289,22 @@ class LogRotationTests(TestCaseWithTemporaryFilesAndFolders):
         log_file = self.user_path/"log.txt"
 
         def run_backup_with_rotate_log() -> None:
-            backup_timestamp = unique_timestamp().strftime(vintagebackup.backup_date_format)
             exit_code = vintagebackup.main([
                 "--user-folder", str(self.user_path),
                 "--backup-folder", str(self.backup_path),
                 "--log", str(log_file),
-                "--rotate-old-logs",
-                "--timestamp", backup_timestamp])
+                "--rotate-old-logs"])
             self.assertEqual(exit_code, 0)
+            time.sleep(1)
 
-        backup_count = 10
+        backup_count = 3
         for _ in range(backup_count):
             run_backup_with_rotate_log()
 
         backups_created = vintagebackup.all_backups(self.backup_path)
         self.assertEqual(len(backups_created), backup_count)
         self.assertTrue(log_file.is_file())
-        rotated_log_file = vintagebackup.unique_path_name(log_file)
+        rotated_log_file = self.user_path/vintagebackup.create_unique_name(log_file, 1)
         self.assertNotEqual(log_file, rotated_log_file)
         self.assertFalse(rotated_log_file.is_file())
 
@@ -3313,6 +3313,22 @@ class LogRotationTests(TestCaseWithTemporaryFilesAndFolders):
         run_backup_with_rotate_log()
         self.assertTrue(log_file.is_file())
         self.assertTrue(rotated_log_file.is_file())
+
+        backups = vintagebackup.all_backups(self.backup_path)
+        for backup in backups:
+            vintagebackup.delete_directory_tree(backup)
+        next_rotated_log_file = self.user_path/vintagebackup.create_unique_name(log_file, 2)
+        self.assertNotEqual(rotated_log_file, next_rotated_log_file)
+        run_backup_with_rotate_log()
+        self.assertTrue(log_file.is_file())
+        self.assertTrue(rotated_log_file.is_file())
+        self.assertTrue(next_rotated_log_file.is_file())
+
+        non_existent_rotated_log_file = self.user_path/vintagebackup.create_unique_name(log_file, 3)
+        self.assertNotEqual(non_existent_rotated_log_file, log_file)
+        self.assertNotEqual(non_existent_rotated_log_file, rotated_log_file)
+        self.assertNotEqual(non_existent_rotated_log_file, next_rotated_log_file)
+        self.assertFalse(non_existent_rotated_log_file.is_file())
 
 
 class HelpTests(unittest.TestCase):
