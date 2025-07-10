@@ -3279,6 +3279,41 @@ class ErrorLogTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(error_log_lines, error_file_lines)
 
 
+class LogRotationTests(TestCaseWithTemporaryFilesAndFolders):
+    """Test for rotating logs."""
+
+    def test_that_deleted_backup_creates_rotates_log_file(self) -> None:
+        """Test that deleting the oldest backup causes log rotation."""
+        create_user_data(self.user_path)
+        log_file = self.user_path/"log.txt"
+
+        def run_backup_with_rotate_log() -> None:
+            backup_timestamp = unique_timestamp().strftime(vintagebackup.backup_date_format)
+            exit_code = vintagebackup.main([
+                "--user-folder", str(self.user_path),
+                "--backup-folder", str(self.backup_path),
+                "--log", str(log_file),
+                "--rotate-old-logs",
+                "--timestamp", backup_timestamp])
+            self.assertEqual(exit_code, 0)
+
+        backup_count = 10
+        for _ in range(backup_count):
+            run_backup_with_rotate_log()
+
+        backups_created = vintagebackup.all_backups(self.backup_path)
+        self.assertEqual(len(backups_created), backup_count)
+        self.assertTrue(log_file.is_file())
+        rotated_log_file = vintagebackup.unique_path_name(log_file)
+        self.assertFalse(rotated_log_file.is_file())
+
+        oldest_backup = backups_created[0]
+        vintagebackup.delete_directory_tree(oldest_backup)
+        run_backup_with_rotate_log()
+        self.assertTrue(log_file.is_file())
+        self.assertTrue(rotated_log_file.is_file())
+
+
 class HelpTests(unittest.TestCase):
     """Make sure argument parser help commands run without error."""
 

@@ -1732,7 +1732,7 @@ def start_backup(args: argparse.Namespace) -> None:
 
 def rotate_logs(args: argparse.Namespace) -> None:
     """Start a new log file if the current one has logs of deleted backups."""
-    if not toggle_is_set(args, "rotate_old_logs") or not toggle_is_set(args, "prune_old_logs"):
+    if not toggle_is_set(args, "rotate_old_logs") and not toggle_is_set(args, "prune_old_logs"):
         return
 
     log_file = absolute_path(args.log)
