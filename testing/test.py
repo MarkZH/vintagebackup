@@ -256,7 +256,7 @@ class TestCaseWithTemporaryFilesAndFolders(unittest.TestCase):
         self.backup_path = Path(tempfile.mkdtemp())
 
 
-class BackupTest(TestCaseWithTemporaryFilesAndFolders):
+class BackupTests(TestCaseWithTemporaryFilesAndFolders):
     """Test the main backup procedure."""
 
     def test_first_backup_copies_all_user_data(self) -> None:
@@ -639,7 +639,7 @@ class BackupTest(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(os.listdir(self.backup_path), ["vintagebackup.source.txt"])
 
 
-class FilterTest(TestCaseWithTemporaryFilesAndFolders):
+class FilterTests(TestCaseWithTemporaryFilesAndFolders):
     """Test that filter files work properly."""
 
     def test_paths_excluded_in_filter_file_do_not_appear_in_backup(self) -> None:
@@ -836,7 +836,7 @@ def run_recovery(method: Invocation, backup_location: Path, file_path: Path) -> 
         raise NotImplementedError(f"Backup test with {method} not implemented.")
 
 
-class RecoveryTest(TestCaseWithTemporaryFilesAndFolders):
+class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
     """Test recovering files and folders from backups."""
 
     def test_file_recovered_from_backup_is_identical_to_original(self) -> None:
@@ -923,7 +923,7 @@ def create_large_files(base_folder: Path, file_size: int) -> None:
             (Path(directory_name)/"file.txt").write_text(data, encoding="utf8")
 
 
-class DeleteBackupTest(TestCaseWithTemporaryFilesAndFolders):
+class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
     """Test deleting backups."""
 
     def test_deleting_single_backup(self) -> None:
@@ -1185,7 +1185,7 @@ class DeleteBackupTest(TestCaseWithTemporaryFilesAndFolders):
             self.assertFalse(log_line.startswith("ERROR:"), log_line)
 
 
-class MoveBackupsTest(TestCaseWithTemporaryFilesAndFolders):
+class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
     """Test moving backup sets to a different location."""
 
     def test_moving_all_backups_preserves_structure_and_hardlinks_of_original(self) -> None:
@@ -1332,7 +1332,7 @@ def read_paths_file(verify_file: io.TextIOBase) -> set[Path]:
     return files_from_verify
 
 
-class VerificationTest(TestCaseWithTemporaryFilesAndFolders):
+class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
     """Test backup verification."""
 
     def test_backup_verification_sorts_files_into_matching_mismatching_and_errors(self) -> None:
@@ -1427,7 +1427,7 @@ class VerificationTest(TestCaseWithTemporaryFilesAndFolders):
             self.assertTrue(actual_verify_file.is_file(follow_symlinks=False))
 
 
-class ConfigurationFileTest(TestCaseWithTemporaryFilesAndFolders):
+class ConfigurationFileTests(TestCaseWithTemporaryFilesAndFolders):
     """Test configuration file functionality."""
 
     def test_configuration_file_reading_is_insensitive_to_variant_writings(self) -> None:
@@ -1518,7 +1518,7 @@ force copy:
             vintagebackup.read_configuation_file(str(self.config_path))
 
 
-class RestorationTest(TestCaseWithTemporaryFilesAndFolders):
+class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
     """Test that restoring backups works correctly."""
 
     def test_restore_last_backup_with_delete_extra_option_deletes_new_files(self) -> None:
@@ -1846,7 +1846,7 @@ class RestorationTest(TestCaseWithTemporaryFilesAndFolders):
         self.assertIn(rejection_line, bad_prompt_log.output)
 
 
-class BackupLockTest(TestCaseWithTemporaryFilesAndFolders):
+class BackupLockTests(TestCaseWithTemporaryFilesAndFolders):
     """Test that the lock prevents simultaneous access to a backup location."""
 
     def test_backup_while_lock_is_present_raises_concurrency_error(self) -> None:
@@ -1883,7 +1883,7 @@ class BackupLockTest(TestCaseWithTemporaryFilesAndFolders):
         self.assertFalse(lock_path.is_file(follow_symlinks=False))
 
 
-class CopyProbabilityTest(TestCaseWithTemporaryFilesAndFolders):
+class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
     """Test that copy probability or hard link count causes identical files to be copied."""
 
     def test_max_average_hard_links_causes_some_unchanged_files_to_be_copied(self) -> None:
