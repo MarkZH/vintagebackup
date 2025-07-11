@@ -7,6 +7,7 @@ import platform
 import argparse
 import sys
 import logging
+import logging.handlers
 import filecmp
 import stat
 import textwrap
@@ -622,7 +623,10 @@ def setup_log_file(
     """Set up logging to write to a file."""
     log_format = "%(asctime)s %(levelname)s    %(message)s"
     if log_file_path != os.devnull:
-        log_file = logging.FileHandler(log_file_path, encoding="utf8")
+        log_file = logging.handlers.RotatingFileHandler(
+            log_file_path,
+            encoding="utf8",
+            backupCount=1000)  # Number of backups decided by --prune-old-backups
         log_file_format = logging.Formatter(fmt=log_format)
         log_file.setFormatter(log_file_format)
         logger.addHandler(log_file)
@@ -741,9 +745,14 @@ def unique_path_name(destination_path: Path) -> Path:
     unique_id = 0
     while unique_path.exists(follow_symlinks=False):
         unique_id += 1
-        new_path_name = f"{destination_path.stem}.{unique_id}{destination_path.suffix}"
+        new_path_name = create_unique_name(destination_path, unique_id)
         unique_path = destination_path.parent/new_path_name
     return unique_path
+
+
+def create_unique_name(path: Path, addition: int | str) -> str:
+    """Create a path name by inserting the given string before the path extension."""
+    return f"{path.stem}.{addition}{path.suffix}"
 
 
 def path_relative_to_backups(user_path: Path, backup_location: Path) -> Path:
@@ -1721,6 +1730,65 @@ def start_backup(args: argparse.Namespace) -> None:
         log_backup_size(args.free_up, backup_space_taken)
 
         delete_old_backups(args)
+        rotate_logs(args)
+        prune_logs(args)
+
+
+def rotate_logs(args: argparse.Namespace) -> None:
+    """Start a new log file if the current one has logs of deleted backups."""
+    if not toggle_is_set(args, "rotate_old_logs") and not toggle_is_set(args, "prune_old_logs"):
+        return
+
+    log_file = absolute_path(args.log)
+    backup_folder = absolute_path(args.backup_folder)
+    oldest_backup = all_backups(backup_folder)[0]
+    earliest_logged_backup = oldest_backup
+    backup_prefix = "Backup location"
+    with log_file.open() as log:
+        for line in log:
+            try:
+                if backup_prefix not in line:
+                    continue
+                earliest_logged_backup = Path(
+                    line.split(":", maxsplit=3)[-1].lstrip().removesuffix("\n"))
+                if earliest_logged_backup.is_relative_to(backup_folder):
+                    break
+            except Exception as error:
+                logger.debug(error)
+
+    if earliest_logged_backup < oldest_backup:
+        logger.info("Rotating log")
+        for handler in logger.handlers:
+            if isinstance(handler, logging.handlers.RotatingFileHandler):
+                handler.doRollover()
+        logger.info("Start of new log file")
+
+
+def prune_logs(args: argparse.Namespace) -> None:
+    """Delete old logs that only have information about deleted backups."""
+    if not toggle_is_set(args, "prune_old_logs"):
+        return
+
+    log_file = absolute_path(args.log)
+    log_file_template = create_unique_name(log_file, "[0-9]*")
+    backup_folder = absolute_path(args.backup_folder)
+    oldest_backup = all_backups(backup_folder)[0]
+    oldest_backup_timestamp = backup_datetime(oldest_backup)
+    for rotated_log_file in log_file.parent.glob(log_file_template):
+        stat = rotated_log_file.stat()
+        timestamp = cast(Any, stat).st_birthtime if hasattr(stat, "st_birthtime") else stat.st_ctime
+        last_timestamp = datetime.datetime.fromtimestamp(timestamp)
+        with rotated_log_file.open() as log:
+            for line in log:
+                try:
+                    date, time, _ = line.split(maxsplit=2)
+                    last_timestamp = datetime.datetime.fromisoformat(f"{date} {time}")
+                except Exception as error:
+                    logger.debug(error)
+
+        if last_timestamp < oldest_backup_timestamp:
+            logger.info("Deleting old log file: %s", rotated_log_file)
+            rotated_log_file.unlink()
 
 
 def generate_config(args: argparse.Namespace) -> Path:
@@ -2236,6 +2304,18 @@ log file is desired, use the file name {os.devnull}."""))
     other_group.add_argument("--error-log", help=format_help(
 """Where to copy log lines that are warnings or errors. This file will only appear when unexpected
 events occur."""))
+
+    other_group.add_argument("--rotate-old-logs", action="store_true", help=format_help(
+"""When the current log file's oldest entry is older than the oldest backup, start a new log
+file. The former log file will have a number added--e.g., vintagebackup.1.log."""))
+
+    add_no_option(other_group, "rotate-old-logs")
+
+    other_group.add_argument("--prune-old-logs", action="store_true", help=format_help(
+"""If a rotated log file only has logs about deleted backups, delete it. This option also activates
+--rotate-old-logs."""))
+
+    add_no_option(other_group, "prune-old-logs")
 
     # The following arguments are only used for testing.
 

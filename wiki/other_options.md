@@ -14,6 +14,19 @@ The parameter is a file name.
 If a backup or other process runs without errors, this file will not be created.
 If the file in the parameter is placed in a prominent location (like the Desktop), then the full log does not need to be inspected as often--only when the error log appears to indicate something went wrong.
 
+### `--rotate-old-logs`
+
+Rename the current log file (e.g., `vintagebackup.log` to `vintagebackup.1.log`) when the oldest backup in the log is deleted.
+This will prevent log files from getting too large.
+This option can be negated with `--no-rotate-old-logs`.
+
+### `--prune-old-logs`
+
+Delete a rotated log file (see the previous section) when the last backup logged in that file is deleted.
+That is, delete the file when all of the log information is about backups that have been deleted.
+This option automatically activates `--rotate-old-logs`.
+This option can be negated with `--no-prune-old-logs`.
+
 
 ## Troubleshooting
 
