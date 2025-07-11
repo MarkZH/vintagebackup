@@ -3349,7 +3349,3 @@ class HelpTests(unittest.TestCase):
         with self.assertNoLogs():
             ignore = io.StringIO()
             vintagebackup.print_usage(ignore)
-
-
-if __name__ == "__main__":
-    unittest.main()
