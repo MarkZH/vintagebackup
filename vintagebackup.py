@@ -7,6 +7,7 @@ import platform
 import argparse
 import sys
 import logging
+import logging.handlers
 import filecmp
 import stat
 import textwrap
@@ -622,7 +623,10 @@ def setup_log_file(
     """Set up logging to write to a file."""
     log_format = "%(asctime)s %(levelname)s    %(message)s"
     if log_file_path != os.devnull:
-        log_file = logging.FileHandler(log_file_path, encoding="utf8")
+        log_file = logging.handlers.RotatingFileHandler(
+            log_file_path,
+            encoding="utf8",
+            backupCount=1000)  # Number of backups decided by --prune-old-backups
         log_file_format = logging.Formatter(fmt=log_format)
         log_file.setFormatter(log_file_format)
         logger.addHandler(log_file)
@@ -1738,28 +1742,26 @@ def rotate_logs(args: argparse.Namespace) -> None:
     log_file = absolute_path(args.log)
     backup_folder = absolute_path(args.backup_folder)
     oldest_backup = all_backups(backup_folder)[0]
-    oldest_backup_timestamp = backup_datetime(oldest_backup)
-    earliest_log = oldest_backup_timestamp
+    earliest_logged_backup = oldest_backup
+    backup_prefix = "Backup location"
     with log_file.open() as log:
         for line in log:
             try:
-                if "Starting new backup" not in line:
+                if backup_prefix not in line:
                     continue
-                date, time, _ = line.split(maxsplit=2)
-                time = time.split(",")[0]
-                earliest_log = datetime.datetime.fromisoformat(f"{date} {time}")
-                break
+                earliest_logged_backup = Path(
+                    line.split(":", maxsplit=3)[-1].lstrip().removesuffix("\n"))
+                if earliest_logged_backup.is_relative_to(backup_folder):
+                    break
             except Exception as error:
                 logger.debug(error)
 
-    if earliest_log < oldest_backup_timestamp:
-        logger.info("Shutting down logging before rotating log.")
-        setup_initial_null_logger(logger)
-        rotated_log_file = unique_path_name(log_file)
-        log_file.rename(rotated_log_file)
-        setup_log_file(logger, args.log, args.error_log)
-        logger.info("Starting up logging with new file: %s", log_file)
-        logger.info("Old log file moved to %s", rotated_log_file)
+    if earliest_logged_backup < oldest_backup:
+        logger.info("Rotating log")
+        for handler in logger.handlers:
+            if isinstance(handler, logging.handlers.RotatingFileHandler):
+                handler.doRollover()
+        logger.info("Start of new log file")
 
 
 def prune_logs(args: argparse.Namespace) -> None:
