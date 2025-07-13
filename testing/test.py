@@ -3282,50 +3282,43 @@ class ErrorLogTests(TestCaseWithTemporaryFilesAndFolders):
 class LogRotationTests(TestCaseWithTemporaryFilesAndFolders):
     """Test for rotating logs."""
 
+    def setUp(self) -> None:
+        """Set location of log file for tests."""
+        super().setUp()
+        self.log_file = self.user_path/"log.txt"
+
     def test_that_deleted_backup_creates_rotates_log_file(self) -> None:
         """Test that deleting the oldest backup causes log rotation."""
         create_user_data(self.user_path)
-        log_file = self.user_path/"log.txt"
-
-        def run_backup_with_rotate_log() -> None:
-            vintagebackup.setup_initial_null_logger(vintagebackup.logger)
-            exit_code = vintagebackup.main([
-                "--user-folder", str(self.user_path),
-                "--backup-folder", str(self.backup_path),
-                "--log", str(log_file),
-                "--rotate-old-logs",
-                "--timestamp", unique_timestamp().strftime(vintagebackup.backup_date_format)])
-            self.assertEqual(exit_code, 0)
-
         backup_count = 3
         for _ in range(backup_count):
-            run_backup_with_rotate_log()
+            self.run_backup_with_rotate_log()
 
         backups_created = vintagebackup.all_backups(self.backup_path)
         self.assertEqual(len(backups_created), backup_count)
-        self.assertTrue(log_file.is_file())
-        rotated_log_file = self.new_log_file(log_file, 1)
-        self.assertNotEqual(rotated_log_file, log_file)
+        self.assertTrue(self.log_file.is_file())
+        rotated_log_file = self.new_log_file(self.log_file, 1)
+        self.assertNotEqual(rotated_log_file, self.log_file)
         self.assertFalse(rotated_log_file.is_file())
 
         oldest_backup = backups_created[0]
         vintagebackup.delete_directory_tree(oldest_backup)
-        run_backup_with_rotate_log()
-        self.assertTrue(log_file.is_file())
+        self.run_backup_with_rotate_log()
+        self.assertTrue(self.log_file.is_file())
         self.assertTrue(rotated_log_file.is_file())
-        run_backup_with_rotate_log()
+        self.run_backup_with_rotate_log()
 
-        next_rotated_log_file = self.new_log_file(log_file, 2)
-        self.assertNotEqual(next_rotated_log_file, log_file)
+        next_rotated_log_file = self.new_log_file(self.log_file, 2)
+        self.assertNotEqual(next_rotated_log_file, self.log_file)
         self.assertNotEqual(next_rotated_log_file, rotated_log_file)
         vintagebackup.delete_directory_tree(self.backup_path)
-        run_backup_with_rotate_log()
-        self.assertTrue(log_file.is_file())
+        self.run_backup_with_rotate_log()
+        self.assertTrue(self.log_file.is_file())
         self.assertTrue(rotated_log_file.is_file())
         self.assertTrue(next_rotated_log_file.is_file())
 
-        non_existent_rotated_log_file = self.new_log_file(log_file, 3)
-        self.assertNotEqual(non_existent_rotated_log_file, log_file)
+        non_existent_rotated_log_file = self.new_log_file(self.log_file, 3)
+        self.assertNotEqual(non_existent_rotated_log_file, self.log_file)
         self.assertNotEqual(non_existent_rotated_log_file, rotated_log_file)
         self.assertNotEqual(non_existent_rotated_log_file, next_rotated_log_file)
         self.assertFalse(non_existent_rotated_log_file.is_file())
@@ -3333,6 +3326,17 @@ class LogRotationTests(TestCaseWithTemporaryFilesAndFolders):
     def new_log_file(self, log_file: Path, number: int) -> Path:
         """Predict the new path of the log file."""
         return self.user_path/vintagebackup.create_unique_name(log_file, number)
+
+    def run_backup_with_rotate_log(self) -> None:
+        """Run a backup with log rotation."""
+        vintagebackup.setup_initial_null_logger(vintagebackup.logger)
+        exit_code = vintagebackup.main([
+            "--user-folder", str(self.user_path),
+            "--backup-folder", str(self.backup_path),
+            "--log", str(self.log_file),
+            "--rotate-old-logs",
+            "--timestamp", unique_timestamp().strftime(vintagebackup.backup_date_format)])
+        self.assertEqual(exit_code, 0)
 
 
 class HelpTests(unittest.TestCase):
