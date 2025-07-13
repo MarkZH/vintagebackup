@@ -3332,7 +3332,7 @@ class LogRotationTests(TestCaseWithTemporaryFilesAndFolders):
 
     def new_log_file(self, log_file: Path, number: int) -> Path:
         """Predict the new path of the log file."""
-        return self.user_path/f"{log_file.name}.{number}"
+        return self.user_path/vintagebackup.create_unique_name(log_file, number)
 
 
 class HelpTests(unittest.TestCase):

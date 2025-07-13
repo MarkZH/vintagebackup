@@ -14,6 +14,7 @@ import textwrap
 import math
 import random
 import io
+import itertools
 from collections import Counter
 from collections.abc import Callable, Iterator, Iterable
 from pathlib import Path
@@ -616,6 +617,53 @@ def check_paths_for_validity(
         raise CommandLineError(f"Filter file not found: {filter_file}")
 
 
+class Rotating_Backup_Log_File_Handler(logging.handlers.BaseRotatingHandler):
+    """Rotating file handler that only rotates on command."""
+
+    def __init__(self, file_name: str) -> None:
+        """Set up the log handler."""
+        super().__init__(file_name, mode="a", encoding="utf8", delay=False, errors=None)
+        self.log_file = absolute_path(file_name)
+
+    def doRollover(self) -> None:  # noqa:N802
+        """
+        Rollover log file.
+
+        Adapted from logging.RotatingFileHandler.doRollover() to not require a backupCount
+        argument.
+        """
+        if self.stream:
+            self.stream.close()
+
+        log_folder = self.log_file.parent
+        for i in itertools.count(start=1):
+            keep_going = False
+            old_log_file = log_folder/create_unique_name(self.log_file, i)
+            new_temp_log_file = log_folder/f"{create_unique_name(self.log_file, i + 1)}.temp"
+            if old_log_file.exists():
+                old_log_file.replace(new_temp_log_file)
+                keep_going = True
+
+            old_temp_log_file = log_folder/f"{old_log_file.name}.temp"
+            if old_temp_log_file.exists():
+                old_temp_log_file.replace(old_log_file)
+                keep_going = True
+
+            if not keep_going:
+                break
+
+        new_archive_log = log_folder/create_unique_name(self.log_file, 1)
+        self.log_file.replace(new_archive_log)
+
+        if not self.delay:
+            self.stream = self._open()
+
+    @classmethod
+    def shouldRollover(cls, _: Any) -> bool:  # noqa: N802
+        """Return False to never automatically rollover logs."""
+        return False
+
+
 def setup_log_file(
         logger: logging.Logger,
         log_file_path: str,
@@ -623,10 +671,7 @@ def setup_log_file(
     """Set up logging to write to a file."""
     log_format = "%(asctime)s %(levelname)s    %(message)s"
     if log_file_path != os.devnull:
-        log_file = logging.handlers.RotatingFileHandler(
-            log_file_path,
-            encoding="utf8",
-            backupCount=1000)  # Number of backups decided by --prune-old-backups
+        log_file = Rotating_Backup_Log_File_Handler(log_file_path)
         log_file_format = logging.Formatter(fmt=log_format)
         log_file.setFormatter(log_file_format)
         logger.addHandler(log_file)
@@ -1759,7 +1804,7 @@ def rotate_logs(args: argparse.Namespace) -> None:
     if earliest_logged_backup < oldest_backup:
         logger.info("Rotating log")
         for handler in logger.handlers:
-            if isinstance(handler, logging.handlers.RotatingFileHandler):
+            if isinstance(handler, Rotating_Backup_Log_File_Handler):
                 handler.doRollover()
         logger.info("Start of new log file")
 
