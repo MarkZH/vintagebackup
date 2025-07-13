@@ -18,6 +18,7 @@ import platform
 from typing import cast
 import re
 import io
+import time
 from inspect import getsourcefile
 
 
@@ -3323,6 +3324,37 @@ class LogRotationTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertNotEqual(non_existent_rotated_log_file, next_rotated_log_file)
         self.assertFalse(non_existent_rotated_log_file.is_file())
 
+    def test_that_lower_numbered_rotated_log_files_are_newer_than_older_numbered(self) -> None:
+        """Test that log.1.txt has more recent information than log.2.txt."""
+        create_user_data(self.user_path)
+
+        # Create log file
+        self.run_backup_with_rotate_log()
+
+        # Create log.1 file
+        vintagebackup.delete_directory_tree(self.backup_path)
+        self.run_backup_with_rotate_log()
+        timestamp_oldest_backup = self.last_log_timestamp(self.new_log_file(self.log_file, 1))
+        self.assertLess(
+            timestamp_oldest_backup,
+            self.first_log_timestamp(self.log_file))
+
+        # Create log.2 file
+        self.run_backup_with_rotate_log()
+        vintagebackup.delete_directory_tree(self.backup_path)
+        self.run_backup_with_rotate_log()
+        self.assertLess(
+            self.last_log_timestamp(self.new_log_file(self.log_file, 1)),
+            self.first_log_timestamp(self.log_file))
+        self.assertLess(
+            self.last_log_timestamp(self.new_log_file(self.log_file, 2)),
+            self.first_log_timestamp(self.new_log_file(self.log_file, 1)))
+
+        # Oldest backup has not changed
+        self.assertFalse(self.new_log_file(self.log_file, 3).exists())
+        self.assertEqual(timestamp_oldest_backup,
+                         self.last_log_timestamp(self.new_log_file(self.log_file, 2)))
+
     def new_log_file(self, log_file: Path, number: int) -> Path:
         """Predict the new path of the log file."""
         return self.user_path/vintagebackup.create_unique_name(log_file, number)
@@ -3337,6 +3369,35 @@ class LogRotationTests(TestCaseWithTemporaryFilesAndFolders):
             "--rotate-old-logs",
             "--timestamp", unique_timestamp().strftime(vintagebackup.backup_date_format)])
         self.assertEqual(exit_code, 0)
+        time.sleep(0.1)
+
+    def last_log_timestamp(self, log_file: Path) -> datetime.datetime:
+        """Return the timestamp of the last log line in the log file."""
+        final_line = ""
+        with log_file.open(encoding="utf8") as log:
+            for line in log:
+                final_line = line
+
+        self.assertTrue(final_line, f"No lines found in log file: {log_file}")
+        return self.log_line_timestamp(final_line)
+
+    @classmethod
+    def log_line_timestamp(cls, line: str) -> datetime.datetime:
+        """Parse the timestamp of the given log line."""
+        with (Path.home()/"Desktop"/"log_lines.txt").open("w") as test_file:
+            test_file.write(line)
+        asctime_format = "%Y-%m-%d %H:%M:%S,%f"
+        timestamp = " ".join(line.split()[0:2])
+        return datetime.datetime.strptime(timestamp, asctime_format)
+
+    def first_log_timestamp(self, log_file: Path) -> datetime.datetime:
+        """Return the timestamp of the first log line in the log file."""
+        with log_file.open(encoding="utf8") as log:
+            for line in log:
+                return self.log_line_timestamp(line)
+
+        self.fail(f"No log lines found in log file: {log_file}")
+        raise AssertionError
 
 
 class HelpTests(unittest.TestCase):
