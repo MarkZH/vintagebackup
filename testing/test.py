@@ -3298,7 +3298,7 @@ class LogRotationTests(TestCaseWithTemporaryFilesAndFolders):
         backups_created = vintagebackup.all_backups(self.backup_path)
         self.assertEqual(len(backups_created), backup_count)
         self.assertTrue(self.log_file.is_file())
-        rotated_log_file = self.new_log_file(self.log_file, 1)
+        rotated_log_file = self.new_log_file(1)
         self.assertNotEqual(rotated_log_file, self.log_file)
         self.assertFalse(rotated_log_file.is_file())
 
@@ -3309,7 +3309,7 @@ class LogRotationTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertTrue(rotated_log_file.is_file())
         self.run_backup_with_rotate_log()
 
-        next_rotated_log_file = self.new_log_file(self.log_file, 2)
+        next_rotated_log_file = self.new_log_file(2)
         self.assertNotEqual(next_rotated_log_file, self.log_file)
         self.assertNotEqual(next_rotated_log_file, rotated_log_file)
         vintagebackup.delete_directory_tree(self.backup_path)
@@ -3318,7 +3318,7 @@ class LogRotationTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertTrue(rotated_log_file.is_file())
         self.assertTrue(next_rotated_log_file.is_file())
 
-        non_existent_rotated_log_file = self.new_log_file(self.log_file, 3)
+        non_existent_rotated_log_file = self.new_log_file(3)
         self.assertNotEqual(non_existent_rotated_log_file, self.log_file)
         self.assertNotEqual(non_existent_rotated_log_file, rotated_log_file)
         self.assertNotEqual(non_existent_rotated_log_file, next_rotated_log_file)
@@ -3334,7 +3334,7 @@ class LogRotationTests(TestCaseWithTemporaryFilesAndFolders):
         # Create log.1 file
         vintagebackup.delete_directory_tree(self.backup_path)
         self.run_backup_with_rotate_log()
-        timestamp_oldest_backup = self.last_log_timestamp(self.new_log_file(self.log_file, 1))
+        timestamp_oldest_backup = self.last_log_timestamp(self.new_log_file(1))
         self.assertLess(
             timestamp_oldest_backup,
             self.first_log_timestamp(self.log_file))
@@ -3344,20 +3344,19 @@ class LogRotationTests(TestCaseWithTemporaryFilesAndFolders):
         vintagebackup.delete_directory_tree(self.backup_path)
         self.run_backup_with_rotate_log()
         self.assertLess(
-            self.last_log_timestamp(self.new_log_file(self.log_file, 1)),
+            self.last_log_timestamp(self.new_log_file(1)),
             self.first_log_timestamp(self.log_file))
         self.assertLess(
-            self.last_log_timestamp(self.new_log_file(self.log_file, 2)),
-            self.first_log_timestamp(self.new_log_file(self.log_file, 1)))
+            self.last_log_timestamp(self.new_log_file(2)),
+            self.first_log_timestamp(self.new_log_file(1)))
 
         # Oldest backup has not changed
-        self.assertFalse(self.new_log_file(self.log_file, 3).exists())
-        self.assertEqual(timestamp_oldest_backup,
-                         self.last_log_timestamp(self.new_log_file(self.log_file, 2)))
+        self.assertFalse(self.new_log_file(3).exists())
+        self.assertEqual(timestamp_oldest_backup, self.last_log_timestamp(self.new_log_file(2)))
 
-    def new_log_file(self, log_file: Path, number: int) -> Path:
+    def new_log_file(self, number: int) -> Path:
         """Predict the new path of the log file."""
-        return self.user_path/vintagebackup.create_unique_name(log_file, number)
+        return self.user_path/vintagebackup.create_unique_name(self.log_file, number)
 
     def run_backup_with_rotate_log(self) -> None:
         """Run a backup with log rotation."""
