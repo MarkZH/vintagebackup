@@ -3383,8 +3383,6 @@ class LogRotationTests(TestCaseWithTemporaryFilesAndFolders):
     @classmethod
     def log_line_timestamp(cls, line: str) -> datetime.datetime:
         """Parse the timestamp of the given log line."""
-        with (Path.home()/"Desktop"/"log_lines.txt").open("w") as test_file:
-            test_file.write(line)
         asctime_format = "%Y-%m-%d %H:%M:%S,%f"
         timestamp = " ".join(line.split()[0:2])
         return datetime.datetime.strptime(timestamp, asctime_format)
