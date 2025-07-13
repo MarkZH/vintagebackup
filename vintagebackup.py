@@ -660,7 +660,12 @@ class Rotating_Backup_Log_File_Handler(logging.handlers.BaseRotatingHandler):
 
     @classmethod
     def shouldRollover(cls, _: Any) -> bool:  # noqa: N802
-        """Return False to never automatically rollover logs."""
+        """
+        Return False to never automatically rollover logs.
+
+        This method is called for every log message and so would be extremely slow if the test in
+        should_rotate_logs() was implemented here.
+        """
         return False
 
 
@@ -1779,10 +1784,10 @@ def start_backup(args: argparse.Namespace) -> None:
         prune_logs(args)
 
 
-def rotate_logs(args: argparse.Namespace) -> None:
-    """Start a new log file if the current one has logs of deleted backups."""
+def should_rotate_logs(args: argparse.Namespace) -> bool:
+    """Check if active log contains information about deleted backups."""
     if not toggle_is_set(args, "rotate_old_logs") and not toggle_is_set(args, "prune_old_logs"):
-        return
+        return False
 
     log_file = absolute_path(args.log)
     backup_folder = absolute_path(args.backup_folder)
@@ -1801,7 +1806,12 @@ def rotate_logs(args: argparse.Namespace) -> None:
             except Exception as error:
                 logger.debug(error)
 
-    if earliest_logged_backup < oldest_backup:
+    return earliest_logged_backup < oldest_backup
+
+
+def rotate_logs(args: argparse.Namespace) -> None:
+    """Start a new log file if the current one has logs of deleted backups."""
+    if should_rotate_logs(args):
         logger.info("Rotating log")
         for handler in logger.handlers:
             if isinstance(handler, Rotating_Backup_Log_File_Handler):
