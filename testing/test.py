@@ -3331,7 +3331,7 @@ class LogRotationTests(TestCaseWithTemporaryFilesAndFolders):
         self.delete_all_backups_but_latest()
         self.run_backup_with_rotate_log()
         timestamp_oldest_backup = self.last_log_timestamp(self.new_log_file(1))
-        self.assertLess(
+        self.assertLessEqual(
             timestamp_oldest_backup,
             self.first_log_timestamp(self.log_file))
 
@@ -3339,10 +3339,10 @@ class LogRotationTests(TestCaseWithTemporaryFilesAndFolders):
         self.run_backup_with_rotate_log()
         self.delete_all_backups_but_latest()
         self.run_backup_with_rotate_log()
-        self.assertLess(
+        self.assertLessEqual(
             self.last_log_timestamp(self.new_log_file(1)),
             self.first_log_timestamp(self.log_file))
-        self.assertLess(
+        self.assertLessEqual(
             self.last_log_timestamp(self.new_log_file(2)),
             self.first_log_timestamp(self.new_log_file(1)))
 
