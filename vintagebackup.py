@@ -1812,11 +1812,9 @@ def should_rotate_logs(args: argparse.Namespace) -> bool:
 def rotate_logs(args: argparse.Namespace) -> None:
     """Start a new log file if the current one has logs of deleted backups."""
     if should_rotate_logs(args):
-        logger.info("Rotating log")
         for handler in logger.handlers:
             if isinstance(handler, Rotating_Backup_Log_File_Handler):
                 handler.doRollover()
-        logger.info("Start of new log file")
 
 
 def prune_logs(args: argparse.Namespace) -> None:
