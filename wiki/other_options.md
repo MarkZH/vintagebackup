@@ -18,6 +18,8 @@ If the file in the parameter is placed in a prominent location (like the Desktop
 
 Rename the current log file (e.g., `vintagebackup.log` to `vintagebackup.1.log`) when the oldest backup in the log is deleted.
 This will prevent log files from getting too large.
+If there are multiple backed up logs, they will have larger numbers (`vintagebackup.1.log`, `vintagebackup.2.log`, `vintagebackup.3.log`, etc.).
+A lower number means that backup is more recent.
 This option can be negated with `--no-rotate-old-logs`.
 
 ### `--prune-old-logs`
