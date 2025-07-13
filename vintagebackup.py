@@ -1764,6 +1764,8 @@ def start_backup(args: argparse.Namespace) -> None:
 
     with Backup_Lock(backup_folder, "backup"):
         print_run_title(args, "Starting new backup")
+        rotate_logs(args)
+        prune_logs(args)
         free_space_before_backup = shutil.disk_usage(backup_folder).free
         create_new_backup(
             user_folder,
@@ -1780,8 +1782,6 @@ def start_backup(args: argparse.Namespace) -> None:
         log_backup_size(args.free_up, backup_space_taken)
 
         delete_old_backups(args)
-        rotate_logs(args)
-        prune_logs(args)
 
 
 def should_rotate_logs(args: argparse.Namespace) -> bool:
@@ -1791,7 +1791,14 @@ def should_rotate_logs(args: argparse.Namespace) -> bool:
 
     log_file = absolute_path(args.log)
     backup_folder = absolute_path(args.backup_folder)
-    oldest_backup = all_backups(backup_folder)[0]
+    if not backup_folder.is_dir():
+        return False
+
+    dated_backups = all_backups(backup_folder)
+    if not dated_backups:
+        return False
+
+    oldest_backup = dated_backups[0]
     earliest_logged_backup = oldest_backup
     backup_prefix = "Backup location"
     with log_file.open() as log:
