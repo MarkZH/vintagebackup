@@ -824,7 +824,7 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
 def run_recovery(method: Invocation, backup_location: Path, file_path: Path) -> int:
     """Test file recovery through a direct function call or a CLI invocation."""
     if method == Invocation.function:
-        vintagebackup.recover_path(file_path, backup_location, 0)
+        vintagebackup.recover_path(file_path, backup_location, search=False, choice=0)
         return 0
     elif method == Invocation.cli:
         argv = [
@@ -874,7 +874,7 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
             copy_probability=0.0,
             timestamp=unique_timestamp())
         file_path = self.user_path/"sub_directory_0"/"sub_sub_directory_0"/"file_0.txt"
-        vintagebackup.recover_path(file_path, self.backup_path, 0)
+        vintagebackup.recover_path(file_path, self.backup_path, search=False, choice=0)
         recovered_file_path = file_path.parent/f"{file_path.stem}.1{file_path.suffix}"
         self.assertTrue(filecmp.cmp(file_path, recovered_file_path, shallow=False))
 
@@ -890,7 +890,7 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
             copy_probability=0.0,
             timestamp=unique_timestamp())
         folder_path = self.user_path/"sub_directory_1"
-        vintagebackup.recover_path(folder_path, self.backup_path, 0)
+        vintagebackup.recover_path(folder_path, self.backup_path, search=False, choice=0)
         recovered_folder_path = folder_path.parent/f"{folder_path.name}.1"
         self.assertTrue(directories_are_completely_copied(folder_path, recovered_folder_path))
 
@@ -910,7 +910,7 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertTrue(chosen_file)
         chosen_file = cast(Path, chosen_file)
         self.assertEqual(chosen_file, folder_path/"file_1.txt")
-        vintagebackup.recover_path(chosen_file, self.backup_path, 0)
+        vintagebackup.recover_path(chosen_file, self.backup_path, search=False, choice=0)
         recovered_file_path = chosen_file.parent/f"{chosen_file.stem}.1{chosen_file.suffix}"
         self.assertTrue(filecmp.cmp(chosen_file, recovered_file_path, shallow=False))
 
