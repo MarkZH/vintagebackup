@@ -763,11 +763,11 @@ def binary_search_recovery(
     degenerate_list_length = 2
     degenerate_case = len(backup_choices) == degenerate_list_length
     recover_path_to_original_location(recovery_path, backup_choices[index])
-    valid_choices = "con" if degenerate_case else "co"
+    valid_choices = "co" if degenerate_case else "con"
     question = (
-        "Is the data [C]orrect, or do you want an [O]lder or [N]ewer version?"
+        "Is the data [C]orrect, or do you want the [O]lder version?"
         if degenerate_case else
-        "Is the data [C]orrect, or do you want the [O]lder version?")
+        "Is the data [C]orrect, or do you want an [O]lder or [N]ewer version?")
     prompt = f"{question} [{'/'.join(valid_choices)}]: "
 
     while True:
