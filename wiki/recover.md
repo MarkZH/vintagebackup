@@ -26,3 +26,12 @@ Once a selection is made, that path will be recovered as if `--recover` had been
 ### `--backup-folder`, `-b`
 
 The recovery functions need to know where the backups are stored.
+
+## Other options
+
+### `--search`
+
+Instead of choosing a backup for data recovery from a list, recover the data from a middle-aged backup.
+Then, after the user examines the recovered data and finds that it's not the correct version, they can decide if they want to see older or newer data.
+This process repeats until the correct version is found or a single backup is left.
+The data that is recovered and rejected can be deleted during the search if storage space is a concern.
