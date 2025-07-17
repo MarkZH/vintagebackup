@@ -716,7 +716,7 @@ def recover_path(
 
     backup_choices = sorted(unique_backups.values())
     if search:
-        binary_search_recovery(recovery_path, backup_choices)
+        binary_search_recovery(recovery_path, backup_location, backup_choices)
     else:
         recover_from_menu(recovery_path, backup_location, backup_choices, choice)
 
@@ -735,32 +735,47 @@ def recover_from_menu(
             menu_choices.append(f"{backup_date} ({path_type})")
         choice = choose_from_menu(menu_choices, "Version to recover")
     chosen_path = backup_choices[choice]
-    recover_path_to_original_location(recovery_path, chosen_path)
+    recover_path_to_original_location(chosen_path, recovery_path)
 
 
-def recover_path_to_original_location(recovery_path: Path, chosen_path: Path) -> None:
-    """Copy a path from backup without clobbering existing data."""
-    recovered_path = unique_path_name(recovery_path)
-    logger.info("Copying %s to %s", chosen_path, recovered_path)
-    if is_real_directory(chosen_path):
-        shutil.copytree(chosen_path, recovered_path, symlinks=True)
+def recover_path_to_original_location(backed_up_source: Path, destination: Path) -> None:
+    """
+    Copy a path from backup without clobbering existing data.
+
+    :param backed_up_source: The file or folder to be copied to its original location.
+    :param destination: The full path to the original location. This should include the name of
+    the recovered file or folder, not just the destination folder.
+    """
+    if destination.exists(follow_symlinks=False) and destination.name != backed_up_source.name:
+        raise RuntimeError(
+            "The path to the backup and the path to the original location must have the same name:"
+            f"\n{backed_up_source}\n{destination}")
+
+    recovered_path = unique_path_name(destination)
+    logger.info("Copying %s to %s", backed_up_source, recovered_path)
+    if is_real_directory(backed_up_source):
+        shutil.copytree(backed_up_source, recovered_path, symlinks=True)
     else:
-        shutil.copy2(chosen_path, recovered_path, follow_symlinks=False)
+        shutil.copy2(backed_up_source, recovered_path, follow_symlinks=False)
 
 
-def binary_search_recovery(recovery_path: Path, backup_choices: list[Path]) -> None:
+def binary_search_recovery(
+        recovery_path: Path,
+        backup_source: Path,
+        backup_choices: list[Path]) -> None:
     """Choose a version of a path to recover by searching with the user deciding older or newer."""
     while True:
         print(f"Press {cancel_key()} to quit early.")
+        index = len(backup_choices)//2
+        path_to_backup = backup_choices[index]/recovery_path.relative_to(backup_source)
         if len(backup_choices) == 1:
             logger.info("Only one choice for recovery:")
-            recover_path_to_original_location(recovery_path, backup_choices[0])
+            recover_path_to_original_location(path_to_backup, recovery_path)
             return
 
-        index = len(backup_choices)//2
         special_list_length = 2
         special_case = len(backup_choices) == special_list_length
-        recover_path_to_original_location(recovery_path, backup_choices[index])
+        recover_path_to_original_location(path_to_backup, recovery_path)
         valid_choices = "co" if special_case else "con"
         question = (
             "Is the data [C]orrect, or do you want the [O]lder version?"
