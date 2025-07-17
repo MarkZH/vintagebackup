@@ -914,6 +914,42 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         recovered_file_path = chosen_file.parent/f"{chosen_file.stem}.1{chosen_file.suffix}"
         self.assertTrue(filecmp.cmp(chosen_file, recovered_file_path, shallow=False))
 
+    def test_binary_search(self) -> None:
+        """Test that sequences of older/newer choices result in the right backup."""
+        create_user_data(self.user_path)
+        for _ in range(9):
+            vintagebackup.create_new_backup(
+                self.user_path,
+                self.backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
+
+        backups = vintagebackup.all_backups(self.backup_path)
+        sought_file = self.user_path/"root_file.txt"
+        with self.assertLogs(level=logging.INFO) as logs:
+            vintagebackup.binary_search_recovery(
+                sought_file,
+                self.backup_path,
+                backups,
+                "on")
+
+        expected_backup_sequence = [backups[i] for i in [4, 2, 3]]
+        current_recovery_index = 0
+        log_prefix = "INFO:vintagebackup:"
+        for line in logs.output:
+            if line.startswith(f"{log_prefix}Copying "):
+                self.assertIn(str(expected_backup_sequence[current_recovery_index]), line)
+                recovered_file = (
+                    sought_file.parent/
+                    f"{sought_file.stem}.{current_recovery_index + 1}{sought_file.suffix}")
+                self.assertTrue(recovered_file.is_file(), recovered_file)
+                current_recovery_index += 1
+        self.assertEqual(current_recovery_index, len(expected_backup_sequence))
+        self.assertEqual(logs.output[-1], f"{log_prefix}Only one choice for recovery.")
+
 
 def create_large_files(base_folder: Path, file_size: int) -> None:
     """Create a file of a give size in every leaf subdirectory."""

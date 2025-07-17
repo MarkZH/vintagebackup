@@ -688,7 +688,7 @@ def recover_path(
         backup_location: Path,
         *,
         search: bool,
-        choice: int | None = None) -> None:
+        choice: int | str | None = None) -> None:
     """
     Decide which version of a file to restore to its previous location.
 
@@ -716,8 +716,10 @@ def recover_path(
 
     backup_choices = sorted(unique_backups.values())
     if search:
-        binary_search_recovery(recovery_path, backup_location, backup_choices)
+        choice = cast(str, choice)
+        binary_search_recovery(recovery_path, backup_location, backup_choices, choice)
     else:
+        choice = cast(int, choice)
         recover_from_menu(recovery_path, backup_location, backup_choices, choice)
 
 
@@ -762,41 +764,52 @@ def recover_path_to_original_location(backed_up_source: Path, destination: Path)
 def binary_search_recovery(
         recovery_path: Path,
         backup_source: Path,
-        backup_choices: list[Path]) -> None:
+        backup_choices: list[Path],
+        binary_choices: str | None = None) -> None:
     """Choose a version of a path to recover by searching with the user deciding older or newer."""
+    binary_choices = binary_choices or ""
     while True:
-        print(f"Press {cancel_key()} to quit early.")
         index = len(backup_choices)//2
-        path_to_backup = backup_choices[index]/recovery_path.relative_to(backup_source)
-        if len(backup_choices) == 1:
-            logger.info("Only one choice for recovery:")
-            recover_path_to_original_location(path_to_backup, recovery_path)
-            return
-
-        special_list_length = 2
-        special_case = len(backup_choices) == special_list_length
+        relative_path = path_relative_to_backups(recovery_path, backup_source)
+        path_to_backup = backup_choices[index]/relative_path
         recover_path_to_original_location(path_to_backup, recovery_path)
-        valid_choices = "co" if special_case else "con"
-        question = (
+
+        response = (
+            binary_choices[0] if binary_choices else prompt_for_binary_choice(backup_choices))
+
+        binary_choices = binary_choices[1:]
+        if response in {"c", "q"}:
+            return
+        elif response == "o":
+            backup_choices = backup_choices[:index]
+        elif response == "n":
+            backup_choices = backup_choices[index + 1:]
+
+
+def prompt_for_binary_choice(backup_choices: list[Path]) -> str:
+    """Prompt user for which set of backups to search next during binary search."""
+    if len(backup_choices) == 1:
+        logger.info("Only one choice for recovery.")
+        return "q"
+
+    special_list_length = 2
+    special_case = len(backup_choices) == special_list_length
+    valid_choices = "co" if special_case else "con"
+    question = (
             "Is the data [C]orrect, or do you want the [O]lder version?"
             if special_case else
             "Is the data [C]orrect, or do you want an [O]lder or [N]ewer version?")
-        prompt = f"{question} [{'/'.join(valid_choices)}]: "
-
+    print(f"Press {cancel_key()} to quit early.")
+    prompt = f"{question} [{'/'.join(valid_choices)}]: "
+    while True:
         response = input(prompt)
         if not response:
             continue
         response = response[0].lower()
         if response not in valid_choices:
             print("Invalid response")
-            continue
-
-        if response == "c":
-            return
-        elif response == "o":
-            backup_choices = backup_choices[:index]
-        elif response == "n":
-            backup_choices = backup_choices[index + 1:]
+        else:
+            return response
 
 
 def unique_path_name(destination_path: Path) -> Path:
