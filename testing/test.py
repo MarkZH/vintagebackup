@@ -920,7 +920,7 @@ def create_large_files(base_folder: Path, file_size: int) -> None:
     data = "A"*file_size
     for directory_name, sub_directory_names, _ in base_folder.walk():
         if not sub_directory_names:
-            (Path(directory_name)/"file.txt").write_text(data, encoding="utf8")
+            (directory_name/"file.txt").write_text(data, encoding="utf8")
 
 
 class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
