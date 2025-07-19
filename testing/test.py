@@ -821,7 +821,7 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
 def run_recovery(method: Invocation, backup_location: Path, file_path: Path) -> int:
     """Test file recovery through a direct function call or a CLI invocation."""
     if method == Invocation.function:
-        vintagebackup.recover_path(file_path, backup_location, 0)
+        vintagebackup.recover_path(file_path, backup_location, search=False, choice=0)
         return 0
     elif method == Invocation.cli:
         argv = [
@@ -871,7 +871,7 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
             copy_probability=0.0,
             timestamp=unique_timestamp())
         file_path = self.user_path/"sub_directory_0"/"sub_sub_directory_0"/"file_0.txt"
-        vintagebackup.recover_path(file_path, self.backup_path, 0)
+        vintagebackup.recover_path(file_path, self.backup_path, search=False, choice=0)
         recovered_file_path = file_path.parent/f"{file_path.stem}.1{file_path.suffix}"
         self.assertTrue(filecmp.cmp(file_path, recovered_file_path, shallow=False))
 
@@ -887,7 +887,7 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
             copy_probability=0.0,
             timestamp=unique_timestamp())
         folder_path = self.user_path/"sub_directory_1"
-        vintagebackup.recover_path(folder_path, self.backup_path, 0)
+        vintagebackup.recover_path(folder_path, self.backup_path, search=False, choice=0)
         recovered_folder_path = folder_path.parent/f"{folder_path.name}.1"
         self.assertTrue(directories_are_completely_copied(folder_path, recovered_folder_path))
 
@@ -907,9 +907,45 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertTrue(chosen_file)
         chosen_file = cast(Path, chosen_file)
         self.assertEqual(chosen_file, folder_path/"file_1.txt")
-        vintagebackup.recover_path(chosen_file, self.backup_path, 0)
+        vintagebackup.recover_path(chosen_file, self.backup_path, search=False, choice=0)
         recovered_file_path = chosen_file.parent/f"{chosen_file.stem}.1{chosen_file.suffix}"
         self.assertTrue(filecmp.cmp(chosen_file, recovered_file_path, shallow=False))
+
+    def test_binary_search(self) -> None:
+        """Test that sequences of older/newer choices result in the right backup."""
+        create_user_data(self.user_path)
+        for _ in range(9):
+            vintagebackup.create_new_backup(
+                self.user_path,
+                self.backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
+
+        backups = vintagebackup.all_backups(self.backup_path)
+        sought_file = self.user_path/"root_file.txt"
+        with self.assertLogs(level=logging.INFO) as logs:
+            vintagebackup.binary_search_recovery(
+                sought_file,
+                self.backup_path,
+                backups,
+                "on")
+
+        expected_backup_sequence = [backups[i] for i in [4, 2, 3]]
+        current_recovery_index = 0
+        log_prefix = "INFO:vintagebackup:"
+        for line in logs.output:
+            if line.startswith(f"{log_prefix}Copying "):
+                self.assertIn(str(expected_backup_sequence[current_recovery_index]), line)
+                recovered_file = (
+                    sought_file.parent/
+                    f"{sought_file.stem}.{current_recovery_index + 1}{sought_file.suffix}")
+                self.assertTrue(recovered_file.is_file(), recovered_file)
+                current_recovery_index += 1
+        self.assertEqual(current_recovery_index, len(expected_backup_sequence))
+        self.assertEqual(logs.output[-1], f"{log_prefix}Only one choice for recovery.")
 
 
 def create_large_files(base_folder: Path, file_size: int) -> None:
