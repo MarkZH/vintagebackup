@@ -403,11 +403,11 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
                 file != relative_changed_file,
                 (backup_1/file).stat().st_ino == (backup_2/file).stat().st_ino)
 
+    @unittest.skipIf(
+            platform.system() == "Windows",
+            "Cannot create symlinks on Windows without elevated privileges.")
     def test_symlinks_are_always_copied_as_symlinks(self) -> None:
         """Test that symlinks in user data are symlinks in backups."""
-        if platform.system() == "Windows":
-            self.skipTest("Cannot create symlinks on Windows without elevated privileges.")
-
         create_user_data(self.user_path)
         directory_symlink_name = "directory_symlink"
         (self.user_path/directory_symlink_name).symlink_to(self.user_path/"sub_directory_1")
@@ -429,11 +429,11 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertTrue((last_backup/directory_symlink_name).is_symlink())
         self.assertTrue((last_backup/file_symlink_name).is_symlink())
 
+    @unittest.skipIf(
+            platform.system() == "Windows",
+            "Cannot create symlinks on Windows without elevated privileges.")
     def test_symlinks_are_never_hardlinked(self) -> None:
         """Test that multiple backups of symlinks are always copied."""
-        if platform.system() == "Windows":
-            self.skipTest("Cannot create symlinks on Windows without elevated privileges.")
-
         create_user_data(self.user_path)
         directory_symlink_name = "directory_symlink"
         (self.user_path/directory_symlink_name).symlink_to(self.user_path/"sub_directory_1")
@@ -2640,11 +2640,11 @@ class ClassifyPathsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as test_directory:
             self.assertEqual(vintagebackup.classify_path(Path(test_directory)), "Folder")
 
+    @unittest.skipIf(
+            platform.system() == "Windows",
+            "Cannot create symlinks on Windows without elevated privileges.")
     def test_classify_paths_classifies_symlinks_as_symlinks(self) -> None:
         """Test that classify_paths() correctly identifies symlinks."""
-        if platform.system() == "Windows":
-            self.skipTest("Cannot create symlinks on Windows without elevated privileges.")
-
         with tempfile.TemporaryDirectory() as test_directory:
             symlink = Path(test_directory)/"symlink"
             symlink.symlink_to(".")
@@ -2921,11 +2921,9 @@ class GenerateConfigTests(TestCaseWithTemporaryFilesAndFolders):
             logs.output,
             [f"INFO:vintagebackup:Generated configuration file: {config_file_name}"])
 
+    @unittest.skipIf(platform.system() != "Windows", "This test assumes Windows-style paths.")
     def test_generation_of_config_files_with_windows_path_parameters(self) -> None:
         """"Test that command line options with Windows path arguements are correctly recorded."""
-        if platform.system() != "Windows":
-            self.skipTest("This test assumes Windows-style paths.")
-
         command_line = [
             "--user-folder", r"C:\Users\Alice",
             "--backup-folder", r"D:\Backups",
@@ -2941,11 +2939,9 @@ Log: {os.devnull}
         config_data = self.config_path.read_text(encoding="utf8")
         self.assertEqual(expected_config_data, config_data)
 
+    @unittest.skipIf(platform.system() == "Windows", "This test assumes Unix-style paths.")
     def test_generation_of_config_files_with_unix_like_path_parameters(self) -> None:
         """"Test that command line options with Unix-like path arguements are correctly recorded."""
-        if platform.system() == "Windows":
-            self.skipTest("This test assumes Unix-style paths.")
-
         command_line = [
             "--user-folder", "/home/bob",
             "--backup-folder", r"/mnt/backups/",
@@ -2962,11 +2958,9 @@ Log: {os.devnull}
         config_data = self.config_path.read_text(encoding="utf8")
         self.assertEqual(expected_config_data, config_data)
 
+    @unittest.skipIf(platform.system() != "Windows", "This test assumes Windows-style paths.")
     def test_generation_of_config_files_with_short_windows_path_parameters(self) -> None:
         """"Test that short options (-u, -b, etc.) arguments are correctly recorded."""
-        if platform.system() != "Windows":
-            self.skipTest("This test assumes Windows-style paths.")
-
         command_line = [
             "-u", r"C:\Users\Alice",
             "-b", r"D:\Backups",
@@ -2984,11 +2978,9 @@ Log: {os.devnull}
         config_data = self.config_path.read_text(encoding="utf8")
         self.assertEqual(expected_config_data, config_data)
 
+    @unittest.skipIf(platform.system() == "Windows", "This test assumes Unix-style paths.")
     def test_generation_of_config_files_with_short_unix_path_parameters(self) -> None:
         """"Test that short options (-u, -b, etc.) arguments are correctly recorded."""
-        if platform.system() == "Windows":
-            self.skipTest("This test assumes Unix-style paths.")
-
         command_line = [
             "-u", r"/home/bob",
             "-b", r"/mnt/backups",
@@ -3096,11 +3088,9 @@ Log: {os.devnull}
 class GenerateWindowsScriptFilesTests(TestCaseWithTemporaryFilesAndFolders):
     """Make sure that script files for Windows Scheduler are generated correctly."""
 
+    @unittest.skipIf(platform.system() != "Windows", "Only applicable to Windows systems.")
     def test_that_scripts_are_generated_correctly(self) -> None:
         """Make sure that the config file, batch script, and VB script are generated correctly."""
-        if platform.system() != "Windows":
-            self.skipTest("Only applicable to Windows systems.")
-
         # Generate all scripts
         args = [
             "-u", str(self.user_path),
@@ -3149,11 +3139,9 @@ Set Shell = Nothing
         actual_vb_script_contents = vb_script_path.read_text()
         self.assertEqual(expected_vb_script_contents, actual_vb_script_contents)
 
+    @unittest.skipIf(platform.system() != "Windows", "Only applicable to Windows systems.")
     def test_that_generated_scripts_do_not_clobber_existing_files(self) -> None:
         """Make sure that no existing files are clobbered when generating files."""
-        if platform.system() != "Windows":
-            self.skipTest("Only applicable to Windows systems.")
-
         # Create all files before generating
         for file_name in ("config.txt", "batch_script.bat", "vb_script.vbs"):
             (self.user_path/file_name).touch()
