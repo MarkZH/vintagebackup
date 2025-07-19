@@ -111,9 +111,8 @@ def all_files_have_same_content(standard_directory: Path, test_directory: Path) 
     same location and with the same contents. Extra files in this directory will not result in
     failure.
     """
-    for directory_name_1, _, file_names in standard_directory.walk():
-        directory_1 = Path(directory_name_1)
-        directory_2 = test_directory/(directory_1.relative_to(standard_directory))
+    for directory_1, _, file_names in standard_directory.walk():
+        directory_2 = test_directory/directory_1.relative_to(standard_directory)
         _, mismatches, errors = filecmp.cmpfiles(
             directory_1,
             directory_2,
@@ -132,8 +131,7 @@ def directories_have_identical_content(base_directory_1: Path, base_directory_2:
 
 def all_files_are_hardlinked(standard_directory: Path, test_directory: Path) -> bool:
     """Test that every file in the standard directory is hardlinked in the test_directory."""
-    for directory_name_1, _, file_names in standard_directory.walk():
-        directory_1 = Path(directory_name_1)
+    for directory_1, _, file_names in standard_directory.walk():
         directory_2 = test_directory/(directory_1.relative_to(standard_directory))
         for file_name in file_names:
             inode_1 = (directory_1/file_name).stat().st_ino
@@ -151,8 +149,7 @@ def directories_are_completely_hardlinked(base_directory_1: Path, base_directory
 
 def no_files_are_hardlinks(standard_directory: Path, test_directory: Path) -> bool:
     """Test files in standard directory are not hard linked to counterparts in test directory."""
-    for directory_name_1, _, file_names in standard_directory.walk():
-        directory_1 = Path(directory_name_1)
+    for directory_1, _, file_names in standard_directory.walk():
         directory_2 = test_directory/(directory_1.relative_to(standard_directory))
         for file_name in file_names:
             inode_1 = (directory_1/file_name).stat().st_ino
@@ -759,7 +756,7 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
                 filter_file.write(f"{sign} {line}\n")
 
         with self.assertLogs() as log_assert:
-            for _ in vintagebackup.Backup_Set(self.user_path, Path(filter_file.name)):
+            for _ in vintagebackup.Backup_Set(self.user_path, self.filter_path):
                 pass
 
         for line_number, (sign, path) in enumerate(bad_lines, 3):
