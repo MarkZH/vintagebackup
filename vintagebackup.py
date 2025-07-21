@@ -777,8 +777,8 @@ def binary_search_recovery(
 
         response = (
             binary_choices[0] if binary_choices else prompt_for_binary_choice(backup_choices))
-
         binary_choices = binary_choices[1:]
+
         if response == Binary_Response.CORRECT:
             return
         elif response == Binary_Response.OLDER:
