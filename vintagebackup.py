@@ -769,14 +769,17 @@ def binary_search_recovery(
         binary_choices: str | None = None) -> None:
     """Choose a version of a path to recover by searching with the user deciding older or newer."""
     binary_choices = binary_choices or ""
+    in_testing = bool(binary_choices)
     relative_path = path_relative_to_backups(recovery_path, backup_source)
     while True:
         index = len(backup_choices)//2
         path_to_backup = backup_choices[index]/relative_path
         recover_path_to_original_location(path_to_backup, recovery_path)
 
-        response = (
-            binary_choices[0] if binary_choices else prompt_for_binary_choice(backup_choices))
+        if in_testing and not binary_choices and len(backup_choices) > 1:
+            raise RuntimeError("Binary choices for testing exhausted.")
+
+        response = binary_choices[0] if binary_choices else prompt_for_binary_choice(backup_choices)
         binary_choices = binary_choices[1:]
 
         if response == Binary_Response.CORRECT:
