@@ -778,7 +778,7 @@ def binary_search_recovery(
             binary_choices[0] if binary_choices else prompt_for_binary_choice(backup_choices))
 
         binary_choices = binary_choices[1:]
-        if response in {"c", "q"}:
+        if response == "c":
             return
         elif response == "o":
             backup_choices = backup_choices[:index]
@@ -790,7 +790,7 @@ def prompt_for_binary_choice(backup_choices: list[Path]) -> str:
     """Prompt user for which set of backups to search next during binary search."""
     if len(backup_choices) == 1:
         logger.info("Only one choice for recovery.")
-        return "q"
+        return "c"  # Since there's only one choice, it has to be the correct one.
 
     special_list_length = 2
     special_case = len(backup_choices) == special_list_length
