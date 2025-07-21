@@ -13,6 +13,7 @@ import textwrap
 import math
 import random
 import io
+import enum
 from collections import Counter
 from collections.abc import Callable, Iterator, Iterable
 from pathlib import Path
@@ -778,23 +779,33 @@ def binary_search_recovery(
             binary_choices[0] if binary_choices else prompt_for_binary_choice(backup_choices))
 
         binary_choices = binary_choices[1:]
-        if response == "c":
+        if response == Binary_Response.CORRECT:
             return
-        elif response == "o":
+        elif response == Binary_Response.OLDER:
             backup_choices = backup_choices[:index]
-        elif response == "n":
+        elif response == Binary_Response.NEWER:
             backup_choices = backup_choices[index + 1:]
 
 
-def prompt_for_binary_choice(backup_choices: list[Path]) -> str:
+class Binary_Response(enum.StrEnum):
+    """Valid values for user responses during binary search recovery."""
+
+    CORRECT = "c"
+    OLDER = "o"
+    NEWER = "n"
+
+
+def prompt_for_binary_choice(backup_choices: list[Path]) -> Binary_Response:
     """Prompt user for which set of backups to search next during binary search."""
     if len(backup_choices) == 1:
         logger.info("Only one choice for recovery.")
-        return "c"  # Since there's only one choice, it has to be the correct one.
+        return Binary_Response.CORRECT  # Since there's only one choice, it has to be correct.
 
     special_list_length = 2
     special_case = len(backup_choices) == special_list_length
-    valid_choices = "co" if special_case else "con"
+    valid_choices = (
+        {Binary_Response.CORRECT, Binary_Response.OLDER}
+        if special_case else Binary_Response)
     question = (
             "Is the data [C]orrect, or do you want the [O]lder version?"
             if special_case else
@@ -809,7 +820,7 @@ def prompt_for_binary_choice(backup_choices: list[Path]) -> str:
         if response not in valid_choices:
             print("Invalid response")
         else:
-            return response
+            return cast(Binary_Response, response)
 
 
 def unique_path_name(destination_path: Path) -> Path:
