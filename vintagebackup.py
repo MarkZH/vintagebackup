@@ -782,12 +782,13 @@ def binary_search_recovery(
         response = binary_choices[0] if binary_choices else prompt_for_binary_choice(backup_choices)
         binary_choices = binary_choices[1:]
 
-        if response == Binary_Response.CORRECT:
-            return
-        elif response == Binary_Response.OLDER:
-            backup_choices = backup_choices[:index]
-        elif response == Binary_Response.NEWER:
-            backup_choices = backup_choices[index + 1:]
+        match response:
+            case Binary_Response.CORRECT:
+                return
+            case Binary_Response.OLDER:
+                backup_choices = backup_choices[:index]
+            case Binary_Response.NEWER:
+                backup_choices = backup_choices[index + 1:]
 
 
 class Binary_Response(enum.StrEnum):
