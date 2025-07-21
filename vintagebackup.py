@@ -817,10 +817,10 @@ def prompt_for_binary_choice(backup_choices: list[Path]) -> Binary_Response:
         if not response:
             continue
         response = response[0].lower()
-        if response not in valid_choices:
-            print("Invalid response")
-        else:
+        if response in valid_choices:
             return cast(Binary_Response, response)
+        else:
+            print("Invalid response")
 
 
 def unique_path_name(destination_path: Path) -> Path:
