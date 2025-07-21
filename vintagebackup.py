@@ -769,9 +769,9 @@ def binary_search_recovery(
         binary_choices: str | None = None) -> None:
     """Choose a version of a path to recover by searching with the user deciding older or newer."""
     binary_choices = binary_choices or ""
+    relative_path = path_relative_to_backups(recovery_path, backup_source)
     while True:
         index = len(backup_choices)//2
-        relative_path = path_relative_to_backups(recovery_path, backup_source)
         path_to_backup = backup_choices[index]/relative_path
         recover_path_to_original_location(path_to_backup, recovery_path)
 
