@@ -2574,6 +2574,11 @@ class ParseStorageTests(unittest.TestCase):
             size = vintagebackup.parse_storage_space(text)
             self.assertEqual(vintagebackup.byte_units(size), text)
 
+    def test_parse_storage_space_with_empty_string_is_an_error(self) -> None:
+        """Test that an empty string causes a CommandLineError in parse_storage_space."""
+        with self.assertRaises(vintagebackup.CommandLineError):
+            vintagebackup.parse_storage_space("")
+
     def test_number_part_of_byte_units_result_is_less_than_one_thousand(self) -> None:
         """Test that the numeric part of they byte_units() result is less than 1000."""
         for digit_count in range(1, 20):

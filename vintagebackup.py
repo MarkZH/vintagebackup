@@ -1028,12 +1028,11 @@ def parse_storage_space(space_requirement: str) -> float:
     text = "".join(space_requirement.upper().split())
     text = text.replace("K", "k")
     text = text.rstrip("B")
-    number, prefix = (text[:-1], text[-1]) if text[-1].isalpha() else (text, "")
-
     try:
+        number, prefix = (text[:-1], text[-1]) if text[-1].isalpha() else (text, "")
         multiplier: int = 1000**storage_prefixes.index(prefix)
         return float(number)*multiplier
-    except ValueError:
+    except (ValueError, IndexError):
         raise CommandLineError(f"Invalid storage space value: {space_requirement}") from None
 
 
@@ -1062,18 +1061,19 @@ def parse_time_span_to_timepoint(
 
     letter = time_span[-1]
     now = now or datetime.datetime.now()
-    if letter == "d":
-        return now - datetime.timedelta(days=number)
-    elif letter == "w":
-        return now - datetime.timedelta(weeks=number)
-    elif letter == "m":
-        new_date = months_ago(now, number)
-        return datetime.datetime.combine(new_date, now.time())
-    elif letter == "y":
-        new_date = fix_end_of_month(now.year - number, now.month, now.day)
-        return datetime.datetime.combine(new_date, now.time())
-    else:
-        raise CommandLineError(f"Invalid time (valid units: {list("dwmy")}): {time_span}")
+    match letter:
+        case "d":
+            return now - datetime.timedelta(days=number)
+        case "w":
+            return now - datetime.timedelta(weeks=number)
+        case "m":
+            new_date = months_ago(now, number)
+            return datetime.datetime.combine(new_date, now.time())
+        case "y":
+            new_date = fix_end_of_month(now.year - number, now.month, now.day)
+            return datetime.datetime.combine(new_date, now.time())
+        case _:
+            raise CommandLineError(f"Invalid time (valid units: {list("dwmy")}): {time_span}")
 
 
 def months_ago(now: datetime.datetime | datetime.date, month_count: int) -> datetime.date:
