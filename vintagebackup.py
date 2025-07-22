@@ -1571,7 +1571,10 @@ def get_existing_path(path: str | None, folder_type: str) -> Path:
 def start_recovery_from_backup(args: argparse.Namespace) -> None:
     """Recover a file or folder from a backup according to the command line."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
-    choice = None if args.choice is None else int(args.choice)
+    try:
+        choice: int | str | None = None if args.choice is None else int(args.choice)
+    except ValueError:
+        choice = str(args.choice)
     print_run_title(args, "Recovering from backups")
     recover_path(absolute_path(args.recover), backup_folder, search=args.search, choice=choice)
 
