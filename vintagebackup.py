@@ -928,12 +928,11 @@ def parse_storage_space(space_requirement: str) -> float:
     text = "".join(space_requirement.upper().split())
     text = text.replace("K", "k")
     text = text.rstrip("B")
-    number, prefix = (text[:-1], text[-1]) if text[-1].isalpha() else (text, "")
-
     try:
+        number, prefix = (text[:-1], text[-1]) if text[-1].isalpha() else (text, "")
         multiplier: int = 1000**storage_prefixes.index(prefix)
         return float(number)*multiplier
-    except ValueError:
+    except (ValueError, IndexError):
         raise CommandLineError(f"Invalid storage space value: {space_requirement}") from None
 
 
