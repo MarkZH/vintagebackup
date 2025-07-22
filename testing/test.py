@@ -926,12 +926,9 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
 
         backups = vintagebackup.all_backups(self.backup_path)
         sought_file = self.user_path/"root_file.txt"
+        backup_choices = [backup/sought_file.name for backup in backups]
         with self.assertLogs(level=logging.INFO) as logs:
-            vintagebackup.binary_search_recovery(
-                sought_file,
-                self.backup_path,
-                backups,
-                "on")
+            vintagebackup.binary_search_recovery(sought_file, backup_choices, "on")
 
         expected_backup_sequence = [backups[i] for i in [4, 2, 3]]
         current_recovery_index = 0

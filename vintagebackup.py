@@ -718,7 +718,7 @@ def recover_path(
     backup_choices = sorted(unique_backups.values())
     if search:
         choice = cast(str, choice)
-        binary_search_recovery(recovery_path, backup_location, backup_choices, choice)
+        binary_search_recovery(recovery_path, backup_choices, choice)
     else:
         choice = cast(int, choice)
         recover_from_menu(recovery_path, backup_location, backup_choices, choice)
@@ -764,16 +764,14 @@ def recover_path_to_original_location(backed_up_source: Path, destination: Path)
 
 def binary_search_recovery(
         recovery_path: Path,
-        backup_source: Path,
         backup_choices: list[Path],
         binary_choices: str | None = None) -> None:
     """Choose a version of a path to recover by searching with the user deciding older or newer."""
     binary_choices = binary_choices or ""
     in_testing = bool(binary_choices)
-    relative_path = path_relative_to_backups(recovery_path, backup_source)
     while True:
         index = len(backup_choices)//2
-        path_to_backup = backup_choices[index]/relative_path
+        path_to_backup = backup_choices[index]
         recover_path_to_original_location(path_to_backup, recovery_path)
 
         if in_testing and not binary_choices and len(backup_choices) > 1:
