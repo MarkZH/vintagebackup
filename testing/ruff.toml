@@ -27,7 +27,6 @@ ignore = [
     "PLR0917", # Too many positional arguments
     "PT009", # Use assert instead of unittest.assertIn
     "PT027", # Use pytest.raises instead of assertRaises
-    "PTH", # Replace builtin functions with Path methods
     "RET505", # Unnecessary else after return statement
     "S311", # Standard pseudo-random generators are not suitable for cryptographic purposes
     "S608", # Possible SQL injection vector through string-based query construction
