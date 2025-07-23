@@ -13,6 +13,7 @@ import textwrap
 import math
 import random
 import io
+import enum
 from collections import Counter
 from collections.abc import Callable, Iterator, Iterable
 from pathlib import Path
@@ -683,7 +684,12 @@ def directory_relative_to_backup(search_directory: Path, backup_folder: Path) ->
     return path_relative_to_backups(search_directory, backup_folder)
 
 
-def recover_path(recovery_path: Path, backup_location: Path, choice: int | None = None) -> None:
+def recover_path(
+        recovery_path: Path,
+        backup_location: Path,
+        *,
+        search: bool,
+        choice: int | str | None = None) -> None:
     """
     Decide which version of a file to restore to its previous location.
 
@@ -710,6 +716,20 @@ def recover_path(recovery_path: Path, backup_location: Path, choice: int | None 
         return
 
     backup_choices = sorted(unique_backups.values())
+    if search:
+        choice = cast(str, choice)
+        binary_search_recovery(recovery_path, backup_choices, choice)
+    else:
+        choice = cast(int, choice)
+        recover_from_menu(recovery_path, backup_location, backup_choices, choice)
+
+
+def recover_from_menu(
+        recovery_path: Path,
+        backup_location: Path,
+        backup_choices: list[Path],
+        choice: int | None) -> None:
+    """Choose which version of a path to recover from a list of backup dates."""
     if choice is None:
         menu_choices: list[str] = []
         for backup_copy in backup_choices:
@@ -718,13 +738,91 @@ def recover_path(recovery_path: Path, backup_location: Path, choice: int | None 
             menu_choices.append(f"{backup_date} ({path_type})")
         choice = choose_from_menu(menu_choices, "Version to recover")
     chosen_path = backup_choices[choice]
+    recover_path_to_original_location(chosen_path, recovery_path)
 
-    recovered_path = unique_path_name(recovery_path)
-    logger.info("Copying %s to %s", chosen_path, recovered_path)
-    if is_real_directory(chosen_path):
-        shutil.copytree(chosen_path, recovered_path, symlinks=True)
+
+def recover_path_to_original_location(backed_up_source: Path, destination: Path) -> None:
+    """
+    Copy a path from backup without clobbering existing data.
+
+    :param backed_up_source: The file or folder to be copied to its original location.
+    :param destination: The full path to the original location. This should include the name of
+    the recovered file or folder, not just the destination folder.
+    """
+    if destination.exists(follow_symlinks=False) and destination.name != backed_up_source.name:
+        raise RuntimeError(
+            "The path to the backup and the path to the original location must have the same name:"
+            f"\n{backed_up_source}\n{destination}")
+
+    recovered_path = unique_path_name(destination)
+    logger.info("Copying %s to %s", backed_up_source, recovered_path)
+    if is_real_directory(backed_up_source):
+        shutil.copytree(backed_up_source, recovered_path, symlinks=True)
     else:
-        shutil.copy2(chosen_path, recovered_path, follow_symlinks=False)
+        shutil.copy2(backed_up_source, recovered_path, follow_symlinks=False)
+
+
+def binary_search_recovery(
+        recovery_path: Path,
+        backup_choices: list[Path],
+        binary_choices: str | None = None) -> None:
+    """Choose a version of a path to recover by searching with the user deciding older or newer."""
+    binary_choices = binary_choices or ""
+    in_testing = bool(binary_choices)
+    while True:
+        index = len(backup_choices)//2
+        path_to_backup = backup_choices[index]
+        recover_path_to_original_location(path_to_backup, recovery_path)
+
+        if in_testing and not binary_choices and len(backup_choices) > 1:
+            raise RuntimeError("Binary choices for testing exhausted.")
+
+        response = binary_choices[0] if binary_choices else prompt_for_binary_choice(backup_choices)
+        binary_choices = binary_choices[1:]
+
+        match response:
+            case Binary_Response.CORRECT:
+                return
+            case Binary_Response.OLDER:
+                backup_choices = backup_choices[:index]
+            case Binary_Response.NEWER:
+                backup_choices = backup_choices[index + 1:]
+
+
+class Binary_Response(enum.StrEnum):
+    """Valid values for user responses during binary search recovery."""
+
+    CORRECT = "c"
+    OLDER = "o"
+    NEWER = "n"
+
+
+def prompt_for_binary_choice(backup_choices: list[Path]) -> Binary_Response:
+    """Prompt user for which set of backups to search next during binary search."""
+    if len(backup_choices) == 1:
+        logger.info("Only one choice for recovery.")
+        return Binary_Response.CORRECT  # Since there's only one choice, it has to be correct.
+
+    special_list_length = 2
+    special_case = len(backup_choices) == special_list_length
+    valid_choices = (
+        {Binary_Response.CORRECT, Binary_Response.OLDER}
+        if special_case else Binary_Response)
+    question = (
+            "Is the data [C]orrect, or do you want the [O]lder version?"
+            if special_case else
+            "Is the data [C]orrect, or do you want an [O]lder or [N]ewer version?")
+    print(f"Press {cancel_key()} to quit early.")
+    prompt = f"{question} [{'/'.join(valid_choices)}]: "
+    while True:
+        response = input(prompt)
+        if not response:
+            continue
+        response = response[0].lower()
+        if response in valid_choices:
+            return cast(Binary_Response, response)
+        else:
+            print("Invalid response")
 
 
 def unique_path_name(destination_path: Path) -> Path:
@@ -1473,9 +1571,12 @@ def get_existing_path(path: str | None, folder_type: str) -> Path:
 def start_recovery_from_backup(args: argparse.Namespace) -> None:
     """Recover a file or folder from a backup according to the command line."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
-    choice = None if args.choice is None else int(args.choice)
+    try:
+        choice: int | str | None = None if args.choice is None else int(args.choice)
+    except ValueError:
+        choice = str(args.choice)
     print_run_title(args, "Recovering from backups")
-    recover_path(absolute_path(args.recover), backup_folder, choice)
+    recover_path(absolute_path(args.recover), backup_folder, search=args.search, choice=choice)
 
 
 def choose_target_path_from_backups(args: argparse.Namespace) -> Path | None:
@@ -1494,7 +1595,7 @@ def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     chosen_recovery_path = choose_target_path_from_backups(args)
     if chosen_recovery_path is not None:
-        recover_path(chosen_recovery_path, backup_folder)
+        recover_path(chosen_recovery_path, backup_folder, search=args.search)
 
 
 def choose_purge_target_from_backups(
@@ -2129,6 +2230,14 @@ unchanged file will be copied with a probability of 1/(HARD_LINK_COUNT + 1).""")
 """Specify the probability that an unchanged file will be copied instead of hard-linked during a
 backup. The probability can be expressed as a decimal (0.1) or as a percent (10%%). This is an
 alternate to --hard-link-count and cannot be used together with it."""))
+
+    recover_group = user_input.add_argument_group("Recover options", format_text(
+"""Choose how to search for which version of a file or folder to recover from backup."""))
+
+    recover_group.add_argument("--search", action="store_true", help=format_help(
+"""Instead of choosing a backup date, recover a version of the file so the user can examine it.
+Then, after the examining the file, decide whether to restore a newer or older version as
+needed."""))
 
     move_group = user_input.add_argument_group("Move backup options", format_text(
 """Use exactly one of these options to specify which backups to move when using --move-backup."""))
