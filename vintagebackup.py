@@ -1826,7 +1826,7 @@ def start_backup(args: argparse.Namespace) -> None:
 
 def generate_config(args: argparse.Namespace) -> Path:
     """Generate a configuration file from the arguments and return the path of that file."""
-    no_arguments: list[str] = []
+    no_arguments: set[str] = set()
     no_prefix = "no_"
     arguments: list[tuple[str, Any]] = []
     for option, value in vars(args).items():
@@ -1834,17 +1834,15 @@ def generate_config(args: argparse.Namespace) -> Path:
             continue
 
         if option.startswith(no_prefix) and value:
-            no_arguments.append(option.removeprefix(no_prefix))
+            no_arguments.add(option.removeprefix(no_prefix))
             continue
 
         arguments.append((option, value))
 
+    arguments = [(arg, val) for arg, val in arguments if arg not in no_arguments]
     config_path = unique_path_name(Path(args.generate_config))
     with config_path.open("w", encoding="utf8") as config_file:
         for option, value in arguments:
-            if not value or option in no_arguments:
-                continue
-
             parameter = option.replace("_", " ").capitalize()
             value_string = "" if value is True else str(value)
             is_path = option in {"user_folder", "backup_folder", "filter", "destination"}
