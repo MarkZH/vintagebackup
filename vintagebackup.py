@@ -918,7 +918,7 @@ def delete_directory_tree(directory: Path, *, ignore_errors: bool = False) -> No
         Copied from https://docs.python.org/3/library/shutil.html#rmtree-example
         """
         try:
-            os.chmod(path, stat.S_IWRITE, follow_symlinks=False)
+            os.chmod(path, stat.S_IWRITE, follow_symlinks=False)  # noqa: PTH101
             func(path)
         except Exception as error:
             if ignore_errors:
@@ -1390,10 +1390,10 @@ def print_backup_storage_stats(backup_location: Path) -> None:
     logger.info("Earliest backup: %s", backups[0].name)
 
 
-def read_configuation_file(config_file_name: str) -> list[str]:
+def read_configuation_file(config_file: Path) -> list[str]:
     """Parse a configuration file into command line arguments."""
     try:
-        with open(config_file_name, encoding="utf8") as file:
+        with config_file.open(encoding="utf8") as file:
             arguments: list[str] = []
             for line_raw in file:
                 line = line_raw.strip()
@@ -1412,7 +1412,7 @@ def read_configuation_file(config_file_name: str) -> list[str]:
                     arguments.append(value)
             return arguments
     except FileNotFoundError:
-        raise CommandLineError(f"Configuation file does not exist: {config_file_name}") from None
+        raise CommandLineError(f"Configuation file does not exist: {config_file}") from None
 
 
 def remove_quotes(s: str) -> str:
@@ -1908,7 +1908,7 @@ def absolute_path(path: Path | str, *, strict: bool = False) -> Path:
     :param stict: If True, raise a FileNotFoundError if the path does not exist. Symlinks are
     not followed, so an existing symlink to a non-existent file or folder does not raise an error.
     """
-    abs_path = Path(os.path.abspath(path))
+    abs_path = Path(os.path.abspath(path))  # noqa: PTH100
     if strict and not abs_path.exists(follow_symlinks=False):
         raise FileNotFoundError(f"The path {abs_path}, resolved from {path} does not exist.")
     return abs_path
@@ -1973,7 +1973,7 @@ def preview_filter(args: argparse.Namespace) -> None:
     filter_file = path_or_none(args.filter)
     output_file = path_or_none(args.preview_filter)
     if output_file:
-        with open(output_file, "w", encoding="utf8") as output:
+        with output_file.open("w", encoding="utf8") as output:
             path_listing(Backup_Set(user_folder, filter_file), output)
     else:
         stdout = cast(io.TextIOBase, sys.stdout)
@@ -2371,7 +2371,7 @@ def parse_command_line(argv: list[str]) -> argparse.Namespace:
     user_input = argument_parser()
     command_line_args = user_input.parse_args(command_line_options)
     if command_line_args.config:
-        file_options = read_configuation_file(command_line_args.config)
+        file_options = read_configuation_file(Path(command_line_args.config))
         return user_input.parse_args(file_options + command_line_options)
     else:
         return command_line_args

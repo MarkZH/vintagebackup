@@ -382,7 +382,7 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
             timestamp=unique_timestamp())
 
         changed_file_name = self.user_path/"sub_directory_2"/"sub_sub_directory_0"/"file_1.txt"
-        with open(changed_file_name, "a", encoding="utf8") as changed_file:
+        with changed_file_name.open("a", encoding="utf8") as changed_file:
             changed_file.write("the change\n")
 
         vintagebackup.create_new_backup(
@@ -604,7 +604,9 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
                 copy_probability=0.0,
                 timestamp=unique_timestamp())
         self.assertIn("WARNING:vintagebackup:No files were backed up!", assert_log.output)
-        self.assertEqual(os.listdir(self.backup_path), ["vintagebackup.source.txt"])
+        self.assertEqual(
+            list(self.backup_path.iterdir()),
+            [self.backup_path/"vintagebackup.source.txt"])
 
     def test_no_dated_backup_folder_created_if_no_data_backed_up(self) -> None:
         """Test that a dated backup folder is not created if there is no data to back up."""
@@ -616,7 +618,9 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
             force_copy=False,
             copy_probability=0.0,
             timestamp=unique_timestamp())
-        self.assertEqual(os.listdir(self.backup_path), ["vintagebackup.source.txt"])
+        self.assertEqual(
+            list(self.backup_path.iterdir()),
+            [self.backup_path/"vintagebackup.source.txt"])
 
     def test_warning_printed_if_all_user_files_filtered_out(self) -> None:
         """Make sure the user is warned if a filter file removes all files from the backup set."""
@@ -633,7 +637,9 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
                 copy_probability=0.0,
                 timestamp=unique_timestamp())
         self.assertIn("WARNING:vintagebackup:No files were backed up!", assert_log.output)
-        self.assertEqual(os.listdir(self.backup_path), ["vintagebackup.source.txt"])
+        self.assertEqual(
+            list(self.backup_path.iterdir()),
+            [self.backup_path/"vintagebackup.source.txt"])
 
 
 class FilterTests(TestCaseWithTemporaryFilesAndFolders):
@@ -1166,7 +1172,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         create_old_backups(self.backup_path, today.month + 1)
         oldest_backup_year_folder = self.backup_path/f"{today.year - 1}"
         self.assertTrue(oldest_backup_year_folder.is_dir())
-        self.assertEqual(len(os.listdir(oldest_backup_year_folder)), 1)
+        self.assertEqual(len(list(oldest_backup_year_folder.iterdir())), 1)
         vintagebackup.delete_backups_older_than(self.backup_path, f"{today.month}m")
         self.assertFalse(oldest_backup_year_folder.is_dir())
         this_year_backup_folder = self.backup_path/f"{today.year}"
@@ -1394,7 +1400,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             timestamp=unique_timestamp())
 
         mismatch_file = self.user_path/"sub_directory_1"/"sub_sub_directory_2"/"file_0.txt"
-        with open(mismatch_file, "a", encoding="utf8") as file:
+        with mismatch_file.open("a", encoding="utf8") as file:
             file.write("\naddition\n")
 
         error_file = self.user_path/"sub_directory_2"/"sub_sub_directory_0"/"file_1.txt"
@@ -1429,7 +1435,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
                         self)
                     self.assertEqual(exit_code, 0)
 
-                verify_files = set(os.listdir(verification_location))
+                verify_files = {p.name for p in verification_location.iterdir()}
                 expected_files = {"matching files.txt", "mismatching files.txt", "error files.txt"}
                 self.assertEqual(verify_files, expected_files)
                 for file_name in verify_files:
@@ -1438,7 +1444,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
                         else mismatching_path_set if file_name.startswith("mismatching ")
                         else error_path_set)
 
-                    with open(verification_location/file_name, encoding="utf8") as verify_file:
+                    with (verification_location/file_name).open(encoding="utf8") as verify_file:
                         first_line = verify_file.readline()
                         first_line_format = "Comparison: (.*) <---> (.*)\n"
                         matches = cast(re.Match[str], re.match(first_line_format, first_line))
@@ -1496,7 +1502,7 @@ FiLteR    :    {filter_file}
 force-copy:
 whole    file :
 """, encoding="utf8")
-        command_line = vintagebackup.read_configuation_file(str(self.config_path))
+        command_line = vintagebackup.read_configuation_file(Path(self.config_path))
         expected_command_line = [
             "--user-folder", user_folder,
             "--backup-folder", backup_folder,
@@ -1561,7 +1567,7 @@ force copy:
         """Test that putting a config parameter in a configuration file raises an exception."""
         self.config_path.write_text("config: config_file_2.txt", encoding="utf8")
         with self.assertRaises(vintagebackup.CommandLineError):
-            vintagebackup.read_configuation_file(str(self.config_path))
+            vintagebackup.read_configuation_file(Path(self.config_path))
 
 
 class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
