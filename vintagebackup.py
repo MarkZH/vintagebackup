@@ -715,7 +715,7 @@ def setup_log_file(
 def record_backup_log_file(log_file_path: Path, backup_path: Path) -> None:
     """Record location of log file used with a backup folder."""
     backup_info = read_backup_information(backup_path)
-    backup_info["Log"] = log_file_path
+    backup_info["Log"] = absolute_path(log_file_path, strict=True)
     write_backup_information(backup_path, backup_info)
 
 
