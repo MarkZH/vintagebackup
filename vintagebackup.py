@@ -18,7 +18,7 @@ from collections import Counter
 from collections.abc import Callable, Iterator, Iterable
 from pathlib import Path
 from inspect import getsourcefile
-from typing import Any, cast
+from typing import Any, cast, TypedDict, Literal
 
 backup_date_format = "%Y-%m-%d %H-%M-%S"
 
@@ -249,23 +249,30 @@ class Backup_Set:
                     pattern)
 
 
-def get_user_location_record(backup_location: Path) -> Path:
-    """Return the file that contains the user directory that is backed up at the given location."""
+def get_backup_info_file(backup_location: Path) -> Path:
+    """
+    Return the file that contains information about the backup process at the given location.
+
+    The file will containe the user directory that is backed up at the given location and the log
+    file for activity at the backup location.
+    """
     return backup_location/"vintagebackup.source.txt"
 
 
 def record_user_location(user_location: Path, backup_location: Path) -> None:
     """Write the user directory being backed up to a file in the base backup directory."""
-    user_folder_record = get_user_location_record(backup_location)
-    resolved_user_location = absolute_path(user_location, strict=True)
-    logger.debug("Writing %s to %s", resolved_user_location, user_folder_record)
-    user_folder_record.write_text(f"{resolved_user_location}\n", encoding="utf8")
+    backup_info = read_backup_information(backup_location)
+    backup_info["Source"] = absolute_path(user_location, strict=True)
+    write_backup_information(backup_location, backup_info)
 
 
 def backup_source(backup_location: Path) -> Path:
     """Read the user directory that was backed up to the given backup location."""
-    user_folder_record = get_user_location_record(backup_location)
-    return absolute_path(user_folder_record.read_text(encoding="utf8").removesuffix("\n"))
+    user_folder = read_backup_information(backup_location)["Source"]
+    if user_folder:
+        return user_folder
+    else:
+        raise FileNotFoundError(f"No source for backups in {backup_location} found.")
 
 
 def confirm_user_location_is_unchanged(user_data_location: Path, backup_location: Path) -> None:
@@ -616,13 +623,82 @@ def check_paths_for_validity(
         raise CommandLineError(f"Filter file not found: {filter_file}")
 
 
+class Backup_Info(TypedDict):
+    """Information about a backup folder."""
+
+    Source: Path | None
+    Log: Path | None
+
+
+def read_backup_information(backup_folder: Path) -> Backup_Info:
+    """Get information about a backup folder."""
+    info_file = get_backup_info_file(backup_folder)
+    try:
+        info_to_write = Backup_Info(Source=None, Log=None)
+        with info_file.open(encoding="utf8") as info:
+            for line in info:
+                key, value_string = line.removesuffix("\n").split(" : ", maxsplit=1)
+                if not key:
+                    continue
+                key = backup_info_key(key)
+                value = absolute_path(value_string)
+                info_to_write[key] = value
+        return info_to_write
+    except FileNotFoundError:
+        return Backup_Info(Source=None, Log=None)
+
+
+def backup_info_key(key: str) -> Literal["Source", "Log"]:
+    """Verify that backup info keys read from a file are valid keys."""
+    key = key.strip()
+    if key == "Source":
+        return "Source"
+
+    if key == "Log":
+        return "Log"
+
+    raise KeyError(f"Unknown key for Backup_Info: {key}")
+
+
+def write_backup_information(backup_folder: Path, backup_info: Backup_Info) -> None:
+    """Record backup information to a file in the backup folder."""
+    info_file = get_backup_info_file(backup_folder)
+    with info_file.open("w", encoding="utf8") as info:
+        for key, value in backup_info.items():
+            if value:
+                logger.debug("Writing %s : %s to %s", key, value, info_file)
+                info.write(f"{key} : {value}\n")
+
+
+def backup_log_file(backup_folder: Path) -> Path | None:
+    """Retreive the log file used in the last backup."""
+    return read_backup_information(backup_folder)["Source"]
+
+
+default_log_file_name = Path.home()/"vintagebackup.log"
+
+
 def setup_log_file(
         logger: logging.Logger,
-        log_file_path: str,
-        error_log_file_path: str | None) -> None:
+        log_file_name: str,
+        error_log_file_path: str | None,
+        backup_folder: str | None) -> None:
     """Set up logging to write to a file."""
+    if log_file_name:
+        log_file_path = absolute_path(log_file_name) if log_file_name != os.devnull else None
+    elif backup_folder:
+        backup_path = absolute_path(backup_folder)
+        log_file_path = backup_log_file(backup_path)
+        if not log_file_path:
+            log_file_path = default_log_file_name
+    else:
+        log_file_path = None
+
+    if backup_folder and log_file_path:
+        record_backup_log_file(log_file_path, Path(backup_folder))
+
     log_format = "%(asctime)s %(levelname)s    %(message)s"
-    if log_file_path != os.devnull:
+    if log_file_path:
         log_file = logging.FileHandler(log_file_path, encoding="utf8")
         log_file_format = logging.Formatter(fmt=log_format)
         log_file.setFormatter(log_file_format)
@@ -634,6 +710,13 @@ def setup_log_file(
         error_log_format = logging.Formatter(fmt=log_format)
         error_log.setFormatter(error_log_format)
         logger.addHandler(error_log)
+
+
+def record_backup_log_file(log_file_path: Path, backup_path: Path) -> None:
+    """Record location of log file used with a backup folder."""
+    backup_info = read_backup_information(backup_path)
+    backup_info["Log"] = log_file_path
+    write_backup_information(backup_path, backup_info)
 
 
 def search_backups(
@@ -1231,12 +1314,15 @@ def move_backups(
             is_backup_move=True,
             timestamp=backup_datetime(backup))
 
-        backup_source_file = get_user_location_record(new_backup_location)
+        backup_source_file = get_backup_info_file(new_backup_location)
         backup_source_file.unlink()
         logger.info("---------------------")
 
     original_backup_source = backup_source(old_backup_location)
     record_user_location(original_backup_source, new_backup_location)
+    old_log_file = backup_log_file(old_backup_location)
+    if old_log_file:
+        record_backup_log_file(old_log_file, new_backup_location)
 
 
 def write_directory(output: io.TextIOBase, directory: Path, file_names: list[str]) -> None:
@@ -2331,7 +2417,6 @@ a configuration file will cause the program to quit with an error."""))
 
     add_no_option(other_group, "debug")
 
-    default_log_file_name = Path.home()/"vintagebackup.log"
     other_group.add_argument(
         "-l", "--log",
         default=str(default_log_file_name),
@@ -2399,7 +2484,7 @@ def main(argv: list[str]) -> int:
             print_help()
             return 0
 
-        setup_log_file(logger, args.log, args.error_log)
+        setup_log_file(logger, args.log, args.error_log, args.backup_folder)
         logger.setLevel(logging.DEBUG if toggle_is_set(args, "debug") else logging.INFO)
         logger.debug(args)
 
