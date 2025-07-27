@@ -672,7 +672,7 @@ def write_backup_information(backup_folder: Path, backup_info: Backup_Info) -> N
 
 def backup_log_file(backup_folder: Path) -> Path | None:
     """Retreive the log file used in the last backup."""
-    return read_backup_information(backup_folder)["Source"]
+    return read_backup_information(backup_folder)["Log"]
 
 
 default_log_file_name = Path.home()/"vintagebackup.log"
