@@ -30,6 +30,8 @@ Glob patterns have the following characters with special meaning:
 - `**` - Matches any sequence of nested directories: `a/**/b.txt` matches `a/b.txt`, `a/d1/b.txt``a/d1/d2/b.txt`, `a/d1/d2/d3/b.txt`
 - `[sequence]` - Matches a single character between the brackets: `[bcdr]ough` matches `bough`, `cough`, `dough`, and `rough`.
   - This can also be used to make characters be no longer treated as special. `why[?].csv` will only match the file named `why?.csv`.
+  - The leading and trailing whitespace of a pattern is normally removed.
+If a file name has leading or trailing whitespace, brackets can be used to keep them: `[ ]file name with spaces at ends.txt[ ][ ]` will match ` file name with spaces at ends.txt  `.
 - `[!sequence]` - Matches a single character that is not between the brackets: `[!b]at` matches `cat`, `mat`, and `sat`, but not `bat`.
 
 ## Example
