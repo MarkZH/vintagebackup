@@ -3257,6 +3257,59 @@ Set Shell = Nothing
         self.assertEqual(expected_vb_script_contents, actual_vb_script_contents)
 
 
+class LogTests(TestCaseWithTemporaryFilesAndFolders):
+    """Tests for log files."""
+
+    def test_log_option_specifies_log_file(self) -> None:
+        """Pick log file from --log option."""
+        log_path = self.user_path/"log.txt"
+        selected_log_path = vintagebackup.primary_log_path(str(log_path), None)
+        self.assertEqual(log_path, selected_log_path)
+
+    def test_backup_folder_determines_log_without_log_path(self) -> None:
+        """Select log file from previous backup."""
+        create_user_data(self.user_path)
+        log_path = self.user_path/"log.txt"
+        exit_code = vintagebackup.main([
+            "--user-folder", str(self.user_path),
+            "--backup-folder", str(self.backup_path),
+            "--log", str(log_path)])
+        self.assertEqual(exit_code, 0)
+        selected_log_path = vintagebackup.primary_log_path(None, str(self.backup_path))
+        self.assertEqual(selected_log_path, log_path)
+        selected_log_path = vintagebackup.primary_log_path("", str(self.backup_path))
+        self.assertEqual(selected_log_path, log_path)
+
+    def test_log_option_overrides_backup_folder_log_record(self) -> None:
+        """Use chosen log file if specified despite a recorded log file from previous backup."""
+        create_user_data(self.user_path)
+        log_path = self.user_path/"log.txt"
+        exit_code = vintagebackup.main([
+            "--user-folder", str(self.user_path),
+            "--backup-folder", str(self.backup_path),
+            "--log", str(log_path)])
+        self.assertEqual(exit_code, 0)
+        log_path_2 = self.user_path/"log2.txt"
+        selected_log_file = vintagebackup.primary_log_path(str(log_path_2), str(self.backup_path))
+        self.assertEqual(selected_log_file, log_path_2)
+
+    def test_return_default_log_if_no_log_and_backup_folder_specified(self) -> None:
+        """Return default log file if no log and no previous backup but backup folder specified."""
+        selected_log_file = vintagebackup.primary_log_path(None, str(self.backup_path))
+        self.assertEqual(selected_log_file, vintagebackup.default_log_file_name)
+
+    def test_return_none_if_os_devnull_is_specified(self) -> None:
+        """Return nul or /dev/null if the user selects it."""
+        null_file = "nul" if platform.system() == "Windows" else "/dev/null"
+        selected_log_file = vintagebackup.primary_log_path(null_file, str(self.backup_path))
+        self.assertIsNone(selected_log_file)
+
+    def test_return_none_if_no_log_and_no_backup_folder(self) -> None:
+        """Return None if no log and no backup folder are specified (nothing worth logging)."""
+        selected_log_file = vintagebackup.primary_log_path(None, None)
+        self.assertIsNone(selected_log_file)
+
+
 class UniquePathNameTests(TestCaseWithTemporaryFilesAndFolders):
     """Tests that unique_path_name() prevents file overwriting."""
 

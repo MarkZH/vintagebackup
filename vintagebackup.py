@@ -684,15 +684,7 @@ def setup_log_file(
         error_log_file_path: str | None,
         backup_folder: str | None) -> None:
     """Set up logging to write to a file."""
-    if log_file_name:
-        log_file_path = absolute_path(log_file_name) if log_file_name != os.devnull else None
-    elif backup_folder:
-        backup_path = absolute_path(backup_folder)
-        log_file_path = backup_log_file(backup_path)
-        if not log_file_path:
-            log_file_path = default_log_file_name
-    else:
-        log_file_path = None
+    log_file_path = primary_log_path(log_file_name, backup_folder)
 
     if backup_folder and log_file_path:
         record_backup_log_file(log_file_path, Path(backup_folder))
@@ -710,6 +702,18 @@ def setup_log_file(
         error_log_format = logging.Formatter(fmt=log_format)
         error_log.setFormatter(error_log_format)
         logger.addHandler(error_log)
+
+
+def primary_log_path(log_file_name: str | None, backup_folder: str | None) -> Path | None:
+    """Determine which file to use for logging."""
+    if log_file_name:
+        return absolute_path(log_file_name) if log_file_name != os.devnull else None
+    elif backup_folder:
+        backup_path = absolute_path(backup_folder)
+        log_file_path = backup_log_file(backup_path)
+        return log_file_path or default_log_file_name
+    else:
+        return None
 
 
 def record_backup_log_file(log_file_path: Path, backup_path: Path) -> None:
