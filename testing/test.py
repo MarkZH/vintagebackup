@@ -3309,6 +3309,40 @@ class LogTests(TestCaseWithTemporaryFilesAndFolders):
         selected_log_file = vintagebackup.primary_log_path(None, None)
         self.assertIsNone(selected_log_file)
 
+    def test_old_style_backup_info_file_is_read_correctly(self) -> None:
+        """Confirm old info files--only backup source with no keys--can be read."""
+        create_user_data(self.user_path)
+        log_path = self.user_path/"log.txt"
+        timestamp = unique_timestamp().strftime(vintagebackup.backup_date_format)
+        exit_code = vintagebackup.main([
+            "--user-folder", str(self.user_path),
+            "--backup-folder", str(self.backup_path),
+            "--log", str(log_path),
+            "--timestamp", timestamp])
+        self.assertEqual(exit_code, 0)
+
+        new_style_info = vintagebackup.read_backup_information(self.backup_path)
+        self.assertEqual(new_style_info["Log"], log_path)
+        self.assertEqual(new_style_info["Source"], self.user_path)
+
+        info_path = vintagebackup.get_backup_info_file(self.backup_path)
+        info_path.write_text(f"{self.user_path}\n")
+        old_style_info = vintagebackup.read_backup_information(self.backup_path)
+        self.assertIsNone(old_style_info["Log"])
+        self.assertEqual(old_style_info["Source"], self.user_path)
+
+        timestamp = unique_timestamp().strftime(vintagebackup.backup_date_format)
+        exit_code = vintagebackup.main([
+            "--user-folder", str(self.user_path),
+            "--backup-folder", str(self.backup_path),
+            "--log", str(log_path),
+            "--timestamp", timestamp])
+        self.assertEqual(exit_code, 0)
+
+        last_info = vintagebackup.read_backup_information(self.backup_path)
+        self.assertEqual(last_info["Log"], log_path)
+        self.assertEqual(last_info["Source"], self.user_path)
+
 
 class UniquePathNameTests(TestCaseWithTemporaryFilesAndFolders):
     """Tests that unique_path_name() prevents file overwriting."""

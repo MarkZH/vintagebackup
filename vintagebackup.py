@@ -636,8 +636,14 @@ def read_backup_information(backup_folder: Path) -> Backup_Info:
     try:
         info_to_write = Backup_Info(Source=None, Log=None)
         with info_file.open(encoding="utf8") as info:
-            for line in info:
-                key, value_string = line.removesuffix("\n").split(" : ", maxsplit=1)
+            for line_raw in info:
+                line = line_raw.lstrip().removesuffix("\n")
+                if any(line.startswith(k) for k in info_to_write):
+                    key, value_string = line.split(" : ", maxsplit=1)
+                else:
+                    key = "Source"
+                    value_string = line
+
                 if not key:
                     continue
                 key = backup_info_key(key)
