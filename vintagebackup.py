@@ -634,11 +634,11 @@ def read_backup_information(backup_folder: Path) -> Backup_Info:
     """Get information about a backup folder."""
     info_file = get_backup_info_file(backup_folder)
     try:
-        info_to_write = Backup_Info(Source=None, Log=None)
+        extracted_info = Backup_Info(Source=None, Log=None)
         with info_file.open(encoding="utf8") as info:
             for line_raw in info:
                 line = line_raw.lstrip().removesuffix("\n")
-                if any(line.startswith(k) for k in info_to_write):
+                if any(line.startswith(k) for k in extracted_info):
                     key, value_string = line.split(" : ", maxsplit=1)
                 else:
                     key = "Source"
@@ -648,8 +648,8 @@ def read_backup_information(backup_folder: Path) -> Backup_Info:
                     continue
                 key = backup_info_key(key)
                 value = absolute_path(value_string)
-                info_to_write[key] = value
-        return info_to_write
+                extracted_info[key] = value
+        return extracted_info
     except FileNotFoundError:
         return Backup_Info(Source=None, Log=None)
 
