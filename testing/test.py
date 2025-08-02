@@ -42,6 +42,11 @@ def unique_timestamp() -> datetime.datetime:
     return testing_timestamp
 
 
+def unique_timestamp_string() -> str:
+    """Return the stringified version of the unique_timestamp() result."""
+    return unique_timestamp().strftime(vintagebackup.backup_date_format)
+
+
 def random_string(length: int) -> str:
     """Return a string with random ASCII letters of a given length."""
     return "".join(random.choices(string.ascii_letters, k=length))
@@ -1054,8 +1059,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
                     "--user-folder", str(self.user_path),
                     "--backup-folder", str(self.backup_path),
                     "--free-up", goal_space_str,
-                    "--timestamp",
-                    unique_timestamp().strftime(vintagebackup.backup_date_format)],
+                    "--timestamp", unique_timestamp_string()],
                     self)
                 self.assertEqual(exit_code, 0)
 
@@ -1112,8 +1116,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
                     "--user-folder", str(self.user_path),
                     "--backup-folder", str(self.backup_path),
                     "--delete-after", max_age,
-                    "--timestamp",
-                    unique_timestamp().strftime(vintagebackup.backup_date_format)],
+                    "--timestamp", unique_timestamp_string()],
                     self)
                 self.assertEqual(exit_code, 0)
             else:
@@ -1204,8 +1207,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             "--backup-folder", str(self.backup_path),
             "--delete-after", "1y",
             "--delete-first",
-            "--timestamp",
-            unique_timestamp().strftime(vintagebackup.backup_date_format)]
+            "--timestamp", unique_timestamp_string()]
         backups_in_year = 12
         expected_deletions_before_backup = initial_backups - backups_in_year
         expected_backup_count_before_backup = initial_backups - expected_deletions_before_backup
@@ -1945,10 +1947,10 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
             "--hard-link-count", "1",
-            "--timestamp", unique_timestamp().strftime(vintagebackup.backup_date_format)]
+            "--timestamp", unique_timestamp_string()]
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
-        arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
+        arguments[-1] = unique_timestamp_string()
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
 
@@ -2004,10 +2006,10 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
             "--copy-probability", "0",
-            "--timestamp", unique_timestamp().strftime(vintagebackup.backup_date_format)]
+            "--timestamp", unique_timestamp_string()]
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
-        arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
+        arguments[-1] = unique_timestamp_string()
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
 
@@ -2021,10 +2023,10 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
         arguments = [
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
-            "--timestamp", unique_timestamp().strftime(vintagebackup.backup_date_format)]
+            "--timestamp", unique_timestamp_string()]
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
-        arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
+        arguments[-1] = unique_timestamp_string()
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
 
@@ -2039,10 +2041,10 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
             "--copy-probability", "1",
-            "--timestamp", unique_timestamp().strftime(vintagebackup.backup_date_format)]
+            "--timestamp", unique_timestamp_string()]
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
-        arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
+        arguments[-1] = unique_timestamp_string()
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
 
@@ -2057,10 +2059,10 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
             "--copy-probability", "50%",
-            "--timestamp", unique_timestamp().strftime(vintagebackup.backup_date_format)]
+            "--timestamp", unique_timestamp_string()]
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
-        arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
+        arguments[-1] = unique_timestamp_string()
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
 
@@ -3315,12 +3317,11 @@ class LogTests(TestCaseWithTemporaryFilesAndFolders):
         """Confirm old info files--only backup source with no keys--can be read."""
         create_user_data(self.user_path)
         log_path = self.user_path/"log.txt"
-        timestamp = unique_timestamp().strftime(vintagebackup.backup_date_format)
         exit_code = vintagebackup.main([
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
             "--log", str(log_path),
-            "--timestamp", timestamp])
+            "--timestamp", unique_timestamp_string()])
         self.assertEqual(exit_code, 0)
 
         new_style_info = vintagebackup.read_backup_information(self.backup_path)
@@ -3333,12 +3334,11 @@ class LogTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertIsNone(old_style_info["Log"])
         self.assertEqual(old_style_info["Source"], self.user_path)
 
-        timestamp = unique_timestamp().strftime(vintagebackup.backup_date_format)
         exit_code = vintagebackup.main([
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
             "--log", str(log_path),
-            "--timestamp", timestamp])
+            "--timestamp", unique_timestamp_string()])
         self.assertEqual(exit_code, 0)
 
         last_info = vintagebackup.read_backup_information(self.backup_path)
