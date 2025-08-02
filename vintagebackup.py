@@ -641,7 +641,7 @@ def read_backup_information(backup_folder: Path) -> Backup_Info:
                 if not line:
                     continue
                 if any(line.startswith(k) for k in extracted_info):
-                    key, value_string = line.split(" : ", maxsplit=1)
+                    key, value_string = line.split(": ", maxsplit=1)
                 else:
                     key = "Source"
                     value_string = line
@@ -673,7 +673,7 @@ def write_backup_information(backup_folder: Path, backup_info: Backup_Info) -> N
         for key, value in backup_info.items():
             if value:
                 logger.debug("Writing %s : %s to %s", key, value, info_file)
-                info.write(f"{key} : {value}\n")
+                info.write(f"{key}: {value}\n")
 
 
 def backup_log_file(backup_folder: Path) -> Path | None:
