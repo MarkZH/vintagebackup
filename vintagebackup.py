@@ -638,14 +638,14 @@ def read_backup_information(backup_folder: Path) -> Backup_Info:
         with info_file.open(encoding="utf8") as info:
             for line_raw in info:
                 line = line_raw.lstrip().removesuffix("\n")
+                if not line:
+                    continue
                 if any(line.startswith(k) for k in extracted_info):
                     key, value_string = line.split(" : ", maxsplit=1)
                 else:
                     key = "Source"
                     value_string = line
 
-                if not key:
-                    continue
                 key = backup_info_key(key)
                 value = absolute_path(value_string)
                 extracted_info[key] = value
