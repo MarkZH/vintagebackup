@@ -3303,6 +3303,8 @@ class LogTests(TestCaseWithTemporaryFilesAndFolders):
         null_file = "nul" if platform.system() == "Windows" else "/dev/null"
         selected_log_file = vintagebackup.primary_log_path(null_file, str(self.backup_path))
         self.assertIsNone(selected_log_file)
+        selected_log_file = vintagebackup.primary_log_path(null_file, None)
+        self.assertIsNone(selected_log_file)
 
     def test_return_none_if_no_log_and_no_backup_folder(self) -> None:
         """Return None if no log and no backup folder are specified (nothing worth logging)."""
