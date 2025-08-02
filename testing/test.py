@@ -42,6 +42,11 @@ def unique_timestamp() -> datetime.datetime:
     return testing_timestamp
 
 
+def unique_timestamp_string() -> str:
+    """Return the stringified version of the unique_timestamp() result."""
+    return unique_timestamp().strftime(vintagebackup.backup_date_format)
+
+
 def random_string(length: int) -> str:
     """Return a string with random ASCII letters of a given length."""
     return "".join(random.choices(string.ascii_letters, k=length))
@@ -1054,8 +1059,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
                     "--user-folder", str(self.user_path),
                     "--backup-folder", str(self.backup_path),
                     "--free-up", goal_space_str,
-                    "--timestamp",
-                    unique_timestamp().strftime(vintagebackup.backup_date_format)],
+                    "--timestamp", unique_timestamp_string()],
                     self)
                 self.assertEqual(exit_code, 0)
 
@@ -1112,8 +1116,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
                     "--user-folder", str(self.user_path),
                     "--backup-folder", str(self.backup_path),
                     "--delete-after", max_age,
-                    "--timestamp",
-                    unique_timestamp().strftime(vintagebackup.backup_date_format)],
+                    "--timestamp", unique_timestamp_string()],
                     self)
                 self.assertEqual(exit_code, 0)
             else:
@@ -1204,8 +1207,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             "--backup-folder", str(self.backup_path),
             "--delete-after", "1y",
             "--delete-first",
-            "--timestamp",
-            unique_timestamp().strftime(vintagebackup.backup_date_format)]
+            "--timestamp", unique_timestamp_string()]
         backups_in_year = 12
         expected_deletions_before_backup = initial_backups - backups_in_year
         expected_backup_count_before_backup = initial_backups - expected_deletions_before_backup
@@ -1945,10 +1947,10 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
             "--hard-link-count", "1",
-            "--timestamp", unique_timestamp().strftime(vintagebackup.backup_date_format)]
+            "--timestamp", unique_timestamp_string()]
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
-        arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
+        arguments[-1] = unique_timestamp_string()
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
 
@@ -2004,10 +2006,10 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
             "--copy-probability", "0",
-            "--timestamp", unique_timestamp().strftime(vintagebackup.backup_date_format)]
+            "--timestamp", unique_timestamp_string()]
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
-        arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
+        arguments[-1] = unique_timestamp_string()
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
 
@@ -2021,10 +2023,10 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
         arguments = [
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
-            "--timestamp", unique_timestamp().strftime(vintagebackup.backup_date_format)]
+            "--timestamp", unique_timestamp_string()]
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
-        arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
+        arguments[-1] = unique_timestamp_string()
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
 
@@ -2039,10 +2041,10 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
             "--copy-probability", "1",
-            "--timestamp", unique_timestamp().strftime(vintagebackup.backup_date_format)]
+            "--timestamp", unique_timestamp_string()]
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
-        arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
+        arguments[-1] = unique_timestamp_string()
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
 
@@ -2057,10 +2059,10 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
             "--copy-probability", "50%",
-            "--timestamp", unique_timestamp().strftime(vintagebackup.backup_date_format)]
+            "--timestamp", unique_timestamp_string()]
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
-        arguments[-1] = unique_timestamp().strftime(vintagebackup.backup_date_format)
+        arguments[-1] = unique_timestamp_string()
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
 
@@ -3255,6 +3257,93 @@ Set Shell = Nothing
 ''')
         actual_vb_script_contents = actual_vb_path.read_text()
         self.assertEqual(expected_vb_script_contents, actual_vb_script_contents)
+
+
+class LogTests(TestCaseWithTemporaryFilesAndFolders):
+    """Tests for log files."""
+
+    def test_log_option_specifies_log_file(self) -> None:
+        """Pick log file from --log option."""
+        log_path = self.user_path/"log.txt"
+        selected_log_path = vintagebackup.primary_log_path(str(log_path), None)
+        self.assertEqual(log_path, selected_log_path)
+
+    def test_backup_folder_determines_log_without_log_path(self) -> None:
+        """Select log file from previous backup."""
+        create_user_data(self.user_path)
+        log_path = self.user_path/"log.txt"
+        exit_code = vintagebackup.main([
+            "--user-folder", str(self.user_path),
+            "--backup-folder", str(self.backup_path),
+            "--log", str(log_path)])
+        self.assertEqual(exit_code, 0)
+        selected_log_path = vintagebackup.primary_log_path(None, str(self.backup_path))
+        self.assertEqual(selected_log_path, log_path)
+        selected_log_path = vintagebackup.primary_log_path("", str(self.backup_path))
+        self.assertEqual(selected_log_path, log_path)
+
+    def test_log_option_overrides_backup_folder_log_record(self) -> None:
+        """Use chosen log file if specified despite a recorded log file from previous backup."""
+        create_user_data(self.user_path)
+        log_path = self.user_path/"log.txt"
+        exit_code = vintagebackup.main([
+            "--user-folder", str(self.user_path),
+            "--backup-folder", str(self.backup_path),
+            "--log", str(log_path)])
+        self.assertEqual(exit_code, 0)
+        log_path_2 = self.user_path/"log2.txt"
+        selected_log_file = vintagebackup.primary_log_path(str(log_path_2), str(self.backup_path))
+        self.assertEqual(selected_log_file, log_path_2)
+
+    def test_return_default_log_if_no_log_and_backup_folder_specified(self) -> None:
+        """Return default log file if no log and no previous backup but backup folder specified."""
+        selected_log_file = vintagebackup.primary_log_path(None, str(self.backup_path))
+        self.assertEqual(selected_log_file, vintagebackup.default_log_file_name)
+
+    def test_return_none_if_os_devnull_is_specified(self) -> None:
+        """Return nul or /dev/null if the user selects it."""
+        null_file = "nul" if platform.system() == "Windows" else "/dev/null"
+        selected_log_file = vintagebackup.primary_log_path(null_file, str(self.backup_path))
+        self.assertIsNone(selected_log_file)
+        selected_log_file = vintagebackup.primary_log_path(null_file, None)
+        self.assertIsNone(selected_log_file)
+
+    def test_return_none_if_no_log_and_no_backup_folder(self) -> None:
+        """Return None if no log and no backup folder are specified (nothing worth logging)."""
+        selected_log_file = vintagebackup.primary_log_path(None, None)
+        self.assertIsNone(selected_log_file)
+
+    def test_old_style_backup_info_file_is_read_correctly(self) -> None:
+        """Confirm old info files--only backup source with no keys--can be read."""
+        create_user_data(self.user_path)
+        log_path = self.user_path/"log.txt"
+        exit_code = vintagebackup.main([
+            "--user-folder", str(self.user_path),
+            "--backup-folder", str(self.backup_path),
+            "--log", str(log_path),
+            "--timestamp", unique_timestamp_string()])
+        self.assertEqual(exit_code, 0)
+
+        new_style_info = vintagebackup.read_backup_information(self.backup_path)
+        self.assertEqual(new_style_info["Log"], log_path)
+        self.assertEqual(new_style_info["Source"], self.user_path)
+
+        info_path = vintagebackup.get_backup_info_file(self.backup_path)
+        info_path.write_text(f"{self.user_path}\n")
+        old_style_info = vintagebackup.read_backup_information(self.backup_path)
+        self.assertIsNone(old_style_info["Log"])
+        self.assertEqual(old_style_info["Source"], self.user_path)
+
+        exit_code = vintagebackup.main([
+            "--user-folder", str(self.user_path),
+            "--backup-folder", str(self.backup_path),
+            "--log", str(log_path),
+            "--timestamp", unique_timestamp_string()])
+        self.assertEqual(exit_code, 0)
+
+        last_info = vintagebackup.read_backup_information(self.backup_path)
+        self.assertEqual(last_info["Log"], log_path)
+        self.assertEqual(last_info["Source"], self.user_path)
 
 
 class UniquePathNameTests(TestCaseWithTemporaryFilesAndFolders):
