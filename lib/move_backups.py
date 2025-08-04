@@ -1,3 +1,4 @@
+"""Functions for moving backups from one location to another."""
 
 import datetime
 import argparse
