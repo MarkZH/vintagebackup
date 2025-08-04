@@ -1,11 +1,15 @@
 """Functions that generate files for automating backup procedures."""
 
+import logging
 import os
 import argparse
 import sys
 from pathlib import Path
 from inspect import getsourcefile
 from typing import Any, cast
+
+logger = logging.getLogger(__name__)
+
 
 def generate_config(args: argparse.Namespace) -> Path:
     """Generate a configuration file from the arguments and return the path of that file."""
