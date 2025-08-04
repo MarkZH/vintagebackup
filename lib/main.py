@@ -2,11 +2,7 @@
 
 import logging
 
-from lib.argument_parser import (
-    parse_command_line,
-    print_help,
-    print_usage,
-    toggle_is_set)
+from lib.argument_parser import parse_command_line, print_help, print_usage, toggle_is_set
 from lib.automation import generate_config, generate_windows_scripts
 from lib.backup import start_backup
 from lib.backup_deletion import delete_before_backup, delete_old_backups
