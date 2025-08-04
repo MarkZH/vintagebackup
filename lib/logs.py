@@ -2,7 +2,6 @@
 
 import logging
 import os
-import logging
 from pathlib import Path
 
 from lib.backup_info import primary_log_path, record_backup_log_file
