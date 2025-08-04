@@ -1,9 +1,12 @@
 """Functions for deleting old backups."""
 
+import logging
 import shutil
 import argparse
 from collections.abc import Callable
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 def delete_oldest_backups_for_space(
         backup_location: Path,
