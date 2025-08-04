@@ -1,3 +1,4 @@
+"""Functions for recovering individual files and folders from backups."""
 
 import shutil
 import argparse
