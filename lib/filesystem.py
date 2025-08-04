@@ -10,9 +10,12 @@ from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Any
 
-from lib.argument_parser import CommandLineError
+from lib.exceptions import CommandLineError
 
 logger = logging.getLogger(__name__)
+
+
+default_log_file_name = Path.home()/"vintagebackup.log"
 
 
 storage_prefixes = ["", "k", "M", "G", "T", "P", "E", "Z", "Y", "R", "Q"]

@@ -3,9 +3,7 @@
 import os
 from pathlib import Path
 
-
-class ConcurrencyError(RuntimeError):
-    """An exception thrown when another process is using the same backup location."""
+from lib.exceptions import ConcurrencyError
 
 
 class Backup_Lock:

@@ -7,10 +7,10 @@ import enum
 from pathlib import Path
 from typing import cast
 
-from lib.argument_parser import CommandLineError
 from lib.backup import all_backups
 from lib.backup_info import backup_source
 from lib.console import cancel_key, choose_from_menu, print_run_title
+from lib.exceptions import CommandLineError
 from lib.filesystem import absolute_path, get_existing_path, is_real_directory, unique_path_name
 from lib.purge import classify_path
 

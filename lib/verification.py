@@ -5,11 +5,12 @@ import filecmp
 import logging
 from pathlib import Path
 
-from lib.argument_parser import CommandLineError, path_or_none
+from lib.argument_parser import path_or_none
 from lib.backup import find_previous_backup
 from lib.backup_info import backup_source
 from lib.backup_set import Backup_Set
 from lib.console import print_run_title
+from lib.exceptions import CommandLineError
 from lib.filesystem import absolute_path, get_existing_path, unique_path_name, write_directory
 
 logger = logging.getLogger(__name__)

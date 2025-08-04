@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from lib.argument_parser import CommandLineError
+from lib.exceptions import CommandLineError
 
 
 def read_configuation_file(config_file: Path) -> list[str]:

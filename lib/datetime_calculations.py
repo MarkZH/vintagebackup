@@ -2,7 +2,7 @@
 
 import datetime
 
-from lib.argument_parser import CommandLineError
+from lib.exceptions import CommandLineError
 
 
 def parse_time_span_to_timepoint(

@@ -17,9 +17,6 @@ def setup_initial_null_logger(logger: logging.Logger) -> None:
     logger.setLevel(logging.INFO)
 
 
-default_log_file_name = Path.home()/"vintagebackup.log"
-
-
 def setup_log_file(
         logger: logging.Logger,
         log_file_name: str,
