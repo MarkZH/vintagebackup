@@ -1,8 +1,12 @@
 """Functions for purging files and folders from all backups."""
 
 import argparse
+import logging
 from collections import Counter
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
+
 
 def choose_purge_target_from_backups(
         args: argparse.Namespace,
