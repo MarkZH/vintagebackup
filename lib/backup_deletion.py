@@ -6,7 +6,7 @@ import argparse
 from collections.abc import Callable
 from pathlib import Path
 
-from lib.backup import all_backups, backup_datetime, print_backup_storage_stats, start_backup
+import lib.backup as lib_backup
 from lib.datetime_calculations import parse_time_span_to_timepoint
 from lib.exceptions import CommandLineError
 from lib.filesystem import byte_units, delete_directory_tree, get_existing_path, parse_storage_space
@@ -53,7 +53,7 @@ def delete_oldest_backups_for_space(
 
     final_free_space = shutil.disk_usage(backup_location).free
     if final_free_space < free_storage_required:
-        backups_remaining = len(all_backups(backup_location))
+        backups_remaining = len(lib_backup.all_backups(backup_location))
         if backups_remaining == 1:
             logger.warning(
                 "Could not free up %s of storage without deleting most recent backup.",
@@ -83,12 +83,12 @@ def delete_backups_older_than(
         f"Deleting backups prior to {timestamp_to_keep.strftime('%Y-%m-%d %H:%M:%S')}.")
 
     def stop(backup: Path) -> bool:
-        return backup_datetime(backup) >= timestamp_to_keep
+        return lib_backup.backup_datetime(backup) >= timestamp_to_keep
 
     delete_backups(backup_folder, min_backups_remaining, first_deletion_message, stop)
-    oldest_backup_date = backup_datetime(all_backups(backup_folder)[0])
+    oldest_backup_date = lib_backup.backup_datetime(lib_backup.all_backups(backup_folder)[0])
     if oldest_backup_date < timestamp_to_keep:
-        backups_remaining = len(all_backups(backup_folder))
+        backups_remaining = len(lib_backup.all_backups(backup_folder))
         if backups_remaining == 1:
             logger.warning(
                 "Could not delete all backups older than %s without deleting most recent backup.",
@@ -114,7 +114,7 @@ def delete_backups(
     """
     min_backups_remaining = max(1, min_backups_remaining)
 
-    backups_to_delete = all_backups(backup_folder)[:-min_backups_remaining]
+    backups_to_delete = lib_backup.all_backups(backup_folder)[:-min_backups_remaining]
     for deletion_count, backup in enumerate(backups_to_delete, 1):
         if stop_deletion_condition(backup):
             break
@@ -139,15 +139,15 @@ def delete_backups(
 def delete_old_backups(args: argparse.Namespace) -> None:
     """Delete the oldest backups by various criteria in the command line options."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
-    backup_count = len(all_backups(backup_folder))
+    backup_count = len(lib_backup.all_backups(backup_folder))
     max_deletions = int(args.max_deletions or backup_count)
     min_backups_remaining = max(backup_count - max_deletions, 1)
     delete_oldest_backups_for_space(backup_folder, args.free_up, min_backups_remaining)
     delete_backups_older_than(backup_folder, args.delete_after, min_backups_remaining)
-    print_backup_storage_stats(backup_folder)
+    lib_backup.print_backup_storage_stats(backup_folder)
 
 
 def delete_before_backup(args: argparse.Namespace) -> None:
     """Delete old backups before running a backup process."""
     delete_old_backups(args)
-    start_backup(args)
+    lib_backup.start_backup(args)
