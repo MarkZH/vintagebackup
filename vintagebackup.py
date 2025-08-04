@@ -1,3 +1,4 @@
+"""A backup utility that uses hardlinks to save space when making full backups."""
 
 import sys
 import logging
