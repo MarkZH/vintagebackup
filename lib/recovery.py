@@ -1,10 +1,14 @@
 """Functions for recovering individual files and folders from backups."""
 
+import logging
 import shutil
 import argparse
 import enum
 from pathlib import Path
 from typing import cast
+
+logger = logging.getLogger(__name__)
+
 
 def search_backups(
         search_directory: Path,
