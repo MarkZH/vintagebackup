@@ -1,3 +1,4 @@
+"""A class for preventing more than one operation from simultaneously modifying backups."""
 
 import os
 from pathlib import Path
