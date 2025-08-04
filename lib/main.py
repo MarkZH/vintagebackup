@@ -1,3 +1,5 @@
+"""The main function where the requested action is initiated."""
+
 import logging
 
 logger = logging.getLogger(__name__)
