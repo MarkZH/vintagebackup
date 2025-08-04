@@ -1,5 +1,6 @@
 """The main functions for backing up user files."""
 
+import logging
 import os
 import shutil
 import datetime
@@ -12,6 +13,9 @@ from collections import Counter
 from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Any, cast
+
+logger = logging.getLogger(__name__)
+
 
 backup_date_format = "%Y-%m-%d %H-%M-%S"
 
