@@ -1,3 +1,4 @@
+"""Function library for parsing arguments from the command line."""
 
 import os
 import shutil
