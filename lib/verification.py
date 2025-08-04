@@ -2,7 +2,11 @@
 
 import argparse
 import filecmp
+import logging
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
+
 
 def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Path | None) -> None:
     """
