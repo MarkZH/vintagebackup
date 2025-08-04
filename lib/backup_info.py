@@ -1,8 +1,12 @@
 """Functions for reading information about previous backups."""
 
+import logging
 import os
 from pathlib import Path
 from typing import TypedDict, Literal
+
+logger = logging.getLogger(__name__)
+
 
 def get_backup_info_file(backup_location: Path) -> Path:
     """
