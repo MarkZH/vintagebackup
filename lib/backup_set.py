@@ -6,6 +6,10 @@ import sys
 import io
 from collections.abc import Iterator
 from pathlib import Path
+from typing import cast
+
+from lib.argument_parser import path_or_none
+from lib.filesystem import get_existing_path, path_listing
 
 logger = logging.getLogger(__name__)
 
