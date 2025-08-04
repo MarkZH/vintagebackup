@@ -2,6 +2,8 @@
 
 import datetime
 
+from lib.argument_parser import CommandLineError
+
 def parse_time_span_to_timepoint(
         time_span: str,
         now: datetime.datetime | None = None) -> datetime.datetime:
