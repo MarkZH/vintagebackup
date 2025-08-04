@@ -1,3 +1,4 @@
+"""Functions that generate files for automating backup procedures."""
 
 import os
 import argparse
