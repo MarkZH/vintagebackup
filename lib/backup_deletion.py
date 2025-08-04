@@ -10,8 +10,10 @@ import lib.backup as lib_backup
 from lib.datetime_calculations import parse_time_span_to_timepoint
 from lib.exceptions import CommandLineError
 from lib.filesystem import byte_units, delete_directory_tree, get_existing_path, parse_storage_space
+import lib.logs
 
 logger = logging.getLogger(__name__)
+lib.logs.setup_initial_null_logger(logger)
 
 
 def delete_oldest_backups_for_space(

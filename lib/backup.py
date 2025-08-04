@@ -28,8 +28,10 @@ from lib.filesystem import (
     get_existing_path,
     is_real_directory,
     parse_storage_space)
+import lib.logs
 
 logger = logging.getLogger(__name__)
+lib.logs.setup_initial_null_logger(logger)
 
 
 backup_date_format = "%Y-%m-%d %H-%M-%S"
