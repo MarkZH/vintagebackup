@@ -1,3 +1,4 @@
+"""Functions for purging files and folders from all backups."""
 
 import argparse
 from collections import Counter
