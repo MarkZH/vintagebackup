@@ -1,3 +1,4 @@
+"""The main functions for backing up user files."""
 
 import os
 import shutil
