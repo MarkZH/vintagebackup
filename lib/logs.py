@@ -1,3 +1,4 @@
+"""Functions for working with logs."""
 
 import os
 import logging
