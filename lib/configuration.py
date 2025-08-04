@@ -4,6 +4,7 @@ from pathlib import Path
 
 from lib.argument_parser import CommandLineError
 
+
 def read_configuation_file(config_file: Path) -> list[str]:
     """Parse a configuration file into command line arguments."""
     try:

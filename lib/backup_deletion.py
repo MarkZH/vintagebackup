@@ -13,6 +13,7 @@ from lib.filesystem import byte_units, delete_directory_tree, get_existing_path,
 
 logger = logging.getLogger(__name__)
 
+
 def delete_oldest_backups_for_space(
         backup_location: Path,
         space_requirement: str | None,
