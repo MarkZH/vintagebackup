@@ -3,6 +3,8 @@
 import sys
 import logging
 
+from lib.main import main
+
 if __name__ == "__main__":
     try:
         logger.addHandler(logging.StreamHandler(sys.stdout))
