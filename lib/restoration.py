@@ -1,8 +1,12 @@
 """Functions for completely restoring a user's directory from backup."""
 
+import logging
 import shutil
 import argparse
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
+
 
 def choose_backup(backup_folder: Path, choice: int | None) -> Path | None:
     """Choose a backup from a numbered list shown in a terminal."""
