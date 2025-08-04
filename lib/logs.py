@@ -1,8 +1,11 @@
 """Functions for working with logs."""
 
+import logging
 import os
 import logging
 from pathlib import Path
+
+from lib.backup_info import primary_log_path, record_backup_log_file
 
 def setup_initial_null_logger(logger: logging.Logger) -> None:
     """Reset a logger that outputs to null so that no logs are printed during testing."""
