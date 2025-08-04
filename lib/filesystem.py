@@ -1,5 +1,6 @@
 """Functions for working with the storage filesystem."""
 
+import logging
 import os
 import shutil
 import stat
@@ -8,6 +9,9 @@ import io
 from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
+
 
 storage_prefixes = ["", "k", "M", "G", "T", "P", "E", "Z", "Y", "R", "Q"]
 
