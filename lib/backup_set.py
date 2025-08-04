@@ -1,3 +1,4 @@
+"""A class for generating paths for backups with optional filtering."""
 
 import argparse
 import sys
