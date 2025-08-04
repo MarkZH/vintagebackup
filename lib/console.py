@@ -4,6 +4,8 @@ import logging
 import platform
 import argparse
 
+from lib.filesystem import absolute_path
+
 logger = logging.getLogger(__name__)
 
 
