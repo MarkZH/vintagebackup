@@ -1,3 +1,4 @@
+"""Functions for displaying information in the console."""
 
 import platform
 import argparse
