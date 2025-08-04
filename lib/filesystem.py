@@ -1,3 +1,4 @@
+"""Functions for working with the storage filesystem."""
 
 import os
 import shutil
