@@ -1,3 +1,4 @@
+"""Functions for completely restoring a user's directory from backup."""
 
 import shutil
 import argparse
