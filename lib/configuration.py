@@ -1,3 +1,5 @@
+"""Functions for reading configuration files."""
+
 from pathlib import Path
 
 def read_configuation_file(config_file: Path) -> list[str]:
