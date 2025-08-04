@@ -1,3 +1,4 @@
+"""Functions for reading information about previous backups."""
 
 import os
 from pathlib import Path
