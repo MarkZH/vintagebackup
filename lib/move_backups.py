@@ -1,8 +1,12 @@
 """Functions for moving backups from one location to another."""
 
 import datetime
+import logging
 import argparse
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
+
 
 def move_backups(
         old_backup_location: Path,
