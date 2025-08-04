@@ -10,6 +10,8 @@ from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Any
 
+from lib.argument_parser import CommandLineError
+
 logger = logging.getLogger(__name__)
 
 
