@@ -1,7 +1,10 @@
 """Functions for displaying information in the console."""
 
+import logging
 import platform
 import argparse
+
+logger = logging.getLogger(__name__)
 
 
 def choose_from_menu(menu_choices: list[str], prompt: str) -> int:
