@@ -1,3 +1,4 @@
+"""Functions for calculations with dates and times."""
 
 import datetime
 
