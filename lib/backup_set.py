@@ -1,10 +1,13 @@
 """A class for generating paths for backups with optional filtering."""
 
 import argparse
+import logging
 import sys
 import io
 from collections.abc import Iterator
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 class Backup_Set:
