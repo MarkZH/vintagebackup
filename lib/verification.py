@@ -1,3 +1,4 @@
+"""Functions for verifying the user's data is successfully backed up."""
 
 import argparse
 import filecmp
