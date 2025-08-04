@@ -1,3 +1,4 @@
+"""Functions for deleting old backups."""
 
 import shutil
 import argparse
