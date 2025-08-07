@@ -19,7 +19,7 @@ logger = logging.getLogger()
 setup_initial_null_logger()
 
 
-def main(argv: list[str]) -> int:
+def main(argv: list[str], *, testing: bool = True) -> int:
     """
     Start the main program.
 
@@ -52,7 +52,7 @@ def main(argv: list[str]) -> int:
         action(args)
         return 0
     except CommandLineError as error:
-        if __name__ == "__main__":
+        if not testing:
             print_usage()
         logger.error(error)
     except ConcurrencyError as error:

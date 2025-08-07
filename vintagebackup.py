@@ -10,6 +10,6 @@ if __name__ == "__main__":
         logger = logging.getLogger()
         logger.setLevel(logging.INFO)
         logger.addHandler(logging.StreamHandler(sys.stdout))
-        sys.exit(main(sys.argv))
+        sys.exit(main(sys.argv, testing=False))
     except KeyboardInterrupt:
         sys.exit(1)
