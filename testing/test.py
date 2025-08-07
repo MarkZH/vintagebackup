@@ -3389,7 +3389,7 @@ class UniquePathNameTests(TestCaseWithTemporaryFilesAndFolders):
             new_path_name.touch()
 
 
-def close_all_file_log() -> None:
+def close_all_file_logs() -> None:
     """Close error file to prevent errors when leaving assertLogs contexts."""
     logger = logging.getLogger()
     for handler in logger.handlers:
@@ -3425,7 +3425,7 @@ class ErrorLogTests(TestCaseWithTemporaryFilesAndFolders):
                 "-u", str(non_existent_folder),
                 "-b", str(self.backup_path),
                 "--error-log", str(self.error_log)])
-            close_all_file_log()
+            close_all_file_logs()
 
         self.assertTrue(self.error_log.is_file())
 
