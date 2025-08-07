@@ -15,8 +15,8 @@ from lib.recovery import choose_recovery_target_from_backups, start_recovery_fro
 from lib.restoration import start_backup_restore
 from lib.verification import start_verify_backup
 
-logger = logging.getLogger(__name__)
-setup_initial_null_logger(logger)
+logger = logging.getLogger()
+setup_initial_null_logger()
 
 
 def main(argv: list[str]) -> int:
@@ -31,8 +31,8 @@ def main(argv: list[str]) -> int:
             print_help()
             return 0
 
-        setup_log_file(logger, args.log, args.error_log, args.backup_folder)
-        logger.setLevel(logging.DEBUG if toggle_is_set(args, "debug") else logging.INFO)
+        debug_output = toggle_is_set(args, "debug")
+        setup_log_file(args.log, args.error_log, args.backup_folder, debug=debug_output)
         logger.debug(args)
 
         action = (

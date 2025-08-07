@@ -12,7 +12,7 @@ from lib.console import cancel_key, choose_from_menu, print_run_title
 from lib.exceptions import CommandLineError
 from lib.filesystem import absolute_path, delete_path, get_existing_path
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 
 def choose_backup(backup_folder: Path, choice: int | None) -> Path | None:

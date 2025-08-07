@@ -13,7 +13,7 @@ from lib.console import print_run_title
 from lib.exceptions import CommandLineError
 from lib.filesystem import absolute_path, get_existing_path, unique_path_name, write_directory
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 
 def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Path | None) -> None:

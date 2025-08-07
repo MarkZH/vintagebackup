@@ -11,7 +11,7 @@ from typing import cast
 from lib.argument_parser import path_or_none
 from lib.filesystem import get_existing_path, path_listing
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 
 class Backup_Set:

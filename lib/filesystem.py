@@ -12,7 +12,7 @@ from typing import Any
 
 from lib.exceptions import CommandLineError
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 
 default_log_file_name = Path.home()/"vintagebackup.log"

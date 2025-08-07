@@ -8,7 +8,7 @@ from typing import TypedDict, Literal
 from lib.exceptions import CommandLineError
 from lib.filesystem import absolute_path, default_log_file_name
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 
 def get_backup_info_file(backup_location: Path) -> Path:

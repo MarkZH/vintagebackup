@@ -14,7 +14,7 @@ from lib.exceptions import CommandLineError
 from lib.filesystem import absolute_path, get_existing_path, is_real_directory, unique_path_name
 from lib import purge
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 
 def search_backups(

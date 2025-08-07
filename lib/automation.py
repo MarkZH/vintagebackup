@@ -9,7 +9,7 @@ from typing import Any
 
 from lib.filesystem import absolute_path, unique_path_name
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 
 def generate_config(args: argparse.Namespace) -> Path:

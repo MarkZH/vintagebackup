@@ -6,7 +6,7 @@ import argparse
 
 from lib.filesystem import absolute_path
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 
 def choose_from_menu(menu_choices: list[str], prompt: str) -> int:

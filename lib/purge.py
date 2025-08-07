@@ -10,7 +10,7 @@ from lib.console import choose_from_menu, plural_noun, print_run_title
 from lib.filesystem import absolute_path, delete_path, get_existing_path, is_real_directory
 from lib import recovery
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 
 def choose_purge_target_from_backups(

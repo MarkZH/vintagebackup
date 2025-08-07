@@ -7,22 +7,27 @@ from pathlib import Path
 from lib.backup_info import primary_log_path, record_backup_log_file
 
 
-def setup_initial_null_logger(logger: logging.Logger) -> None:
+def setup_initial_null_logger() -> None:
     """Reset a logger that outputs to null so that no logs are printed during testing."""
-    for handler in logger.handlers:
+    logger = logging.getLogger()
+    while logger.handlers:
+        handler = logger.handlers[0]
         handler.close()
-    logger.handlers.clear()
+        logger.removeHandler(handler)
 
     logger.addHandler(logging.FileHandler(os.devnull))
     logger.setLevel(logging.INFO)
 
 
 def setup_log_file(
-        logger: logging.Logger,
         log_file_name: str,
         error_log_file_path: str | None,
-        backup_folder: str | None) -> None:
+        backup_folder: str | None,
+        *,
+        debug: bool) -> None:
     """Set up logging to write to a file."""
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG if debug else logging.INFO)
     log_file_path = primary_log_path(log_file_name, backup_folder)
 
     if backup_folder and log_file_path:

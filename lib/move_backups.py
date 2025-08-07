@@ -18,7 +18,7 @@ from lib.console import plural_noun, print_run_title
 from lib.datetime_calculations import parse_time_span_to_timepoint
 from lib.filesystem import absolute_path, get_existing_path
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 
 def move_backups(

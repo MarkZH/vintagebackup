@@ -265,7 +265,7 @@ class TestCaseWithTemporaryFilesAndFolders(unittest.TestCase):
 
     def tearDown(self) -> None:
         """Delete the temporary directories and reset the logger."""
-        logs.setup_initial_null_logger(main.logger)
+        logs.setup_initial_null_logger()
         for directory in (self.user_path, self.backup_path):
             fs.delete_directory_tree(directory)
 
@@ -517,7 +517,7 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
             exit_code = main_no_log(arguments)
         self.assertEqual(exit_code, 0)
 
-        prefix = r"WARNING:lib.backup:"
+        prefix = r"WARNING:root:"
         space_warning = re.compile(
             rf"{prefix}Backup space used: 50\.0. MB \(500.% of --free-up\)")
         self.assertEqual(len(log_lines.output), 2)
@@ -538,7 +538,7 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
             exit_code = main_no_log(arguments)
         self.assertEqual(exit_code, 0)
 
-        prefix = r"WARNING:lib.backup:"
+        prefix = r"WARNING:root:"
         space_warning = re.compile(
             rf"{prefix}Backup space used: 50\.0. MB \(99% of --free-up\)")
         self.assertEqual(len(log_lines.output), 2)
@@ -558,7 +558,7 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
             exit_code = main_no_log(arguments)
         self.assertEqual(exit_code, 0)
         expected_message = re.compile(
-            r"INFO:lib.backup:Backup space used: 50\.\d\d MB \(51% of --free-up\)")
+            r"INFO:root:Backup space used: 50\.\d\d MB \(51% of --free-up\)")
         self.assertTrue(any(expected_message.fullmatch(line) for line in logs.output), logs.output)
         self.assertFalse(any(line.startswith("WARNING:") for line in logs.output), logs.output)
         self.assertFalse(any(line.startswith("ERROR:") for line in logs.output), logs.output)
@@ -568,14 +568,14 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
         with self.assertLogs(level=logging.ERROR) as log_check:
             exit_code = main_no_log(["-b", "backup_folder"])
         self.assertEqual(exit_code, 1)
-        self.assertEqual(log_check.output, ["ERROR:lib.main:User's folder not specified."])
+        self.assertEqual(log_check.output, ["ERROR:root:User's folder not specified."])
 
     def test_no_backup_folder_specified_for_backup_error(self) -> None:
         """Test that omitting the backup folder prints the correct error message."""
         with self.assertLogs(level=logging.ERROR) as log_check:
             exit_code = main_no_log(["-u", str(self.user_path)])
         self.assertEqual(exit_code, 1)
-        self.assertEqual(log_check.output, ["ERROR:lib.main:Backup folder not specified."])
+        self.assertEqual(log_check.output, ["ERROR:root:Backup folder not specified."])
 
     def test_non_existent_user_folder_in_a_backup_is_an_error(self) -> None:
         """Test that non-existent user folder prints correct error message."""
@@ -583,7 +583,7 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
         with self.assertLogs(level=logging.ERROR) as log_check:
             exit_code = main_no_log(["-u", user_folder])
         self.assertEqual(exit_code, 1)
-        expected_logs = [f"ERROR:lib.main:Could not find user's folder: {user_folder}"]
+        expected_logs = [f"ERROR:root:Could not find user's folder: {user_folder}"]
         self.assertEqual(log_check.output, expected_logs)
 
     def test_backing_up_different_user_folders_to_same_backup_location_is_an_error(self) -> None:
@@ -625,7 +625,7 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
                 force_copy=False,
                 copy_probability=0.0,
                 timestamp=unique_timestamp())
-        self.assertIn("WARNING:lib.backup:No files were backed up!", assert_log.output)
+        self.assertIn("WARNING:root:No files were backed up!", assert_log.output)
         self.assertEqual(
             list(self.backup_path.iterdir()),
             [self.backup_path/"vintagebackup.source.txt"])
@@ -658,7 +658,7 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
                 force_copy=False,
                 copy_probability=0.0,
                 timestamp=unique_timestamp())
-        self.assertIn("WARNING:lib.backup:No files were backed up!", assert_log.output)
+        self.assertIn("WARNING:root:No files were backed up!", assert_log.output)
         self.assertEqual(
             list(self.backup_path.iterdir()),
             [self.backup_path/"vintagebackup.source.txt"])
@@ -789,7 +789,7 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
 
         for line_number, (sign, path) in enumerate(bad_lines, 3):
             self.assertIn(
-                f"INFO:lib.backup_set:{filter_file.name}: line #{line_number} "
+                f"INFO:root:{filter_file.name}: line #{line_number} "
                 f"({sign} {self.user_path/path}) had no effect.",
                 log_assert.output)
 
@@ -975,7 +975,7 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
             backups = lib_backup.all_backups(self.backup_path)
             expected_backup_sequence = [backups[i] for i in [4, 2, 3]]
             current_recovery_index = 0
-            log_prefix = "INFO:lib.recovery:"
+            log_prefix = "INFO:root:"
             for line in logs.output:
                 if line.startswith(f"{log_prefix}Copying "):
                     self.assertIn(str(expected_backup_sequence[current_recovery_index]), line)
@@ -1109,7 +1109,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
                 goal_space_str,
                 expected_backups_count)
         self.assertIn(
-            "INFO:lib.backup_deletion:Stopped after reaching maximum number of deletions.",
+            "INFO:root:Stopped after reaching maximum number of deletions.",
             log_check.output)
         all_backups_after_deletion = lib_backup.all_backups(self.backup_path)
         self.assertEqual(len(all_backups_after_deletion), expected_backups_count)
@@ -1157,7 +1157,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
                 max_age,
                 expected_backup_count)
         self.assertIn(
-            "INFO:lib.backup_deletion:Stopped after reaching maximum number of deletions.",
+            "INFO:root:Stopped after reaching maximum number of deletions.",
             log_check.output)
         backups_left = lib_backup.all_backups(self.backup_path)
         self.assertEqual(len(backups_left), expected_backup_count)
@@ -1234,10 +1234,10 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         backups_remaining = lib_backup.all_backups(self.backup_path)
         expected_backups_left = expected_backup_count_before_backup + 1
         self.assertEqual(len(backups_remaining), expected_backups_left)
-        backup_log_line = "INFO:lib.console: Starting new backup"
+        backup_log_line = "INFO:root: Starting new backup"
         self.assertIn(backup_log_line, logs.output)
         backup_start_index = logs.output.index(backup_log_line)
-        deletion_log_prefix = "INFO:lib.backup_deletion:Deleting oldest backup:"
+        deletion_log_prefix = "INFO:root:Deleting oldest backup:"
 
         deletions_before_backup = 0
         for log_line in logs.output[:backup_start_index]:
@@ -1384,7 +1384,7 @@ class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
                 "--backup-folder", str(self.backup_path)])
         self.assertEqual(exit_code, 1)
         expected_logs = [
-            "ERROR:lib.main:Exactly one of the following is required: "
+            "ERROR:root:Exactly one of the following is required: "
             "--move-count, --move-age, or --move-since"]
         self.assertEqual(expected_logs, no_move_choice_log.output)
 
@@ -1862,7 +1862,7 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
                 "--last-backup"])
         self.assertEqual(exit_code, 1)
         expected_logs = [
-            "ERROR:lib.main:Exactly one of the following is required: "
+            "ERROR:root:Exactly one of the following is required: "
             "--delete-extra or --keep-extra"]
         self.assertEqual(expected_logs, no_extra_log.output)
 
@@ -1885,7 +1885,7 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
                 "--keep-extra"])
         self.assertEqual(exit_code, 1)
         expected_logs = [
-            "ERROR:lib.main:Exactly one of the following is required: "
+            "ERROR:root:Exactly one of the following is required: "
             "--last-backup or --choose-backup"]
         self.assertEqual(expected_logs, no_backup_choice_log.output)
 
@@ -1912,7 +1912,7 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
                 "--choice", "0"])
         self.assertEqual(exit_code, 0)
         rejection_line = (
-            'INFO:lib.restoration:The response was "no" and not "yes", so the '
+            'INFO:root:The response was "no" and not "yes", so the '
             'restoration is cancelled.')
         self.assertIn(rejection_line, bad_prompt_log.output)
 
@@ -1987,7 +1987,7 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
             exit_code = main_no_log(arguments)
         self.assertEqual(exit_code, 1)
         self.assertEqual(
-            error_log.output, ["ERROR:lib.main:Invalid value for hard link count: Z"])
+            error_log.output, ["ERROR:root:Invalid value for hard link count: Z"])
 
         arguments[-1] = "0"
         with self.assertLogs(level=logging.ERROR) as error_log:
@@ -1995,7 +1995,7 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(exit_code, 1)
         self.assertEqual(
             error_log.output,
-            ["ERROR:lib.main:Hard link count must be a positive whole number. Got: 0"])
+            ["ERROR:root:Hard link count must be a positive whole number. Got: 0"])
 
     def test_copy_probability_decimal_must_be_between_zero_and_one(self) -> None:
         """Test that only values from 0.0 to 1.0 are valid for --copy-probability."""
@@ -2143,10 +2143,10 @@ class AtomicBackupTests(TestCaseWithTemporaryFilesAndFolders):
                 timestamp=unique_timestamp())
         self.assertFalse(staging_path.exists())
         staging_message = (
-            "INFO:lib.backup:There is a staging folder "
+            "INFO:root:There is a staging folder "
             "leftover from previous incomplete backup.")
         self.assertIn(staging_message, logs.output)
-        deletion_message = f"INFO:lib.backup:Deleting {staging_path} ..."
+        deletion_message = f"INFO:root:Deleting {staging_path} ..."
         self.assertIn(deletion_message, logs.output)
 
 
@@ -2373,7 +2373,7 @@ class PurgeTests(TestCaseWithTemporaryFilesAndFolders):
         with self.assertLogs() as log_lines:
             purge.start_backup_purge(purge_command_line, "y")
         relative_purge_file = purged_file.relative_to(self.user_path)
-        self.assertEqual(log_lines.output[-1], f"INFO:lib.purge:- {relative_purge_file}")
+        self.assertEqual(log_lines.output[-1], f"INFO:root:- {relative_purge_file}")
 
     def test_purge_folder_suggests_recursive_filter_line(self) -> None:
         """Test that purging a file logs a filter line for the purged file."""
@@ -2397,7 +2397,7 @@ class PurgeTests(TestCaseWithTemporaryFilesAndFolders):
         with self.assertLogs() as log_lines:
             purge.start_backup_purge(purge_command_line, "y")
         relative_purge_file = purged_file.relative_to(self.user_path)/"**"
-        self.assertEqual(log_lines.output[-1], f"INFO:lib.purge:- {relative_purge_file}")
+        self.assertEqual(log_lines.output[-1], f"INFO:root:- {relative_purge_file}")
 
 
 class EndOfMonthFixTests(unittest.TestCase):
@@ -2846,20 +2846,20 @@ class BackupSpaceWarningTests(unittest.TestCase):
         """Test backup space taken reported if no --free-up parameter."""
         with self.assertLogs(level=logging.INFO) as logs:
             lib_backup.log_backup_size(None, 1)
-        self.assertEqual(logs.output, ["INFO:lib.backup:Backup space used: 1.000 B"])
+        self.assertEqual(logs.output, ["INFO:root:Backup space used: 1.000 B"])
 
     def test_backup_space_logged_when_backup_smaller_than_free_up_parameter(self) -> None:
         """Test space taken reported if backup's size is smaller than --free-up parameter."""
         with self.assertLogs(level=logging.INFO) as logs:
             lib_backup.log_backup_size("10", 2)
-        space_message = "INFO:lib.backup:Backup space used: 2.000 B (20% of --free-up)"
+        space_message = "INFO:root:Backup space used: 2.000 B (20% of --free-up)"
         self.assertEqual(logs.output, [space_message])
 
     def test_warning_if_backup_space_close_to_free_up_parameter(self) -> None:
         """Test warning logged if space taken by backup is close to --free-up parameter."""
         with self.assertLogs(level=logging.WARNING) as logs:
             lib_backup.log_backup_size("100", 91)
-        prefix = "WARNING:lib.backup:"
+        prefix = "WARNING:root:"
         space_message = f"{prefix}Backup space used: 91.00 B (91% of --free-up)"
         consider_warning = f"{prefix}Consider increasing the size of the --free-up parameter."
         self.assertEqual(logs.output, [space_message, consider_warning])
@@ -2868,7 +2868,7 @@ class BackupSpaceWarningTests(unittest.TestCase):
         """Test warning logged if space taken by backup is larger than --free-up parameter."""
         with self.assertLogs(level=logging.WARNING) as logs:
             lib_backup.log_backup_size("100", 101)
-        prefix = "WARNING:lib.backup:"
+        prefix = "WARNING:root:"
         space_message = f"{prefix}Backup space used: 101.0 B (101% of --free-up)"
         consider_warning = f"{prefix}Consider increasing the size of the --free-up parameter."
         self.assertEqual(logs.output, [space_message, consider_warning])
@@ -2998,7 +2998,7 @@ class GenerateConfigTests(TestCaseWithTemporaryFilesAndFolders):
         config_file_name = command_line[gen_config_index + 1]
         self.assertEqual(
             logs.output,
-            [f"INFO:lib.automation:Generated configuration file: {config_file_name}"])
+            [f"INFO:root:Generated configuration file: {config_file_name}"])
 
     @unittest.skipIf(platform.system() != "Windows", "This test assumes Windows-style paths.")
     def test_generation_of_config_files_with_windows_path_parameters(self) -> None:
@@ -3135,7 +3135,7 @@ encoding="utf8")
         actual_config_path = self.config_path.with_suffix(f".1{self.config_path.suffix}")
         self.assertEqual(
             logs.output,
-            [f"INFO:lib.automation:Generated configuration file: {actual_config_path}"])
+            [f"INFO:root:Generated configuration file: {actual_config_path}"])
 
         expected_config_data = (
 f"""Whole file:
@@ -3181,7 +3181,7 @@ class GenerateWindowsScriptFilesTests(TestCaseWithTemporaryFilesAndFolders):
         with self.assertLogs(level=logging.INFO) as logs:
             main_no_log(args)
 
-        prefix = "INFO:lib.automation:"
+        prefix = "INFO:root:"
         self.assertEqual(
             logs.output, [
                 f"{prefix}Generated configuration file: {self.user_path/'config.txt'}",
@@ -3240,7 +3240,7 @@ Set Shell = Nothing
         actual_config_path = self.user_path/"config.1.txt"
         actual_batch_path = self.user_path/"batch_script.1.bat"
         actual_vb_path = self.user_path/"vb_script.1.vbs"
-        prefix = "INFO:lib.automation:"
+        prefix = "INFO:root:"
         self.assertEqual(
             logs.output, [
                 f"{prefix}Generated configuration file: {actual_config_path}",
