@@ -11,8 +11,12 @@ from lib.backup import all_backups
 from lib.backup_info import backup_source
 from lib.console import cancel_key, choose_from_menu, print_run_title
 from lib.exceptions import CommandLineError
-from lib.filesystem import absolute_path, get_existing_path, is_real_directory, unique_path_name
-from lib import purge
+from lib.filesystem import (
+    absolute_path,
+    get_existing_path,
+    is_real_directory,
+    unique_path_name,
+    classify_path)
 
 logger = logging.getLogger()
 
@@ -41,7 +45,7 @@ def search_backups(
         backup_search_directory = backup/target_relative_path
         try:
             all_paths.update(
-                (item.name, purge.classify_path(item))
+                (item.name, classify_path(item))
                 for item in backup_search_directory.iterdir())
         except FileNotFoundError:
             continue
@@ -116,7 +120,7 @@ def recover_from_menu(
         menu_choices: list[str] = []
         for backup_copy in backup_choices:
             backup_date = backup_copy.relative_to(backup_location).parts[1]
-            path_type = purge.classify_path(backup_copy)
+            path_type = classify_path(backup_copy)
             menu_choices.append(f"{backup_date} ({path_type})")
         choice = choose_from_menu(menu_choices, "Version to recover")
     chosen_path = backup_choices[choice]

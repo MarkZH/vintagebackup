@@ -7,7 +7,12 @@ from pathlib import Path
 
 from lib.backup import all_backups, backup_staging_folder, find_previous_backup
 from lib.console import choose_from_menu, plural_noun, print_run_title
-from lib.filesystem import absolute_path, delete_path, get_existing_path, is_real_directory
+from lib.filesystem import (
+    absolute_path,
+    delete_path,
+    get_existing_path,
+    is_real_directory,
+    classify_path)
 from lib import recovery
 
 logger = logging.getLogger()
@@ -21,14 +26,6 @@ def choose_purge_target_from_backups(
     chosen_purge_path = recovery.choose_target_path_from_backups(args)
     if chosen_purge_path is not None:
         purge_path(chosen_purge_path, backup_folder, confirmation_response, args.choice)
-
-
-def classify_path(path: Path) -> str:
-    """Return a text description of the item at the given path (file, folder, etc.)."""
-    return ("Symlink" if path.is_symlink()
-            else "Folder" if path.is_dir()
-            else "File" if path.is_file()
-            else "Unknown")
 
 
 def start_backup_purge(args: argparse.Namespace, confirmation_reponse: str | None = None) -> None:

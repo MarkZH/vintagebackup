@@ -203,3 +203,11 @@ def path_listing(
     """
     for directory, file_names in listing:
         write_directory(output, directory, file_names)
+
+
+def classify_path(path: Path) -> str:
+    """Return a text description of the item at the given path (file, folder, etc.)."""
+    return ("Symlink" if path.is_symlink()
+            else "Folder" if path.is_dir()
+            else "File" if path.is_file()
+            else "Unknown")

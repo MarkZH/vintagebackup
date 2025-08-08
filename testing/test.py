@@ -2712,12 +2712,12 @@ class ClassifyPathsTests(unittest.TestCase):
     def test_classify_paths_classifies_files_as_files(self) -> None:
         """Test that classify_paths() correctly identifies files."""
         with tempfile.NamedTemporaryFile() as test_file:
-            self.assertEqual(purge.classify_path(Path(test_file.name)), "File")
+            self.assertEqual(fs.classify_path(Path(test_file.name)), "File")
 
     def test_classify_paths_classifies_folders_as_folders(self) -> None:
         """Test that classify_paths() correctly identifies folders."""
         with tempfile.TemporaryDirectory() as test_directory:
-            self.assertEqual(purge.classify_path(Path(test_directory)), "Folder")
+            self.assertEqual(fs.classify_path(Path(test_directory)), "Folder")
 
     @unittest.skipIf(
             platform.system() == "Windows",
@@ -2727,11 +2727,11 @@ class ClassifyPathsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as test_directory:
             symlink = Path(test_directory)/"symlink"
             symlink.symlink_to(".")
-            self.assertEqual(purge.classify_path(symlink), "Symlink")
+            self.assertEqual(fs.classify_path(symlink), "Symlink")
 
     def test_classify_paths_classifies_non_existent_files_as_unknown(self) -> None:
         """Test that classify_paths() returns 'Unknown' for non-existent files."""
-        self.assertEqual(purge.classify_path(Path(random_string(50))), "Unknown")
+        self.assertEqual(fs.classify_path(Path(random_string(50))), "Unknown")
 
 
 class ParseTimeSpanTests(unittest.TestCase):
