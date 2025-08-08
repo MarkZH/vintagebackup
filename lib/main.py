@@ -1,5 +1,6 @@
 """The main function where the requested action is initiated."""
 
+import argparse
 import logging
 
 from lib.argument_parser import parse_command_line, print_help, print_usage, toggle_is_set
@@ -35,6 +36,10 @@ def main(argv: list[str], *, testing: bool = True) -> int:
         setup_log_file(args.log, args.error_log, args.backup_folder, debug=debug_output)
         logger.debug(args)
 
+        def default_action(args: argparse.Namespace) -> None:
+            start_backup(args)
+            delete_old_backups(args)
+
         action = (
             generate_config if args.generate_config
             else generate_windows_scripts if args.generate_windows_scripts
@@ -48,7 +53,7 @@ def main(argv: list[str], *, testing: bool = True) -> int:
             else delete_old_backups if args.delete_only
             else delete_before_backup if toggle_is_set(args, "delete_first")
             else preview_filter if args.preview_filter is not None
-            else start_backup)
+            else default_action)
         action(args)
         return 0
     except CommandLineError as error:

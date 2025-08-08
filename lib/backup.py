@@ -15,7 +15,6 @@ from pathlib import Path
 from typing import Any, cast
 
 from lib.argument_parser import path_or_none, toggle_is_set
-import lib.backup_deletion as deletion
 from lib.backup_info import confirm_user_location_is_unchanged, record_user_location
 from lib.backup_lock import Backup_Lock
 from lib.backup_set import Backup_Set
@@ -476,8 +475,6 @@ def start_backup(args: argparse.Namespace) -> None:
         free_space_after_backup = shutil.disk_usage(backup_folder).free
         backup_space_taken = max(free_space_before_backup - free_space_after_backup, 0)
         log_backup_size(args.free_up, backup_space_taken)
-
-        deletion.delete_old_backups(args)
 
 
 def log_backup_size(free_up_parameter: str | None, backup_space_taken: int) -> None:
