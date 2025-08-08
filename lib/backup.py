@@ -446,11 +446,7 @@ def copy_probability_from_hard_link_count(hard_link_count: str) -> float:
 
 
 def start_backup(args: argparse.Namespace) -> None:
-    """
-    Parse command line arguments to start a backup.
-
-    :returns Path: The base directory where all backups are stored.
-    """
+    """Parse command line arguments to start a backup."""
     user_folder = get_existing_path(args.user_folder, "user's folder")
 
     if not args.backup_folder:
