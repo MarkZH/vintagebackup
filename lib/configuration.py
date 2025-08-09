@@ -1,4 +1,4 @@
-"""Functions that generate files for automating backup procedures."""
+"""Functions for reading and writing configuration files."""
 
 import logging
 import os
@@ -6,6 +6,7 @@ import argparse
 from pathlib import Path
 from typing import Any
 
+from lib.exceptions import CommandLineError
 from lib.filesystem import absolute_path, unique_path_name
 
 logger = logging.getLogger()
@@ -42,11 +43,6 @@ def generate_config(args: argparse.Namespace) -> Path:
 
     logger.info("Generated configuration file: %s", config_path)
     return config_path
-"""Functions for reading configuration files."""
-
-from pathlib import Path
-
-from lib.exceptions import CommandLineError
 
 
 def read_configuation_file(config_file: Path) -> list[str]:
