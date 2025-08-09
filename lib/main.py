@@ -4,10 +4,11 @@ import argparse
 import logging
 
 from lib.argument_parser import parse_command_line, print_help, print_usage, toggle_is_set
-from lib.automation import generate_config, generate_windows_scripts
+from lib.automation import generate_windows_scripts
 from lib.backup import start_backup
 from lib.backup_deletion import delete_before_backup, delete_old_backups
 from lib.backup_set import preview_filter
+from lib.configuration import generate_config
 from lib.exceptions import CommandLineError, ConcurrencyError
 from lib.logs import setup_initial_null_logger, setup_log_file
 from lib.move_backups import start_move_backups

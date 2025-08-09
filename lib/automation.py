@@ -1,11 +1,9 @@
 """Functions that generate files for automating backup procedures."""
 
 import logging
-import os
 import argparse
 import sys
 from pathlib import Path
-from typing import Any
 
 from lib.configuration import generate_config
 from lib.filesystem import absolute_path, unique_path_name
