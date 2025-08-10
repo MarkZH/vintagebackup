@@ -35,6 +35,7 @@ ignore = [
     "TRY003", # No string arguments in custom exceptions
     "TRY300", # Move return to else block
     "TRY400", # logger.exception() instead of logger.error()
+    "UP036", # Version block is outdated for minimum Python version
 ]
 
 [lint.mccabe]

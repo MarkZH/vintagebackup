@@ -3,6 +3,10 @@
 import sys
 import logging
 
+if sys.version_info < (3, 13):
+    print("Vintage Backup requires Python 3.13 or later.")
+    sys.exit(1)
+
 from lib.main import main
 
 if __name__ == "__main__":
