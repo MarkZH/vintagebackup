@@ -72,7 +72,7 @@ def unique_path_name(destination_path: Path) -> Path:
 
 def delete_directory_tree(directory: Path, *, ignore_errors: bool = False) -> None:
     """
-    Delete a single backup.
+    Delete a single directory.
 
     If ignore_errors is True, skip files and folders that cannot be deleted and continue deleting
     the rest of the directory's contents. Otherwise, the function will raise an exception.
