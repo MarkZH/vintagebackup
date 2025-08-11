@@ -3470,5 +3470,66 @@ class MenuTests(unittest.TestCase):
             self.assertEqual(choices[index], letter)
 
 
+class RunTitleTests(TestCaseWithTemporaryFilesAndFolders):
+    """Test the printing of run titles."""
+
+    def test_odd_length_titles_are_printed_centered_between_equal_sign_borders(self) -> None:
+        """Test that a title with an odd number of characters is centered between the borders."""
+        title = "An odd-length title"
+        expected_log_text = [
+            "",
+            "=====================",
+            " " + title,
+            "=====================",
+            ""]
+        log_prefix = "INFO:root:"
+        expected_logs = [f"{log_prefix}{line}" for line in expected_log_text]
+
+        args = argparse.parse_command_line([])
+        with self.assertLogs(level=logging.INFO) as logs:
+            console.print_run_title(args, title)
+
+        self.assertEqual(expected_logs, logs.output)
+
+    def test_even_length_titles_are_printed_centered_between_equal_sign_borders(self) -> None:
+        """Test that a title with an even number of characters is centered between the borders."""
+        title = "An even-length title"
+        expected_log_text = [
+            "",
+            "======================",
+            " " + title,
+            "======================",
+            ""]
+        log_prefix = "INFO:root:"
+        expected_logs = [f"{log_prefix}{line}" for line in expected_log_text]
+
+        args = argparse.parse_command_line([])
+        with self.assertLogs(level=logging.INFO) as logs:
+            console.print_run_title(args, title)
+
+        self.assertEqual(expected_logs, logs.output)
+
+    def test_config_file_path_is_printed_below_title(self) -> None:
+        """Test that a title with an even number of characters is centered between the borders."""
+        title = "An odd-length title"
+        self.config_path.touch()
+        expected_log_text = [
+            "",
+            "=====================",
+            " " + title,
+            "=====================",
+            "",
+            f"Reading configuration from file: {self.config_path}",
+            ""]
+        log_prefix = "INFO:root:"
+        expected_logs = [f"{log_prefix}{line}" for line in expected_log_text]
+
+        args = argparse.parse_command_line(["--config", str(self.config_path)])
+        with self.assertLogs(level=logging.INFO) as logs:
+            console.print_run_title(args, title)
+
+        self.assertEqual(expected_logs, logs.output)
+
+
 if __name__ == "__main__":
     unittest.main()
