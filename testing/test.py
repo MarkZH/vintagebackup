@@ -3459,5 +3459,16 @@ class HelpTests(unittest.TestCase):
             argparse.print_usage(ignore)
 
 
+class MenuTests(unittest.TestCase):
+    """Test that console menus work correctly."""
+
+    def test_menu_selection(self) -> None:
+        """Check that user selections correspond to choices."""
+        choices = list("abc")
+        for selection, letter in enumerate(choices, 1):
+            index = console.choose_from_menu(choices, "", selection)
+            self.assertEqual(choices[index], letter)
+
+
 if __name__ == "__main__":
     unittest.main()

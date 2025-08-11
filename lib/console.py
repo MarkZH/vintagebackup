@@ -9,7 +9,7 @@ from lib.filesystem import absolute_path
 logger = logging.getLogger()
 
 
-def choose_from_menu(menu_choices: list[str], prompt: str) -> int:
+def choose_from_menu(menu_choices: list[str], prompt: str, test_choice: int | None = None) -> int:
     """
     Let user choose from options presented a numbered list in a terminal.
 
@@ -19,13 +19,15 @@ def choose_from_menu(menu_choices: list[str], prompt: str) -> int:
     :returns int: The returned number is an index into the input list. The interface has the user
     choose a number from 1 to len(menu_list), but returns a number from 0 to len(menu_list) - 1.
     """
-    number_column_size = len(str(len(menu_choices)))
-    for number, choice in enumerate(menu_choices, 1):
-        print(f"{number:>{number_column_size}}: {choice}")
+    if test_choice is None:
+        number_column_size = len(str(len(menu_choices)))
+        for number, choice in enumerate(menu_choices, 1):
+            print(f"{number:>{number_column_size}}: {choice}")
 
+    console_prompt = f"{prompt} ({cancel_key()} to quit): "
     while True:
         try:
-            user_choice = int(input(f"{prompt} ({cancel_key()} to quit): "))
+            user_choice = test_choice if test_choice is not None else int(input(console_prompt))
             if 1 <= user_choice <= len(menu_choices):
                 return user_choice - 1
         except ValueError:
