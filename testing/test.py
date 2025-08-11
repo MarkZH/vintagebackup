@@ -3531,5 +3531,19 @@ class RunTitleTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(expected_logs, logs.output)
 
 
+class CancelKeyTests(unittest.TestCase):
+    """Test that correct key combination for canceling a program run is correct on different OSes."""
+
+    @unittest.skipIf(sys.platform == "Darwin", "This test is for Windows and Linux.")
+    def test_non_mac_cancel_key(self) -> None:
+        """Test that cancel_key() returns 'Ctrl-C'."""
+        self.assertEqual(console.cancel_key(), "Ctrl-C")
+
+    @unittest.skipUnless(sys.platform == "Darwin", "This test is for MacOS.")
+    def test_mac_cancel_key(self) -> None:
+        """Test that cancel_key() returns 'Ctrl-C'."""
+        self.assertEqual(console.cancel_key(), "Cmd-C")
+
+
 if __name__ == "__main__":
     unittest.main()
