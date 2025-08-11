@@ -3532,7 +3532,7 @@ class RunTitleTests(TestCaseWithTemporaryFilesAndFolders):
 
 
 class CancelKeyTests(unittest.TestCase):
-    """Test that correct key combination for canceling a program run is correct on different OSes."""
+    """Test that key combination for canceling a program run is correct on different OSes."""
 
     @unittest.skipIf(sys.platform == "Darwin", "This test is for Windows and Linux.")
     def test_non_mac_cancel_key(self) -> None:
