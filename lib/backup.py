@@ -376,7 +376,7 @@ def check_paths_for_validity(
         raise CommandLineError(f"The user folder path is not a folder: {user_data_location}")
 
     if backup_location.exists() and not backup_location.is_dir():
-        raise CommandLineError("Backup location exists but is not a folder.")
+        raise CommandLineError(f"Backup location exists but is not a folder: {backup_location}")
 
     if backup_location.is_relative_to(user_data_location):
         raise CommandLineError(
