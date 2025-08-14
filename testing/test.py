@@ -3605,5 +3605,37 @@ class ValidPathsTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertIn("Filter file not found", error.exception.args[0])
 
 
+class MonthsAgoTests(unittest.TestCase):
+    """Check calculations of calendar months ago."""
+
+    def test_middle_of_month_dates_in_same_year_result_in_only_month_changing(self) -> None:
+        """Dates in the middle of the month only change month within the same eyar."""
+        date = datetime.date(2025, 12, 13)
+        for previous_month in range(12):
+            calculated_date = dates.months_ago(date, previous_month)
+            new_month = date.month - previous_month
+            expected_date = datetime.date(date.year, new_month, date.day)
+            self.assertEqual(expected_date, calculated_date)
+
+    def test_end_of_month_date_results_in_end_of_month_date(self) -> None:
+        """An end-of-month date result in an end-of-month date if the result is a shorter month."""
+        date = datetime.date(2023, 3, 31)
+        calculated_date = dates.months_ago(date, 1)
+        expected_date = datetime.date(2023, 2, 28)
+        self.assertEqual(expected_date, calculated_date)
+
+        date = datetime.date(2024, 3, 31)
+        calculated_date = dates.months_ago(date, 1)
+        expected_date = datetime.date(2024, 2, 29)
+        self.assertEqual(expected_date, calculated_date)
+
+    def test_months_ago_correctly_handles_crossing_year_boundries(self) -> None:
+        """Ensure calculated date is correct when result is in previous year."""
+        date = datetime.date(2021, 5, 31)
+        calculated_date = dates.months_ago(date, 7)
+        expected_date = datetime.date(2020, 10, 31)
+        self.assertEqual(expected_date, calculated_date)
+
+
 if __name__ == "__main__":
     unittest.main()
