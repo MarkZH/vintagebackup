@@ -3,13 +3,18 @@
 import logging
 import platform
 import argparse
+from io import TextIOBase
 
 from lib.filesystem import absolute_path
 
 logger = logging.getLogger()
 
 
-def choose_from_menu(menu_choices: list[str], prompt: str, test_choice: int | None = None) -> int:
+def choose_from_menu(
+        menu_choices: list[str],
+        prompt: str,
+        test_choice: int | None = None,
+        output: TextIOBase | None = None) -> int:
     """
     Let user choose from options presented a numbered list in a terminal.
 
@@ -19,10 +24,10 @@ def choose_from_menu(menu_choices: list[str], prompt: str, test_choice: int | No
     :returns int: The returned number is an index into the input list. The interface has the user
     choose a number from 1 to len(menu_list), but returns a number from 0 to len(menu_list) - 1.
     """
-    if test_choice is None:
+    if test_choice is None or output is not None:
         number_column_size = len(str(len(menu_choices)))
         for number, choice in enumerate(menu_choices, 1):
-            print(f"{number:>{number_column_size}}: {choice}")
+            print(f"{number:>{number_column_size}}: {choice}", file=output)
 
     console_prompt = f"{prompt} ({cancel_key()} to quit): "
     while True:
@@ -33,7 +38,7 @@ def choose_from_menu(menu_choices: list[str], prompt: str, test_choice: int | No
         except ValueError:
             pass
 
-        print(f"Enter a number from 1 to {len(menu_choices)}")
+        print(f"Enter a number from 1 to {len(menu_choices)}", file=output)
 
 
 def cancel_key() -> str:

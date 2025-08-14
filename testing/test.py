@@ -3637,5 +3637,43 @@ class MonthsAgoTests(unittest.TestCase):
         self.assertEqual(expected_date, calculated_date)
 
 
+class ConsoleMenuTests(unittest.TestCase):
+    """Tests for the console menu function."""
+
+    def test_menu_is_printed_correctly(self) -> None:
+        """Test that the menu entries display items in correct order and spaced correctly."""
+        menu_output = io.StringIO()
+        choices = ["a", "b", "c"]
+        choice = "b"
+        index = choices.index(choice)
+        menu_choice = index + 1
+        result = console.choose_from_menu(
+            choices,
+            "Choose",
+            test_choice=menu_choice,
+            output=menu_output)
+        self.assertEqual(result, index)
+        self.assertEqual(choices[index], choice)
+
+        expected_output = (
+"""
+1: a
+2: b
+3: c
+""").removeprefix("\n")
+        self.assertEqual(expected_output, menu_output.getvalue())
+
+    def test_long_menu_is_printed_correctly(self) -> None:
+        """Ensure entries are aligned even with multi-digit numbering."""
+        length = 100
+        choices = list(map(str, range(1, length + 1)))
+        choice = 1
+        menu_text = io.StringIO()
+        result = console.choose_from_menu(choices, "Choose", test_choice=choice, output=menu_text)
+        self.assertEqual(choice - 1, result)
+        expected_text = "".join(f"{i:>3}: {i}\n" for i in range(1, length + 1))
+        self.assertEqual(expected_text, menu_text.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()
