@@ -3655,12 +3655,11 @@ class ConsoleMenuTests(unittest.TestCase):
         self.assertEqual(result, index)
         self.assertEqual(choices[index], choice)
 
-        expected_output = (
-"""
+        expected_output = """
 1: a
 2: b
 3: c
-""").removeprefix("\n")
+""".removeprefix("\n")
         self.assertEqual(expected_output, menu_output.getvalue())
 
     def test_long_menu_is_printed_correctly(self) -> None:
