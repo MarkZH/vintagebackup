@@ -13,7 +13,7 @@ logger = logging.getLogger()
 def choose_from_menu(
         menu_choices: list[str],
         prompt: str,
-        test_choice: int | None = None,
+        test_choice: int | list[int] | None = None,
         output: TextIOBase | None = None) -> int:
     """
     Let user choose from options presented a numbered list in a terminal.
@@ -29,16 +29,21 @@ def choose_from_menu(
         for number, choice in enumerate(menu_choices, 1):
             print(f"{number:>{number_column_size}}: {choice}", file=output)
 
+    if isinstance(test_choice, int):
+        test_choice = [test_choice]
+
     console_prompt = f"{prompt} ({cancel_key()} to quit): "
     while True:
         try:
-            user_choice = test_choice if test_choice is not None else int(input(console_prompt))
+            user_choice = test_choice[0] if test_choice is not None else int(input(console_prompt))
             if 1 <= user_choice <= len(menu_choices):
                 return user_choice - 1
         except ValueError:
             pass
 
         print(f"Enter a number from 1 to {len(menu_choices)}", file=output)
+        if test_choice is not None:
+            test_choice = test_choice[1:]
 
 
 def cancel_key() -> str:

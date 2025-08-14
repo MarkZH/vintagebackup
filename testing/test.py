@@ -3673,6 +3673,26 @@ class ConsoleMenuTests(unittest.TestCase):
         expected_text = "".join(f"{i:>3}: {i}\n" for i in range(1, length + 1))
         self.assertEqual(expected_text, menu_text.getvalue())
 
+    def test_menu_prints_instructions_for_wrong_input(self) -> None:
+        """Ensure entries are aligned even with multi-digit numbering."""
+        choices = list(map(str, range(1, 4)))
+        user_choices = [0, 4, 2]
+        menu_text = io.StringIO()
+        result = console.choose_from_menu(
+            choices,
+            "Choose",
+            test_choice=user_choices,
+            output=menu_text)
+        self.assertEqual(user_choices[-1] - 1, result)
+        expected_text = """
+1: 1
+2: 2
+3: 3
+Enter a number from 1 to 3
+Enter a number from 1 to 3
+""".removeprefix("\n")
+        self.assertEqual(expected_text, menu_text.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()
