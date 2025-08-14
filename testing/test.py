@@ -272,6 +272,10 @@ class TestCaseWithTemporaryFilesAndFolders(unittest.TestCase):
     def reset_backup_folder(self) -> None:
         """Delete backup directory and create a new empty one."""
         fs.delete_directory_tree(self.backup_path)
+        self.make_new_backup_folder()
+
+    def make_new_backup_folder(self) -> None:
+        """Recreate backup folder after manually deleting it."""
         self.backup_path = Path(tempfile.mkdtemp())
 
 
@@ -3543,6 +3547,62 @@ class CancelKeyTests(unittest.TestCase):
     def test_mac_cancel_key(self) -> None:
         """Test that cancel_key() returns 'Ctrl-C'."""
         self.assertEqual(console.cancel_key(), "Cmd-C")
+
+
+class ValidPathsTests(TestCaseWithTemporaryFilesAndFolders):
+    """Test of valid backup paths testing."""
+
+    def test_existing_user_folder_and_backup_folder_results_in_no_exceptions(self) -> None:
+        """An existing user folder and backup folder raise no exceptions."""
+        lib_backup.check_paths_for_validity(self.user_path, self.backup_path, None)
+
+    def test_existing_user_folder_and_non_existent_backup_folder_raises_no_exceptions(self) -> None:
+        """An existing user folder and non-existent backup folder raises no exceptions."""
+        fs.delete_directory_tree(self.backup_path)
+        lib_backup.check_paths_for_validity(self.user_path, self.backup_path, None)
+        self.make_new_backup_folder()
+
+    def test_all_paths_exist_raises_no_exceptions(self) -> None:
+        """User folder, backup folder, and filter file existing raises no exceptions."""
+        self.filter_path.touch()
+        lib_backup.check_paths_for_validity(self.user_path, self.backup_path, self.filter_path)
+
+    def test_non_existent_user_folder_raises_exception(self) -> None:
+        """A missing user folder raises a CommandLineError."""
+        with self.assertRaises(CommandLineError) as error:
+            lib_backup.check_paths_for_validity(
+                self.user_path/"non-existent",
+                self.backup_path,
+                None)
+        self.assertIn("The user folder path is not a folder", error.exception.args[0])
+
+    def test_user_folder_is_file_raises_exception(self) -> None:
+        """A user folder that's actually a file raises a CommandLineError."""
+        with self.assertRaises(CommandLineError) as error:
+            user_file = self.user_path/"a_file.txt"
+            user_file.touch()
+            lib_backup.check_paths_for_validity(user_file, self.backup_path, None)
+        self.assertIn("The user folder path is not a folder", error.exception.args[0])
+
+    def test_backup_folder_is_file_raises_exception(self) -> None:
+        """A backup folder that's actually a file raises a CommandLineError."""
+        with self.assertRaises(CommandLineError) as error:
+            backup_file = self.backup_path/"a_file.txt"
+            backup_file.touch()
+            lib_backup.check_paths_for_validity(self.user_path, backup_file, None)
+        self.assertIn("Backup location exists but is not a folder", error.exception.args[0])
+
+    def test_backup_folder_inside_user_folder_raises_exception(self) -> None:
+        """Backing up a user folder to a location inside that folder raises a CommandLineError."""
+        with self.assertRaises(CommandLineError) as error:
+            lib_backup.check_paths_for_validity(self.user_path, self.user_path/"backup", None)
+        self.assertIn("Backup destination cannot be inside user's folder:", error.exception.args[0])
+
+    def test_non_existent_filter_path_raises_exception(self) -> None:
+        """Specifying a filter path that doesn't exist raises a CommandLineError."""
+        with self.assertRaises(CommandLineError) as error:
+            lib_backup.check_paths_for_validity(self.user_path, self.backup_path, self.filter_path)
+        self.assertIn("Filter file not found", error.exception.args[0])
 
 
 if __name__ == "__main__":
