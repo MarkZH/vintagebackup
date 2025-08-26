@@ -451,7 +451,7 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
             copy_probability=0.0,
             timestamp=unique_timestamp())
         last_backup = lib_backup.find_previous_backup(self.backup_path)
-        self.assertTrue(last_backup)
+        self.assertIsNotNone(last_backup)
         last_backup = cast(Path, last_backup)
         self.assertTrue((last_backup/directory_symlink_name).is_symlink())
         self.assertTrue((last_backup/file_symlink_name).is_symlink())
@@ -699,7 +699,7 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
             self.assertEqual(exit_code, 0)
 
             last_backup = lib_backup.find_previous_backup(self.backup_path)
-            self.assertTrue(last_backup)
+            self.assertIsNotNone(last_backup)
             last_backup = cast(Path, last_backup)
 
             self.assertEqual(directory_contents(last_backup), expected_backups)
@@ -729,7 +729,7 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
             self.assertEqual(exit_code, 0)
 
             last_backup = lib_backup.find_previous_backup(self.backup_path)
-            self.assertTrue(last_backup)
+            self.assertIsNotNone(last_backup)
             last_backup = cast(Path, last_backup)
 
             self.assertEqual(directory_contents(last_backup), expected_backups)
@@ -764,7 +764,7 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
 
         self.assertEqual(len(lib_backup.all_backups(self.backup_path)), 1)
         last_backup = lib_backup.find_previous_backup(self.backup_path)
-        self.assertTrue(last_backup)
+        self.assertIsNotNone(last_backup)
         last_backup = cast(Path, last_backup)
 
         self.assertEqual(directory_contents(last_backup), expected_backup_paths)
@@ -945,7 +945,7 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
             timestamp=unique_timestamp())
         folder_path = self.user_path/"sub_directory_1"/"sub_sub_directory_1"
         chosen_file = recovery.search_backups(folder_path, self.backup_path, "recovery", 1)
-        self.assertTrue(chosen_file)
+        self.assertIsNotNone(chosen_file)
         chosen_file = cast(Path, chosen_file)
         self.assertEqual(chosen_file, folder_path/"file_1.txt")
         recovery.recover_path(chosen_file, self.backup_path, search=False, choice=0)
@@ -1201,7 +1201,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         deletion.delete_backups_older_than(self.backup_path, f"{today.month}m")
         self.assertFalse(oldest_backup_year_folder.is_dir())
         this_year_backup_folder = self.backup_path/f"{today.year}"
-        self.assertTrue(this_year_backup_folder)
+        self.assertIsNotNone(this_year_backup_folder)
 
     def test_delete_only_command_line_option(self) -> None:
         """Test that --delete-only deletes backups without running a backup."""
@@ -1429,7 +1429,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
 
         error_file = self.user_path/"sub_directory_2"/"sub_sub_directory_0"/"file_1.txt"
         last_backup = lib_backup.find_previous_backup(self.backup_path)
-        self.assertTrue(last_backup)
+        self.assertIsNotNone(last_backup)
         last_backup = cast(Path, last_backup)
         (last_backup/error_file.relative_to(self.user_path)).unlink()
 
@@ -1637,7 +1637,7 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
 
         self.assertEqual(exit_code, 0)
         last_backup = lib_backup.find_previous_backup(self.backup_path)
-        self.assertTrue(last_backup)
+        self.assertIsNotNone(last_backup)
         last_backup = cast(Path, last_backup)
         self.assertTrue(first_extra_file.exists(follow_symlinks=False))
         self.assertFalse(second_extra_file.exists(follow_symlinks=False))
@@ -1683,7 +1683,7 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
 
         self.assertEqual(exit_code, 0)
         last_backup = lib_backup.find_previous_backup(self.backup_path)
-        self.assertTrue(last_backup)
+        self.assertIsNotNone(last_backup)
         last_backup = cast(Path, last_backup)
         self.assertTrue(first_extra_file.exists(follow_symlinks=False))
         self.assertTrue(second_extra_file.exists(follow_symlinks=False))
@@ -1808,7 +1808,7 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
             self.assertEqual(exit_code, 0)
             destination_path = Path(destination_folder)
             last_backup = lib_backup.find_previous_backup(self.backup_path)
-            self.assertTrue(last_backup)
+            self.assertIsNotNone(last_backup)
             last_backup = cast(Path, last_backup)
             self.assertTrue(directories_have_identical_content(last_backup, destination_path))
             self.assertTrue(directories_have_identical_content(self.user_path, destination_path))
@@ -1841,7 +1841,7 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
             self.assertEqual(exit_code, 0)
             self.assertTrue(extra_file.is_file(follow_symlinks=False))
             last_backup = lib_backup.find_previous_backup(self.backup_path)
-            self.assertTrue(last_backup)
+            self.assertIsNotNone(last_backup)
             last_backup = cast(Path, last_backup)
             extra_file.unlink()
             self.assertTrue(directories_have_identical_content(last_backup, destination_path))
