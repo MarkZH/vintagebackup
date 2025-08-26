@@ -3368,6 +3368,32 @@ class LogTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(last_info["Log"], log_path)
         self.assertEqual(last_info["Source"], self.user_path)
 
+    def test_logs_written_to_log_file(self) -> None:
+        """Check that log file contents match the log output."""
+        create_user_data(self.user_path)
+        log_path = self.user_path/"log.txt"
+        with self.assertLogs(level=logging.INFO) as log_record:
+            logs.setup_log_file(str(log_path), None, str(self.backup_path), debug=False)
+            lib_backup.create_new_backup(
+                self.user_path,
+                self.backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=unique_timestamp())
+
+            close_all_file_logs()
+
+        with log_path.open(encoding="utf8") as log_file:
+            for log_line, file_log_line in itertools.zip_longest(
+                    log_record.output,
+                    log_file,
+                    fillvalue=""):
+                log_message = log_line.split(":", maxsplit=2)[2].strip()
+                file_message = "".join(file_log_line.split(maxsplit=3)[3:]).strip()
+                self.assertEqual(log_message, file_message)
+
 
 class UniquePathNameTests(TestCaseWithTemporaryFilesAndFolders):
     """Tests that unique_path_name() prevents file overwriting."""
