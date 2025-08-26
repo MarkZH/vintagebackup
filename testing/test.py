@@ -28,6 +28,7 @@ import lib.datetime_calculations as dates
 from lib import purge
 from lib import logs
 from lib import recovery
+from lib import restoration
 import lib.backup_deletion as deletion
 import lib.move_backups as moving
 from lib import backup_info
@@ -1919,6 +1920,21 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
             'INFO:root:The response was "no" and not "yes", so the '
             'restoration is cancelled.')
         self.assertIn(rejection_line, bad_prompt_log.output)
+
+    def test_attempt_to_restore_from_non_existent_backups_raises_command_line_error(self) -> None:
+        """If there are no backups, then attempting to restore raises a CommandLineError."""
+        args = argparse.parse_command_line([
+            "--restore",
+            "--backup-folder", str(self.backup_path),
+            "--user-folder", str(self.user_path),
+            "--choose-backup",
+            "--delete-extra"])
+        with self.assertRaises(CommandLineError):
+            restoration.start_backup_restore(args)
+
+    def test_choose_backup_with_no_previous_backups_returns_none(self) -> None:
+        """Ensure that the choose_backup() function returns None when there are no backups."""
+        self.assertIsNone(restoration.choose_backup(self.backup_path, choice=None))
 
 
 class BackupLockTests(TestCaseWithTemporaryFilesAndFolders):
