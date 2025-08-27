@@ -1403,6 +1403,26 @@ class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
         expected_backups = lib_backup.all_backups(self.backup_path)[-expected_backup_count:]
         self.assertEqual(backups, expected_backups)
 
+    def test_move_since_argument_selects_correct_backups(self) -> None:
+        """Test that --move-age argument selects the correct backups."""
+        create_user_data(self.user_path)
+        for day in range(1, 32):
+            backup_date = datetime.datetime(2025, 8, day, 2, 0, 0)
+            lib_backup.create_new_backup(
+                self.user_path,
+                self.backup_path,
+                filter_file=None,
+                examine_whole_file=False,
+                force_copy=False,
+                copy_probability=0.0,
+                timestamp=backup_date)
+        args = argparse.parse_command_line(["--move-since", "2025-08-15"])
+        backups = moving.choose_backups_to_move(args, self.backup_path)
+        expected_backup_count = 17  # Aug. 15 to Aug. 31
+        self.assertEqual(len(backups), expected_backup_count)
+        expected_backups = lib_backup.all_backups(self.backup_path)[-expected_backup_count:]
+        self.assertEqual(backups, expected_backups)
+
 
 def read_paths_file(verify_file: io.TextIOBase) -> set[Path]:
     """Read an opened verification file and return the path contents."""
