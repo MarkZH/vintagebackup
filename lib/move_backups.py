@@ -84,7 +84,15 @@ def start_move_backups(args: argparse.Namespace) -> None:
     """Parse command line options to move backups to another location."""
     old_backup_location = get_existing_path(args.backup_folder, "current backup location")
     new_backup_location = absolute_path(args.move_backup)
+    backups_to_move = choose_backups_to_move(args, old_backup_location)
+    new_backup_location.mkdir(parents=True, exist_ok=True)
+    with Backup_Lock(new_backup_location, "backup move"):
+        print_run_title(args, "Moving backups")
+        move_backups(old_backup_location, new_backup_location, backups_to_move)
 
+
+def choose_backups_to_move(args: argparse.Namespace, old_backup_location: Path) -> list[Path]:
+    """Choose which backups to move based on the command line arguments."""
     confirm_choice_made(args, "move_count", "move_age", "move_since")
     if args.move_count:
         backups_to_move = last_n_backups(old_backup_location, args.move_count)
@@ -97,7 +105,4 @@ def start_move_backups(args: argparse.Namespace) -> None:
     else:
         raise AssertionError("Should never reach here.")
 
-    new_backup_location.mkdir(parents=True, exist_ok=True)
-    with Backup_Lock(new_backup_location, "backup move"):
-        print_run_title(args, "Moving backups")
-        move_backups(old_backup_location, new_backup_location, backups_to_move)
+    return backups_to_move
