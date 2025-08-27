@@ -3736,5 +3736,18 @@ Enter a number from 1 to 3
         self.assertEqual(expected_text, menu_text.getvalue())
 
 
+class ArgumentParserTests(unittest.TestCase):
+    """Tests of custom argument parser behavior."""
+
+    def test_inclusion_of_program_name_in_arguments_does_not_change_parse_output(self) -> None:
+        """Parsing arguments is not affected by the program name in the first argument."""
+        args = ["--user-folder", "/user/things", "--backup-folder", "/backup/things"]
+        program_args = [sys.argv[0], *args]
+        self.assertNotEqual(program_args[0], "")
+        self.assertEqual(
+            argparse.parse_command_line(args),
+            argparse.parse_command_line(program_args))
+
+
 if __name__ == "__main__":
     unittest.main()
