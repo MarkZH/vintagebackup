@@ -53,7 +53,7 @@ def move_backups(
         record_backup_log_file(old_log_file, new_backup_location)
 
 
-def last_n_backups(backup_location: Path, n: str | int) -> list[Path]:
+def last_n_backups(n: str | int, backup_location: Path) -> list[Path]:
     """
     Return a list of the paths of the last n backups.
 
@@ -95,7 +95,7 @@ def choose_backups_to_move(args: argparse.Namespace, old_backup_location: Path) 
     """Choose which backups to move based on the command line arguments."""
     confirm_choice_made(args, "move_count", "move_age", "move_since")
     if args.move_count:
-        backups_to_move = last_n_backups(old_backup_location, args.move_count)
+        backups_to_move = last_n_backups(args.move_count, old_backup_location)
     elif args.move_age:
         oldest_backup_date = parse_time_span_to_timepoint(args.move_age)
         backups_to_move = backups_since(oldest_backup_date, old_backup_location)

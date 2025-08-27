@@ -1132,7 +1132,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
                 deletion.delete_backups_older_than(self.backup_path, max_age)
             elif method == Invocation.cli:
                 create_user_data(self.user_path)
-                most_recent_backup = moving.last_n_backups(self.backup_path, 1)[0]
+                most_recent_backup = moving.last_n_backups(1, self.backup_path)[0]
                 fs.delete_directory_tree(most_recent_backup)
                 exit_code = main_assert_no_error_log([
                     "--user-folder", str(self.user_path),
@@ -1170,8 +1170,8 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
     def test_delete_after_never_deletes_most_recent_backup(self) -> None:
         """Test that deleting all backups with --delete_after actually leaves the last one."""
         create_old_backups(self.backup_path, 30)
-        most_recent_backup = moving.last_n_backups(self.backup_path, 1)[0]
-        last_backup = moving.last_n_backups(self.backup_path, 2)[0]
+        most_recent_backup = moving.last_n_backups(1, self.backup_path)[0]
+        last_backup = moving.last_n_backups(2, self.backup_path)[0]
         fs.delete_directory_tree(most_recent_backup)
         deletion.delete_backups_older_than(self.backup_path, "1d")
         self.assertEqual(lib_backup.all_backups(self.backup_path), [last_backup])
@@ -1179,7 +1179,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
     def test_free_up_never_deletes_most_recent_backup(self) -> None:
         """Test that deleting all backups with --free-up actually leaves the last one."""
         create_old_backups(self.backup_path, 30)
-        last_backup = moving.last_n_backups(self.backup_path, 1)[0]
+        last_backup = moving.last_n_backups(1, self.backup_path)[0]
         total_space = shutil.disk_usage(self.backup_path).total
         deletion.delete_oldest_backups_for_space(self.backup_path, f"{total_space}B")
         self.assertEqual(lib_backup.all_backups(self.backup_path), [last_backup])
@@ -1330,7 +1330,7 @@ class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
             with tempfile.TemporaryDirectory() as new_backup_folder:
                 new_backup_location = Path(new_backup_folder)
                 if method == Invocation.function:
-                    backups_to_move = moving.last_n_backups(self.backup_path, move_count)
+                    backups_to_move = moving.last_n_backups(move_count, self.backup_path)
                     self.assertEqual(len(backups_to_move), move_count)
                     moving.move_backups(
                         self.backup_path,
@@ -1348,7 +1348,7 @@ class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
 
                 backups_at_new_location = lib_backup.all_backups(new_backup_location)
                 self.assertEqual(len(backups_at_new_location), move_count)
-                old_backups = moving.last_n_backups(self.backup_path, move_count)
+                old_backups = moving.last_n_backups(move_count, self.backup_path)
                 old_backup_names = [p.relative_to(self.backup_path) for p in old_backups]
                 new_backups = lib_backup.all_backups(new_backup_location)
                 new_backup_names = [p.relative_to(new_backup_location) for p in new_backups]
@@ -1365,7 +1365,7 @@ class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
         six_months_ago = dates.parse_time_span_to_timepoint("6m")
         backups_to_move = moving.backups_since(six_months_ago, self.backup_path)
         self.assertEqual(len(backups_to_move), 6)
-        self.assertEqual(moving.last_n_backups(self.backup_path, 6), backups_to_move)
+        self.assertEqual(moving.last_n_backups(6, self.backup_path), backups_to_move)
         oldest_backup_timestamp = lib_backup.backup_datetime(backups_to_move[0])
         self.assertLessEqual(six_months_ago, oldest_backup_timestamp)
 
@@ -2906,42 +2906,42 @@ class LastNBackupTests(TestCaseWithTemporaryFilesAndFolders):
     def test_last_n_backups_with_number_argument_returns_correct_number_of_backups(self) -> None:
         """Test that last_n_backups() returns correct number of backups."""
         for n in range(1, self.backup_count + 1):
-            self.assertEqual(n, len(moving.last_n_backups(self.backup_path, n)))
+            self.assertEqual(n, len(moving.last_n_backups(n, self.backup_path)))
 
     def test_last_n_backups_with_string_argument_returns_correct_number_of_backups(self) -> None:
         """Test that last_n_backups() returns correct number of backups if argument is a string."""
         for n in range(1, self.backup_count + 1):
-            self.assertEqual(n, len(moving.last_n_backups(self.backup_path, str(n))))
+            self.assertEqual(n, len(moving.last_n_backups(str(n), self.backup_path)))
 
     def test_last_n_backups_with_all_argument_returns_all_backups(self) -> None:
         """Test that the argument 'all' returns all backups."""
         all_backups = lib_backup.all_backups(self.backup_path)
-        all_n_backups = moving.last_n_backups(self.backup_path, "all")
+        all_n_backups = moving.last_n_backups("all", self.backup_path)
         self.assertEqual(all_backups, all_n_backups)
 
     def test_all_argument_is_case_insensitive(self) -> None:
         """Test that capitalization does not matter for value 'all'."""
         all_backups = lib_backup.all_backups(self.backup_path)
-        all_n_backups = moving.last_n_backups(self.backup_path, "All")
+        all_n_backups = moving.last_n_backups("All", self.backup_path)
         self.assertEqual(all_backups, all_n_backups)
 
     def test_non_positive_argument_is_an_error(self) -> None:
         """Test that negative or zero arguments raise an exception."""
         with self.assertRaises(ValueError):
-            moving.last_n_backups(self.backup_path, 0)
+            moving.last_n_backups(0, self.backup_path)
 
         with self.assertRaises(ValueError):
-            moving.last_n_backups(self.backup_path, "-1")
+            moving.last_n_backups("-1", self.backup_path)
 
     def test_non_numeric_argument_besides_all_is_error(self) -> None:
         """Test that any other string argument besides 'all' is an error."""
         with self.assertRaises(ValueError):
-            moving.last_n_backups(self.backup_path, "most")
+            moving.last_n_backups("most", self.backup_path)
 
     def test_non_whole_number_arguments_are_errors(self) -> None:
         """Test that decimal number result in errors."""
         with self.assertRaises(ValueError):
-            moving.last_n_backups(self.backup_path, "3.14")
+            moving.last_n_backups("3.14", self.backup_path)
 
 
 class ConfirmChoiceMadeTests(unittest.TestCase):
