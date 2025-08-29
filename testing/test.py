@@ -1623,6 +1623,11 @@ force copy:
         with self.assertRaises(CommandLineError):
             config.read_configuation_file(Path(self.config_path))
 
+    def test_missing_config_file_error(self) -> None:
+        """Test that a missing configuration file raises a CommandLineError."""
+        with self.assertRaises(CommandLineError):
+            config.read_configuation_file(self.config_path)
+
 
 class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
     """Test that restoring backups works correctly."""
