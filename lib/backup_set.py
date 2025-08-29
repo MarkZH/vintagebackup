@@ -101,9 +101,10 @@ def preview_filter(args: argparse.Namespace) -> None:
     user_folder = get_existing_path(args.user_folder, "user folder")
     filter_file = path_or_none(args.filter)
     output_file = path_or_none(args.preview_filter)
+    backup_set = Backup_Set(user_folder, filter_file)
     if output_file:
         with output_file.open("w", encoding="utf8") as output:
-            path_listing(Backup_Set(user_folder, filter_file), output)
+            path_listing(backup_set, output)
     else:
         stdout = cast(io.TextIOBase, sys.stdout)
-        path_listing(Backup_Set(user_folder, filter_file), stdout)
+        path_listing(backup_set, stdout)
