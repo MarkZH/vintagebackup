@@ -3852,6 +3852,39 @@ class FolderNavigationTests(TestCaseWithTemporaryFilesAndFolders):
         relative_folder = recovery.path_relative_to_backups(folder, self.backup_path)
         self.assertEqual(self.user_path/relative_folder, folder)
 
+    def test_directory_relative_to_backup_fails_for_non_directory_path(self) -> None:
+        """Function directory_relative_to_backup() fails if argument is not a directory."""
+        create_user_data(self.user_path)
+        lib_backup.create_new_backup(
+            self.user_path,
+            self.backup_path,
+            filter_file=None,
+            examine_whole_file=False,
+            force_copy=False,
+            copy_probability=0.0,
+            timestamp=unique_timestamp())
+
+        with self.assertRaises(CommandLineError) as error:
+            recovery.directory_relative_to_backup(self.user_path/"root_file.txt", self.backup_path)
+        self.assertTrue(
+            error.exception.args[0].startswith("The given search path is not a directory: "))
+
+    def test_directory_relative_to_backup_returns_directory_relative_to_user_folder(self) -> None:
+        """Test directory_relative_to_backup() returns paths relative to backed up user folder."""
+        create_user_data(self.user_path)
+        lib_backup.create_new_backup(
+            self.user_path,
+            self.backup_path,
+            filter_file=None,
+            examine_whole_file=False,
+            force_copy=False,
+            copy_probability=0.0,
+            timestamp=unique_timestamp())
+
+        folder = self.user_path/"sub_directory_1"/"sub_sub_directory_2"
+        relative_folder = recovery.directory_relative_to_backup(folder, self.backup_path)
+        self.assertEqual(self.user_path/relative_folder, folder)
+
 
 if __name__ == "__main__":
     unittest.main()
