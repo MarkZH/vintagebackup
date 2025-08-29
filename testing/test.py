@@ -1632,7 +1632,7 @@ force copy:
 class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
     """Test that restoring backups works correctly."""
 
-    def test_restore_last_backup_with_delete_extra_option_deletes_new_files(self) -> None:
+    def test_restore_last_backup_with_delete_extra_option_deletes_new_paths(self) -> None:
         """Test that restoring with --delete-extra deletes new files since last backup."""
         create_user_data(self.user_path)
         lib_backup.create_new_backup(
@@ -1648,6 +1648,10 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
 
         first_extra_file = self.user_path/"extra_file1.txt"
         first_extra_file.write_text("extra 1\n", encoding="utf8")
+        first_extra_folder = self.user_path/"extra_folder_1"
+        first_extra_folder.mkdir()
+        first_extra_folder_file = first_extra_folder/"file_in_folder_1.txt"
+        first_extra_folder_file.write_text("extra file in folder 1\n", encoding="utf8")
 
         lib_backup.create_new_backup(
             self.user_path,
@@ -1661,6 +1665,10 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
 
         second_extra_file = self.user_path/"extra_file2.txt"
         second_extra_file.write_text("extra 2\n", encoding="utf8")
+        second_extra_folder = self.user_path/"extra_folder_2"
+        second_extra_folder.mkdir()
+        second_extra_folder_file = second_extra_folder/"file_in_folder_2.txt"
+        second_extra_folder_file.write_text("extra file in folder 2\n")
 
         exit_code = main_assert_no_error_log([
             "--restore",
@@ -1675,10 +1683,14 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertIsNotNone(last_backup)
         last_backup = cast(Path, last_backup)
         self.assertTrue(first_extra_file.is_file(follow_symlinks=False))
+        self.assertTrue(first_extra_folder.is_dir(follow_symlinks=False))
+        self.assertTrue(first_extra_folder_file.is_file(follow_symlinks=False))
         self.assertFalse(second_extra_file.exists(follow_symlinks=False))
+        self.assertFalse(second_extra_folder.exists(follow_symlinks=False))
+        self.assertFalse(second_extra_folder_file.exists(follow_symlinks=False))
         self.assertTrue(directories_have_identical_content(self.user_path, last_backup))
 
-    def test_restore_last_backup_with_keep_extra_preserves_new_files(self) -> None:
+    def test_restore_last_backup_with_keep_extra_preserves_new_paths(self) -> None:
         """Test that restoring with --keep-extra does not delete new files since the last backup."""
         create_user_data(self.user_path)
         lib_backup.create_new_backup(
@@ -1694,6 +1706,10 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
 
         first_extra_file = self.user_path/"extra_file1.txt"
         first_extra_file.write_text("extra 1\n", encoding="utf8")
+        first_extra_folder = self.user_path/"extra_folder_1"
+        first_extra_folder.mkdir()
+        first_extra_folder_file = first_extra_folder/"file_in_folder_1.txt"
+        first_extra_folder_file.write_text("extra file in folder 1\n", encoding="utf8")
 
         lib_backup.create_new_backup(
             self.user_path,
@@ -1707,6 +1723,10 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
 
         second_extra_file = self.user_path/"extra_file2.txt"
         second_extra_file.write_text("extra 2\n", encoding="utf8")
+        second_extra_folder = self.user_path/"extra_folder_2"
+        second_extra_folder.mkdir()
+        second_extra_folder_file = second_extra_folder/"file_in_folder_2.txt"
+        second_extra_folder_file.write_text("extra file in folder 2\n")
 
         exit_code = main_assert_no_error_log([
             "--restore",
@@ -1721,8 +1741,13 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertIsNotNone(last_backup)
         last_backup = cast(Path, last_backup)
         self.assertTrue(first_extra_file.is_file(follow_symlinks=False))
+        self.assertTrue(first_extra_folder.is_dir(follow_symlinks=False))
+        self.assertTrue(first_extra_folder_file.is_file(follow_symlinks=False))
         self.assertTrue(second_extra_file.is_file(follow_symlinks=False))
+        self.assertTrue(second_extra_folder.is_dir(follow_symlinks=False))
+        self.assertTrue(second_extra_folder_file.is_file(follow_symlinks=False))
         second_extra_file.unlink()
+        fs.delete_directory_tree(second_extra_folder)
         self.assertTrue(directories_have_identical_content(self.user_path, last_backup))
 
     def test_restore_backup_from_menu_choice_and_delete_extra_deletes_new_files(self) -> None:
