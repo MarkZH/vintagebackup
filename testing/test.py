@@ -1674,7 +1674,7 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
         last_backup = lib_backup.find_previous_backup(self.backup_path)
         self.assertIsNotNone(last_backup)
         last_backup = cast(Path, last_backup)
-        self.assertTrue(first_extra_file.exists(follow_symlinks=False))
+        self.assertTrue(first_extra_file.is_file(follow_symlinks=False))
         self.assertFalse(second_extra_file.exists(follow_symlinks=False))
         self.assertTrue(directories_have_identical_content(self.user_path, last_backup))
 
@@ -1720,8 +1720,8 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
         last_backup = lib_backup.find_previous_backup(self.backup_path)
         self.assertIsNotNone(last_backup)
         last_backup = cast(Path, last_backup)
-        self.assertTrue(first_extra_file.exists(follow_symlinks=False))
-        self.assertTrue(second_extra_file.exists(follow_symlinks=False))
+        self.assertTrue(first_extra_file.is_file(follow_symlinks=False))
+        self.assertTrue(second_extra_file.is_file(follow_symlinks=False))
         second_extra_file.unlink()
         self.assertTrue(directories_have_identical_content(self.user_path, last_backup))
 
@@ -1813,8 +1813,8 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
 
         self.assertEqual(exit_code, 0)
         restored_backup = lib_backup.all_backups(self.backup_path)[choice]
-        self.assertTrue(first_extra_file.exists(follow_symlinks=False))
-        self.assertTrue(second_extra_file.exists(follow_symlinks=False))
+        self.assertTrue(first_extra_file.is_file(follow_symlinks=False))
+        self.assertTrue(second_extra_file.is_file(follow_symlinks=False))
         first_extra_file.unlink()
         second_extra_file.unlink()
         self.assertTrue(directories_have_identical_content(self.user_path, restored_backup))
