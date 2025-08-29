@@ -3809,5 +3809,49 @@ class ArgumentParserTests(unittest.TestCase):
             argparse.parse_command_line(program_args))
 
 
+class FolderNavigationTests(TestCaseWithTemporaryFilesAndFolders):
+    """Tests of functions for navigating within backups."""
+
+    def test_path_relative_to_backups_fails_when_no_backups(self) -> None:
+        """If there are no backups, then path_relative_to_backups() fails."""
+        with self.assertRaises(CommandLineError) as error:
+            recovery.path_relative_to_backups(self.user_path/"test.txt", self.backup_path)
+        self.assertTrue(error.exception.args[0].startswith("No backups found at "))
+
+    def test_path_relative_to_backups_fails_for_paths_outside_of_user_folder(self) -> None:
+        """If the user path is outside the user folder, path_relative_to_backups() fails."""
+        create_user_data(self.user_path)
+        lib_backup.create_new_backup(
+            self.user_path,
+            self.backup_path,
+            filter_file=None,
+            examine_whole_file=False,
+            force_copy=False,
+            copy_probability=0.0,
+            timestamp=unique_timestamp())
+
+        with self.assertRaises(CommandLineError) as error:
+            recovery.path_relative_to_backups(self.user_path.parent/"file.txt", self.backup_path)
+        self.assertIn(" is not contained in the backup set ", error.exception.args[0])
+
+    def test_path_relative_to_backups_returns_path_relative_to_user_folder(self) -> None:
+        """Function path_relative_to_backups() returns path relative to backed up user folder."""
+        create_user_data(self.user_path)
+        lib_backup.create_new_backup(
+            self.user_path,
+            self.backup_path,
+            filter_file=None,
+            examine_whole_file=False,
+            force_copy=False,
+            copy_probability=0.0,
+            timestamp=unique_timestamp())
+        file = self.user_path/"random_file.txt"
+        relative_file = recovery.path_relative_to_backups(file, self.backup_path)
+        self.assertEqual(self.user_path/relative_file, file)
+        folder = self.user_path/"folder"/"folder"/"folder"
+        relative_folder = recovery.path_relative_to_backups(folder, self.backup_path)
+        self.assertEqual(self.user_path/relative_folder, folder)
+
+
 if __name__ == "__main__":
     unittest.main()
