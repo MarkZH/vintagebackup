@@ -24,7 +24,11 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
     :param filter_file: The file that filters which files are backed up.
     :param result_folder: Where the resulting files will be saved.
     """
-    user_folder = backup_source(backup_folder)
+    try:
+        user_folder = backup_source(backup_folder)
+    except FileNotFoundError:
+        raise CommandLineError(f"No backups found in {backup_folder}")
+
     if not user_folder.is_dir():
         raise CommandLineError(f"Could not find user folder: {user_folder}")
 

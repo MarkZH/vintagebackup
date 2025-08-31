@@ -1532,6 +1532,12 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             actual_verify_file = fake_verify_file.with_suffix(f".1{fake_verify_file.suffix}")
             self.assertTrue(actual_verify_file.is_file(follow_symlinks=False))
 
+    def test_verification_with_no_backups_raises_error(self) -> None:
+        """Test that verification does something when there are no backups."""
+        with self.assertRaises(CommandLineError) as error:
+            verify.verify_last_backup(self.user_path, self.backup_path, None)
+        self.assertTrue(error.exception.args[0].startswith("No backups found in "))
+
 
 class ConfigurationFileTests(TestCaseWithTemporaryFilesAndFolders):
     """Test configuration file functionality."""
