@@ -27,7 +27,7 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
     try:
         user_folder = backup_source(backup_folder)
     except FileNotFoundError:
-        raise CommandLineError(f"No backups found in {backup_folder}")
+        raise CommandLineError(f"No backups found in {backup_folder}") from None
 
     if not user_folder.is_dir():
         raise CommandLineError(f"Could not find user folder: {user_folder}")
