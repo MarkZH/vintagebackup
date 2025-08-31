@@ -1579,7 +1579,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         last_backup = lib_backup.find_previous_backup(self.backup_path)
         self.assertIsNotNone(last_backup)
         last_backup = cast(Path, last_backup)
-        deletion.delete_directory_tree(last_backup)
+        fs.delete_directory_tree(last_backup)
         with self.assertRaises(CommandLineError) as error:
             verify.verify_last_backup(self.user_path, self.backup_path, None)
         self.assertTrue(error.exception.args[0].startswith("No backups found in "))
