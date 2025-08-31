@@ -259,8 +259,8 @@ class TestCaseWithTemporaryFilesAndFolders(unittest.TestCase):
 
     def setUp(self) -> None:
         """Create folders and files for backup tests."""
-        self.user_path = Path(tempfile.mkdtemp())
-        self.backup_path = Path(tempfile.mkdtemp())
+        self.make_new_user_folder()
+        self.make_new_backup_folder()
         self.config_path = self.user_path/"config.txt"
         self.filter_path = self.user_path/"filter.txt"
 
@@ -278,6 +278,15 @@ class TestCaseWithTemporaryFilesAndFolders(unittest.TestCase):
     def make_new_backup_folder(self) -> None:
         """Recreate backup folder after manually deleting it."""
         self.backup_path = Path(tempfile.mkdtemp())
+
+    def reset_user_folder(self) -> None:
+        """Delete backup directory and create a new empty one."""
+        fs.delete_directory_tree(self.user_path)
+        self.make_new_user_folder()
+
+    def make_new_user_folder(self) -> None:
+        """Recreate user folder after manually deleting it."""
+        self.user_path = Path(tempfile.mkdtemp())
 
 
 class BackupTests(TestCaseWithTemporaryFilesAndFolders):
@@ -1537,6 +1546,23 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         with self.assertRaises(CommandLineError) as error:
             verify.verify_last_backup(self.user_path, self.backup_path, None)
         self.assertTrue(error.exception.args[0].startswith("No backups found in "))
+
+    def test_verification_with_missing_user_folder_raises_error(self) -> None:
+        """Test that verification with missing (renamed) user folder raises error."""
+        create_user_data(self.user_path)
+        lib_backup.create_new_backup(
+            self.user_path,
+            self.backup_path,
+            filter_file=None,
+            examine_whole_file=False,
+            force_copy=False,
+            copy_probability=0.0,
+            timestamp=unique_timestamp())
+
+        self.reset_user_folder()
+        with self.assertRaises(CommandLineError) as error:
+            verify.verify_last_backup(self.user_path, self.backup_path, None)
+        self.assertTrue(error.exception.args[0].startswith("Could not find user folder: "))
 
 
 class ConfigurationFileTests(TestCaseWithTemporaryFilesAndFolders):
