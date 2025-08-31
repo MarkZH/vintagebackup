@@ -1533,7 +1533,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             self.assertTrue(actual_verify_file.is_file(follow_symlinks=False))
 
     def test_verification_with_no_backups_raises_error(self) -> None:
-        """Test that verification does something when there are no backups."""
+        """Test that verification raises an error when there are no backups."""
         with self.assertRaises(CommandLineError) as error:
             verify.verify_last_backup(self.user_path, self.backup_path, None)
         self.assertTrue(error.exception.args[0].startswith("No backups found in "))
