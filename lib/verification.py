@@ -26,7 +26,7 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
     """
     user_folder = backup_source(backup_folder)
     if not user_folder.is_dir():
-        raise FileNotFoundError(f"Could not find user folder: {user_folder}")
+        raise CommandLineError(f"Could not find user folder: {user_folder}")
 
     last_backup_folder = find_previous_backup(backup_folder)
 
