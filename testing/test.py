@@ -1564,6 +1564,26 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             verify.verify_last_backup(self.user_path, self.backup_path, None)
         self.assertTrue(error.exception.args[0].startswith("Could not find user folder: "))
 
+    def test_verification_with_empty_backups_raises_error(self) -> None:
+        """Test that verification with empty backup folder raises error."""
+        create_user_data(self.user_path)
+        lib_backup.create_new_backup(
+            self.user_path,
+            self.backup_path,
+            filter_file=None,
+            examine_whole_file=False,
+            force_copy=False,
+            copy_probability=0.0,
+            timestamp=unique_timestamp())
+
+        last_backup = lib_backup.find_previous_backup(self.backup_path)
+        self.assertIsNotNone(last_backup)
+        last_backup = cast(Path, last_backup)
+        deletion.delete_directory_tree(last_backup)
+        with self.assertRaises(CommandLineError) as error:
+            verify.verify_last_backup(self.user_path, self.backup_path, None)
+        self.assertTrue(error.exception.args[0].startswith("No backups found in "))
+
 
 class ConfigurationFileTests(TestCaseWithTemporaryFilesAndFolders):
     """Test configuration file functionality."""
