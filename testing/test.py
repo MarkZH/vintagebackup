@@ -1002,6 +1002,23 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
             self.assertEqual(current_recovery_index, len(expected_backup_sequence))
             self.assertEqual(logs.output[-1], f"{log_prefix}Only one choice for recovery.")
 
+    def test_recover_path_not_in_backups_logs_and_returns_normally(self) -> None:
+        """Test that trying to recover a file not in backups prints message and returns."""
+        create_user_data(self.user_path)
+        lib_backup.create_new_backup(
+            self.user_path,
+            self.backup_path,
+            filter_file=None,
+            examine_whole_file=False,
+            force_copy=False,
+            copy_probability=0.0,
+            timestamp=unique_timestamp())
+        new_file = self.user_path/"new_file.txt"
+        new_file.touch()
+        with self.assertLogs(level=logging.INFO) as logs:
+            recovery.recover_path(new_file, self.backup_path, search=False, choice=0)
+        self.assertEqual(logs.output, [f"INFO:root:No backups found for {new_file}"])
+
 
 def create_large_files(base_folder: Path, file_size: int) -> None:
     """Create a file of a give size in every leaf subdirectory."""
