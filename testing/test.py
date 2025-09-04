@@ -3576,7 +3576,3 @@ class FolderNavigationTests(TestCaseWithTemporaryFilesAndFolders):
         folder = self.user_path/"sub_directory_1"/"sub_sub_directory_2"
         relative_folder = recovery.directory_relative_to_backup(folder, self.backup_path)
         self.assertEqual(self.user_path/relative_folder, folder)
-
-
-if __name__ == "__main__":
-    unittest.main()
