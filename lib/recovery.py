@@ -252,5 +252,5 @@ def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
     """Choose what to recover from a list of everything backed up from a folder."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     chosen_recovery_path = choose_target_path_from_backups(args)
-    if chosen_recovery_path is not None:
+    if chosen_recovery_path:
         recover_path(chosen_recovery_path, backup_folder, search=args.search)

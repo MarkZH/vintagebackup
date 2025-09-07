@@ -34,7 +34,7 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
 
     last_backup_folder = find_previous_backup(backup_folder)
 
-    if last_backup_folder is None:
+    if not last_backup_folder:
         raise CommandLineError(f"No backups found in {backup_folder}.")
 
     logger.info("Filter file: %s", filter_file)

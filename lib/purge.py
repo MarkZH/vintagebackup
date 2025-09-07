@@ -24,7 +24,7 @@ def choose_purge_target_from_backups(
     """Choose which path to purge from a list of everything backed up from a folder."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     chosen_purge_path = recovery.choose_target_path_from_backups(args)
-    if chosen_purge_path is not None:
+    if chosen_purge_path:
         purge_path(chosen_purge_path, backup_folder, confirmation_response, args.choice)
 
 
