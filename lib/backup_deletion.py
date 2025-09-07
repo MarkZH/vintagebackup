@@ -107,7 +107,7 @@ def delete_backups(
 
     :param backup_folder: The base folder containing all backups.
     :param min_backups_remaining: The minimum number of backups that should remain after deletions.
-    Defaults to 1 if value is None or less than 1 (at least one backup will always remain).
+    Defaults to 1 if value is less than 1 (at least one backup will always remain).
     :param first_deletion_message: A message to print/log prior to the first deletion if any
     deletions will take place.
     :param stop_deletion_condition: A function that, if it returns True, stops deletions.
