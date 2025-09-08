@@ -247,7 +247,7 @@ def choose_target_path_from_backups(args: argparse.Namespace) -> Path | None:
     search_directory = absolute_path(args.list or args.purge_list)
     print_run_title(args, f"Listing files and directories for {operation}")
     logger.info("Searching for everything backed up from %s ...", search_directory)
-    test_choice = int(args.choice) if args.choice else None
+    test_choice = None if args.choice is None else int(args.choice)
     return search_backups(search_directory, backup_folder, operation, test_choice)
 
 
