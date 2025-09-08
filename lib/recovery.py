@@ -34,9 +34,12 @@ def search_backups(
 
     :param search_directory: The directory from which backed up files and folders will be listed
     :param backup_folder: The backup destination
+    :param operation: The name of the operation that called for this search. This will be put into
+    the user choice prompt "Which path for {operation}:".
     :param choice: Pre-selected choice of which file to recover (used for testing).
 
-    :returns Path: The path to a file or folder that will then be searched for among backups.
+    :returns Path | None: The path to a file or folder that will then be searched for among backups,
+    or None if no backed up files are found in the search_directory.
     """
     target_relative_path = directory_relative_to_backup(search_directory, backup_folder)
 
