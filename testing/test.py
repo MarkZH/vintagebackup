@@ -2302,6 +2302,18 @@ class PurgeTests(TestCaseWithTemporaryFilesAndFolders):
         for backup in lib_backup.all_backups(self.backup_path):
             self.assertEqual(expected_contents, directory_contents(backup))
 
+    def test_purging_missing_file_logs_absence(self) -> None:
+        """If a purge target does not exist, this is logged and the function returns normally."""
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+        non_existent_file = self.user_path/"does_not_exist.txt"
+        with self.assertLogs(level=logging.INFO) as logs:
+            purge.purge_path(non_existent_file, self.backup_path, None, None)
+        self.assertEqual(len(logs.output), 1)
+        self.assertEqual(
+            logs.output[0],
+            f"INFO:root:Could not find any backed up copies of {non_existent_file}")
+
     def test_file_purge_with_prompt_only_deletes_files(self) -> None:
         """Test that a purging a non-existent file only deletes files in backups."""
         create_user_data(self.user_path)
