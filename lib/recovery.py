@@ -1,5 +1,6 @@
 """Functions for recovering individual files and folders from backups."""
 
+import copy
 import logging
 import shutil
 import argparse
@@ -254,6 +255,10 @@ def choose_target_path_from_backups(args: argparse.Namespace) -> Path | None:
 def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
     """Choose what to recover from a list of everything backed up from a folder."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
-    chosen_recovery_path = choose_target_path_from_backups(args)
+    target_choice = None if args.choice is None else int(args.choice[1:])
+    target_args = copy.copy(args)
+    target_args.choice = target_choice
+    chosen_recovery_path = choose_target_path_from_backups(target_args)
     if chosen_recovery_path:
-        recover_path(chosen_recovery_path, backup_folder, search=args.search)
+        recover_choice = None if args.choice is None else int(args.choice[0])
+        recover_path(chosen_recovery_path, backup_folder, search=args.search, choice=recover_choice)

@@ -1079,6 +1079,87 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
             logs.output[-1],
             f"INFO:root:No backups found for the folder {bad_directory}")
 
+    def test_choose_recovery_target_from_backups_finds_all_user_files_in_backup(self) -> None:
+        """The function choose_recovery_target_from_backups() can find user files after backups."""
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+        for current_directory, directories, files in self.user_path.walk():
+            all_paths = sorted(itertools.chain(files, directories))
+            for choice, path in enumerate(all_paths, 0):
+                arguments = [
+                    "--backup-folder", str(self.backup_path),
+                    "--list", str(current_directory),
+                    "--choice", f"0{choice}"]
+                args = argparse.parse_command_line(arguments)
+                expected_path = fs.unique_path_name(current_directory/path)
+                recovery.choose_recovery_target_from_backups(args)
+                self.assertTrue(expected_path.exists())
+
+    def test_choose_recovery_target_from_backups_finds_added_user_files(self) -> None:
+        """The function choose_recovery_target_from_backups() can find user files after backups."""
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+        (self.user_path/"extra_file.txt").touch(exist_ok=False)
+        default_backup(self.user_path, self.backup_path)
+        for current_directory, directories, files in self.user_path.walk():
+            all_paths = sorted(itertools.chain(files, directories))
+            for choice, path in enumerate(all_paths, 0):
+                arguments = [
+                    "--backup-folder", str(self.backup_path),
+                    "--list", str(current_directory),
+                    "--choice", f"0{choice}"]
+                args = argparse.parse_command_line(arguments)
+                expected_path = fs.unique_path_name(current_directory/path)
+                recovery.choose_recovery_target_from_backups(args)
+                self.assertTrue(expected_path.exists())
+
+    def test_choose_recovery_target_from_backups_raises_error_for_non_existant_folder(self) -> None:
+        """If a search directory does not exist, the function raises a CommandLineException."""
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+        bad_directory = self.user_path/"does-not-exist"
+        arguments = [
+            "--backup-folder", str(self.backup_path),
+            "--list", str(bad_directory)]
+        args = argparse.parse_command_line(arguments)
+        with self.assertRaises(CommandLineError) as error:
+            recovery.choose_recovery_target_from_backups(args)
+        self.assertEqual(
+            error.exception.args[0],
+            f"The given search path is not a directory: {bad_directory}")
+
+    def test_choose_recovery_target_from_backups_raises_error_for_non_folder(self) -> None:
+        """If a search directory is not a directory, the function raises a CommandLineException."""
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+        bad_directory = self.user_path/"does-not-exist"
+        bad_directory.touch()
+        arguments = [
+            "--backup-folder", str(self.backup_path),
+            "--list", str(bad_directory)]
+        args = argparse.parse_command_line(arguments)
+        with self.assertRaises(CommandLineError) as error:
+            recovery.choose_recovery_target_from_backups(args)
+        self.assertEqual(
+            error.exception.args[0],
+            f"The given search path is not a directory: {bad_directory}")
+
+    def test_choose_recovery_target_from_backups_logs_for_empty_folder(self) -> None:
+        """If nothing is found for a search directory, the function returns None and logs."""
+        create_user_data(self.user_path)
+        bad_directory = self.user_path/"does-not-exist"
+        bad_directory.mkdir()
+        default_backup(self.user_path, self.backup_path)
+        arguments = [
+            "--backup-folder", str(self.backup_path),
+            "--list", str(bad_directory)]
+        args = argparse.parse_command_line(arguments)
+        with self.assertLogs(level=logging.INFO) as logs:
+            recovery.choose_recovery_target_from_backups(args)
+        self.assertEqual(
+            logs.output[-1],
+            f"INFO:root:No backups found for the folder {bad_directory}")
+
 
 def create_large_files(base_folder: Path, file_size: int) -> None:
     """Create a file of a give size in every leaf subdirectory."""
