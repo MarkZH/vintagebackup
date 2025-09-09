@@ -2061,6 +2061,24 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(exit_code, 1)
         self.assertEqual(restore_log.output, [f"ERROR:root:No backups found in {self.backup_path}"])
 
+    def test_start_backup_restore_with_destination_same_as_user_folder_raises_error(self) -> None:
+        """If the destination argument is the same as the backup source, raise an error."""
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+        with self.assertLogs(level=logging.INFO) as restore_logs:
+            exit_code = main_no_log([
+                "--restore",
+                "--backup-folder", str(self.backup_path),
+                "--destination", str(self.user_path),
+                "--last-backup",
+                "--delete-extra"])
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(
+            restore_logs.output,
+            [f"ERROR:root:The --destination argument {self.user_path} is the same as the original "
+             "location of the user folder. Either choose another destination, or use the "
+             "--user-folder option."])
+
 
 class BackupLockTests(TestCaseWithTemporaryFilesAndFolders):
     """Test that the lock prevents simultaneous access to a backup location."""
