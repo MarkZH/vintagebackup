@@ -2043,6 +2043,24 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
         """Ensure that the choose_backup() function returns None when there are no backups."""
         self.assertIsNone(restoration.choose_backup(self.backup_path, choice=None))
 
+    def test_start_backup_restore_with_no_backups_logs_and_returns_normally(self) -> None:
+        """If there are no backups, then a log message is printed and no errors occur."""
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+        last_backup = lib_backup.find_previous_backup(self.backup_path)
+        last_backup = cast(Path, last_backup)
+        self.assertTrue(last_backup.is_dir())
+        fs.delete_directory_tree(last_backup)
+        with self.assertLogs(level=logging.INFO) as restore_log:
+            exit_code = main_no_log([
+                "--restore",
+                "--backup-folder", str(self.backup_path),
+                "--user-folder", str(self.user_path),
+                "--last-backup",
+                "--delete-extra"])
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(restore_log.output, [f"ERROR:root:No backups found in {self.backup_path}"])
+
 
 class BackupLockTests(TestCaseWithTemporaryFilesAndFolders):
     """Test that the lock prevents simultaneous access to a backup location."""
