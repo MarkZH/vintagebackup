@@ -47,7 +47,7 @@ def restore_backup(
     logger.info("Restoring: %s", user_folder)
     logger.info("From     : %s", dated_backup_folder)
     logger.info("Deleting extra files: %s", delete_extra_files)
-    if not user_folder.samefile(destination):
+    if absolute_path(user_folder) != absolute_path(destination):
         logger.info("Restoring to: %s", destination)
 
     for current_backup_path, folder_names, file_names in dated_backup_folder.walk():
@@ -89,7 +89,7 @@ def start_backup_restore(args: argparse.Namespace) -> None:
     if args.destination:
         destination = absolute_path(args.destination)
         user_folder = backup_source(backup_folder)
-        if destination.samefile(user_folder):
+        if absolute_path(destination) == absolute_path(user_folder):
             raise CommandLineError(
                 f"The --destination argument {destination} is the same as the original location "
                 "of the user folder. Either choose another destination, or use the --user-folder "
