@@ -96,7 +96,7 @@ def start_backup_restore(args: argparse.Namespace) -> None:
                 "option.")
     else:
         destination = get_existing_path(args.user_folder, "user folder")
-        confirm_user_location_is_unchanged(destination, backup_folder)
+        confirm_user_location_is_unchanged(destination, backup_folder, missing_ok=False)
 
     confirm_choice_made(args, "delete_extra", "keep_extra")
     delete_extra_files = bool(args.delete_extra)
