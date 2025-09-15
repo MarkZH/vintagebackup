@@ -7,7 +7,7 @@ from pathlib import Path
 
 from lib.argument_parser import confirm_choice_made
 from lib.backup import all_backups, find_previous_backup
-from lib.backup_info import backup_source, confirm_user_location_is_unchanged
+from lib.backup_info import backup_source
 from lib.console import cancel_key, choose_from_menu, print_run_title
 from lib.exceptions import CommandLineError
 from lib.filesystem import absolute_path, delete_path, get_existing_path
@@ -84,20 +84,7 @@ def restore_backup(
 def start_backup_restore(args: argparse.Namespace) -> None:
     """Parse command line arguments for a backup recovery."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
-
-    confirm_choice_made(args, "destination", "user_folder")
-    if args.destination:
-        destination = absolute_path(args.destination)
-        user_folder = backup_source(backup_folder)
-        if absolute_path(destination) == absolute_path(user_folder):
-            raise CommandLineError(
-                f"The --destination argument {destination} is the same as the original location "
-                "of the user folder. Either choose another destination, or use the --user-folder "
-                "option.")
-    else:
-        destination = get_existing_path(args.user_folder, "user folder")
-        confirm_user_location_is_unchanged(destination, backup_folder, missing_ok=False)
-
+    destination = absolute_path(args.destination)
     confirm_choice_made(args, "delete_extra", "keep_extra")
     delete_extra_files = bool(args.delete_extra)
 

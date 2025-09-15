@@ -384,8 +384,7 @@ optional."""))
         help=format_help("""Preserve any extra files that are not in the backup."""))
 
     restore_group.add_argument("--destination", help=format_help(
-"""Specify a different destination for the backup restoration. Either this or
-the --user-folder option is required when recovering from a backup."""))
+"""Specify a different destination for the backup restoration."""))
 
     other_group = user_input.add_argument_group("Other options")
 
