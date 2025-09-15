@@ -84,6 +84,8 @@ def restore_backup(
 def start_backup_restore(args: argparse.Namespace) -> None:
     """Parse command line arguments for a backup recovery."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
+    if not args.destination:
+        raise CommandLineError("The --destination argument is required for restoring backups.")
     destination = absolute_path(args.destination)
     confirm_choice_made(args, "delete_extra", "keep_extra")
     delete_extra_files = bool(args.delete_extra)
