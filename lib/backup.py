@@ -304,7 +304,7 @@ def create_new_backup(
         logger.info("Deleting %s ...", staging_backup_path)
         delete_directory_tree(staging_backup_path)
 
-    confirm_user_location_is_unchanged(user_data_location, backup_location, missing_ok=True)
+    confirm_user_location_is_unchanged(user_data_location, backup_location)
     record_user_location(user_data_location, backup_location)
 
     if is_backup_move:

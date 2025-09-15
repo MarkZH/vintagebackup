@@ -37,11 +37,7 @@ def backup_source(backup_location: Path) -> Path:
         raise FileNotFoundError(f"No source for backups in {backup_location} found.")
 
 
-def confirm_user_location_is_unchanged(
-        user_data_location: Path,
-        backup_location: Path,
-        *,
-        missing_ok: bool) -> None:
+def confirm_user_location_is_unchanged(user_data_location: Path, backup_location: Path) -> None:
     """
     Make sure the user directory being backed up is the same as the previous backup run.
 
@@ -57,10 +53,8 @@ def confirm_user_location_is_unchanged(
                 f" Previously: {absolute_path(recorded_user_folder)};"
                 f" Now: {absolute_path(user_data_location)}")
     except FileNotFoundError:
-        if not missing_ok:
-            raise CommandLineError(
-                f"Could not find {get_backup_info_file(backup_location).name} "
-                f"in {backup_location}. The user folder cannot be determined.") from None
+        # This is probably the first backup, hence no user folder record.
+        pass
 
 
 class Backup_Info(TypedDict):

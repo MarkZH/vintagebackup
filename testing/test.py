@@ -3019,11 +3019,8 @@ class ConfirmUserLocationIsUnchangedTests(TestCaseWithTemporaryFilesAndFolders):
     """Tests for the funciton confirm_user_location_is_unchanged."""
 
     def test_no_backups_is_not_an_error_if_missing_ok(self) -> None:
-        """Calling the function before any backups is not an error if missing_ok=True."""
-        backup_info.confirm_user_location_is_unchanged(
-            self.user_path,
-            self.backup_path,
-            missing_ok=True)
+        """Calling the function before any backups is not an error."""
+        backup_info.confirm_user_location_is_unchanged(self.user_path, self.backup_path)
 
     def test_unchanged_user_folder_is_not_an_error(self) -> None:
         """Pass test if the backup location has not changed after a backup."""
@@ -3036,10 +3033,7 @@ class ConfirmUserLocationIsUnchangedTests(TestCaseWithTemporaryFilesAndFolders):
             copy_probability=0.0,
             timestamp=None)
 
-        backup_info.confirm_user_location_is_unchanged(
-            self.user_path,
-            self.backup_path,
-            missing_ok=False)
+        backup_info.confirm_user_location_is_unchanged(self.user_path, self.backup_path)
 
     def test_changed_user_folder_is_an_error(self) -> None:
         """Raise exception if the backup location has changed after a backup."""
@@ -3053,25 +3047,9 @@ class ConfirmUserLocationIsUnchangedTests(TestCaseWithTemporaryFilesAndFolders):
             timestamp=None)
 
         with self.assertRaises(CommandLineError) as error:
-            backup_info.confirm_user_location_is_unchanged(
-                self.backup_path,
-                self.backup_path,
-                missing_ok=False)
+            backup_info.confirm_user_location_is_unchanged(self.backup_path, self.backup_path)
 
         self.assertIn("different user folder", error.exception.args[0])
-
-    def test_no_backups_is_an_error_if_not_missing_ok(self) -> None:
-        """Calling the function before any backups is an error when missing_ok=False."""
-        with self.assertRaises(CommandLineError) as error:
-            backup_info.confirm_user_location_is_unchanged(
-                self.user_path,
-                self.backup_path,
-                missing_ok=False)
-
-        self.assertEqual(
-            error.exception.args,
-            (f"Could not find vintagebackup.source.txt in {self.backup_path}. The user folder "
-             f"cannot be determined.",))
 
 
 class GenerateConfigTests(TestCaseWithTemporaryFilesAndFolders):
