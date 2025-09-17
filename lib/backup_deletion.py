@@ -3,6 +3,7 @@
 import logging
 import shutil
 import argparse
+import datetime
 from collections.abc import Callable
 from pathlib import Path
 
@@ -140,12 +141,57 @@ def delete_backups(
         delete_single_backup(backup)
 
 
+def delete_too_frequent_backups(
+        backup_folder: Path,
+        args: argparse.Namespace,
+        min_backups_remaining: int) -> None:
+    """
+    Delete backups according to retention arguments.
+
+    This function deletes backups so that only weekly, monthly, and yearly backups are left.
+    """
+    min_backups_remaining = max(1, min_backups_remaining)
+    max_deletions = len(lib_backup.all_backups(backup_folder)) - min_backups_remaining
+    deletion_count = 0
+    now = datetime.datetime.now()
+
+    def old_enough(date_cutoff: datetime.datetime) -> Callable[[Path], bool]:
+        return lambda backup: lib_backup.backup_datetime(backup) < date_cutoff
+
+    for frequency, frequency_word, time_span_str in (
+            ("7d", "weekly", args.keep_weekly_after),
+            ("1m", "monthly", args.keep_monthly_after),
+            ("1y", "yearly", args.keep_monthly_after)):
+
+        if time_span_str is None:
+            continue
+
+        all_backups = lib_backup.all_backups(backup_folder)
+        date_cutoff = parse_time_span_to_timepoint(time_span_str, now)
+        backups = list(filter(old_enough(date_cutoff), all_backups))
+        while len(backups) > 1:
+            if deletion_count >= max_deletions:
+                return
+            standard = backups[-1]
+            next_backup = backups[-2]
+            standard_timestamp = lib_backup.backup_datetime(standard)
+            earliest_timestamp = parse_time_span_to_timepoint(frequency, standard_timestamp)
+            if lib_backup.backup_datetime(next_backup) <= earliest_timestamp:
+                logger.info("Deleting backup (%s) %s", frequency_word, next_backup)
+                deletion_count += 1
+                delete_single_backup(next_backup)
+                backups.remove(next_backup)
+            else:
+                backups.remove(standard)
+
+
 def delete_old_backups(args: argparse.Namespace) -> None:
     """Delete the oldest backups by various criteria in the command line options."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     backup_count = len(lib_backup.all_backups(backup_folder))
     max_deletions = int(args.max_deletions or backup_count)
     min_backups_remaining = max(backup_count - max_deletions, 1)
+    delete_too_frequent_backups(backup_folder, args, min_backups_remaining)
     delete_oldest_backups_for_space(backup_folder, args.free_up, min_backups_remaining)
     delete_backups_older_than(backup_folder, args.delete_after, min_backups_remaining)
     lib_backup.print_backup_storage_stats(backup_folder)

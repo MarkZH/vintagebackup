@@ -299,6 +299,20 @@ This can be used at the same time as --free-up.
 
 The most recent backup will not be deleted."""))
 
+    keep_x_after_help = """After a successful backup, delete backups so that only {} backups are
+kept once the time span in the argument has passed. The format of the argument is the same as in
+--delete-after.
+
+This can be used with any other deletion option.
+
+The most recent backup will not be deleted."""
+
+    for keep_time in ("weekly", "monthly", "yearly"):
+        backup_group.add_argument(
+            f"--keep-{keep_time}-after",
+            metavar="TIME",
+            help=format_help(keep_x_after_help.format(keep_time)))
+
     backup_group.add_argument("--max-deletions", help=format_help(
 """Specify the maximum number of deletions per program run."""))
 
