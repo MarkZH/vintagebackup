@@ -97,6 +97,19 @@ def delete_backups_older_than(
             logger.info("Stopped after reaching maximum number of deletions.")
 
 
+def delete_single_backup(backup: Path) -> None:
+    """Delete a backup and, if it is the last in a year, the year folder that contains it."""
+    delete_directory_tree(backup, ignore_errors=True)
+    try:
+        year_folder = backup.parent
+        year_folder.rmdir()
+        logger.info("Deleted empty year folder %s", year_folder)
+    except OSError:
+        pass
+
+    logger.info("Free space: %s", byte_units(shutil.disk_usage(backup.parent.parent).free))
+
+
 def delete_backups(
         backup_folder: Path,
         min_backups_remaining: int,
@@ -124,16 +137,7 @@ def delete_backups(
             logger.info(first_deletion_message)
 
         logger.info("Deleting oldest backup: %s", backup)
-        delete_directory_tree(backup, ignore_errors=True)
-
-        try:
-            year_folder = backup.parent
-            year_folder.rmdir()
-            logger.info("Deleted empty year folder %s", year_folder)
-        except OSError:
-            pass
-
-        logger.info("Free space: %s", byte_units(shutil.disk_usage(backup_folder).free))
+        delete_single_backup(backup)
 
 
 def delete_old_backups(args: argparse.Namespace) -> None:
