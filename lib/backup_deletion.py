@@ -158,6 +158,9 @@ def delete_too_frequent_backups(
     def old_enough(date_cutoff: datetime.datetime) -> Callable[[Path], bool]:
         return lambda backup: lib_backup.backup_datetime(backup) < date_cutoff
 
+    latest_date_cutoff: datetime.datetime | None = None
+    latest_frequency_word = ""
+    latest_time_span_str = ""
     for frequency, frequency_word, time_span_str in (
             ("7d", "weekly", args.keep_weekly_after),
             ("1m", "monthly", args.keep_monthly_after),
@@ -166,8 +169,18 @@ def delete_too_frequent_backups(
         if time_span_str is None:
             continue
 
-        all_backups = lib_backup.all_backups(backup_folder)
         date_cutoff = parse_time_span_to_timepoint(time_span_str, now)
+        if latest_date_cutoff and date_cutoff >= latest_date_cutoff:
+            raise CommandLineError(
+                f"The {frequency_word} time span ({time_span_str}) is less than "
+                f"the {latest_frequency_word} time span ({latest_time_span_str}). "
+                "Less frequent backup specs must have longer time spans.")
+
+        latest_date_cutoff = date_cutoff
+        latest_frequency_word = frequency_word
+        latest_time_span_str = time_span_str
+
+        all_backups = lib_backup.all_backups(backup_folder)
         backups = list(filter(old_enough(date_cutoff), all_backups))
         while len(backups) > 1:
             if deletion_count >= max_deletions:
