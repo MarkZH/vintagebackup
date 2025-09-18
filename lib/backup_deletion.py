@@ -185,8 +185,8 @@ def delete_too_frequent_backups(
         while len(backups) > 1:
             if deletion_count >= max_deletions:
                 return
-            standard = backups[-1]
-            next_backup = backups[-2]
+            standard = backups[0]
+            next_backup = backups[1]
             standard_timestamp = lib_backup.backup_datetime(standard)
             earliest_timestamp = parse_time_span_to_timepoint(frequency, standard_timestamp)
             if lib_backup.backup_datetime(next_backup) <= earliest_timestamp:
