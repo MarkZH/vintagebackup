@@ -160,7 +160,7 @@ def delete_too_frequent_backups(
     def old_enough(date_cutoff: datetime.datetime) -> Callable[[Path], bool]:
         return lambda backup: lib_backup.backup_datetime(backup) < date_cutoff
 
-    for frequency, frequency_word, time_span_str in (
+    for period, period_word, time_span_str in (
             ("7d", "weekly", args.keep_weekly_after),
             ("1m", "monthly", args.keep_monthly_after),
             ("1y", "yearly", args.keep_monthly_after)):
@@ -177,9 +177,9 @@ def delete_too_frequent_backups(
             standard = backups[0]
             next_backup = backups[1]
             standard_timestamp = lib_backup.backup_datetime(standard)
-            earliest_timestamp = parse_time_span_to_timepoint(frequency, standard_timestamp)
+            earliest_timestamp = parse_time_span_to_timepoint(period, standard_timestamp)
             if lib_backup.backup_datetime(next_backup) < earliest_timestamp:
-                logger.info("Deleting backup (%s) %s", frequency_word, next_backup)
+                logger.info("Deleting backup (%s) %s", period_word, next_backup)
                 deletion_count += 1
                 delete_single_backup(next_backup)
                 backups.remove(next_backup)
@@ -190,10 +190,10 @@ def delete_too_frequent_backups(
 def check_time_span_parameters(args: argparse.Namespace) -> None:
     """Make sure less frequent backup retention time spans are longer than more frequent ones."""
     last_date_cutoff: datetime.datetime | None = None
-    last_frequency_word = ""
+    last_period_word = ""
     last_time_span_str = ""
     now = datetime.datetime.now()
-    for frequency_word, time_span_str in (
+    for period_word, time_span_str in (
         ("weekly", args.keep_weekly_after),
         ("monthly", args.keep_monthly_after),
         ("yearly", args.keep_monthly_after)):
@@ -203,12 +203,12 @@ def check_time_span_parameters(args: argparse.Namespace) -> None:
         date_cutoff = parse_time_span_to_timepoint(time_span_str, now)
         if last_date_cutoff and date_cutoff >= last_date_cutoff:
             raise CommandLineError(
-                f"The {frequency_word} time span ({time_span_str}) is not longer than "
-                f"the {last_frequency_word} time span ({last_time_span_str}). "
+                f"The {period_word} time span ({time_span_str}) is not longer than "
+                f"the {last_period_word} time span ({last_time_span_str}). "
                 "Less frequent backup specs must have longer time spans.")
 
         last_date_cutoff = date_cutoff
-        last_frequency_word = frequency_word
+        last_period_word = period_word
         last_time_span_str = time_span_str
 
 
