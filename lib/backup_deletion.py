@@ -150,6 +150,8 @@ def delete_too_frequent_backups(
 
     This function deletes backups so that only weekly, monthly, and yearly backups are left.
     """
+    check_time_span_parameters(args)
+
     min_backups_remaining = max(1, min_backups_remaining)
     max_deletions = len(lib_backup.all_backups(backup_folder)) - min_backups_remaining
     deletion_count = 0
@@ -158,9 +160,6 @@ def delete_too_frequent_backups(
     def old_enough(date_cutoff: datetime.datetime) -> Callable[[Path], bool]:
         return lambda backup: lib_backup.backup_datetime(backup) < date_cutoff
 
-    latest_date_cutoff: datetime.datetime | None = None
-    latest_frequency_word = ""
-    latest_time_span_str = ""
     for frequency, frequency_word, time_span_str in (
             ("7d", "weekly", args.keep_weekly_after),
             ("1m", "monthly", args.keep_monthly_after),
@@ -169,18 +168,8 @@ def delete_too_frequent_backups(
         if time_span_str is None:
             continue
 
-        date_cutoff = parse_time_span_to_timepoint(time_span_str, now)
-        if latest_date_cutoff and date_cutoff >= latest_date_cutoff:
-            raise CommandLineError(
-                f"The {frequency_word} time span ({time_span_str}) is less than "
-                f"the {latest_frequency_word} time span ({latest_time_span_str}). "
-                "Less frequent backup specs must have longer time spans.")
-
-        latest_date_cutoff = date_cutoff
-        latest_frequency_word = frequency_word
-        latest_time_span_str = time_span_str
-
         all_backups = lib_backup.all_backups(backup_folder)
+        date_cutoff = parse_time_span_to_timepoint(time_span_str, now)
         backups = list(filter(old_enough(date_cutoff), all_backups))
         while len(backups) > 1:
             if deletion_count >= max_deletions:
@@ -196,6 +185,31 @@ def delete_too_frequent_backups(
                 backups.remove(next_backup)
             else:
                 backups.remove(standard)
+
+
+def check_time_span_parameters(args: argparse.Namespace) -> None:
+    """Make sure less frequent backup retention time spans are longer than more frequent ones."""
+    last_date_cutoff: datetime.datetime | None = None
+    last_frequency_word = ""
+    last_time_span_str = ""
+    now = datetime.datetime.now()
+    for frequency_word, time_span_str in (
+        ("weekly", args.keep_weekly_after),
+        ("monthly", args.keep_monthly_after),
+        ("yearly", args.keep_monthly_after)):
+        if time_span_str is None:
+            continue
+
+        date_cutoff = parse_time_span_to_timepoint(time_span_str, now)
+        if last_date_cutoff and date_cutoff >= last_date_cutoff:
+            raise CommandLineError(
+                f"The {frequency_word} time span ({time_span_str}) is not longer than "
+                f"the {last_frequency_word} time span ({last_time_span_str}). "
+                "Less frequent backup specs must have longer time spans.")
+
+        last_date_cutoff = date_cutoff
+        last_frequency_word = frequency_word
+        last_time_span_str = time_span_str
 
 
 def delete_old_backups(args: argparse.Namespace) -> None:
