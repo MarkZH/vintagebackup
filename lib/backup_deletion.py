@@ -52,16 +52,6 @@ def delete_oldest_backups_for_space(
 
     delete_backups(backup_location, min_backups_remaining, first_deletion_message, stop)
 
-    final_free_space = shutil.disk_usage(backup_location).free
-    if final_free_space < free_storage_required:
-        backups_remaining = len(lib_backup.all_backups(backup_location))
-        if backups_remaining == 1:
-            logger.warning(
-                "Could not free up %s of storage without deleting most recent backup.",
-                byte_units(free_storage_required))
-        else:
-            logger.info("Stopped after reaching maximum number of deletions.")
-
 
 def delete_backups_older_than(
         backup_folder: Path,
@@ -87,15 +77,6 @@ def delete_backups_older_than(
         return lib_backup.backup_datetime(backup) >= timestamp_to_keep
 
     delete_backups(backup_folder, min_backups_remaining, first_deletion_message, stop)
-    oldest_backup_date = lib_backup.backup_datetime(lib_backup.all_backups(backup_folder)[0])
-    if oldest_backup_date < timestamp_to_keep:
-        backups_remaining = len(lib_backup.all_backups(backup_folder))
-        if backups_remaining == 1:
-            logger.warning(
-                "Could not delete all backups older than %s without deleting most recent backup.",
-                timestamp_to_keep)
-        else:
-            logger.info("Stopped after reaching maximum number of deletions.")
 
 
 def delete_single_backup(backup: Path) -> None:
@@ -139,6 +120,14 @@ def delete_backups(
 
         logger.info("Deleting oldest backup: %s", backup)
         delete_single_backup(backup)
+
+    oldest_backup = lib_backup.all_backups(backup_folder)[0]
+    if not stop_deletion_condition(oldest_backup):
+        remaining_backups = len(lib_backup.all_backups(backup_folder))
+        if remaining_backups == 1:
+            logger.warning("Stopped backup deletions to preserve most recent backup.")
+        else:
+            logger.info("Stopped after reaching maximum number of deletions.")
 
 
 def delete_too_frequent_backups(
