@@ -276,7 +276,9 @@ take considerably longer."""))
 
     add_no_option(backup_group, "whole-file")
 
-    backup_group.add_argument("--free-up", metavar="SPACE", help=format_help(
+    deletion_group = user_input.add_argument_group("Backup deletion")
+
+    deletion_group.add_argument("--free-up", metavar="SPACE", help=format_help(
 """After a successful backup, delete old backups until the amount of free space on the
 backup destination is at least SPACE.
 
@@ -290,7 +292,7 @@ This can be used at the same time as --delete-after.
 
 The most recent backup will not be deleted."""))
 
-    backup_group.add_argument("--delete-after", metavar="TIME", help=format_help(
+    deletion_group.add_argument("--delete-after", metavar="TIME", help=format_help(
 """After a successful backup, delete backups if they are older than the time span in the argument.
 The format of the argument is Nt, where N is a whole number and t is a single letter: d for days, w
 for weeks, m for calendar months, or y for calendar years.
@@ -308,21 +310,21 @@ This can be used with any other deletion option.
 The most recent backup will not be deleted."""
 
     for keep_time in ("weekly", "monthly", "yearly"):
-        backup_group.add_argument(
+        deletion_group.add_argument(
             f"--keep-{keep_time}-after",
             metavar="TIME",
             help=format_help(keep_x_after_help.format(keep_time)))
 
-    backup_group.add_argument("--max-deletions", help=format_help(
+    deletion_group.add_argument("--max-deletions", help=format_help(
 """Specify the maximum number of deletions per program run."""))
 
-    backup_group.add_argument("--delete-first", action="store_true", help=format_help(
+    deletion_group.add_argument("--delete-first", action="store_true", help=format_help(
 """Delete old backups (according to --free-up, --delete-after, and --max-deletions) to make room
 prior to starting a new backup.
 
 The most recent backup will never be deleted."""))
 
-    add_no_option(backup_group, "delete-first")
+    add_no_option(deletion_group, "delete-first")
 
     backup_group.add_argument("--force-copy", action="store_true", help=format_help(
 """Copy all files instead of linking to files previous backups. The
