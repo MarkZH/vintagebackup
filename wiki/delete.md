@@ -42,6 +42,19 @@ For example,
 
 will delete all backups that are older than six months.
 
+### `--keep-weekly-after`, `--keep-monthly-after`, `--keep-yearly-after`
+
+These options specify how long to retain all backups before deleting most of them to leave only a less frequent sample.
+For example, the option `--keep-weekly-after 6m` specifies that backups older than six months will be deleted except for those spaced out by at least a week.
+This goes similarly for the monthly and yearly options.
+The purpose of these options is to allow the user to extend how long backups are retained by only keeping the oldest backups at a less frequent interval.
+
+All three of these can be used together or in any combination of one or two.
+
+The parameter of these options is a time span to specify after what period to begin deleting the frequent backups.
+The format is the same as the `--delete-after` option.
+If they are used together, the time span for `--keep-weekly-after` must be the shortest, followed by `--keep-monthly-after`, then `--keep-yearly-after`.
+
 ## Other options
 
 These options modify the behavior of the deletion action in the previous section.
