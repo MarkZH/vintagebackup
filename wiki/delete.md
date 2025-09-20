@@ -4,6 +4,9 @@ Deleting old backups is necessary for keeping space available for new backups.
 
 ## Deletion actions
 
+Any and all of the options in this section can be used at the same time.
+They will run after a backup completes successfully.
+
 ### `--free-up`
 
 Specify how much disk space should be kept free at the backup location.
@@ -40,6 +43,8 @@ For example,
 will delete all backups that are older than six months.
 
 ## Other options
+
+These options modify the behavior of the deletion action in the previous section.
 
 ### `--max-deletions`
 
