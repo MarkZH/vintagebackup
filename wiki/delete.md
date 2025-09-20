@@ -2,7 +2,7 @@
 
 Deleting old backups is necessary for keeping space available for new backups.
 
-## Options
+## Deletion actions
 
 ### `--free-up`
 
@@ -38,6 +38,8 @@ For example,
 `--delete-after 6m`
 
 will delete all backups that are older than six months.
+
+## Other options
 
 ### `--max-deletions`
 
