@@ -357,7 +357,7 @@ to the new location."""))
     restore_group = user_input.add_argument_group("Restore Options", format_help(
 """Exactly one of each of the following option pairs(--last-backup/--choose-backup and
 --delete-extra/--keep-extra) is required when restoring a backup. The --destination option is
-optional."""))
+required."""))
 
     choose_restore_backup_group = restore_group.add_mutually_exclusive_group()
 
