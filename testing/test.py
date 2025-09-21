@@ -1554,6 +1554,22 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             "--backup-folder", str(self.backup_path)])
         deletion.check_time_span_parameters(args)
 
+    def test_keep_x_after_respects_maximum_deletions(self) -> None:
+        """Make sure all --keep-x-after options respect --max-deletions."""
+        max_deletions = 50
+        for option in ("weekly", "monthly", "yearly"):
+            create_old_daily_backups(self.backup_path, 100)
+            starting_backup_count = len(lib_backup.all_backups(self.backup_path))
+            main_assert_no_error_log([
+                "--backup-folder", str(self.backup_path),
+                f"--keep-{option}-after", "1d",
+                "--delete-only",
+                "--max-deletions", str(max_deletions)],
+                self)
+            retained_backup_count = len(lib_backup.all_backups(self.backup_path))
+            self.assertEqual(starting_backup_count - retained_backup_count, 50)
+            self.reset_backup_folder()
+
 
 class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
     """Test moving backup sets to a different location."""
