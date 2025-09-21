@@ -1471,6 +1471,37 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         backups_remaining = lib_backup.all_backups(self.backup_path)
         self.assertEqual(backups_remaining, expected_backups_remaining)
 
+    def test_keep_yearly_after_only_retains_yearly_backups_after_time_span(self) -> None:
+        """After the given time span, every backup is at least a calendar year apart."""
+        create_old_monthly_backups(self.backup_path, 60)
+        time_span_to_keep_all_backups = "2m"
+        backups = lib_backup.all_backups(self.backup_path)
+        newest_backup_timestamp = lib_backup.backup_datetime(backups[-1])
+        oldest_date_for_all_backups = dates.parse_time_span_to_timepoint(
+            time_span_to_keep_all_backups,
+            newest_backup_timestamp)
+        expected_backups_remaining = [backups[0]]
+
+        for backup in backups:
+            timestamp = lib_backup.backup_datetime(backup)
+            if timestamp > oldest_date_for_all_backups:
+                expected_backups_remaining.append(backup)
+                continue
+
+            last_retained_backup = expected_backups_remaining[-1]
+            last_timestamp = lib_backup.backup_datetime(last_retained_backup)
+            month_before_backup_date = dates.months_ago(lib_backup.backup_datetime(backup), 12)
+            if month_before_backup_date == last_timestamp.date():
+                expected_backups_remaining.append(backup)
+
+        main_assert_no_error_log([
+            "--keep-yearly-after", time_span_to_keep_all_backups,
+            "--delete-only",
+            "--backup-folder", str(self.backup_path)],
+            self)
+        backups_remaining = lib_backup.all_backups(self.backup_path)
+        self.assertEqual(backups_remaining, expected_backups_remaining)
+
 
 class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
     """Test moving backup sets to a different location."""
