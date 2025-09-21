@@ -1463,6 +1463,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             if month_before_backup_date == last_timestamp.date():
                 expected_backups_remaining.append(backup)
 
+        self.assertGreater(len(expected_backups_remaining), 31)
         main_assert_no_error_log([
             "--keep-monthly-after", time_span_to_keep_all_backups,
             "--delete-only",
@@ -1494,6 +1495,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             if month_before_backup_date == last_timestamp.date():
                 expected_backups_remaining.append(backup)
 
+        self.assertGreater(len(expected_backups_remaining), 3)
         main_assert_no_error_log([
             "--keep-yearly-after", time_span_to_keep_all_backups,
             "--delete-only",
