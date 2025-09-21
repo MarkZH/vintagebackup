@@ -1502,6 +1502,56 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         backups_remaining = lib_backup.all_backups(self.backup_path)
         self.assertEqual(backups_remaining, expected_backups_remaining)
 
+    def test_incorrect_keep_x_after_parameters_raise_exceptions(self) -> None:
+        """Test that less frequent backup retention specs having smaller time spans is an error."""
+        with self.assertRaises(CommandLineError) as error:
+            args = [
+                "--keep-weekly-after", "2m",
+                "--keep-monthly-after", "1m",
+                "--delete-only",
+                "--backup-folder", str(self.backup_path)]
+            arguments = argparse.parse_command_line(args)
+            deletion.check_time_span_parameters(arguments)
+        error_message = (
+                "The monthly time span (1m) is not longer than the weekly time span (2m). "
+                "Less frequent backup specs must have longer time spans.")
+        self.assertEqual(error.exception.args, (error_message,))
+
+        with self.assertRaises(CommandLineError) as error:
+            args = [
+                "--keep-weekly-after", "100d",
+                "--keep-yearly-after", "2m",
+                "--delete-only",
+                "--backup-folder", str(self.backup_path)]
+            arguments = argparse.parse_command_line(args)
+            deletion.check_time_span_parameters(arguments)
+        error_message = (
+                "The yearly time span (2m) is not longer than the weekly time span (100d). "
+                "Less frequent backup specs must have longer time spans.")
+        self.assertEqual(error.exception.args, (error_message,))
+
+        with self.assertRaises(CommandLineError) as error:
+            args = [
+                "--keep-monthly-after", "60w",
+                "--keep-yearly-after", "1y",
+                "--delete-only",
+                "--backup-folder", str(self.backup_path)]
+            arguments = argparse.parse_command_line(args)
+            deletion.check_time_span_parameters(arguments)
+        error_message = (
+                "The yearly time span (1y) is not longer than the monthly time span (60w). "
+                "Less frequent backup specs must have longer time spans.")
+        self.assertEqual(error.exception.args, (error_message,))
+
+    def test_using_all_keep_x_after_options_is_not_an_error(self) -> None:
+        """Test that use all --keep-x-after options with suitable time spans is not an error."""
+        args = argparse.parse_command_line([
+            "--keep-weekly-after", "1d",
+            "--keep-monthly-after", "2d",
+            "--keep-yearly-after", "3d",
+            "--backup-folder", str(self.backup_path)])
+        deletion.check_time_span_parameters(args)
+
 
 class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
     """Test moving backup sets to a different location."""
