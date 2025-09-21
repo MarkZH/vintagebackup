@@ -152,7 +152,7 @@ def delete_too_frequent_backups(
     for period, period_word, time_span_str in (
             ("7d", "weekly", args.keep_weekly_after),
             ("1m", "monthly", args.keep_monthly_after),
-            ("1y", "yearly", args.keep_monthly_after)):
+            ("1y", "yearly", args.keep_yearly_after)):
 
         if time_span_str is None:
             continue
@@ -185,7 +185,7 @@ def check_time_span_parameters(args: argparse.Namespace) -> None:
     for period_word, time_span_str in (
         ("weekly", args.keep_weekly_after),
         ("monthly", args.keep_monthly_after),
-        ("yearly", args.keep_monthly_after)):
+        ("yearly", args.keep_yearly_after)):
         if time_span_str is None:
             continue
 
