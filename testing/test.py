@@ -1427,14 +1427,15 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
     def test_keep_weekly_after_only_retains_weekly_backups_after_time_span(self) -> None:
         """After the given time span, every backup is at least a week apart."""
         create_old_daily_backups(self.backup_path, 30)
+        time_span_keep_all_backups = "2w"
         backups = lib_backup.all_backups(self.backup_path)
         expected_indexes_remaining = [
             0, 7, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
         expected_backups_remaining = [backups[i] for i in expected_indexes_remaining]
-        main_assert_no_error_log(
-            ["--keep-weekly-after", "2w",
-             "--delete-only",
-             "--backup-folder", str(self.backup_path)],
+        main_assert_no_error_log([
+            "--keep-weekly-after", time_span_keep_all_backups,
+            "--delete-only",
+            "--backup-folder", str(self.backup_path)],
             self)
         backups_remaining = lib_backup.all_backups(self.backup_path)
         self.assertEqual(backups_remaining, expected_backups_remaining)
