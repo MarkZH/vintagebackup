@@ -121,10 +121,10 @@ def delete_backups(
         logger.info("Deleting oldest backup: %s", backup)
         delete_single_backup(backup)
 
-    oldest_backup = lib_backup.all_backups(backup_folder)[0]
+    remaining_backups = lib_backup.all_backups(backup_folder)
+    oldest_backup = remaining_backups[0]
     if not stop_deletion_condition(oldest_backup):
-        remaining_backups = len(lib_backup.all_backups(backup_folder))
-        if remaining_backups == 1:
+        if len(remaining_backups) == 1:
             logger.warning("Stopped backup deletions to preserve most recent backup.")
         else:
             logger.info("Stopped after reaching maximum number of deletions.")
