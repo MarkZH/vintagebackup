@@ -123,11 +123,12 @@ def create_old_monthly_backups(backup_base_directory: Path, count: int) -> None:
     """
     now = datetime.datetime.now()
     for months_back in range(count):
-        backup_timestamp = dates.months_ago(now, months_back)
+        backup_date = dates.months_ago(now, months_back)
+        backup_timestamp = datetime.datetime.combine(backup_date, now.time())
         create_old_backup(backup_base_directory, backup_timestamp)
 
 
-def create_old_backup(backup_base_directory, backup_timestamp):
+def create_old_backup(backup_base_directory: Path, backup_timestamp: datetime.datetime) -> None:
     """Create a single empty backup with the given timestamp."""
     backup_name = backup_timestamp.strftime(lib_backup.backup_date_format)
     backup_path = backup_base_directory/str(backup_timestamp.year)/backup_name
