@@ -123,15 +123,10 @@ def create_old_backups(backup_base_directory: Path, count: int) -> None:
     """
     now = datetime.datetime.now()
     for months_back in range(count):
-        new_month = now.month - months_back
-        new_year = now.year
-        while new_month < 1:
-            new_month += 12
-            new_year -= 1
-        backup_date = dates.fix_end_of_month(new_year, new_month, now.day)
-        backup_timestamp = datetime.datetime.combine(backup_date, now.time())
+        backup_timestamp = dates.months_ago(now, months_back)
         backup_name = backup_timestamp.strftime(lib_backup.backup_date_format)
-        (backup_base_directory/str(new_year)/backup_name).mkdir(parents=True)
+        backup_path = backup_base_directory/str(backup_timestamp.year)/backup_name
+        backup_path.mkdir(parents=True)
 
 
 def directory_contents(base_directory: Path) -> set[Path]:
