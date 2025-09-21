@@ -1424,6 +1424,21 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             self.assertFalse(log_line.startswith("WARNING:"), log_line)
             self.assertFalse(log_line.startswith("ERROR:"), log_line)
 
+    def test_keep_weekly_after_only_retains_weekly_backups_after_time_span(self) -> None:
+        """After the given time span, every backup is at least a week apart."""
+        create_old_daily_backups(self.backup_path, 30)
+        backups = lib_backup.all_backups(self.backup_path)
+        expected_indexes_remaining = [
+            0, 7, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
+        expected_backups_remaining = [backups[i] for i in expected_indexes_remaining]
+        main_assert_no_error_log(
+            ["--keep-weekly-after", "2w",
+             "--delete-only",
+             "--backup-folder", str(self.backup_path)],
+            self)
+        backups_remaining = lib_backup.all_backups(self.backup_path)
+        self.assertEqual(backups_remaining, expected_backups_remaining)
+
 
 class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
     """Test moving backup sets to a different location."""
