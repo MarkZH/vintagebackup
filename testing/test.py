@@ -1443,10 +1443,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
     def test_keep_monthly_after_only_retains_monthly_backups_after_time_span(self) -> None:
         """After the given time span, every backup is at least a calendar month apart."""
         def days_in_month(year: int, month: int) -> int:
-            start = datetime.date(year, month, 1)
-            end = dates.fix_end_of_month(year, month, 31)
-            day = datetime.timedelta(days=1)
-            return int((end - start)/day) + 1
+            return dates.fix_end_of_month(year, month, 31).day
 
         create_old_daily_backups(self.backup_path, 33)
         time_span_to_keep_all_backups = "1d"
