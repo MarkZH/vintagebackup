@@ -196,7 +196,7 @@ def path_listing(listing: Iterable[tuple[Path, list[str]]], output: TextIO) -> N
 
     :param listing: The list of paths. Each entry should be a directory path and the files it
     contains. The first directory should be the root directory that contains all other paths.
-    :param output: An alternate destination for the printed output.
+    :param output: Destination for the printed output.
     """
     for directory, file_names in listing:
         write_directory(output, directory, file_names)
