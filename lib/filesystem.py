@@ -204,7 +204,8 @@ def path_listing(listing: Iterable[tuple[Path, list[str]]], output: TextIO) -> N
 
 def classify_path(path: Path) -> str:
     """Return a text description of the item at the given path (file, folder, etc.)."""
-    return ("Symlink" if path.is_symlink()
-            else "Folder" if path.is_dir()
-            else "File" if path.is_file()
-            else "Unknown")
+    return (
+        "Symlink" if path.is_symlink()
+        else "Folder" if path.is_dir()
+        else "File" if path.is_file()
+        else "Unknown")
