@@ -5,8 +5,8 @@ import shutil
 import argparse
 import sys
 import textwrap
-import io
 from pathlib import Path
+from typing import TextIO
 
 from lib.configuration import read_configuation_file
 from lib.exceptions import CommandLineError
@@ -492,11 +492,11 @@ def parse_command_line(argv: list[str]) -> argparse.Namespace:
         return command_line_args
 
 
-def print_usage(destination: io.TextIOBase | None = None) -> None:
+def print_usage(destination: TextIO | None = None) -> None:
     """Print short instructions for the command line options."""
     argument_parser().print_usage(destination)
 
 
-def print_help(destination: io.TextIOBase | None = None) -> None:
+def print_help(destination: TextIO | None = None) -> None:
     """Print full manual for Vintage Backup."""
     argument_parser().print_help(destination)

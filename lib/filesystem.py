@@ -5,10 +5,9 @@ import os
 import shutil
 import stat
 import math
-import io
 from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import Any
+from typing import Any, TextIO
 
 from lib.exceptions import CommandLineError
 
@@ -153,7 +152,7 @@ def parse_storage_space(space_requirement: str) -> float:
         raise CommandLineError(f"Invalid storage space value: {space_requirement}") from None
 
 
-def write_directory(output: io.TextIOBase, directory: Path, file_names: list[str]) -> None:
+def write_directory(output: TextIO, directory: Path, file_names: list[str]) -> None:
     """Write the full path of a directory followed by a list of files it contains."""
     if file_names:
         output.write(f"{absolute_path(directory)}{os.sep}\n")
@@ -191,9 +190,7 @@ def absolute_path(path: Path | str, *, strict: bool = False) -> Path:
     return abs_path
 
 
-def path_listing(
-        listing: Iterable[tuple[Path, list[str]]],
-        output: io.TextIOBase) -> None:
+def path_listing(listing: Iterable[tuple[Path, list[str]]], output: TextIO) -> None:
     """
     Print a list of paths with file names listed under their directories.
 

@@ -3,7 +3,7 @@
 import logging
 import platform
 import argparse
-from io import TextIOBase
+from typing import TextIO
 
 from lib.filesystem import absolute_path
 
@@ -14,7 +14,7 @@ def choose_from_menu(
         menu_choices: list[str],
         prompt: str,
         test_choice: int | list[int] | None = None,
-        output: TextIOBase | None = None) -> int:
+        output: TextIO | None = None) -> int:
     """
     Let user choose from options presented a numbered list in a terminal.
 

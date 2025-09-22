@@ -14,7 +14,7 @@ import enum
 import random
 import string
 import platform
-from typing import cast
+from typing import cast, TextIO
 import re
 import io
 from inspect import getsourcefile
@@ -1686,7 +1686,7 @@ class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(backups, expected_backups)
 
 
-def read_paths_file(verify_file: io.TextIOBase) -> set[Path]:
+def read_paths_file(verify_file: TextIO) -> set[Path]:
     """Read an opened verification file and return the path contents."""
     files_from_verify: set[Path] = set()
     current_directory: Path | None = None

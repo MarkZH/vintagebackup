@@ -3,10 +3,8 @@
 import argparse
 import logging
 import sys
-import io
 from collections.abc import Iterator
 from pathlib import Path
-from typing import cast
 
 from lib.argument_parser import path_or_none
 from lib.filesystem import get_existing_path, path_listing
@@ -106,5 +104,4 @@ def preview_filter(args: argparse.Namespace) -> None:
         with output_file.open("w", encoding="utf8") as output:
             path_listing(backup_set, output)
     else:
-        stdout = cast(io.TextIOBase, sys.stdout)
-        path_listing(backup_set, stdout)
+        path_listing(backup_set, sys.stdout)
