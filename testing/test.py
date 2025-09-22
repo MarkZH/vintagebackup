@@ -114,7 +114,7 @@ def default_backup(user_path: Path, backup_path: Path) -> None:
         timestamp=unique_timestamp())
 
 
-def create_old_backups(backup_base_directory: Path, count: int) -> None:
+def create_old_monthly_backups(backup_base_directory: Path, count: int) -> None:
     """
     Create a set of empty monthly backups.
 
@@ -123,10 +123,29 @@ def create_old_backups(backup_base_directory: Path, count: int) -> None:
     """
     now = datetime.datetime.now()
     for months_back in range(count):
-        backup_timestamp = dates.months_ago(now, months_back)
-        backup_name = backup_timestamp.strftime(lib_backup.backup_date_format)
-        backup_path = backup_base_directory/str(backup_timestamp.year)/backup_name
-        backup_path.mkdir(parents=True)
+        backup_date = dates.months_ago(now, months_back)
+        backup_timestamp = datetime.datetime.combine(backup_date, now.time())
+        create_old_backup(backup_base_directory, backup_timestamp)
+
+
+def create_old_backup(backup_base_directory: Path, backup_timestamp: datetime.datetime) -> None:
+    """Create a single empty backup with the given timestamp."""
+    backup_name = backup_timestamp.strftime(lib_backup.backup_date_format)
+    backup_path = backup_base_directory/str(backup_timestamp.year)/backup_name
+    backup_path.mkdir(parents=True)
+
+
+def create_old_daily_backups(backup_base_directory: Path, count: int) -> None:
+    """
+    Create a set of empty daily backups.
+
+    :param backup_base_directory: The directory that will contain the backup folders.
+    :param count: The number of backups to create. The oldest will be (count - 1) months old.
+    """
+    now = datetime.datetime.now()
+    for days_back in range(count):
+        backup_timestamp = now - datetime.timedelta(days=days_back)
+        create_old_backup(backup_base_directory, backup_timestamp)
 
 
 def directory_contents(base_directory: Path) -> set[Path]:
@@ -1169,7 +1188,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_deleting_single_backup(self) -> None:
         """Test deleting only the most recent backup."""
-        create_old_backups(self.backup_path, 10)
+        create_old_monthly_backups(self.backup_path, 10)
         all_backups = lib_backup.all_backups(self.backup_path)
         fs.delete_directory_tree(all_backups[0])
         expected_remaining_backups = all_backups[1:]
@@ -1210,7 +1229,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         """Test deleting backups until there is a given amount of free space."""
         for method in Invocation:
             backups_created = 30
-            create_old_backups(self.backup_path, backups_created)
+            create_old_monthly_backups(self.backup_path, backups_created)
             file_size = 10_000_000
             create_large_files(self.backup_path, file_size)
             backups_after_deletion = 10
@@ -1243,7 +1262,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
     def test_max_deletions_limits_the_number_of_backup_deletions(self) -> None:
         """Test that no more than the maximum number of backups are deleted when freeing space."""
         backups_created = 30
-        create_old_backups(self.backup_path, backups_created)
+        create_old_monthly_backups(self.backup_path, backups_created)
         file_size = 10_000_000
         create_large_files(self.backup_path, file_size)
         backups_after_deletion = 10
@@ -1267,7 +1286,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
     def test_delete_after_deletes_all_backups_prior_to_given_date(self) -> None:
         """Test that backups older than a given date can be deleted with --delete-after."""
         for method in Invocation:
-            create_old_backups(self.backup_path, 30)
+            create_old_monthly_backups(self.backup_path, 30)
             max_age = "1y"
             now = datetime.datetime.now()
             earliest_backup = datetime.datetime(
@@ -1297,7 +1316,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
     def test_max_deletions_limits_deletions_with_delete_after(self) -> None:
         """Test that --max-deletions limits backups deletions when using --delete-after."""
         backups_created = 30
-        create_old_backups(self.backup_path, backups_created)
+        create_old_monthly_backups(self.backup_path, backups_created)
         max_age = "1y"
         max_deletions = 10
         expected_backup_count = backups_created - max_deletions
@@ -1314,7 +1333,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_delete_after_never_deletes_most_recent_backup(self) -> None:
         """Test that deleting all backups with --delete_after actually leaves the last one."""
-        create_old_backups(self.backup_path, 30)
+        create_old_monthly_backups(self.backup_path, 30)
         most_recent_backup = moving.last_n_backups(1, self.backup_path)[0]
         last_backup = moving.last_n_backups(2, self.backup_path)[0]
         fs.delete_directory_tree(most_recent_backup)
@@ -1323,7 +1342,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_free_up_never_deletes_most_recent_backup(self) -> None:
         """Test that deleting all backups with --free-up actually leaves the last one."""
-        create_old_backups(self.backup_path, 30)
+        create_old_monthly_backups(self.backup_path, 30)
         last_backup = moving.last_n_backups(1, self.backup_path)[0]
         total_space = shutil.disk_usage(self.backup_path).total
         deletion.delete_oldest_backups_for_space(self.backup_path, f"{total_space}B")
@@ -1339,7 +1358,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
     def test_deleting_last_backup_in_year_folder_deletes_year_folder(self) -> None:
         """Test that deleting a backup leaves a year folder empty, that year folder is deleted."""
         today = datetime.date.today()
-        create_old_backups(self.backup_path, today.month + 1)
+        create_old_monthly_backups(self.backup_path, today.month + 1)
         oldest_backup_year_folder = self.backup_path/f"{today.year - 1}"
         self.assertTrue(oldest_backup_year_folder.is_dir())
         self.assertEqual(len(list(oldest_backup_year_folder.iterdir())), 1)
@@ -1350,7 +1369,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_delete_only_command_line_option(self) -> None:
         """Test that --delete-only deletes backups without running a backup."""
-        create_old_backups(self.backup_path, 30)
+        create_old_monthly_backups(self.backup_path, 30)
         oldest_backup_age = datetime.timedelta(days=120)
         arguments = [
             "--backup-folder", str(self.backup_path),
@@ -1367,7 +1386,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
     def test_delete_first_deletes_backups_before_backing_up(self) -> None:
         """Test that --delete-first deletes backups before creating a new backup."""
         initial_backups = 20
-        create_old_backups(self.backup_path, initial_backups)
+        create_old_monthly_backups(self.backup_path, initial_backups)
         create_user_data(self.user_path)
         arguments = [
             "--user-folder", str(self.user_path),
@@ -1404,6 +1423,125 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         for log_line in logs.output:
             self.assertFalse(log_line.startswith("WARNING:"), log_line)
             self.assertFalse(log_line.startswith("ERROR:"), log_line)
+
+    def test_keep_weekly_after_only_retains_weekly_backups_after_time_span(self) -> None:
+        """After the given time span, every backup is at least a week apart."""
+        create_old_daily_backups(self.backup_path, 30)
+        time_span_keep_all_backups = "2w"
+        backups = lib_backup.all_backups(self.backup_path)
+        expected_indexes_remaining = [
+            0, 7, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
+        expected_backups_remaining = [backups[i] for i in expected_indexes_remaining]
+        main_assert_no_error_log([
+            "--keep-weekly-after", time_span_keep_all_backups,
+            "--delete-only",
+            "--backup-folder", str(self.backup_path)],
+            self)
+        backups_remaining = lib_backup.all_backups(self.backup_path)
+        self.assertEqual(backups_remaining, expected_backups_remaining)
+
+    def test_keep_monthly_after_only_retains_monthly_backups_after_time_span(self) -> None:
+        """After the given time span, every backup is at least a calendar month apart."""
+        def days_in_month(year: int, month: int) -> int:
+            return dates.fix_end_of_month(year, month, 31).day
+
+        create_old_daily_backups(self.backup_path, 33)
+        time_span_to_keep_all_backups = "1d"
+        backups = lib_backup.all_backups(self.backup_path)
+        first_backup_timestamp = lib_backup.backup_datetime(backups[0])
+        first_retained_index = days_in_month(
+            first_backup_timestamp.year,
+            first_backup_timestamp.month)
+        expected_backups_remaining = [backups[0], backups[first_retained_index], backups[-1]]
+
+        main_assert_no_error_log([
+            "--keep-monthly-after", time_span_to_keep_all_backups,
+            "--delete-only",
+            "--backup-folder", str(self.backup_path)],
+            self)
+        backups_remaining = lib_backup.all_backups(self.backup_path)
+        self.assertEqual(backups_remaining, expected_backups_remaining)
+
+    def test_keep_yearly_after_only_retains_yearly_backups_after_time_span(self) -> None:
+        """After the given time span, every backup is at least a calendar year apart."""
+        create_old_monthly_backups(self.backup_path, 27)
+        time_span_to_keep_all_backups = "2w"
+        backups = lib_backup.all_backups(self.backup_path)
+        expected_backups_remaining = [backups[0], backups[12], backups[24], backups[-1]]
+
+        main_assert_no_error_log([
+            "--keep-yearly-after", time_span_to_keep_all_backups,
+            "--delete-only",
+            "--backup-folder", str(self.backup_path)],
+            self)
+        backups_remaining = lib_backup.all_backups(self.backup_path)
+        self.assertEqual(backups_remaining, expected_backups_remaining)
+
+    def test_incorrect_keep_x_after_parameters_raise_exceptions(self) -> None:
+        """Test that less frequent backup retention specs having smaller time spans is an error."""
+        with self.assertRaises(CommandLineError) as error:
+            args = [
+                "--keep-weekly-after", "2m",
+                "--keep-monthly-after", "1m",
+                "--delete-only",
+                "--backup-folder", str(self.backup_path)]
+            arguments = argparse.parse_command_line(args)
+            deletion.check_time_span_parameters(arguments)
+        error_message = (
+                "The monthly time span (1m) is not longer than the weekly time span (2m). "
+                "Less frequent backup specs must have longer time spans.")
+        self.assertEqual(error.exception.args, (error_message,))
+
+        with self.assertRaises(CommandLineError) as error:
+            args = [
+                "--keep-weekly-after", "100d",
+                "--keep-yearly-after", "2m",
+                "--delete-only",
+                "--backup-folder", str(self.backup_path)]
+            arguments = argparse.parse_command_line(args)
+            deletion.check_time_span_parameters(arguments)
+        error_message = (
+                "The yearly time span (2m) is not longer than the weekly time span (100d). "
+                "Less frequent backup specs must have longer time spans.")
+        self.assertEqual(error.exception.args, (error_message,))
+
+        with self.assertRaises(CommandLineError) as error:
+            args = [
+                "--keep-monthly-after", "60w",
+                "--keep-yearly-after", "1y",
+                "--delete-only",
+                "--backup-folder", str(self.backup_path)]
+            arguments = argparse.parse_command_line(args)
+            deletion.check_time_span_parameters(arguments)
+        error_message = (
+                "The yearly time span (1y) is not longer than the monthly time span (60w). "
+                "Less frequent backup specs must have longer time spans.")
+        self.assertEqual(error.exception.args, (error_message,))
+
+    def test_using_all_keep_x_after_options_is_not_an_error(self) -> None:
+        """Test that use all --keep-x-after options with suitable time spans is not an error."""
+        args = argparse.parse_command_line([
+            "--keep-weekly-after", "1d",
+            "--keep-monthly-after", "2d",
+            "--keep-yearly-after", "3d",
+            "--backup-folder", str(self.backup_path)])
+        deletion.check_time_span_parameters(args)
+
+    def test_keep_x_after_respects_maximum_deletions(self) -> None:
+        """Make sure all --keep-x-after options respect --max-deletions."""
+        max_deletions = 50
+        for option in ("weekly", "monthly", "yearly"):
+            create_old_daily_backups(self.backup_path, 100)
+            starting_backup_count = len(lib_backup.all_backups(self.backup_path))
+            main_assert_no_error_log([
+                "--backup-folder", str(self.backup_path),
+                f"--keep-{option}-after", "1d",
+                "--delete-only",
+                "--max-deletions", str(max_deletions)],
+                self)
+            retained_backup_count = len(lib_backup.all_backups(self.backup_path))
+            self.assertEqual(starting_backup_count - retained_backup_count, 50)
+            self.reset_backup_folder()
 
 
 class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
@@ -1492,7 +1630,7 @@ class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_move_age_backups_moves_only_backups_within_given_timespan(self) -> None:
         """Test that moving backups based on a time span works."""
-        create_old_backups(self.backup_path, 25)
+        create_old_monthly_backups(self.backup_path, 25)
         six_months_ago = dates.parse_time_span_to_timepoint("6m")
         backups_to_move = moving.backups_since(six_months_ago, self.backup_path)
         self.assertEqual(len(backups_to_move), 6)
@@ -1519,7 +1657,7 @@ class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_move_age_argument_selects_correct_backups(self) -> None:
         """Test that --move-age argument selects the correct backups."""
-        create_old_backups(self.backup_path, 12)
+        create_old_monthly_backups(self.backup_path, 12)
         args = argparse.parse_command_line(["--move-age", "100d"])
         backups = moving.choose_backups_to_move(args, self.backup_path)
         expected_backup_count = 4
@@ -2942,7 +3080,7 @@ class LastNBackupTests(TestCaseWithTemporaryFilesAndFolders):
         """Set up old backups for retrieval."""
         super().setUp()
         self.backup_count = 10
-        create_old_backups(self.backup_path, self.backup_count)
+        create_old_monthly_backups(self.backup_path, self.backup_count)
 
     def test_last_n_backups_with_number_argument_returns_correct_number_of_backups(self) -> None:
         """Test that last_n_backups() returns correct number of backups."""
