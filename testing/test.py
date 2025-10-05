@@ -41,7 +41,7 @@ from lib.exceptions import CommandLineError, ConcurrencyError
 
 def main_no_log(args: list[str]) -> int:
     """Run the main() function without logging to a file."""
-    return main.main([*args, "--log", os.devnull])
+    return main.main([*args, "--log", os.devnull], testing=True)
 
 
 def main_assert_no_error_log(args: list[str], testcase: unittest.TestCase) -> int:
@@ -3493,7 +3493,8 @@ class LogTests(TestCaseWithTemporaryFilesAndFolders):
         exit_code = main.main([
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
-            "--log", str(log_path)])
+            "--log", str(log_path)],
+            testing=True)
         self.assertEqual(exit_code, 0)
         selected_log_path = backup_info.primary_log_path(None, str(self.backup_path))
         self.assertEqual(selected_log_path, log_path)
@@ -3507,7 +3508,8 @@ class LogTests(TestCaseWithTemporaryFilesAndFolders):
         exit_code = main.main([
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
-            "--log", str(log_path)])
+            "--log", str(log_path)],
+            testing=True)
         self.assertEqual(exit_code, 0)
         log_path_2 = self.user_path/"log2.txt"
         selected_log_file = backup_info.primary_log_path(str(log_path_2), str(self.backup_path))
@@ -3539,7 +3541,8 @@ class LogTests(TestCaseWithTemporaryFilesAndFolders):
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
             "--log", str(log_path),
-            "--timestamp", unique_timestamp_string()])
+            "--timestamp", unique_timestamp_string()],
+            testing=True)
         self.assertEqual(exit_code, 0)
 
         new_style_info = backup_info.read_backup_information(self.backup_path)
@@ -3556,7 +3559,8 @@ class LogTests(TestCaseWithTemporaryFilesAndFolders):
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
             "--log", str(log_path),
-            "--timestamp", unique_timestamp_string()])
+            "--timestamp", unique_timestamp_string()],
+            testing=True)
         self.assertEqual(exit_code, 0)
 
         last_info = backup_info.read_backup_information(self.backup_path)

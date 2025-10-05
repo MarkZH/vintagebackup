@@ -21,7 +21,7 @@ logger = logging.getLogger()
 setup_initial_null_logger()
 
 
-def main(argv: list[str], *, testing: bool = True) -> int:
+def main(argv: list[str], *, testing: bool) -> int:
     """
     Start the main program.
 
