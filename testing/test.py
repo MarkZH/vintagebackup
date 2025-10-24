@@ -258,7 +258,7 @@ def run_backup(
         if filter_file:
             argv.extend(["--filter", str(filter_file)])
         if examine_whole_file:
-            argv.append("--whole-file")
+            argv.append("--compare-contents")
         if force_copy:
             argv.append("--force-copy")
         return main_no_log(argv)
@@ -391,9 +391,10 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_examining_whole_files_still_hardlinks_identical_files(self) -> None:
         """
-        Test that examining whole files results in hardlinks to identical files in new backup.
+        Test that examining file contents results in hardlinks to identical files in new backup.
 
-        Even if the timestamp has changed, --whole-file will hard link files with the same data.
+        Even if the timestamp has changed, --compare-contents will hard link files with the same
+        data.
         """
         create_user_data(self.user_path)
         for method in Invocation:
@@ -419,7 +420,7 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
             self.reset_backup_folder()
 
     def test_force_copy_overrides_examine_whole_file(self) -> None:
-        """Test that --force-copy results in a copy backup even if --whole-file is present."""
+        """Test that --force-copy results in a copy backup even if --compare-contents is present."""
         create_user_data(self.user_path)
         for method in Invocation:
             for _ in range(2):
@@ -1831,7 +1832,7 @@ USER FOLDER:     {user_folder}
 backup folder:   {backup_folder}
 FiLteR    :    {filter_file}
 force-copy:
-whole    file :
+compare    contents :
 """, encoding="utf8")
         command_line = config.read_configuation_file(Path(self.config_path))
         expected_command_line = [
@@ -1839,7 +1840,7 @@ whole    file :
             "--backup-folder", backup_folder,
             "--filter", filter_file,
             "--force-copy",
-            "--whole-file"]
+            "--compare-contents"]
 
         self.assertEqual(command_line, expected_command_line)
         arg_parser = argparse.argument_parser()
@@ -1858,7 +1859,7 @@ User Folder : {user_folder}
 Backup Folder: temp_back
 filter: filter.txt
 log: temp_log.txt
-whole file:
+compare contents:
 Debug:""", encoding="utf8")
         actual_backup_folder = "temp_back2"
         actual_log_file = "temporary_log.log"
@@ -1870,26 +1871,26 @@ Debug:""", encoding="utf8")
         self.assertEqual(options.user_folder, user_folder)
         self.assertEqual(options.backup_folder, actual_backup_folder)
         self.assertEqual(options.log, actual_log_file)
-        self.assertTrue(options.whole_file)
+        self.assertTrue(options.compare_contents)
         self.assertTrue(options.debug)
 
     def test_negating_command_line_parameters_override_config_file(self) -> None:
         """Test that command line options like --no-X override file configurations."""
         self.config_path.write_text(
 r"""
-whole file:
+compare contents:
 Debug:
 delete first:
 force copy:
 """, encoding="utf8")
         command_line_options = [
             "-c", str(self.config_path),
-            "--no-whole-file",
+            "--no-compare-contents",
             "--no-debug",
             "--no-delete-first",
             "--no-force-copy"]
         options = argparse.parse_command_line(command_line_options)
-        self.assertFalse(argparse.toggle_is_set(options, "whole_file"))
+        self.assertFalse(argparse.toggle_is_set(options, "compare_contents"))
         self.assertFalse(argparse.toggle_is_set(options, "debug"))
         self.assertFalse(argparse.toggle_is_set(options, "delete_first"))
         self.assertFalse(argparse.toggle_is_set(options, "force_copy"))
@@ -3279,13 +3280,13 @@ Log: {os.devnull}
     def test_generation_of_config_files_with_toggle_parameters(self) -> None:
         """Test that command line options with toggle parameters (no arguments) are recorded."""
         command_line = [
-            "--whole-file",
+            "--compare-contents",
             "--generate-config", str(self.config_path)]
 
         self.assert_config_file_creation(command_line)
 
         expected_config_data = (
-f"""Whole file:
+f"""Compare contents:
 Log: {os.devnull}
 """)
         config_data = self.config_path.read_text(encoding="utf8")
@@ -3294,8 +3295,8 @@ Log: {os.devnull}
     def test_generation_of_config_files_with_negated_toggle_parameters(self) -> None:
         """Test that command line options with negated toggle parameters are not recorded."""
         command_line = [
-            "--whole-file",
-            "--no-whole-file",
+            "--compare-contents",
+            "--no-compare-contents",
             "--generate-config", str(self.config_path)]
 
         self.assert_config_file_creation(command_line)
@@ -3325,7 +3326,7 @@ encoding="utf8")
     def test_generation_of_config_files_when_name_already_exists(self) -> None:
         """Test that a generated config file does not clobber an existing file."""
         command_line = [
-            "--whole-file",
+            "--compare-contents",
             "--generate-config", str(self.config_path)]
 
         self.config_path.touch()
@@ -3337,7 +3338,7 @@ encoding="utf8")
             [f"INFO:root:Generated configuration file: {actual_config_path}"])
 
         expected_config_data = (
-f"""Whole file:
+f"""Compare contents:
 Log: {os.devnull}
 """)
         config_data = actual_config_path.read_text(encoding="utf8")
@@ -3373,7 +3374,7 @@ class GenerateWindowsScriptFilesTests(TestCaseWithTemporaryFilesAndFolders):
         args = [
             "-u", str(self.user_path),
             "-b", str(self.backup_path),
-            "-w",
+            "--compare-contents",
             "-f", str(self.user_path/"filter.txt"),
             "--generate-windows-scripts", str(self.user_path)]
 
@@ -3392,7 +3393,7 @@ class GenerateWindowsScriptFilesTests(TestCaseWithTemporaryFilesAndFolders):
 f"""User folder: {self.user_path}
 Backup folder: {self.backup_path}
 Filter: {self.user_path/'filter.txt'}
-Whole file:
+Compare contents:
 Log: nul
 """)
         config_path = self.user_path/"config.txt"
@@ -3429,7 +3430,7 @@ Set Shell = Nothing
         args = [
             "-u", str(self.user_path),
             "-b", str(self.backup_path),
-            "-w",
+            "--compare-contents",
             "-f", str(self.user_path/"filter.txt"),
             "--generate-windows-scripts", str(self.user_path)]
 
@@ -3451,7 +3452,7 @@ Set Shell = Nothing
 f"""User folder: {self.user_path}
 Backup folder: {self.backup_path}
 Filter: {self.user_path/'filter.txt'}
-Whole file:
+Compare contents:
 Log: nul
 """)
         actual_config_contents = actual_config_path.read_text()

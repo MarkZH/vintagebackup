@@ -120,8 +120,8 @@ separately. The hard link is not preserved in the backup.
 
 - If the user folder and the backup destination are on different drives or partitions with different
 file systems (NTFS, ext4, APFS, etc.), hard links may not be created due to differences in how file
-modification times are recorded. Using the --whole-file option may mitigate this, but backups will
-take much more time."""))
+modification times are recorded. Using the --compare-contents option may mitigate this, but backups
+will take much more time."""))
 
     action_group = user_input.add_argument_group("Actions", format_text(
 """The default action when vintage backups is run is to create a new backup. If one of the following
@@ -267,14 +267,14 @@ are some examples of such patterns:
     # This line will exclude dir1 and all of its contents.
     - dir1/**"""))
 
-    backup_group.add_argument("-w", "--whole-file", action="store_true", help=format_help(
+    backup_group.add_argument("--compare-contents", action="store_true", help=format_help(
 """Examine the entire contents of a file to determine if it has
 changed and needs to be copied to the new backup. Without this
 option, only the file's size, type, and modification date are
 checked for differences. Using this option will make backups
 take considerably longer."""))
 
-    add_no_option(backup_group, "whole-file")
+    add_no_option(backup_group, "compare-contents")
 
     deletion_group = user_input.add_argument_group("Backup deletion")
 
@@ -408,7 +408,7 @@ required."""))
 r"""Read options from a configuration file instead of command-line arguments. The format
 of the file should be one option per line with a colon separating the parameter name
 and value. The parameter names have the same names as the double-dashed command line options
-(i.e., "user-folder", not "u"). If a parameter does not take a value, like "whole-file",
+(i.e., "user-folder", not "u"). If a parameter does not take a value, like "compare-contents",
 leave the value blank. Any line starting with a # will be ignored. As an example:
 
     # Ignored comment

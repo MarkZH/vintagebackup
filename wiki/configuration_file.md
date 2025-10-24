@@ -22,7 +22,7 @@ user folder: C:\Users\Alice
 User Folder : C:\Users\Alice
 ```
 
-If a parameter does not take a value (`--whole-file`, `--delete-first`, `--force-copy`, or `--debug`), it should be written with the same format but with a blank value.
+If a parameter does not take a value (`--compare-contents`, `--delete-first`, `--force-copy`, or `--debug`), it should be written with the same format but with a blank value.
 
 ```
 Force copy:
@@ -143,4 +143,3 @@ Filter: the "alleged" filter file.txt
 ```
 
 will result in `the "alleged" filter file.txt` being passed as the `--filter` argument to Vintage Backup.
-

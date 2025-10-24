@@ -462,7 +462,7 @@ def start_backup(args: argparse.Namespace) -> None:
             user_folder,
             backup_folder,
             filter_file=path_or_none(args.filter),
-            examine_whole_file=toggle_is_set(args, "whole_file"),
+            examine_whole_file=toggle_is_set(args, "compare_contents"),
             force_copy=toggle_is_set(args, "force_copy"),
             copy_probability=copy_probability(args),
             timestamp=args.timestamp)

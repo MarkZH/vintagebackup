@@ -70,7 +70,7 @@ See the [filter file](filter_files.md) page for details on how to create filters
 
 ## Other options
 
-### `--whole-file`, `-w`
+### `--compare-contents`
 
 By default, the program determines whether a file has changed by looking only at its size, modification date, and type.
 This is a fast check and is sufficient for most situations.
@@ -78,7 +78,7 @@ If the user wants to be really sure that files are unchanged before making hard 
 If there is any difference in the file data, the file will be copied.
 This option can also be used as an occasional check on the integrity of backups.
 
-This option is overridden by `--no-whole-file`.
+This option is overridden by `--no-compare-contents`.
 
 ### `--force-copy`
 
@@ -101,4 +101,4 @@ The data they point to will not be copied to the backup.
 They may be added with a filter file.
 - Hard links in the user's data are not preserved.
 They will be copied or hard-linked separately.
-- Backing up to a location with a different file system may prevent hard links from forming due to discrepancies in how file metadata is recorded. The option `--whole-file` can mitigate this by examining file contents, but this is much slower.
+- Backing up to a location with a different file system may prevent hard links from forming due to discrepancies in how file metadata is recorded. The option `--compare-contents` can mitigate this by examining file contents, but this is much slower.
