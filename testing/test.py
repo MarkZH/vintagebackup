@@ -3403,7 +3403,9 @@ Log: nul
         # Check contents of batch script file
         main_path = fs.absolute_path(cast(str, getsourcefile(main)))
         vintage_backup_file = main_path.parent/"vintagebackup.py"
-        expected_batch_script = (f'py -3.13 "{vintage_backup_file}" --config "{config_path}"\n')
+        python_version = ".".join(map(str, sys.version_info[:2]))
+        expected_batch_script = (
+            f'py -{python_version} "{vintage_backup_file}" --config "{config_path}"\n')
         batch_script_path = self.user_path/"batch_script.bat"
         actual_batch_script = batch_script_path.read_text()
         self.assertEqual(expected_batch_script, actual_batch_script)
