@@ -3,11 +3,12 @@
 import argparse
 import filecmp
 import logging
+import hashlib
 from pathlib import Path
 
 from lib.argument_parser import path_or_none
-from lib.backup import find_previous_backup
-from lib.backup_info import backup_source
+from lib.backup_utilities import find_previous_backup
+from lib.backup_info import backup_source, record_checksum
 from lib.backup_set import Backup_Set
 from lib.console import print_run_title
 from lib.exceptions import CommandLineError
@@ -73,3 +74,24 @@ def start_verify_backup(args: argparse.Namespace) -> None:
     result_folder = absolute_path(args.verify)
     print_run_title(args, "Verifying last backup")
     verify_last_backup(result_folder, backup_folder, filter_file)
+
+
+def create_checksum(backup_folder: Path) -> None:
+    """Create a file containing checksums of all files in the latest backup."""
+    last_backup = find_previous_backup(backup_folder)
+    if not last_backup:
+        raise CommandLineError(f"Could not find backup in {backup_folder}")
+
+    checksum_file_name = unique_path_name(last_backup/"checksums.sha3")
+    logger.info("Creating checksum file: %s ...", checksum_file_name)
+    with checksum_file_name.open("w") as checksum_file:
+        for current_directory, _, file_names in last_backup.walk():
+            for file_name in file_names:
+                path = current_directory/file_name
+                with path.open("rb") as file:
+                    digest = hashlib.file_digest(file, "sha3_256").hexdigest()
+                    relative_path = path.relative_to(backup_folder)
+                    checksum_file.write(f"{relative_path} {digest}\n")
+
+    record_checksum(backup_folder, last_backup)
+    logger.info("Done creating checksum file")

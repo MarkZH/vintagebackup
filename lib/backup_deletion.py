@@ -8,6 +8,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 import lib.backup as lib_backup
+from lib.backup_utilities import all_backups, backup_datetime
 from lib.datetime_calculations import parse_time_span_to_timepoint
 from lib.exceptions import CommandLineError
 from lib.filesystem import byte_units, delete_directory_tree, get_existing_path, parse_storage_space
@@ -74,7 +75,7 @@ def delete_backups_older_than(
         f"Deleting backups prior to {timestamp_to_keep.strftime('%Y-%m-%d %H:%M:%S')}.")
 
     def stop(backup: Path) -> bool:
-        return lib_backup.backup_datetime(backup) >= timestamp_to_keep
+        return backup_datetime(backup) >= timestamp_to_keep
 
     delete_backups(backup_folder, min_backups_remaining, first_deletion_message, stop)
 
@@ -109,7 +110,7 @@ def delete_backups(
     """
     min_backups_remaining = max(1, min_backups_remaining)
 
-    backups_to_delete = lib_backup.all_backups(backup_folder)[:-min_backups_remaining]
+    backups_to_delete = all_backups(backup_folder)[:-min_backups_remaining]
     for deletion_count, backup in enumerate(backups_to_delete, 1):
         if stop_deletion_condition(backup):
             break
@@ -121,7 +122,7 @@ def delete_backups(
         logger.info("Deleting oldest backup: %s", backup)
         delete_single_backup(backup)
 
-    remaining_backups = lib_backup.all_backups(backup_folder)
+    remaining_backups = all_backups(backup_folder)
     oldest_backup = remaining_backups[0]
     if not stop_deletion_condition(oldest_backup):
         if len(remaining_backups) == 1:
@@ -142,12 +143,12 @@ def delete_too_frequent_backups(
     check_time_span_parameters(args)
 
     min_backups_remaining = max(1, min_backups_remaining)
-    max_deletions = len(lib_backup.all_backups(backup_folder)) - min_backups_remaining
+    max_deletions = len(all_backups(backup_folder)) - min_backups_remaining
     deletion_count = 0
     now = datetime.datetime.now()
 
     def old_enough(date_cutoff: datetime.datetime) -> Callable[[Path], bool]:
-        return lambda backup: lib_backup.backup_datetime(backup) < date_cutoff
+        return lambda backup: backup_datetime(backup) < date_cutoff
 
     for period, period_word, time_span_str in (
             ("7d", "weekly", args.keep_weekly_after),
@@ -157,17 +158,17 @@ def delete_too_frequent_backups(
         if time_span_str is None:
             continue
 
-        all_backups = lib_backup.all_backups(backup_folder)
+        backups = all_backups(backup_folder)
         date_cutoff = parse_time_span_to_timepoint(time_span_str, now)
-        backups = list(filter(old_enough(date_cutoff), all_backups))
+        backups = list(filter(old_enough(date_cutoff), backups))
         while len(backups) > 1:
             if deletion_count >= max_deletions:
                 return
             standard = backups[0]
             next_backup = backups[1]
-            next_timestamp = lib_backup.backup_datetime(next_backup)
+            next_timestamp = backup_datetime(next_backup)
             earliest_standard_timestamp = parse_time_span_to_timepoint(period, next_timestamp)
-            if lib_backup.backup_datetime(standard).date() > earliest_standard_timestamp.date():
+            if backup_datetime(standard).date() > earliest_standard_timestamp.date():
                 logger.info("Deleting backup (%s) %s", period_word, next_backup)
                 deletion_count += 1
                 delete_single_backup(next_backup)
@@ -204,7 +205,7 @@ def check_time_span_parameters(args: argparse.Namespace) -> None:
 def delete_old_backups(args: argparse.Namespace) -> None:
     """Delete the oldest backups by various criteria in the command line options."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
-    backup_count = len(lib_backup.all_backups(backup_folder))
+    backup_count = len(all_backups(backup_folder))
     max_deletions = int(args.max_deletions or backup_count)
     min_backups_remaining = max(backup_count - max_deletions, 1)
     delete_too_frequent_backups(backup_folder, args, min_backups_remaining)
