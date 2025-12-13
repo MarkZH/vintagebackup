@@ -56,6 +56,15 @@ f"""Disable the --{name} option. This is primarily used if "{name}" appears in a
 configuration file. This option has priority even if --{name} is listed later."""))
 
 
+def add_periodic_option(
+        user_input: argparse.ArgumentParser | argparse._ArgumentGroup,
+        name: str) -> None:
+    """Add an option for performing actions periodically."""
+    user_input.add_argument(f"--{name}-every", help=format_help(
+f"""Perform the --{name} action if it has not been done within the time span of the argument.
+See --delete-after for the time span format to use."""))
+
+
 def toggle_is_set(args: argparse.Namespace, name: str) -> bool:
     """Check that a boolean command line option --X has been selected and not negated by --no-X."""
     options = vars(args)
@@ -275,6 +284,13 @@ checked for differences. Using this option will make backups
 take considerably longer."""))
 
     add_no_option(backup_group, "compare-contents")
+
+    backup_group.add_argument("--checksum", action="store_true", help=format_help(
+"""After a successful backup, scan the new backup and write the checksums of all backed up files
+to a file stored in the base folder of the backup."""))
+
+    add_no_option(backup_group, "checksum")
+    add_periodic_option(backup_group, "checksum")
 
     deletion_group = user_input.add_argument_group("Backup deletion")
 

@@ -15,7 +15,11 @@ from pathlib import Path
 from typing import Any, cast
 
 from lib.argument_parser import path_or_none, toggle_is_set
-from lib.backup_info import confirm_user_location_is_unchanged, record_user_location
+from lib.backup_utilities import all_backups, backup_date_format, find_previous_backup
+from lib.backup_info import (
+    confirm_user_location_is_unchanged,
+    record_user_location,
+    time_has_passed)
 from lib.backup_lock import Backup_Lock
 from lib.backup_set import Backup_Set
 from lib.console import print_run_title
@@ -25,39 +29,10 @@ from lib.filesystem import (
     byte_units,
     delete_directory_tree,
     get_existing_path,
-    is_real_directory,
     parse_storage_space)
+from lib.verification import create_checksum
 
 logger = logging.getLogger()
-
-
-backup_date_format = "%Y-%m-%d %H-%M-%S"
-
-
-def all_backups(backup_location: Path) -> list[Path]:
-    """Return a sorted list of all backups at the given location."""
-
-    def is_valid_directory(date_folder: Path) -> bool:
-        try:
-            year = datetime.datetime.strptime(date_folder.parent.name, "%Y").year
-            date = datetime.datetime.strptime(date_folder.name, backup_date_format)
-            return year == date.year and is_real_directory(date_folder)
-        except ValueError:
-            return False
-
-    all_backup_list: list[Path] = []
-    for year_folder in filter(is_real_directory, backup_location.iterdir()):
-        all_backup_list.extend(filter(is_valid_directory, year_folder.iterdir()))
-
-    return sorted(all_backup_list)
-
-
-def find_previous_backup(backup_location: Path) -> Path | None:
-    """Return the most recent backup at the given location."""
-    try:
-        return all_backups(backup_location)[-1]
-    except IndexError:
-        return None
 
 
 def shallow_stats(stats: os.stat_result) -> tuple[int, int, int]:
@@ -388,11 +363,6 @@ def check_paths_for_validity(
         raise CommandLineError(f"Filter file not found: {filter_file}")
 
 
-def backup_datetime(backup: Path) -> datetime.datetime:
-    """Get the timestamp of a backup from the backup folder name."""
-    return datetime.datetime.strptime(backup.name, backup_date_format)
-
-
 def print_backup_storage_stats(backup_location: Path) -> None:
     """Log information about the storage space of the backup medium."""
     backup_storage = shutil.disk_usage(backup_location)
@@ -458,10 +428,11 @@ def start_backup(args: argparse.Namespace) -> None:
     with Backup_Lock(backup_folder, "backup"):
         print_run_title(args, "Starting new backup")
         free_space_before_backup = shutil.disk_usage(backup_folder).free
+        filter_file = path_or_none(args.filter)
         create_new_backup(
             user_folder,
             backup_folder,
-            filter_file=path_or_none(args.filter),
+            filter_file=filter_file,
             examine_whole_file=toggle_is_set(args, "compare_contents"),
             force_copy=toggle_is_set(args, "force_copy"),
             copy_probability=copy_probability(args),
@@ -471,6 +442,9 @@ def start_backup(args: argparse.Namespace) -> None:
         free_space_after_backup = shutil.disk_usage(backup_folder).free
         backup_space_taken = max(free_space_before_backup - free_space_after_backup, 0)
         log_backup_size(args.free_up, backup_space_taken)
+
+        if toggle_is_set(args, "checksum") or time_has_passed(args, "checksum", backup_folder):
+            create_checksum(backup_folder)
 
 
 def log_backup_size(free_up_parameter: str | None, backup_space_taken: int) -> None:
