@@ -18,6 +18,7 @@ from typing import cast, TextIO
 import re
 import io
 from inspect import getsourcefile
+import hashlib
 
 from lib import backup_set
 from lib import main
@@ -1814,6 +1815,34 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         with self.assertRaises(CommandLineError) as error:
             verify.verify_last_backup(self.user_path, self.backup_path, None)
         self.assertTrue(error.exception.args[0].startswith("No backups found in "))
+
+    def test_checksum_verification(self) -> None:
+        """Test that checksums are written and read consistently."""
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+
+        last_backup = find_previous_backup(self.backup_path)
+        self.assertIsNotNone(last_backup)
+        last_backup = cast(Path, last_backup)
+        backed_up_files = directory_contents(last_backup)
+
+        verify.create_checksum(self.backup_path)
+        checksum_path = last_backup/verify.checksum_file_name
+        with checksum_path.open() as checksum_data:
+            for line in checksum_data:
+                path, digest = line.rstrip("\n").rsplit(maxsplit=1)
+                relative_path = Path(path)
+                backup_path = last_backup/path
+                with backup_path.open("rb") as backup_file_data:
+                    backed_up_hash = hashlib.file_digest(
+                        backup_file_data,
+                        verify.hash_function).hexdigest()
+                    self.assertEqual(digest, backed_up_hash, f"{path}, i.e., {backup_path}")
+                    self.assertIn(relative_path, backed_up_files)
+                    backed_up_files.remove(relative_path)
+
+        for remaining in backed_up_files:
+            self.assertTrue(fs.is_real_directory(last_backup/remaining), remaining)
 
 
 class ConfigurationFileTests(TestCaseWithTemporaryFilesAndFolders):
