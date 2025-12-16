@@ -30,7 +30,7 @@ from lib.filesystem import (
     delete_directory_tree,
     get_existing_path,
     parse_storage_space)
-from lib.verification import create_checksum
+from lib.verification import create_checksum_for_last_backup
 
 logger = logging.getLogger()
 
@@ -444,7 +444,7 @@ def start_backup(args: argparse.Namespace) -> None:
         log_backup_size(args.free_up, backup_space_taken)
 
         if toggle_is_set(args, "checksum") or time_has_passed(args, "checksum", backup_folder):
-            create_checksum(backup_folder)
+            create_checksum_for_last_backup(backup_folder)
 
 
 def log_backup_size(free_up_parameter: str | None, backup_space_taken: int) -> None:

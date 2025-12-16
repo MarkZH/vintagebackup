@@ -1826,7 +1826,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         last_backup = cast(Path, last_backup)
         backed_up_files = directory_contents(last_backup)
 
-        verify.create_checksum(self.backup_path)
+        verify.create_checksum_for_last_backup(self.backup_path)
         checksum_path = last_backup/verify.checksum_file_name
         with checksum_path.open() as checksum_data:
             for line in checksum_data:
@@ -1843,6 +1843,25 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
 
         for remaining in backed_up_files:
             self.assertTrue(fs.is_real_directory(last_backup/remaining), remaining)
+
+    def test_checksums_of_data_and_backup_match(self) -> None:
+        """Test that the checksums of backups match the checksums of the original data."""
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+
+        last_backup = find_previous_backup(self.backup_path)
+        self.assertIsNotNone(last_backup)
+        last_backup = cast(Path, last_backup)
+
+        verify.create_checksum_for_last_backup(self.backup_path)
+        backup_checksums = (last_backup/verify.checksum_file_name).read_text(encoding="utf8").split("\n")
+        backup_checksums.sort()
+
+        verify.create_checksum_for_folder(self.user_path)
+        data_checksums = (self.user_path/verify.checksum_file_name).read_text(encoding="utf8").split("\n")
+        data_checksums.sort()
+
+        self.assertEqual(backup_checksums, data_checksums)
 
 
 class ConfigurationFileTests(TestCaseWithTemporaryFilesAndFolders):
