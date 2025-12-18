@@ -801,7 +801,7 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
             "--preview-filter", str(preview_path)],
             self)
 
-        with preview_path.open() as preview:
+        with preview_path.open(encoding="utf8") as preview:
             previewed_paths = read_paths_file(preview)
         previewed_paths = {path.relative_to(self.user_path) for path in previewed_paths}
 
@@ -817,7 +817,7 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
             for directory, _, files in last_backup.walk():
                 fs.write_directory(backup_list, directory, files)
 
-        with backup_list_path.open() as backup_list:
+        with backup_list_path.open(encoding="utf8") as backup_list:
             backed_up_paths = read_paths_file(backup_list)
         backed_up_paths = {path.relative_to(last_backup) for path in backed_up_paths}
 
