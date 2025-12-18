@@ -95,7 +95,7 @@ def create_checksum_for_folder(folder: Path) -> None:
     """Create a file containing checksums of all files in the given folder."""
     checksum_path = unique_path_name(folder/checksum_file_name)
     logger.info("Creating checksum file: %s ...", checksum_path)
-    with checksum_path.open("w") as checksum_file:
+    with checksum_path.open("w", encoding="utf8") as checksum_file:
         for current_directory, _, file_names in folder.walk():
             for file_name in file_names:
                 path = current_directory/file_name
