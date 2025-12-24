@@ -16,10 +16,7 @@ from typing import Any, cast
 
 from lib.argument_parser import path_or_none, toggle_is_set
 from lib.backup_utilities import all_backups, backup_date_format, find_previous_backup
-from lib.backup_info import (
-    confirm_user_location_is_unchanged,
-    record_user_location,
-    time_has_passed)
+from lib.backup_info import confirm_user_location_is_unchanged, record_user_location
 from lib.backup_lock import Backup_Lock
 from lib.backup_set import Backup_Set
 from lib.console import print_run_title
@@ -30,7 +27,6 @@ from lib.filesystem import (
     delete_directory_tree,
     get_existing_path,
     parse_storage_space)
-from lib.verification import create_checksum_for_last_backup
 
 logger = logging.getLogger()
 
@@ -442,9 +438,6 @@ def start_backup(args: argparse.Namespace) -> None:
         free_space_after_backup = shutil.disk_usage(backup_folder).free
         backup_space_taken = max(free_space_before_backup - free_space_after_backup, 0)
         log_backup_size(args.free_up, backup_space_taken)
-
-        if toggle_is_set(args, "checksum") or time_has_passed(args, "checksum", backup_folder):
-            create_checksum_for_last_backup(backup_folder)
 
 
 def log_backup_size(free_up_parameter: str | None, backup_space_taken: int) -> None:

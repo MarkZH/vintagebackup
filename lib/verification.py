@@ -6,9 +6,9 @@ import logging
 import hashlib
 from pathlib import Path
 
-from lib.argument_parser import path_or_none
+from lib.argument_parser import path_or_none, toggle_is_set
 from lib.backup_utilities import find_previous_backup
-from lib.backup_info import backup_source, record_checksum
+from lib.backup_info import backup_source, record_checksum, time_has_passed
 from lib.backup_set import Backup_Set
 from lib.console import print_run_title
 from lib.exceptions import CommandLineError
@@ -105,3 +105,10 @@ def create_checksum_for_folder(folder: Path) -> None:
                     digest = hashlib.file_digest(file, hash_function).hexdigest()
                     relative_path = path.relative_to(folder)
                     checksum_file.write(f"{relative_path} {digest}\n")
+
+
+def start_checksum(args: argparse.Namespace) -> None:
+    """Create checksum file for latest backup if specified by arguments."""
+    backup_folder = absolute_path(args.backup_folder)
+    if toggle_is_set(args, "checksum") or time_has_passed(args, "checksum", backup_folder):
+        create_checksum_for_last_backup(backup_folder)

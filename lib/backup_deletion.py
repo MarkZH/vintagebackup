@@ -12,6 +12,7 @@ from lib.backup_utilities import all_backups, backup_datetime
 from lib.datetime_calculations import parse_time_span_to_timepoint
 from lib.exceptions import CommandLineError
 from lib.filesystem import byte_units, delete_directory_tree, get_existing_path, parse_storage_space
+from lib.verification import start_checksum
 
 logger = logging.getLogger()
 
@@ -218,3 +219,4 @@ def delete_before_backup(args: argparse.Namespace) -> None:
     """Delete old backups before running a backup process."""
     delete_old_backups(args)
     lib_backup.start_backup(args)
+    start_checksum(args)

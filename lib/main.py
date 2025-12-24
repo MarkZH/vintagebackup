@@ -15,7 +15,7 @@ from lib.move_backups import start_move_backups
 from lib.purge import choose_purge_target_from_backups, start_backup_purge
 from lib.recovery import choose_recovery_target_from_backups, start_recovery_from_backup
 from lib.restoration import start_backup_restore
-from lib.verification import start_verify_backup
+from lib.verification import start_verify_backup, start_checksum
 
 logger = logging.getLogger()
 setup_initial_null_logger()
@@ -40,6 +40,7 @@ def main(argv: list[str], *, testing: bool) -> int:
         def default_action(args: argparse.Namespace) -> None:
             start_backup(args)
             delete_old_backups(args)
+            start_checksum(args)
 
         action = (
             generate_config if args.generate_config
