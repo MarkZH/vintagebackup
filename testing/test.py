@@ -807,7 +807,7 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
             "--preview-filter", str(preview_path)],
             self)
 
-        with preview_path.open() as preview:
+        with preview_path.open(encoding="utf8") as preview:
             previewed_paths = read_paths_file(preview)
         previewed_paths = {path.relative_to(self.user_path) for path in previewed_paths}
 
@@ -823,7 +823,7 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
             for directory, _, files in last_backup.walk():
                 fs.write_directory(backup_list, directory, files)
 
-        with backup_list_path.open() as backup_list:
+        with backup_list_path.open(encoding="utf8") as backup_list:
             backed_up_paths = read_paths_file(backup_list)
         backed_up_paths = {path.relative_to(last_backup) for path in backed_up_paths}
 
@@ -1658,8 +1658,8 @@ class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
                 "--backup-folder", str(self.backup_path)])
         self.assertEqual(exit_code, 1)
         expected_logs = [
-            "ERROR:root:Exactly one of the following is required: "
-            "--move-count, --move-age, or --move-since"]
+            ("ERROR:root:Exactly one of the following is required: "
+             "--move-count, --move-age, or --move-since")]
         self.assertEqual(expected_logs, no_move_choice_log.output)
 
     def test_move_age_argument_selects_correct_backups(self) -> None:
@@ -2177,8 +2177,7 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
                 "--last-backup"])
         self.assertEqual(exit_code, 1)
         expected_logs = [
-            "ERROR:root:Exactly one of the following is required: "
-            "--delete-extra or --keep-extra"]
+            "ERROR:root:Exactly one of the following is required: --delete-extra or --keep-extra"]
         self.assertEqual(expected_logs, no_extra_log.output)
 
     def test_restore_without_last_backup_or_choose_backup_is_an_error(self) -> None:
@@ -2193,8 +2192,7 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
                 "--keep-extra"])
         self.assertEqual(exit_code, 1)
         expected_logs = [
-            "ERROR:root:Exactly one of the following is required: "
-            "--last-backup or --choose-backup"]
+            "ERROR:root:Exactly one of the following is required: --last-backup or --choose-backup"]
         self.assertEqual(expected_logs, no_backup_choice_log.output)
 
     def test_restore_with_bad_response_to_overwrite_confirmation_is_an_error(self) -> None:

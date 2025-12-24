@@ -5,7 +5,7 @@ import logging
 
 minimum_python_version = (3, 13)
 if sys.version_info < minimum_python_version:
-    print(f"Vintage Backup requires Python {".".join(map(str, minimum_python_version))} or later.")
+    print(f"Vintage Backup requires Python {'.'.join(map(str, minimum_python_version))} or later.")
     sys.exit(1)
 
 from lib.main import main  # noqa: E402
