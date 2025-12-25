@@ -3,11 +3,12 @@
 import argparse
 import filecmp
 import logging
+import hashlib
 from pathlib import Path
 
-from lib.argument_parser import path_or_none
-from lib.backup import find_previous_backup
-from lib.backup_info import backup_source
+from lib.argument_parser import path_or_none, toggle_is_set
+from lib.backup_utilities import find_previous_backup
+from lib.backup_info import backup_source, record_checksum, time_has_passed
 from lib.backup_set import Backup_Set
 from lib.console import print_run_title
 from lib.exceptions import CommandLineError
@@ -73,3 +74,41 @@ def start_verify_backup(args: argparse.Namespace) -> None:
     result_folder = absolute_path(args.verify)
     print_run_title(args, "Verifying last backup")
     verify_last_backup(result_folder, backup_folder, filter_file)
+
+
+hash_function = "sha3_256"
+checksum_file_name = "checksums.sha3"
+
+
+def create_checksum_for_last_backup(backup_folder: Path) -> None:
+    """Create a file containing checksums of all files in the latest backup."""
+    last_backup = find_previous_backup(backup_folder)
+    if not last_backup:
+        raise CommandLineError(f"Could not find backup in {backup_folder}")
+
+    create_checksum_for_folder(last_backup)
+    record_checksum(backup_folder, last_backup)
+    logger.info("Done creating checksum file")
+
+
+def create_checksum_for_folder(folder: Path) -> None:
+    """Create a file containing checksums of all files in the given folder."""
+    checksum_path = unique_path_name(folder/checksum_file_name)
+    logger.info("Creating checksum file: %s ...", checksum_path)
+    with checksum_path.open("w", encoding="utf8") as checksum_file:
+        for current_directory, _, file_names in folder.walk():
+            for file_name in file_names:
+                path = current_directory/file_name
+                if path == checksum_path:
+                    continue
+                with path.open("rb") as file:
+                    digest = hashlib.file_digest(file, hash_function).hexdigest()
+                    relative_path = path.relative_to(folder)
+                    checksum_file.write(f"{relative_path} {digest}\n")
+
+
+def start_checksum(args: argparse.Namespace) -> None:
+    """Create checksum file for latest backup if specified by arguments."""
+    backup_folder = absolute_path(args.backup_folder)
+    if toggle_is_set(args, "checksum") or time_has_passed(args, "checksum", backup_folder):
+        create_checksum_for_last_backup(backup_folder)
