@@ -3971,3 +3971,41 @@ class FolderNavigationTests(TestCaseWithTemporaryFilesAndFolders):
         folder = self.user_path/"sub_directory_1"/"sub_sub_directory_2"
         relative_folder = recovery.directory_relative_to_backup(folder, self.backup_path)
         self.assertEqual(self.user_path/relative_folder, folder)
+
+
+class BackupInfoTests(TestCaseWithTemporaryFilesAndFolders):
+    """Tests for reading and writing backup info files."""
+
+    def test_backup_source_raises_exception_if_there_is_no_backup_info_file(self) -> None:
+        """Test that it is an error when backup source queried and there is no info file."""
+        with self.assertRaises(FileNotFoundError):
+            backup_info.backup_source(self.backup_path)
+
+    def test_backup_log_file_returns_none_if_there_is_no_backup_info_file(self) -> None:
+        """Test that None is returned for log file if there is no backup info file."""
+        self.assertIsNone(backup_info.backup_log_file(self.backup_path))
+
+    def test_backup_source_is_written_after_backup(self) -> None:
+        """Test that the backed up folder is written to the backup info file."""
+        backup_info_file = backup_info.get_backup_info_file(self.backup_path)
+        self.assertFalse(backup_info_file.exists())
+        default_backup(self.user_path, self.backup_path)
+        self.assertTrue(backup_info_file.exists())
+        backup_source = backup_info.backup_source(self.backup_path)
+        self.assertEqual(backup_source, self.user_path)
+
+    def test_backup_log_is_written_after_backup(self) -> None:
+        """Test that the log for the backup is written to the backup info_file."""
+        backup_info_file = backup_info.get_backup_info_file(self.backup_path)
+        self.assertFalse(backup_info_file.exists())
+        log_file = self.user_path/"log.log"
+        self.assertFalse(log_file.exists())
+        main.main([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "--log", str(log_file)],
+            testing=True)
+        self.assertTrue(backup_info_file.exists())
+        self.assertTrue(log_file.exists())
+        actual_log_file = backup_info.backup_log_file(self.backup_path)
+        self.assertEqual(log_file, actual_log_file)
