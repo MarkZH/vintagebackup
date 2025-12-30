@@ -4068,13 +4068,13 @@ class BackupInfoTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(log_file, actual_log_file)
 
     def test_no_checksum_date_is_written_if_no_checksum_performed(self) -> None:
-        """Test that there is no checksum date written to the backup info file if no checksumming has happened."""
+        """Test that no checksum date is written to backup info file if no checksumming occurred."""
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
         self.assertIsNone(backup_info.last_checksum(self.backup_path))
 
     def test_checksum_date_is_written_if_checksum_performed(self) -> None:
-        """Test that there is no checksum date written to the backup info file if no checksumming has happened."""
+        """Test that a checksum date is written to the backup info file if checksumming occurred."""
         create_user_data(self.user_path)
         exit_code = main.main([
             "-u", str(self.user_path),
