@@ -7,8 +7,8 @@ import datetime
 from collections.abc import Callable
 from pathlib import Path
 
-import lib.backup as lib_backup
 from lib.backup_utilities import all_backups, backup_datetime
+from lib.backup import print_backup_storage_stats, start_backup
 from lib.datetime_calculations import parse_time_span_to_timepoint
 from lib.exceptions import CommandLineError
 from lib.filesystem import byte_units, delete_directory_tree, get_existing_path, parse_storage_space
@@ -159,9 +159,8 @@ def delete_too_frequent_backups(
         if time_span_str is None:
             continue
 
-        backups = all_backups(backup_folder)
         date_cutoff = parse_time_span_to_timepoint(time_span_str, now)
-        backups = list(filter(old_enough(date_cutoff), backups))
+        backups = list(filter(old_enough(date_cutoff), all_backups(backup_folder)))
         while len(backups) > 1:
             if deletion_count >= max_deletions:
                 return
@@ -212,11 +211,11 @@ def delete_old_backups(args: argparse.Namespace) -> None:
     delete_too_frequent_backups(backup_folder, args, min_backups_remaining)
     delete_oldest_backups_for_space(backup_folder, args.free_up, min_backups_remaining)
     delete_backups_older_than(backup_folder, args.delete_after, min_backups_remaining)
-    lib_backup.print_backup_storage_stats(backup_folder)
+    print_backup_storage_stats(backup_folder)
 
 
 def delete_before_backup(args: argparse.Namespace) -> None:
     """Delete old backups before running a backup process."""
     delete_old_backups(args)
-    lib_backup.start_backup(args)
+    start_backup(args)
     start_checksum(args)
