@@ -4066,3 +4066,27 @@ class BackupInfoTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertTrue(log_file.exists())
         actual_log_file = backup_info.backup_log_file(self.backup_path)
         self.assertEqual(log_file, actual_log_file)
+
+    def test_no_checksum_date_is_written_if_no_checksum_performed(self) -> None:
+        """Test that there is no checksum date written to the backup info file if no checksumming has happened."""
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+        self.assertIsNone(backup_info.last_checksum(self.backup_path))
+
+    def test_checksum_date_is_written_if_checksum_performed(self) -> None:
+        """Test that there is no checksum date written to the backup info file if no checksumming has happened."""
+        create_user_data(self.user_path)
+        exit_code = main.main([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "--checksum"],
+            testing=True)
+        self.assertEqual(exit_code, 0)
+        last_checksum_date = backup_info.last_checksum(self.backup_path)
+        self.assertIsNotNone(last_checksum_date)
+        last_checksum_date = cast(datetime.datetime, last_checksum_date)
+        backup_with_checksum = lib_backup.find_previous_backup(self.backup_path)
+        self.assertIsNotNone(backup_with_checksum)
+        backup_with_checksum = cast(Path, backup_with_checksum)
+        backup_date = backup_datetime(backup_with_checksum)
+        self.assertEqual(backup_date, last_checksum_date)
