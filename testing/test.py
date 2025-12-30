@@ -297,6 +297,7 @@ class TestCaseWithTemporaryFilesAndFolders(unittest.TestCase):
         self.make_new_backup_folder()
         self.config_path = self.user_path/"config.txt"
         self.filter_path = self.user_path/"filter.txt"
+        self.log_path = self.user_path/"log.txt"
 
     def tearDown(self) -> None:
         """Delete the temporary directories and reset the logger."""
@@ -3483,33 +3484,30 @@ class LogTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_log_option_specifies_log_file(self) -> None:
         """Pick log file from --log option."""
-        log_path = self.user_path/"log.txt"
-        selected_log_path = backup_info.primary_log_path(str(log_path), None)
-        self.assertEqual(log_path, selected_log_path)
+        selected_log_path = backup_info.primary_log_path(str(self.log_path), None)
+        self.assertEqual(self.log_path, selected_log_path)
 
     def test_backup_folder_determines_log_without_log_path(self) -> None:
         """Select log file from previous backup."""
         create_user_data(self.user_path)
-        log_path = self.user_path/"log.txt"
         exit_code = main.main([
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
-            "--log", str(log_path)],
+            "--log", str(self.log_path)],
             testing=True)
         self.assertEqual(exit_code, 0)
         selected_log_path = backup_info.primary_log_path(None, str(self.backup_path))
-        self.assertEqual(selected_log_path, log_path)
+        self.assertEqual(selected_log_path, self.log_path)
         selected_log_path = backup_info.primary_log_path("", str(self.backup_path))
-        self.assertEqual(selected_log_path, log_path)
+        self.assertEqual(selected_log_path, self.log_path)
 
     def test_log_option_overrides_backup_folder_log_record(self) -> None:
         """Use chosen log file if specified despite a recorded log file from previous backup."""
         create_user_data(self.user_path)
-        log_path = self.user_path/"log.txt"
         exit_code = main.main([
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
-            "--log", str(log_path)],
+            "--log", str(self.log_path)],
             testing=True)
         self.assertEqual(exit_code, 0)
         log_path_2 = self.user_path/"log2.txt"
@@ -3537,17 +3535,16 @@ class LogTests(TestCaseWithTemporaryFilesAndFolders):
     def test_old_style_backup_info_file_is_read_correctly(self) -> None:
         """Confirm old info files--only backup source with no keys--can be read."""
         create_user_data(self.user_path)
-        log_path = self.user_path/"log.txt"
         exit_code = main.main([
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
-            "--log", str(log_path),
+            "--log", str(self.log_path),
             "--timestamp", unique_timestamp_string()],
             testing=True)
         self.assertEqual(exit_code, 0)
 
         new_style_info = backup_info.read_backup_information(self.backup_path)
-        self.assertEqual(new_style_info["Log"], log_path)
+        self.assertEqual(new_style_info["Log"], self.log_path)
         self.assertEqual(new_style_info["Source"], self.user_path)
 
         info_path = backup_info.get_backup_info_file(self.backup_path)
@@ -3559,25 +3556,24 @@ class LogTests(TestCaseWithTemporaryFilesAndFolders):
         exit_code = main.main([
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
-            "--log", str(log_path),
+            "--log", str(self.log_path),
             "--timestamp", unique_timestamp_string()],
             testing=True)
         self.assertEqual(exit_code, 0)
 
         last_info = backup_info.read_backup_information(self.backup_path)
-        self.assertEqual(last_info["Log"], log_path)
+        self.assertEqual(last_info["Log"], self.log_path)
         self.assertEqual(last_info["Source"], self.user_path)
 
     def test_logs_written_to_log_file(self) -> None:
         """Check that log file contents match the log output."""
         create_user_data(self.user_path)
-        log_path = self.user_path/"log.txt"
         with self.assertLogs(level=logging.INFO) as log_record:
-            logs.setup_log_file(str(log_path), None, str(self.backup_path), debug=False)
+            logs.setup_log_file(str(self.log_path), None, str(self.backup_path), debug=False)
             default_backup(self.user_path, self.backup_path)
             close_all_file_logs()
 
-        with log_path.open(encoding="utf8") as log_file:
+        with self.log_path.open(encoding="utf8") as log_file:
             for log_line, file_log_line in itertools.zip_longest(
                     log_record.output,
                     log_file,
