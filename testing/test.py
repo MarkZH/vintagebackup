@@ -4085,7 +4085,7 @@ class BackupInfoTests(TestCaseWithTemporaryFilesAndFolders):
         last_checksum_date = backup_info.last_checksum(self.backup_path)
         self.assertIsNotNone(last_checksum_date)
         last_checksum_date = cast(datetime.datetime, last_checksum_date)
-        backup_with_checksum = lib_backup.find_previous_backup(self.backup_path)
+        backup_with_checksum = find_previous_backup(self.backup_path)
         self.assertIsNotNone(backup_with_checksum)
         backup_with_checksum = cast(Path, backup_with_checksum)
         backup_date = backup_datetime(backup_with_checksum)
