@@ -4074,7 +4074,8 @@ class BackupInfoTests(TestCaseWithTemporaryFilesAndFolders):
         exit_code = main.main([
             "-u", str(self.user_path),
             "-b", str(self.backup_path),
-            "--checksum"],
+            "--checksum",
+            "--log", str(self.log_path)],
             testing=True)
         self.assertEqual(exit_code, 0)
         last_checksum_date = backup_info.last_checksum(self.backup_path)
