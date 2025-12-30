@@ -4049,19 +4049,18 @@ class BackupInfoTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that the log for the backup is written to the backup info_file."""
         backup_info_file = backup_info.get_backup_info_file(self.backup_path)
         self.assertFalse(backup_info_file.exists())
-        log_file = self.user_path/"log.log"
-        self.assertFalse(log_file.exists())
+        self.assertFalse(self.log_path.exists())
         create_user_data(self.user_path)
         exit_code = main.main([
             "-u", str(self.user_path),
             "-b", str(self.backup_path),
-            "--log", str(log_file)],
+            "--log", str(self.log_path)],
             testing=True)
         self.assertEqual(exit_code, 0)
         self.assertTrue(backup_info_file.exists())
-        self.assertTrue(log_file.exists())
+        self.assertTrue(self.log_path.exists())
         actual_log_file = backup_info.backup_log_file(self.backup_path)
-        self.assertEqual(log_file, actual_log_file)
+        self.assertEqual(self.log_path, actual_log_file)
 
     def test_no_checksum_date_is_written_if_no_checksum_performed(self) -> None:
         """Test that no checksum date is written to backup info file if no checksumming occurred."""
