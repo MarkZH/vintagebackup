@@ -4055,11 +4055,13 @@ class BackupInfoTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertFalse(backup_info_file.exists())
         log_file = self.user_path/"log.log"
         self.assertFalse(log_file.exists())
-        main.main([
+        create_user_data(self.user_path)
+        exit_code = main.main([
             "-u", str(self.user_path),
             "-b", str(self.backup_path),
             "--log", str(log_file)],
             testing=True)
+        self.assertEqual(exit_code, 0)
         self.assertTrue(backup_info_file.exists())
         self.assertTrue(log_file.exists())
         actual_log_file = backup_info.backup_log_file(self.backup_path)
