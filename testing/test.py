@@ -29,7 +29,7 @@ from lib.backup_utilities import (
     all_backups,
     find_previous_backup)
 import lib.filesystem as fs
-import lib.backup as lib_backup
+import lib.backup as bak
 import lib.datetime_calculations as dates
 from lib import purge
 from lib import logs
@@ -110,7 +110,7 @@ def default_backup(user_path: Path, backup_path: Path) -> None:
     copy_probability=0.0,
     timestamp=unique_timestamp()
     """
-    lib_backup.create_new_backup(
+    bak.create_new_backup(
         user_path,
         backup_path,
         filter_file=None,
@@ -247,7 +247,7 @@ def run_backup(
         timestamp: datetime.datetime) -> int:
     """Create a new backup while choosing a direct function call or a CLI invocation."""
     if run_method == Invocation.function:
-        lib_backup.create_new_backup(
+        bak.create_new_backup(
             user_data,
             backup_location,
             filter_file=filter_file,
@@ -634,7 +634,7 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
         self.filter_path.write_text("- **/*.txt\n", encoding="utf8")
 
         with self.assertLogs(level=logging.WARNING) as assert_log:
-            lib_backup.create_new_backup(
+            bak.create_new_backup(
                 self.user_path,
                 self.backup_path,
                 filter_file=self.filter_path,
@@ -732,7 +732,7 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
         expected_backup_paths.add(Path("sub_directory_1")/"sub_sub_directory_0")
         expected_backup_paths.add(Path("sub_directory_1")/"sub_sub_directory_0"/"file_1.txt")
 
-        lib_backup.create_new_backup(
+        bak.create_new_backup(
             self.user_path,
             self.backup_path,
             filter_file=self.filter_path,
@@ -909,7 +909,7 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         for method in Invocation:
             self.reset_backup_folder()
             for _ in range(9):
-                lib_backup.create_new_backup(
+                bak.create_new_backup(
                     self.user_path,
                     self.backup_path,
                     filter_file=None,
@@ -1677,7 +1677,7 @@ class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         for day in range(1, 32):
             backup_date = datetime.datetime(2025, 8, day, 2, 0, 0)
-            lib_backup.create_new_backup(
+            bak.create_new_backup(
                 self.user_path,
                 self.backup_path,
                 filter_file=None,
@@ -2271,7 +2271,7 @@ class BackupLockTests(TestCaseWithTemporaryFilesAndFolders):
                 args = options.parse_args([
                     "--user-folder", str(self.user_path),
                     "--backup-folder", str(self.backup_path)])
-                lib_backup.start_backup(args)
+                bak.start_backup(args)
 
     def test_lock_writes_process_info_to_lock_file_and_deletes_on_exit(self) -> None:
         """Test that lock file is created when entering with statement and deleted when exiting."""
@@ -2332,21 +2332,21 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
     def test_copy_probability_decimal_must_be_between_zero_and_one(self) -> None:
         """Test that only values from 0.0 to 1.0 are valid for --copy-probability."""
         for good_value in ["0.0", "0.5", "1.0"]:
-            self.assertEqual(float(good_value), lib_backup.parse_probability(good_value))
+            self.assertEqual(float(good_value), bak.parse_probability(good_value))
 
         for bad_value in ["-1.0", "1.5"]:
             with self.assertRaises(CommandLineError):
-                lib_backup.parse_probability(bad_value)
+                bak.parse_probability(bad_value)
 
     def test_copy_probability_percent_must_be_between_zero_and_one_hundred(self) -> None:
         """Test that only values from 0.0 to 1.0 are valid for --copy-probability."""
         for good_value in ["0.0%", "50%", "100%"]:
             decimal = float(good_value[:-1])/100
-            self.assertEqual(decimal, lib_backup.parse_probability(good_value))
+            self.assertEqual(decimal, bak.parse_probability(good_value))
 
         for bad_value in ["-100%", "150%"]:
             with self.assertRaises(CommandLineError):
-                lib_backup.parse_probability(bad_value)
+                bak.parse_probability(bad_value)
 
     def test_copy_probability_zero_hard_links_all_files(self) -> None:
         """Test that a copy probability of zero links all unchanged files."""
@@ -2425,18 +2425,18 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
         """Test if no --hard-link-count argument is present, probability of copy is zero."""
         user_input = argparse.argument_parser()
         no_arguments = user_input.parse_args([])
-        self.assertEqual(lib_backup.copy_probability(no_arguments), 0.0)
+        self.assertEqual(bak.copy_probability(no_arguments), 0.0)
 
     def test_copy_probability_with_non_positive_argument_is_an_error(self) -> None:
         """Any argument to --hard-link-count that is not a positive integer raises an exception."""
         for bad_arg in ("-1", "0", "z"):
             with self.assertRaises(CommandLineError):
-                lib_backup.copy_probability_from_hard_link_count(bad_arg)
+                bak.copy_probability_from_hard_link_count(bad_arg)
 
     def test_copy_probability_returns_one_over_n_plus_one_for_n_hard_links(self) -> None:
         """Test that the probability for N hard links is 1/(N + 1)."""
         for n in range(1, 10):
-            probability = lib_backup.copy_probability_from_hard_link_count(str(n))
+            probability = bak.copy_probability_from_hard_link_count(str(n))
             self.assertAlmostEqual(1/(n + 1), probability)
 
 
@@ -2706,7 +2706,7 @@ class AllBackupsTests(TestCaseWithTemporaryFilesAndFolders):
         for _ in range(backups_to_create):
             timestamp = unique_timestamp()
             timestamps.append(timestamp)
-            lib_backup.create_new_backup(
+            bak.create_new_backup(
                 self.user_path,
                 self.backup_path,
                 filter_file=None,
@@ -2729,7 +2729,7 @@ class AllBackupsTests(TestCaseWithTemporaryFilesAndFolders):
         for _ in range(backups_to_create):
             timestamp = unique_timestamp()
             timestamps.append(timestamp)
-            lib_backup.create_new_backup(
+            bak.create_new_backup(
                 self.user_path,
                 self.backup_path,
                 filter_file=None,
@@ -2761,14 +2761,14 @@ class BackupNameTests(unittest.TestCase):
         now = datetime.datetime.now()
         timestamp = datetime.datetime(
             now.year, now.month, now.day, now.hour, now.minute, now.second)
-        backup = lib_backup.backup_name(timestamp)
+        backup = bak.backup_name(timestamp)
         backup_timestamp = backup_datetime(backup)
         self.assertEqual(timestamp, backup_timestamp)
 
     def test_backup_name_puts_backup_folder_in_correct_year_folder(self) -> None:
         """Test that backups with the same year are grouped together."""
         timestamp = datetime.datetime.now()
-        backup_folder = lib_backup.backup_name(timestamp)
+        backup_folder = bak.backup_name(timestamp)
         backup_timestamp = backup_datetime(backup_folder)
         self.assertEqual(int(backup_folder.parent.name), backup_timestamp.year)
 
@@ -2786,7 +2786,7 @@ class SeparateTests(unittest.TestCase):
         super().setUp()
         self.numbers = list(itertools.chain(range(100), range(50, 200)))
         random.shuffle(self.numbers)
-        self.evens, self.odds = lib_backup.separate(self.numbers, is_even)
+        self.evens, self.odds = bak.separate(self.numbers, is_even)
 
     def test_separate_results_are_disjoint(self) -> None:
         """Test that separate() result lists have no items in common."""
@@ -2813,7 +2813,7 @@ class SeparateTests(unittest.TestCase):
         """Test that an empty list separates into two empty lists."""
         a: list[object]
         b: list[object]
-        a, b = lib_backup.separate([], lambda _: True)
+        a, b = bak.separate([], lambda _: True)
         self.assertFalse(a)
         self.assertFalse(b)
 
@@ -3098,20 +3098,20 @@ class BackupSpaceWarningTests(unittest.TestCase):
     def test_backup_space_logged_when_no_free_up_parameter(self) -> None:
         """Test backup space taken reported if no --free-up parameter."""
         with self.assertLogs(level=logging.INFO) as logs:
-            lib_backup.log_backup_size(None, 1)
+            bak.log_backup_size(None, 1)
         self.assertEqual(logs.output, ["INFO:root:Backup space used: 1.000 B"])
 
     def test_backup_space_logged_when_backup_smaller_than_free_up_parameter(self) -> None:
         """Test space taken reported if backup's size is smaller than --free-up parameter."""
         with self.assertLogs(level=logging.INFO) as logs:
-            lib_backup.log_backup_size("10", 2)
+            bak.log_backup_size("10", 2)
         space_message = "INFO:root:Backup space used: 2.000 B (20% of --free-up)"
         self.assertEqual(logs.output, [space_message])
 
     def test_warning_if_backup_space_close_to_free_up_parameter(self) -> None:
         """Test warning logged if space taken by backup is close to --free-up parameter."""
         with self.assertLogs(level=logging.WARNING) as logs:
-            lib_backup.log_backup_size("100", 91)
+            bak.log_backup_size("100", 91)
         prefix = "WARNING:root:"
         space_message = f"{prefix}Backup space used: 91.00 B (91% of --free-up)"
         consider_warning = f"{prefix}Consider increasing the size of the --free-up parameter."
@@ -3120,7 +3120,7 @@ class BackupSpaceWarningTests(unittest.TestCase):
     def test_warning_if_backup_space_bigger_than_free_up_parameter(self) -> None:
         """Test warning logged if space taken by backup is larger than --free-up parameter."""
         with self.assertLogs(level=logging.WARNING) as logs:
-            lib_backup.log_backup_size("100", 101)
+            bak.log_backup_size("100", 101)
         prefix = "WARNING:root:"
         space_message = f"{prefix}Backup space used: 101.0 B (101% of --free-up)"
         consider_warning = f"{prefix}Consider increasing the size of the --free-up parameter."
@@ -3211,7 +3211,7 @@ class ConfirmUserLocationIsUnchangedTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_unchanged_user_folder_is_not_an_error(self) -> None:
         """Pass test if the backup location has not changed after a backup."""
-        lib_backup.create_new_backup(
+        bak.create_new_backup(
             self.user_path,
             self.backup_path,
             filter_file=None,
@@ -3224,7 +3224,7 @@ class ConfirmUserLocationIsUnchangedTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_changed_user_folder_is_an_error(self) -> None:
         """Raise exception if the backup location has changed after a backup."""
-        lib_backup.create_new_backup(
+        bak.create_new_backup(
             self.user_path,
             self.backup_path,
             filter_file=None,
@@ -3827,23 +3827,23 @@ class ValidPathsTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_existing_user_folder_and_backup_folder_results_in_no_exceptions(self) -> None:
         """An existing user folder and backup folder raise no exceptions."""
-        lib_backup.check_paths_for_validity(self.user_path, self.backup_path, None)
+        bak.check_paths_for_validity(self.user_path, self.backup_path, None)
 
     def test_existing_user_folder_and_non_existent_backup_folder_raises_no_exceptions(self) -> None:
         """An existing user folder and non-existent backup folder raises no exceptions."""
         fs.delete_directory_tree(self.backup_path)
-        lib_backup.check_paths_for_validity(self.user_path, self.backup_path, None)
+        bak.check_paths_for_validity(self.user_path, self.backup_path, None)
         self.make_new_backup_folder()
 
     def test_all_paths_exist_raises_no_exceptions(self) -> None:
         """User folder, backup folder, and filter file existing raises no exceptions."""
         self.filter_path.touch()
-        lib_backup.check_paths_for_validity(self.user_path, self.backup_path, self.filter_path)
+        bak.check_paths_for_validity(self.user_path, self.backup_path, self.filter_path)
 
     def test_non_existent_user_folder_raises_exception(self) -> None:
         """A missing user folder raises a CommandLineError."""
         with self.assertRaises(CommandLineError) as error:
-            lib_backup.check_paths_for_validity(
+            bak.check_paths_for_validity(
                 self.user_path/"non-existent",
                 self.backup_path,
                 None)
@@ -3854,7 +3854,7 @@ class ValidPathsTests(TestCaseWithTemporaryFilesAndFolders):
         with self.assertRaises(CommandLineError) as error:
             user_file = self.user_path/"a_file.txt"
             user_file.touch()
-            lib_backup.check_paths_for_validity(user_file, self.backup_path, None)
+            bak.check_paths_for_validity(user_file, self.backup_path, None)
         self.assertIn("The user folder path is not a folder", error.exception.args[0])
 
     def test_backup_folder_is_file_raises_exception(self) -> None:
@@ -3862,19 +3862,19 @@ class ValidPathsTests(TestCaseWithTemporaryFilesAndFolders):
         with self.assertRaises(CommandLineError) as error:
             backup_file = self.backup_path/"a_file.txt"
             backup_file.touch()
-            lib_backup.check_paths_for_validity(self.user_path, backup_file, None)
+            bak.check_paths_for_validity(self.user_path, backup_file, None)
         self.assertIn("Backup location exists but is not a folder", error.exception.args[0])
 
     def test_backup_folder_inside_user_folder_raises_exception(self) -> None:
         """Backing up a user folder to a location inside that folder raises a CommandLineError."""
         with self.assertRaises(CommandLineError) as error:
-            lib_backup.check_paths_for_validity(self.user_path, self.user_path/"backup", None)
+            bak.check_paths_for_validity(self.user_path, self.user_path/"backup", None)
         self.assertIn("Backup destination cannot be inside user's folder:", error.exception.args[0])
 
     def test_non_existent_filter_path_raises_exception(self) -> None:
         """Specifying a filter path that doesn't exist raises a CommandLineError."""
         with self.assertRaises(CommandLineError) as error:
-            lib_backup.check_paths_for_validity(self.user_path, self.backup_path, self.filter_path)
+            bak.check_paths_for_validity(self.user_path, self.backup_path, self.filter_path)
         self.assertIn("Filter file not found", error.exception.args[0])
 
 
