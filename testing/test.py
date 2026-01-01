@@ -1891,6 +1891,24 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         backup_date = backup_datetime(backup_with_checksum)
         self.assertEqual(backup_date, last_checksum_date)
 
+    def test_checksum_date_found_among_backups_with_no_checksums(self) -> None:
+        """Test that checksum date is found."""
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+        exit_code = main.main([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "--checksum",
+            "--log", str(self.log_path)],
+            testing=True)
+        self.assertEqual(exit_code, 0)
+        default_backup(self.user_path, self.backup_path)
+        backups = all_backups(self.backup_path)
+        self.assertEqual(len(backups), 3)
+        checksum_date = verify.last_checksum(self.backup_path)
+        backup_with_checksum = backups[1]
+        self.assertEqual(checksum_date, backup_datetime(backup_with_checksum))
+
 
 class ConfigurationFileTests(TestCaseWithTemporaryFilesAndFolders):
     """Test configuration file functionality."""
