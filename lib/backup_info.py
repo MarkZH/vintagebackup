@@ -64,16 +64,11 @@ class Backup_Info(TypedDict):
     Log: Path | None
 
 
-def empty_backup_info() -> Backup_Info:
-    """Create empty Backup_Info structure."""
-    return Backup_Info(Source=None, Log=None)
-
-
 def read_backup_information(backup_folder: Path) -> Backup_Info:
     """Get information about a backup folder."""
     info_file = get_backup_info_file(backup_folder)
     try:
-        extracted_info = empty_backup_info()
+        extracted_info = Backup_Info(Source=None, Log=None)
         with info_file.open(encoding="utf8") as info:
             for line_raw in info:
                 line = line_raw.lstrip().removesuffix("\n")
@@ -86,11 +81,11 @@ def read_backup_information(backup_folder: Path) -> Backup_Info:
                     value_string = line
 
                 key = backup_info_key(key)
-                extracted_info[key] = absolute_path(value_string)
-
+                value = absolute_path(value_string)
+                extracted_info[key] = value
         return extracted_info
     except FileNotFoundError:
-        return empty_backup_info()
+        return Backup_Info(Source=None, Log=None)
 
 
 def backup_info_key(key: str) -> Literal["Source", "Log"]:
@@ -112,10 +107,8 @@ def write_backup_information(backup_folder: Path, backup_info: Backup_Info) -> N
     with info_file.open("w", encoding="utf8") as info:
         for key, value in backup_info.items():
             if value:
-                value_str = str(value)
-
-                logger.debug("Writing %s : %s to %s", key, value_str, info_file)
-                info.write(f"{key}: {value_str}\n")
+                logger.debug("Writing %s : %s to %s", key, value, info_file)
+                info.write(f"{key}: {value}\n")
 
 
 def backup_log_file(backup_folder: Path) -> Path | None:
