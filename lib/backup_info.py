@@ -3,14 +3,10 @@
 import logging
 import os
 from pathlib import Path
-from typing import TypedDict, Literal, cast
-from datetime import datetime
-from argparse import Namespace
+from typing import TypedDict, Literal
 
-from lib.backup_utilities import backup_datetime, backup_date_format
 from lib.exceptions import CommandLineError
 from lib.filesystem import absolute_path, default_log_file_name
-from lib.datetime_calculations import parse_time_span_to_timepoint
 
 logger = logging.getLogger()
 
@@ -66,12 +62,11 @@ class Backup_Info(TypedDict):
 
     Source: Path | None
     Log: Path | None
-    Checksum: datetime | None
 
 
 def empty_backup_info() -> Backup_Info:
     """Create empty Backup_Info structure."""
-    return Backup_Info(Source=None, Log=None, Checksum=None)
+    return Backup_Info(Source=None, Log=None)
 
 
 def read_backup_information(backup_folder: Path) -> Backup_Info:
@@ -91,17 +86,14 @@ def read_backup_information(backup_folder: Path) -> Backup_Info:
                     value_string = line
 
                 key = backup_info_key(key)
-                match key:
-                    case "Source" | "Log":
-                        extracted_info[key] = absolute_path(value_string)
-                    case "Checksum":
-                        extracted_info[key] = datetime.strptime(value_string, backup_date_format)
+                extracted_info[key] = absolute_path(value_string)
+
         return extracted_info
     except FileNotFoundError:
         return empty_backup_info()
 
 
-def backup_info_key(key: str) -> Literal["Source", "Log", "Checksum"]:
+def backup_info_key(key: str) -> Literal["Source", "Log"]:
     """Verify that backup info keys read from a file are valid keys."""
     key = key.strip()
     if key == "Source":
@@ -110,27 +102,17 @@ def backup_info_key(key: str) -> Literal["Source", "Log", "Checksum"]:
     if key == "Log":
         return "Log"
 
-    if key == "Checksum":
-        return "Checksum"
-
     raise KeyError(f"Unknown key for Backup_Info: {key}")
 
 
 def write_backup_information(backup_folder: Path, backup_info: Backup_Info) -> None:
     """Record backup information to a file in the backup folder."""
-    def format_datetime(dt: datetime) -> str:
-        return dt.strftime(backup_date_format)
-
     info_file = get_backup_info_file(backup_folder)
     info_file.parent.mkdir(parents=True, exist_ok=True)
     with info_file.open("w", encoding="utf8") as info:
         for key, value in backup_info.items():
             if value:
-                match key:
-                    case "Checksum":
-                        value_str = format_datetime(cast(datetime, value))
-                    case _:
-                        value_str = str(value)
+                value_str = str(value)
 
                 logger.debug("Writing %s : %s to %s", key, value_str, info_file)
                 info.write(f"{key}: {value_str}\n")
@@ -158,30 +140,3 @@ def record_backup_log_file(log_file_path: Path, backup_path: Path) -> None:
     backup_info = read_backup_information(backup_path)
     backup_info["Log"] = absolute_path(log_file_path)
     write_backup_information(backup_path, backup_info)
-
-
-def last_checksum(backup_folder: Path) -> datetime | None:
-    """Read when the last checksum was performed."""
-    return read_backup_information(backup_folder)["Checksum"]
-
-
-def record_checksum(backup_folder: Path, checksummed_backup: Path) -> None:
-    """Record the backup that got a checksum file."""
-    backup_info = read_backup_information(backup_folder)
-    backup_info["Checksum"] = backup_datetime(checksummed_backup)
-    write_backup_information(backup_folder, backup_info)
-
-
-def time_has_passed(args: Namespace, action: str, backup_folder: Path) -> bool:
-    """Check whether the action has taken place recently according to --{action}-every argument."""
-    options = vars(args)
-    time_span = options[f"{action}_every"]
-    if not time_span:
-        return False
-
-    previous_checksum = last_checksum(backup_folder)
-    if not previous_checksum:
-        return True
-
-    checksum_deadline = parse_time_span_to_timepoint(time_span)
-    return previous_checksum < checksum_deadline

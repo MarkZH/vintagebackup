@@ -1866,6 +1866,31 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
 
         self.assertEqual(backup_checksums, user_checksums)
 
+    def test_no_checksum_date_is_written_if_no_checksum_performed(self) -> None:
+        """Test that no checksum date is written to backup info file if no checksumming occurred."""
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+        self.assertIsNone(verify.last_checksum(self.backup_path))
+
+    def test_checksum_date_is_written_if_checksum_performed(self) -> None:
+        """Test that a checksum date is written to the backup info file if checksumming occurred."""
+        create_user_data(self.user_path)
+        exit_code = main.main([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "--checksum",
+            "--log", str(self.log_path)],
+            testing=True)
+        self.assertEqual(exit_code, 0)
+        last_checksum_date = verify.last_checksum(self.backup_path)
+        self.assertIsNotNone(last_checksum_date)
+        last_checksum_date = cast(datetime.datetime, last_checksum_date)
+        backup_with_checksum = find_previous_backup(self.backup_path)
+        self.assertIsNotNone(backup_with_checksum)
+        backup_with_checksum = cast(Path, backup_with_checksum)
+        backup_date = backup_datetime(backup_with_checksum)
+        self.assertEqual(backup_date, last_checksum_date)
+
 
 class ConfigurationFileTests(TestCaseWithTemporaryFilesAndFolders):
     """Test configuration file functionality."""
@@ -4061,28 +4086,3 @@ class BackupInfoTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertTrue(self.log_path.exists())
         actual_log_file = backup_info.backup_log_file(self.backup_path)
         self.assertEqual(self.log_path, actual_log_file)
-
-    def test_no_checksum_date_is_written_if_no_checksum_performed(self) -> None:
-        """Test that no checksum date is written to backup info file if no checksumming occurred."""
-        create_user_data(self.user_path)
-        default_backup(self.user_path, self.backup_path)
-        self.assertIsNone(backup_info.last_checksum(self.backup_path))
-
-    def test_checksum_date_is_written_if_checksum_performed(self) -> None:
-        """Test that a checksum date is written to the backup info file if checksumming occurred."""
-        create_user_data(self.user_path)
-        exit_code = main.main([
-            "-u", str(self.user_path),
-            "-b", str(self.backup_path),
-            "--checksum",
-            "--log", str(self.log_path)],
-            testing=True)
-        self.assertEqual(exit_code, 0)
-        last_checksum_date = backup_info.last_checksum(self.backup_path)
-        self.assertIsNotNone(last_checksum_date)
-        last_checksum_date = cast(datetime.datetime, last_checksum_date)
-        backup_with_checksum = find_previous_backup(self.backup_path)
-        self.assertIsNotNone(backup_with_checksum)
-        backup_with_checksum = cast(Path, backup_with_checksum)
-        backup_date = backup_datetime(backup_with_checksum)
-        self.assertEqual(backup_date, last_checksum_date)
