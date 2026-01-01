@@ -120,11 +120,11 @@ def start_checksum(args: argparse.Namespace) -> None:
 
 def last_checksum(backup_folder: Path) -> datetime.datetime | None:
     """Find the date of the last backup with a checksum file."""
+    backup_found = None
     for backup in all_backups(backup_folder):
         if fs.unique_path_exists(backup/checksum_file_name):
-            return backup_datetime(backup)
-
-    return None
+            backup_found = backup_datetime(backup)
+    return backup_found
 
 
 def time_has_passed(args: argparse.Namespace, action: str, backup_folder: Path) -> bool:

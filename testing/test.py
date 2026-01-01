@@ -1909,6 +1909,25 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         backup_with_checksum = backups[1]
         self.assertEqual(checksum_date, backup_datetime(backup_with_checksum))
 
+    def test_last_checksum_finds_most_recent_checksum(self) -> None:
+        """Test that last_checksum() finds most recent backup with checksum."""
+        create_user_data(self.user_path)
+        for _ in range(2):
+            exit_code = main.main([
+                "-u", str(self.user_path),
+                "-b", str(self.backup_path),
+                "--checksum",
+                "--log", str(self.log_path),
+                "--timestamp", unique_timestamp_string()],
+                testing=True)
+            self.assertEqual(exit_code, 0)
+
+        last_checksum_date = verify.last_checksum(self.backup_path)
+        last_backup = find_previous_backup(self.backup_path)
+        self.assertIsNotNone(last_backup)
+        last_backup = cast(Path, last_backup)
+        self.assertEqual(last_checksum_date, backup_datetime(last_backup))
+
 
 class ConfigurationFileTests(TestCaseWithTemporaryFilesAndFolders):
     """Test configuration file functionality."""
