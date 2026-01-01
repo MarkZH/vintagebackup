@@ -1866,14 +1866,14 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
 
         self.assertEqual(backup_checksums, user_checksums)
 
-    def test_no_checksum_date_is_written_if_no_checksum_performed(self) -> None:
-        """Test that no checksum date is written to backup info file if no checksumming occurred."""
+    def test_no_checksum_date_is_found_if_no_checksum_performed(self) -> None:
+        """Test that no checksum date is found if no checksumming occurred."""
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
         self.assertIsNone(verify.last_checksum(self.backup_path))
 
-    def test_checksum_date_is_written_if_checksum_performed(self) -> None:
-        """Test that a checksum date is written to the backup info file if checksumming occurred."""
+    def test_checksum_date_is_found_if_checksum_performed(self) -> None:
+        """Test that a checksum date can be found if checksumming occurred."""
         create_user_data(self.user_path)
         exit_code = main.main([
             "-u", str(self.user_path),
