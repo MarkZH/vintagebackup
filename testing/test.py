@@ -3686,6 +3686,41 @@ class UniquePathNameTests(TestCaseWithTemporaryFilesAndFolders):
             self.assertEqual(new_path_name, fs.unique_path_name(path))
             new_path_name.touch()
 
+    def test_unique_path_original_name_exists(self) -> None:
+        """Test that the unchanged path name exists after creation via unique_path_name()."""
+        path = self.user_path/"unique.txt"
+        unique_path = fs.unique_path_name(path)
+        self.assertEqual(path, unique_path)
+        unique_path.touch()
+        self.assertTrue(fs.unique_path_exists(path))
+
+    def test_unique_path_new_name_exists(self) -> None:
+        """Test that a unique path name exists after creation via unique_path_name()."""
+        path = self.user_path/"unique.txt"
+        path.touch()
+        unique_path = fs.unique_path_name(path)
+        self.assertNotEqual(path, unique_path)
+        unique_path.touch()
+        path.unlink()
+        self.assertTrue(fs.unique_path_exists(path))
+
+    def test_unique_path_new_name_with_gap_exists(self) -> None:
+        """Test that a unique path name exists after creation via many unique_path_name() calls."""
+        path = self.user_path/"unique.txt"
+        path.touch()
+        count = 3
+        unique_files = [path]
+        for _ in range(count):
+            unique_path = fs.unique_path_name(path)
+            self.assertNotIn(unique_path, unique_files)
+            unique_path.touch()
+            unique_files.append(unique_path)
+
+        gapped_unique_file = unique_files[-1]
+        for p in unique_files[:-1]:
+            p.unlink()
+        self.assertTrue(fs.unique_path_exists(gapped_unique_file))
+
 
 def close_all_file_logs() -> None:
     """Close error file to prevent errors when leaving assertLogs contexts."""

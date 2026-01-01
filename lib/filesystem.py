@@ -77,7 +77,7 @@ def unique_path_exists(path: Path) -> bool:
     stem = path.stem
     ext = path.suffix
     for p in path.parent.iterdir():
-        if p.stem == stem and p.suffix == ext:
+        if p.stem.startswith(stem) and p.suffix == ext:
             addition = p.stem.removeprefix(path.stem)
             if addition.startswith(".") and addition[1:].isdigit():
                 return True
