@@ -227,45 +227,7 @@ folder will contain all of that year's backups."""))
     backup_group.add_argument("-f", "--filter", metavar="FILTER_FILE_NAME", help=format_help(
 """Filter the set of files that will be backed up. The value of this argument should be the name of
 a text file that contains lines specifying what files to include or exclude.
-
-Each line in the file consists of a symbol followed by a path. The symbol must be a minus (-),
-plus (+), or hash (#). Lines with minus signs specify files and folders to exclude. Lines with plus
-signs specify files and folders to include. Lines with hash signs are ignored. Prior to reading the
-first line, everything in the user's folder is included. The path that follows may contain wildcard
-characters like *, **, [], and ? to allow for matching multiple path names. If you want to match a
-single name that contains wildcards, put brackets around them: What Is Life[?].pdf, for example.
-Since leading and trailing whitespace is normally removed, use brackets around each leading/trailing
-space character: - [ ][ ]has_two_leading_and_three_trailing_spaces.txt[ ][ ][ ]
-
-Only files will be matched against each line in this file. If you want to include or exclude an
-entire directory, the line must end with a "/**" or "\\**" to match all of its contents. The paths
-may be absolute or relative. If a path is relative, it is relative to the user's folder.
-
-All paths must reside within the directory tree of the --user-folder. For example, if backing up
-C:\\Users\\Alice, the following filter file:
-
-    # Ignore AppData except Firefox
-    - AppData/**
-    + AppData/Roaming/Mozilla/Firefox/**
-
-will exclude everything in C:\\Users\\Alice\\AppData\\ except the
-Roaming\\Mozilla\\Firefox subfolder. The order of the lines matters. If the - and + lines above
-were reversed, the Firefox folder would be included and then excluded by the following - Appdata
-line.
-
-Because each line only matches to files, some glob patterns may not do what the user expects. Here
-are some examples of such patterns:
-
-    # Assume that dir1 is a folder in the user's --user-folder and dir2 is a folder inside dir1.
-
-    # This line does nothing.
-    - dir1
-
-    # This line will exclude all files in dir1, but not folders. dir1/dir2 is still included.
-    - dir1/*
-
-    # This line will exclude dir1 and all of its contents.
-    - dir1/**"""))
+See below for the file format description."""))
 
     backup_group.add_argument("--compare-contents", action="store_true", help=format_help(
 """Examine the entire contents of a file to determine if it has
@@ -405,8 +367,28 @@ required."""))
     other_group = user_input.add_argument_group("Other options")
 
     other_group.add_argument("-c", "--config", metavar="FILE_NAME", help=format_help(
-r"""Read options from a configuration file instead of command-line arguments. The format
-of the file should be one option per line with a colon separating the parameter name
+r"""Read options from a configuration file instead of command-line arguments.
+See below for the configuration file format."""))
+
+    other_group.add_argument("--debug", action="store_true", help=format_help(
+        """Log information on all actions during a program run."""))
+
+    add_no_option(other_group, "debug")
+
+    other_group.add_argument(
+        "-l", "--log",
+        default=str(default_log_file_name),
+        help=format_help(
+f"""Where to log the activity of this program. The default is
+{default_log_file_name.name} in the user's home folder. If no
+log file is desired, use the file name {os.devnull}."""))
+
+    other_group.add_argument("--error-log", help=format_help(
+"""Where to copy log lines that are warnings or errors. This file will only appear when unexpected
+events occur."""))
+
+    user_input.add_argument_group("Configuration file format", description=format_help(
+r"""The format of the file should be one option per line with a colon separating the parameter name
 and value. The parameter names have the same names as the double-dashed command line options
 (i.e., "user-folder", not "u"). If a parameter does not take a value, like "compare-contents",
 leave the value blank. Any line starting with a # will be ignored. As an example:
@@ -442,22 +424,45 @@ line options override the config file options.
 A final note: recursive configuration files are not supported. Using the parameter "config" inside
 a configuration file will cause the program to quit with an error."""))
 
-    other_group.add_argument("--debug", action="store_true", help=format_help(
-        """Log information on all actions during a program run."""))
+    user_input.add_argument_group("Filter file format", description=format_help(
+"""Each line in the file consists of a symbol followed by a path. The symbol must be a minus (-),
+plus (+), or hash (#). Lines with minus signs specify files and folders to exclude. Lines with plus
+signs specify files and folders to include. Lines with hash signs are ignored. Prior to reading the
+first line, everything in the user's folder is included. The path that follows may contain wildcard
+characters like *, **, [], and ? to allow for matching multiple path names. If you want to match a
+single name that contains wildcards, put brackets around them: What Is Life[?].pdf, for example.
+Since leading and trailing whitespace is normally removed, use brackets around each leading/trailing
+space character:- [ ][ ]has_two_leading_and_three_trailing_spaces.txt[ ][ ][ ]
 
-    add_no_option(other_group, "debug")
+Only files will be matched against each line in this file. If you want to include or exclude an
+entire directory, the line must end with a "/**" or "\\**" to match all of its contents. The paths
+may be absolute or relative. If a path is relative, it is relative to the user's folder.
 
-    other_group.add_argument(
-        "-l", "--log",
-        default=str(default_log_file_name),
-        help=format_help(
-f"""Where to log the activity of this program. The default is
-{default_log_file_name.name} in the user's home folder. If no
-log file is desired, use the file name {os.devnull}."""))
+All paths must reside within the directory tree of the --user-folder. For example, if backing up
+C:\\Users\\Alice, the following filter file:
 
-    other_group.add_argument("--error-log", help=format_help(
-"""Where to copy log lines that are warnings or errors. This file will only appear when unexpected
-events occur."""))
+    # Ignore AppData except Firefox
+    - AppData/**
+    + AppData/Roaming/Mozilla/Firefox/**
+
+will exclude everything in C:\\Users\\Alice\\AppData\\ except the
+Roaming\\Mozilla\\Firefox subfolder. The order of the lines matters. If the - and + lines above
+were reversed, the Firefox folder would be included and then excluded by the following - Appdata
+line.
+
+Because each line only matches to files, some glob patterns may not do what the user expects. Here
+are some examples of such patterns:
+
+    # Assume that dir1 is a folder in the user's --user-folder and dir2 is a folder inside dir1.
+
+    # This line does nothing.
+    - dir1
+
+    # This line will exclude all files in dir1, but not folders. dir1/dir2 is still included.
+    - dir1/*
+
+    # This line will exclude dir1 and all of its contents.
+    - dir1/**"""))
 
     # The following arguments are only used for testing.
 
