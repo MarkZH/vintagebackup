@@ -1928,6 +1928,48 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         last_backup = cast(Path, last_backup)
         self.assertEqual(last_checksum_date, backup_datetime(last_backup))
 
+    def test_checksum_every_creates_checksum_when_no_prior_checksums(self) -> None:
+        """Test that a checksum is performed when there are not prior checksums."""
+        create_user_data(self.user_path)
+        main.main([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "--checksum-every", "1d",
+            "-l", str(self.log_path),
+            "--timestamp", unique_timestamp_string()],
+            testing=True)
+        self.assertTrue((all_backups(self.backup_path)[0]/verify.checksum_file_name).is_file())
+
+    def test_checksum_created_after_enough_time_passes_without_a_checksum(self) -> None:
+        """Test that checksum is created using --checksum-every option after enough time passed."""
+        now = datetime.datetime.now()
+        for n in range(9):
+            timestamp = now + datetime.timedelta(days=n)
+            main.main([
+                "-u", str(self.user_path),
+                "-b", str(self.backup_path),
+                "--checksum-every", "3d",
+                "-l", str(self.log_path),
+                "--timestamp", timestamp.strftime(backup_date_format)],
+                testing=True)
+
+        backups = all_backups(self.backup_path)
+        checksum_exists = [(backup/verify.checksum_file_name).is_file() for backup in backups]
+        self.assertEqual(
+            checksum_exists,
+            [True, False, False, True, False, False, True, False, False])
+
+    def test_no_checksum_overrides_checksum_every(self) -> None:
+        """Test that --no-checksum cancels --checksum-every."""
+        main.main([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "--no-checksum",
+            "--checksum-every", "1m",
+            "-l", str(self.log_path)],
+            testing=True)
+        self.assertFalse((all_backups(self.backup_path)[0]/verify.checksum_file_name).exists())
+
 
 class ConfigurationFileTests(TestCaseWithTemporaryFilesAndFolders):
     """Test configuration file functionality."""

@@ -8,7 +8,7 @@ import datetime
 from pathlib import Path
 
 from lib.argument_parser import path_or_none
-from lib.backup_utilities import find_previous_backup, all_backups, backup_datetime
+import lib.backup_utilities as util
 from lib.backup_info import backup_source
 from lib.backup_set import Backup_Set
 from lib.console import print_run_title
@@ -35,7 +35,7 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
     if not user_folder.is_dir():
         raise CommandLineError(f"Could not find user folder: {user_folder}")
 
-    last_backup_folder = find_previous_backup(backup_folder)
+    last_backup_folder = util.find_previous_backup(backup_folder)
 
     if not last_backup_folder:
         raise CommandLineError(f"No backups found in {backup_folder}.")
@@ -84,7 +84,7 @@ checksum_file_name = "checksums.sha3"
 
 def create_checksum_for_last_backup(backup_folder: Path) -> None:
     """Create a file containing checksums of all files in the latest backup."""
-    last_backup = find_previous_backup(backup_folder)
+    last_backup = util.find_previous_backup(backup_folder)
     if not last_backup:
         raise CommandLineError(f"Could not find backup in {backup_folder}")
 
@@ -118,9 +118,9 @@ def start_checksum(args: argparse.Namespace) -> None:
 def last_checksum(backup_folder: Path) -> datetime.datetime | None:
     """Find the date of the last backup with a checksum file."""
     backup_found = None
-    for backup in all_backups(backup_folder):
+    for backup in util.all_backups(backup_folder):
         if fs.unique_path_exists(backup/checksum_file_name):
-            backup_found = backup_datetime(backup)
+            backup_found = util.backup_datetime(backup)
     return backup_found
 
 
@@ -145,5 +145,8 @@ def should_do_periodic_action(args: argparse.Namespace, action: str, backup_fold
     if not previous_action_date:
         return True
 
-    required_action_date = parse_time_span_to_timepoint(time_span)
-    return previous_action_date < required_action_date
+    now = (
+        datetime.datetime.strptime(args.timestamp, util.backup_date_format) if args.timestamp
+        else datetime.datetime.now())
+    required_action_date = parse_time_span_to_timepoint(time_span, now)
+    return previous_action_date <= required_action_date
