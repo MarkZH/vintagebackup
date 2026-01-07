@@ -6,7 +6,7 @@ import argparse
 from pathlib import Path
 
 from lib.argument_parser import confirm_choice_made
-from lib.backup import all_backups, find_previous_backup
+from lib.backup_utilities import all_backups, find_previous_backup
 from lib.backup_info import backup_source
 from lib.console import cancel_key, choose_from_menu, print_run_title
 from lib.exceptions import CommandLineError
