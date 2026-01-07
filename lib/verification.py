@@ -110,11 +110,8 @@ def create_checksum_for_folder(folder: Path) -> None:
 
 def start_checksum(args: argparse.Namespace) -> None:
     """Create checksum file for latest backup if specified by arguments."""
-    if args.no_checksum:
-        return
-
     backup_folder = fs.absolute_path(args.backup_folder)
-    if args.checksum or time_has_passed(args, "checksum", backup_folder):
+    if should_do_periodic_action(args, "checksum", backup_folder):
         create_checksum_for_last_backup(backup_folder)
 
 
@@ -127,16 +124,26 @@ def last_checksum(backup_folder: Path) -> datetime.datetime | None:
     return backup_found
 
 
-def time_has_passed(args: argparse.Namespace, action: str, backup_folder: Path) -> bool:
+def should_do_periodic_action(args: argparse.Namespace, action: str, backup_folder: Path) -> bool:
     """Check whether the action has taken place recently according to --{action}-every argument."""
     options = vars(args)
+    if options[f"no_{action}"]:
+        return False
+
+    if options[action]:
+        return True
+
     time_span = options[f"{action}_every"]
     if not time_span:
         return False
 
-    previous_checksum = last_checksum(backup_folder)
-    if not previous_checksum:
+    previous_action_lookup = last_checksum if action == "checksum" else None
+    if not previous_action_lookup:
+        raise ValueError(f"No backup info lookup for {action}")
+
+    previous_action_date = previous_action_lookup(backup_folder)
+    if not previous_action_date:
         return True
 
-    checksum_deadline = parse_time_span_to_timepoint(time_span)
-    return previous_checksum < checksum_deadline
+    required_action_date = parse_time_span_to_timepoint(time_span)
+    return previous_action_date < required_action_date
