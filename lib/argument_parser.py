@@ -238,7 +238,9 @@ take considerably longer."""))
 
     add_no_option(backup_group, "compare-contents")
 
-    deletion_group = user_input.add_argument_group("Backup deletion")
+    deletion_group = user_input.add_argument_group("Backup deletion", description=format_help(
+"""Automatically delete old backups according to various criteria. When using these options, the
+most recent backup is never deleted."""))
 
     deletion_group.add_argument("--free-up", metavar="SPACE", help=format_help(
 """After a successful backup, delete old backups until the amount of free space on the
@@ -250,26 +252,20 @@ of bytes. Case does not matter, so all of the following specify
 15 megabytes: 15MB, 15Mb, 15mB, 15mb, 15M, and 15m. Old backups
 will be deleted until at least that much space is free.
 
-This can be used at the same time as --delete-after.
-
-The most recent backup will not be deleted."""))
+This can be used at the same time as --delete-after."""))
 
     deletion_group.add_argument("--delete-after", metavar="TIME", help=format_help(
 """After a successful backup, delete backups if they are older than the time span in the argument.
 The format of the argument is Nt, where N is a whole number and t is a single letter: d for days, w
 for weeks, m for calendar months, or y for calendar years.
 
-This can be used at the same time as --free-up.
-
-The most recent backup will not be deleted."""))
+This can be used at the same time as --free-up."""))
 
     keep_x_after_help = """After a successful backup, delete backups so that only {} backups are
 kept once the time span in the argument has passed. The format of the argument is the same as in
 --delete-after.
 
-This can be used with any other deletion option.
-
-The most recent backup will not be deleted."""
+This can be used with any other deletion option."""
 
     for keep_time in ("weekly", "monthly", "yearly"):
         deletion_group.add_argument(
@@ -282,9 +278,7 @@ The most recent backup will not be deleted."""
 
     deletion_group.add_argument("--delete-first", action="store_true", help=format_help(
 """Delete old backups (according to --free-up, --delete-after, and --max-deletions) to make room
-prior to starting a new backup.
-
-The most recent backup will never be deleted."""))
+prior to starting a new backup."""))
 
     add_no_option(deletion_group, "delete-first")
 
