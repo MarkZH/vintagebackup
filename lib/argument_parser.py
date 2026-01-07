@@ -236,45 +236,7 @@ folder will contain all of that year's backups."""))
     backup_group.add_argument("-f", "--filter", metavar="FILTER_FILE_NAME", help=format_help(
 """Filter the set of files that will be backed up. The value of this argument should be the name of
 a text file that contains lines specifying what files to include or exclude.
-
-Each line in the file consists of a symbol followed by a path. The symbol must be a minus (-),
-plus (+), or hash (#). Lines with minus signs specify files and folders to exclude. Lines with plus
-signs specify files and folders to include. Lines with hash signs are ignored. Prior to reading the
-first line, everything in the user's folder is included. The path that follows may contain wildcard
-characters like *, **, [], and ? to allow for matching multiple path names. If you want to match a
-single name that contains wildcards, put brackets around them: What Is Life[?].pdf, for example.
-Since leading and trailing whitespace is normally removed, use brackets around each leading/trailing
-space character: - [ ][ ]has_two_leading_and_three_trailing_spaces.txt[ ][ ][ ]
-
-Only files will be matched against each line in this file. If you want to include or exclude an
-entire directory, the line must end with a "/**" or "\\**" to match all of its contents. The paths
-may be absolute or relative. If a path is relative, it is relative to the user's folder.
-
-All paths must reside within the directory tree of the --user-folder. For example, if backing up
-C:\\Users\\Alice, the following filter file:
-
-    # Ignore AppData except Firefox
-    - AppData/**
-    + AppData/Roaming/Mozilla/Firefox/**
-
-will exclude everything in C:\\Users\\Alice\\AppData\\ except the
-Roaming\\Mozilla\\Firefox subfolder. The order of the lines matters. If the - and + lines above
-were reversed, the Firefox folder would be included and then excluded by the following - Appdata
-line.
-
-Because each line only matches to files, some glob patterns may not do what the user expects. Here
-are some examples of such patterns:
-
-    # Assume that dir1 is a folder in the user's --user-folder and dir2 is a folder inside dir1.
-
-    # This line does nothing.
-    - dir1
-
-    # This line will exclude all files in dir1, but not folders. dir1/dir2 is still included.
-    - dir1/*
-
-    # This line will exclude dir1 and all of its contents.
-    - dir1/**"""))
+See below for the file format description."""))
 
     backup_group.add_argument("--compare-contents", action="store_true", help=format_help(
 """Examine the entire contents of a file to determine if it has
@@ -292,7 +254,9 @@ to a file stored in the base folder of the backup."""))
     add_no_option(backup_group, "checksum")
     add_periodic_option(backup_group, "checksum")
 
-    deletion_group = user_input.add_argument_group("Backup deletion")
+    deletion_group = user_input.add_argument_group("Backup deletion", description=format_help(
+"""Automatically delete old backups according to various criteria. Multiple deletion options can be
+used at the same time. When using these options, the most recent backup is never deleted."""))
 
     deletion_group.add_argument("--free-up", metavar="SPACE", help=format_help(
 """After a successful backup, delete old backups until the amount of free space on the
@@ -302,28 +266,16 @@ The argument should be a bare number or a number followed by letters that
 indicate a unit in bytes. The number will be interpreted as a number
 of bytes. Case does not matter, so all of the following specify
 15 megabytes: 15MB, 15Mb, 15mB, 15mb, 15M, and 15m. Old backups
-will be deleted until at least that much space is free.
-
-This can be used at the same time as --delete-after.
-
-The most recent backup will not be deleted."""))
+will be deleted until at least that much space is free."""))
 
     deletion_group.add_argument("--delete-after", metavar="TIME", help=format_help(
 """After a successful backup, delete backups if they are older than the time span in the argument.
 The format of the argument is Nt, where N is a whole number and t is a single letter: d for days, w
-for weeks, m for calendar months, or y for calendar years.
-
-This can be used at the same time as --free-up.
-
-The most recent backup will not be deleted."""))
+for weeks, m for calendar months, or y for calendar years."""))
 
     keep_x_after_help = """After a successful backup, delete backups so that only {} backups are
 kept once the time span in the argument has passed. The format of the argument is the same as in
---delete-after.
-
-This can be used with any other deletion option.
-
-The most recent backup will not be deleted."""
+--delete-after."""
 
     for keep_time in ("weekly", "monthly", "yearly"):
         deletion_group.add_argument(
@@ -336,9 +288,7 @@ The most recent backup will not be deleted."""
 
     deletion_group.add_argument("--delete-first", action="store_true", help=format_help(
 """Delete old backups (according to --free-up, --delete-after, and --max-deletions) to make room
-prior to starting a new backup.
-
-The most recent backup will never be deleted."""))
+prior to starting a new backup."""))
 
     add_no_option(deletion_group, "delete-first")
 
@@ -421,8 +371,28 @@ required."""))
     other_group = user_input.add_argument_group("Other options")
 
     other_group.add_argument("-c", "--config", metavar="FILE_NAME", help=format_help(
-r"""Read options from a configuration file instead of command-line arguments. The format
-of the file should be one option per line with a colon separating the parameter name
+r"""Read options from a configuration file instead of command-line arguments.
+See below for the configuration file format."""))
+
+    other_group.add_argument("--debug", action="store_true", help=format_help(
+        """Log information on all actions during a program run."""))
+
+    add_no_option(other_group, "debug")
+
+    other_group.add_argument(
+        "-l", "--log",
+        default=str(default_log_file_name),
+        help=format_help(
+f"""Where to log the activity of this program. The default is
+{default_log_file_name.name} in the user's home folder. If no
+log file is desired, use the file name {os.devnull}."""))
+
+    other_group.add_argument("--error-log", help=format_help(
+"""Where to copy log lines that are warnings or errors. This file will only appear when unexpected
+events occur."""))
+
+    user_input.add_argument_group("Configuration file format", description=format_help(
+r"""The format of the file should be one option per line with a colon separating the parameter name
 and value. The parameter names have the same names as the double-dashed command line options
 (i.e., "user-folder", not "u"). If a parameter does not take a value, like "compare-contents",
 leave the value blank. Any line starting with a # will be ignored. As an example:
@@ -458,22 +428,45 @@ line options override the config file options.
 A final note: recursive configuration files are not supported. Using the parameter "config" inside
 a configuration file will cause the program to quit with an error."""))
 
-    other_group.add_argument("--debug", action="store_true", help=format_help(
-        """Log information on all actions during a program run."""))
+    user_input.add_argument_group("Filter file format", description=format_help(
+"""Each line in the file consists of a symbol followed by a path. The symbol must be a minus (-),
+plus (+), or hash (#). Lines with minus signs specify files and folders to exclude. Lines with plus
+signs specify files and folders to include. Lines with hash signs are ignored. Prior to reading the
+first line, everything in the user's folder is included. The path that follows may contain wildcard
+characters like *, **, [], and ? to allow for matching multiple path names. If you want to match a
+single name that contains wildcards, put brackets around them: What Is Life[?].pdf, for example.
+Since leading and trailing whitespace is normally removed, use brackets around each leading/trailing
+space character:- [ ][ ]has_two_leading_and_three_trailing_spaces.txt[ ][ ][ ]
 
-    add_no_option(other_group, "debug")
+Only files will be matched against each line in this file. If you want to include or exclude an
+entire directory, the line must end with a "/**" or "\\**" to match all of its contents. The paths
+may be absolute or relative. If a path is relative, it is relative to the user's folder.
 
-    other_group.add_argument(
-        "-l", "--log",
-        default=str(default_log_file_name),
-        help=format_help(
-f"""Where to log the activity of this program. The default is
-{default_log_file_name.name} in the user's home folder. If no
-log file is desired, use the file name {os.devnull}."""))
+All paths must reside within the directory tree of the --user-folder. For example, if backing up
+C:\\Users\\Alice, the following filter file:
 
-    other_group.add_argument("--error-log", help=format_help(
-"""Where to copy log lines that are warnings or errors. This file will only appear when unexpected
-events occur."""))
+    # Ignore AppData except Firefox
+    - AppData/**
+    + AppData/Roaming/Mozilla/Firefox/**
+
+will exclude everything in C:\\Users\\Alice\\AppData\\ except the
+Roaming\\Mozilla\\Firefox subfolder. The order of the lines matters. If the - and + lines above
+were reversed, the Firefox folder would be included and then excluded by the following - Appdata
+line.
+
+Because each line only matches to files, some glob patterns may not do what the user expects. Here
+are some examples of such patterns:
+
+    # Assume that dir1 is a folder in the user's --user-folder and dir2 is a folder inside dir1.
+
+    # This line does nothing.
+    - dir1
+
+    # This line will exclude all files in dir1, but not folders. dir1/dir2 is still included.
+    - dir1/*
+
+    # This line will exclude dir1 and all of its contents.
+    - dir1/**"""))
 
     # The following arguments are only used for testing.
 

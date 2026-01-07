@@ -48,7 +48,7 @@ Shell.Run """C:\Users\Alice\vintagebackup\home_backup.bat""", 0, true
 Set Shell = Nothing
 ```
 
-Don't for get the `, 0, true` at the end of the third line. The `0` prevents a terminal window from opening when the scheduled backup runs. The `true` causes the script to wait for the backup to finish before exiting, which will stop two instances of a backup process from being run at the same time in case one scheduled backup takes longer than expected to complete.
+Don't forget the `, 0, true` at the end of the third line. The `0` prevents a terminal window from opening when the scheduled backup runs. The `true` causes the script to wait for the backup to finish before exiting, which will stop two instances of a backup process from being run at the same time in case one scheduled backup takes longer than expected to complete.
 
 *The script was adapted from a [Server Fault (Stack Exchange) answer](https://serverfault.com/a/9039).*
 
