@@ -140,7 +140,7 @@ def create_old_daily_backups(backup_base_directory: Path, count: int) -> None:
     Create a set of empty daily backups.
 
     :param backup_base_directory: The directory that will contain the backup folders.
-    :param count: The number of backups to create. The oldest will be (count - 1) months old.
+    :param count: The number of backups to create. The oldest will be (count - 1) days old.
     """
     now = datetime.datetime.now()
     for days_back in range(count):
