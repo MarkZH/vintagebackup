@@ -3865,7 +3865,7 @@ class UniquePathNameTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that only the unique file name with the highest number is returned."""
         path = self.user_path/"unique.txt"
         path.touch()
-        unique_file_count = 5
+        unique_file_count = 50
         last_unique_path = path
         for _ in range(unique_file_count):
             new_path = fs.unique_path_name(path)

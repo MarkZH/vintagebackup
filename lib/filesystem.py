@@ -77,11 +77,15 @@ def find_unique_path(path: Path) -> Path | None:
 
     stem = path.stem
     ext = path.suffix
+    number = 0
     for p in path.parent.iterdir():
         if p.stem.startswith(stem) and p.suffix == ext:
             addition = p.stem.removeprefix(path.stem)
             if addition.startswith(".") and addition[1:].isdigit():
-                result = p
+                new_number = int(addition[1:])
+                if new_number > number:
+                    result = p
+                    number = new_number
 
     return result
 
