@@ -1942,6 +1942,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_checksum_created_after_enough_time_passes_without_a_checksum(self) -> None:
         """Test that checksum is created using --checksum-every option after enough time passed."""
+        create_user_data(self.user_path)
         now = datetime.datetime.now()
         for n in range(9):
             timestamp = now + datetime.timedelta(days=n)
