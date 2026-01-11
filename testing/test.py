@@ -3820,6 +3820,7 @@ class UniquePathNameTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that find_unique_path() returns None of no version of the file exists."""
         self.assertIsNone(fs.find_unique_path(self.user_path/"does_not_exists.txt"))
 
+
 def close_all_file_logs() -> None:
     """Close error file to prevent errors when leaving assertLogs contexts."""
     logger = logging.getLogger()
