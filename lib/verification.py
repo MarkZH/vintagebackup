@@ -6,6 +6,8 @@ import logging
 import hashlib
 import datetime
 from pathlib import Path
+import tempfile
+import shutil
 
 from lib.argument_parser import path_or_none
 import lib.backup_utilities as util
@@ -80,6 +82,7 @@ def start_verify_backup(args: argparse.Namespace) -> None:
 
 hash_function = "sha3_256"
 checksum_file_name = "checksums.sha3"
+verify_checksum_file_name = "checksum_verification.txt"
 
 
 def create_checksum_for_last_backup(backup_folder: Path) -> None:
@@ -92,7 +95,7 @@ def create_checksum_for_last_backup(backup_folder: Path) -> None:
     logger.info("Done creating checksum file")
 
 
-def create_checksum_for_folder(folder: Path) -> None:
+def create_checksum_for_folder(folder: Path) -> Path:
     """Create a file containing checksums of all files in the given folder."""
     checksum_path = fs.unique_path_name(folder/checksum_file_name)
     logger.info("Creating checksum file: %s ...", checksum_path)
@@ -102,10 +105,21 @@ def create_checksum_for_folder(folder: Path) -> None:
                 path = current_directory/file_name
                 if path == checksum_path:
                     continue
-                with path.open("rb") as file:
-                    digest = hashlib.file_digest(file, hash_function).hexdigest()
-                    relative_path = path.relative_to(folder)
-                    checksum_file.write(f"{relative_path} {digest}\n")
+                digest = get_file_checksum(path)
+                relative_path = path.relative_to(folder)
+                checksum_file.write(f"{relative_path} {digest}\n")
+
+    return checksum_path
+
+
+def get_file_checksum(path: Path) -> str:
+    """
+    Read a file and calculate its checksum.
+
+    Returns a hexadecimal string.
+    """
+    with path.open("rb") as file:
+        return hashlib.file_digest(file, hash_function).hexdigest()
 
 
 def start_checksum(args: argparse.Namespace) -> None:
@@ -122,6 +136,37 @@ def last_checksum(backup_folder: Path) -> datetime.datetime | None:
         if fs.find_unique_path(backup/checksum_file_name):
             backup_found = util.backup_datetime(backup)
     return backup_found
+
+
+def verify_backup_checksum(backup_folder: Path) -> Path | None:
+    """Verify the checksums of backed up files and write changed files to a new file."""
+    checksum_path = fs.find_unique_path(backup_folder/checksum_file_name)
+    if not checksum_path:
+        raise ValueError(f"Could not find checksum file in {backup_folder}")
+
+    with (checksum_path.open(encoding="utf8") as checksum_file,
+          tempfile.TemporaryFile("w+", encoding="utf8") as temp):
+        write_count = 0
+        for line_raw in checksum_file:
+            line = line_raw.rstrip()
+            if not line:
+                continue
+            relative_path, checksum = line.rsplit(" ", maxsplit=1)
+            backup_path = backup_folder/relative_path
+            current_checksum = get_file_checksum(backup_path)
+            if current_checksum != checksum:
+                logger.warning("File changed in backup: %s", relative_path)
+                write_count += temp.write(f"{relative_path} {checksum} {current_checksum}\n")
+
+        checksum_verify_path = None
+        if write_count > 0:
+            checksum_verify_path = fs.unique_path_name(backup_folder/verify_checksum_file_name)
+            logger.warning("Writing changed files to %s ...", checksum_verify_path)
+            with checksum_verify_path.open("w", encoding="utf8") as checksum_verify_file:
+                temp.seek(0)
+                shutil.copyfileobj(temp, checksum_verify_file)
+
+        return checksum_verify_path
 
 
 def should_do_periodic_action(args: argparse.Namespace, action: str, backup_folder: Path) -> bool:
