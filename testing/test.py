@@ -1961,6 +1961,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_no_checksum_overrides_checksum_every(self) -> None:
         """Test that --no-checksum cancels --checksum-every."""
+        create_user_data(self.user_path)
         main.main([
             "-u", str(self.user_path),
             "-b", str(self.backup_path),
