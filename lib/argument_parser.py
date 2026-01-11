@@ -179,6 +179,13 @@ match, a list of files that do not match, and a list of files that caused errors
 comparison. The --backup-folder argument is required. If a filter file was used
 to create the backup, then --filter should be supplied as well."""))
 
+    only_one_action_group.add_argument("--verify-checksum", metavar="RESULT_DIR", help=format_help(
+"""Verify that files in a backup have not changed since the backup was created by recalculating
+checksums. If changes are found, a file with a list of all changed backed up files will be placed
+in RESULT_DIR. The options --oldest and --newest can be used to select which backup to verify. The
+first will choose the oldest backup with a checksum file; the second will choose the latest. If
+neither option is used then a menu with every backup with a checksum file."""))
+
     only_one_action_group.add_argument(
         "--preview-filter",
         metavar="FILE_NAME",
@@ -373,6 +380,14 @@ required."""))
     other_group.add_argument("-c", "--config", metavar="FILE_NAME", help=format_help(
 r"""Read options from a configuration file instead of command-line arguments.
 See below for the configuration file format."""))
+
+    backup_pick_options = other_group.add_mutually_exclusive_group()
+
+    backup_pick_options.add_argument("--oldest", action="store_true", help=format_help(
+"""Choose the oldest backup suitable for a task."""))
+
+    backup_pick_options.add_argument("--newest", action="store_true", help=format_help(
+"""Choose the newest backup suitable for a task."""))
 
     other_group.add_argument("--debug", action="store_true", help=format_help(
         """Log information on all actions during a program run."""))

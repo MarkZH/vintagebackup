@@ -17,6 +17,7 @@ from lib.console import print_run_title
 from lib.datetime_calculations import parse_time_span_to_timepoint
 from lib.exceptions import CommandLineError
 import lib.filesystem as fs
+from lib import console
 
 logger = logging.getLogger()
 
@@ -168,6 +169,30 @@ def verify_backup_checksum(backup_folder: Path, result_directory: Path) -> Path 
                 shutil.copyfileobj(temp, checksum_verify_file)
 
         return checksum_verify_path
+
+
+def start_verify_checksum(args: argparse.Namespace) -> None:
+    """Parse command line for verifying backup checksums."""
+    backup_folder = fs.absolute_path(args.backup_folder)
+    checksummed_backups = [
+        backup for backup in util.all_backups(backup_folder)
+        if fs.find_unique_path(backup/checksum_file_name)]
+
+    if not checksummed_backups:
+        raise CommandLineError(f"No backups with checksums found in {backup_folder}")
+
+    if args.oldest:
+        target = checksummed_backups[0]
+    elif args.newest:
+        target = checksummed_backups[-1]
+    else:
+        choice = console.choose_from_menu(
+            [p.name for p in checksummed_backups],
+            "Choose a backup to verify its checksum")
+        target = checksummed_backups[choice]
+
+    result_folder = fs.absolute_path(args.verify_checksum)
+    verify_backup_checksum(target, result_folder)
 
 
 def should_do_periodic_action(args: argparse.Namespace, action: str, backup_folder: Path) -> bool:
