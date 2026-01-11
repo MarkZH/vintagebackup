@@ -119,7 +119,7 @@ def last_checksum(backup_folder: Path) -> datetime.datetime | None:
     """Find the date of the last backup with a checksum file."""
     backup_found = None
     for backup in util.all_backups(backup_folder):
-        if fs.unique_path_exists(backup/checksum_file_name):
+        if fs.find_unique_path(backup/checksum_file_name):
             backup_found = util.backup_datetime(backup)
     return backup_found
 

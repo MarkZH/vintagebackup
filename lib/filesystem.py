@@ -69,10 +69,11 @@ def unique_path_name(destination_path: Path) -> Path:
     return unique_path
 
 
-def unique_path_exists(path: Path) -> bool:
+def find_unique_path(path: Path) -> Path | None:
     """Determine whether a path or one created by unique_path_name() exists."""
+    result: Path | None = None
     if path.exists():
-        return True
+        result = path
 
     stem = path.stem
     ext = path.suffix
@@ -80,9 +81,9 @@ def unique_path_exists(path: Path) -> bool:
         if p.stem.startswith(stem) and p.suffix == ext:
             addition = p.stem.removeprefix(path.stem)
             if addition.startswith(".") and addition[1:].isdigit():
-                return True
+                result = p
 
-    return False
+    return result
 
 
 def delete_directory_tree(directory: Path, *, ignore_errors: bool = False) -> None:

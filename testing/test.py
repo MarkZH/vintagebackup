@@ -3771,7 +3771,8 @@ class UniquePathNameTests(TestCaseWithTemporaryFilesAndFolders):
         unique_path = fs.unique_path_name(path)
         self.assertEqual(path, unique_path)
         unique_path.touch()
-        self.assertTrue(fs.unique_path_exists(path))
+        self.assertTrue(unique_path.exists())
+        self.assertEqual(fs.find_unique_path(path), path)
 
     def test_unique_path_new_name_exists(self) -> None:
         """Test that a unique path name exists after creation via unique_path_name()."""
@@ -3781,7 +3782,7 @@ class UniquePathNameTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertNotEqual(path, unique_path)
         unique_path.touch()
         path.unlink()
-        self.assertTrue(fs.unique_path_exists(path))
+        self.assertEqual(fs.find_unique_path(path), unique_path)
 
     def test_unique_path_new_name_with_gap_exists(self) -> None:
         """Test that a unique path name exists after creation via many unique_path_name() calls."""
@@ -3798,8 +3799,25 @@ class UniquePathNameTests(TestCaseWithTemporaryFilesAndFolders):
         gapped_unique_file = unique_files[-1]
         for p in unique_files[:-1]:
             p.unlink()
-        self.assertTrue(fs.unique_path_exists(gapped_unique_file))
+        self.assertEqual(fs.find_unique_path(path), gapped_unique_file)
 
+    def test_find_unique_path_returns_numbered_file_with_highest_number(self) -> None:
+        """Test that only the unique file name with the highest number is returned."""
+        path = self.user_path/"unique.txt"
+        path.touch()
+        unique_file_count = 5
+        last_unique_path = path
+        for _ in range(unique_file_count):
+            new_path = fs.unique_path_name(path)
+            new_path.touch()
+            last_unique_path = new_path
+        self.assertNotEqual(path, last_unique_path)
+        found_unique_path = fs.find_unique_path(path)
+        self.assertEqual(found_unique_path, last_unique_path)
+
+    def test_find_unique_path_returns_none_if_no_version_of_path_exists(self) -> None:
+        """Test that find_unique_path() returns None of no version of the file exists."""
+        self.assertIsNone(fs.find_unique_path(self.user_path/"does_not_exists.txt"))
 
 def close_all_file_logs() -> None:
     """Close error file to prevent errors when leaving assertLogs contexts."""
