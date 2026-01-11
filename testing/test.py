@@ -1986,7 +1986,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertIsNotNone(backup_folder)
         backup_folder = cast(Path, backup_folder)
         with self.assertNoLogs(level=logging.WARNING):
-            checksum_verify_file = verify.verify_backup_checksum(backup_folder)
+            checksum_verify_file = verify.verify_backup_checksum(backup_folder, self.user_path)
         self.assertIsNone(checksum_verify_file)
 
     def test_verify_checksum_writes_changed_file(self) -> None:
@@ -2006,7 +2006,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertTrue(changed_path.exists())
         changed_path.write_text("Corrupted data\n", encoding="utf8")
         with self.assertLogs(level=logging.WARNING) as checksum_verify_logs:
-            checksum_verify_file = verify.verify_backup_checksum(backup_folder)
+            checksum_verify_file = verify.verify_backup_checksum(backup_folder, self.user_path)
         self.assertEqual(
             checksum_verify_logs.output,
             [f"WARNING:root:File changed in backup: {changed_path.relative_to(backup_folder)}",
@@ -2028,7 +2028,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertIsNotNone(backup_folder)
         backup_folder = cast(Path, backup_folder)
         with self.assertRaises(ValueError):
-            verify.verify_backup_checksum(backup_folder)
+            verify.verify_backup_checksum(backup_folder, self.user_path)
 
 
 class ConfigurationFileTests(TestCaseWithTemporaryFilesAndFolders):

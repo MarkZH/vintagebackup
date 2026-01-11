@@ -138,7 +138,7 @@ def last_checksum(backup_folder: Path) -> datetime.datetime | None:
     return backup_found
 
 
-def verify_backup_checksum(backup_folder: Path) -> Path | None:
+def verify_backup_checksum(backup_folder: Path, result_directory: Path) -> Path | None:
     """Verify the checksums of backed up files and write changed files to a new file."""
     checksum_path = fs.find_unique_path(backup_folder/checksum_file_name)
     if not checksum_path:
@@ -160,7 +160,7 @@ def verify_backup_checksum(backup_folder: Path) -> Path | None:
 
         checksum_verify_path = None
         if write_count > 0:
-            checksum_verify_path = fs.unique_path_name(backup_folder/verify_checksum_file_name)
+            checksum_verify_path = fs.unique_path_name(result_directory/verify_checksum_file_name)
             logger.warning("Writing changed files to %s ...", checksum_verify_path)
             with checksum_verify_path.open("w", encoding="utf8") as checksum_verify_file:
                 temp.seek(0)
