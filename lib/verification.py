@@ -146,6 +146,7 @@ def verify_backup_checksum(backup_folder: Path, result_directory: Path) -> Path 
 
     with (checksum_path.open(encoding="utf8") as checksum_file,
           tempfile.TemporaryFile("w+", encoding="utf8") as temp):
+        temp.write(f"Verifying checksums of {backup_folder}\n")
         write_count = 0
         for line_raw in checksum_file:
             line = line_raw.rstrip()

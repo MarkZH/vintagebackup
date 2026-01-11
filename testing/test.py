@@ -2015,8 +2015,9 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         checksum_verify_file = cast(Path, checksum_verify_file)
         self.assertTrue(checksum_verify_file.is_file())
         verify_data = checksum_verify_file.read_text(encoding="utf8").splitlines()
-        self.assertEqual(len(verify_data), 1)
-        relative_path, old_checksum, new_checksum = verify_data[0].rsplit(" ", maxsplit=2)
+        self.assertEqual(len(verify_data), 2)
+        self.assertEqual(verify_data[0], f"Verifying checksums of {backup_folder}")
+        relative_path, old_checksum, new_checksum = verify_data[1].rsplit(" ", maxsplit=2)
         self.assertEqual(backup_folder/relative_path, changed_path)
         self.assertNotEqual(old_checksum, new_checksum)
 
