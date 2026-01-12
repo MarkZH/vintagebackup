@@ -1972,6 +1972,18 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             testing=True)
         self.assertFalse((all_backups(self.backup_path)[0]/verify.checksum_file_name).exists())
 
+    def test_no_checksum_overrides_checksum(self) -> None:
+        """Test that --no-checksum cancels --checksum."""
+        create_user_data(self.user_path)
+        main.main([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "--no-checksum",
+            "--checksum",
+            "-l", str(self.log_path)],
+            testing=True)
+        self.assertFalse((all_backups(self.backup_path)[0]/verify.checksum_file_name).exists())
+
     def test_verifying_checksum_with_no_changes_does_not_create_result_file(self) -> None:
         """Test that if checksum verification finds no changed files, no result file is created."""
         create_user_data(self.user_path)
