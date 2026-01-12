@@ -2193,6 +2193,34 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(changed_file, chosen_checksummed_backup/relative_path)
         self.assertNotEqual(old_checksum, new_checksum)
 
+    def test_verify_checksum_with_no_checksummed_backups_is_error(self) -> None:
+        """Test that trying to verify a checksum file with no checksummed backups raises error."""
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+        previous_backup = find_previous_backup(self.backup_path)
+        self.assertIsNotNone(previous_backup)
+        previous_backup = cast(Path, previous_backup)
+        with self.assertRaises(ValueError):
+            verify.verify_backup_checksum(previous_backup, self.user_path)
+
+    def test_verify_checksum_with_no_checksummed_backups_on_command_line_is_error(self) -> None:
+        """Test that verifying a checksum file with no checksummed backups prints error message."""
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+        with self.assertLogs() as logs:
+            exit_code = main.main([
+                "-u", str(self.user_path),
+                "-b", str(self.backup_path),
+                "-l", os.devnull,
+                "--verify-checksum", str(self.user_path),
+                "--oldest"],
+            testing=True)
+
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(
+            logs.output,
+            [f"ERROR:root:No backups with checksums found in {self.backup_path}"])
+
 
 class ConfigurationFileTests(TestCaseWithTemporaryFilesAndFolders):
     """Test configuration file functionality."""
