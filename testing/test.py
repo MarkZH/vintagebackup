@@ -3759,7 +3759,7 @@ class CancelKeyTests(unittest.TestCase):
 
     @unittest.skipUnless(platform.system() == "Darwin", "This test is for MacOS.")
     def test_mac_cancel_key(self) -> None:
-        """Test that cancel_key() returns 'Ctrl-C'."""
+        """Test that cancel_key() returns 'Cmd-C'."""
         self.assertEqual(console.cancel_key(), "Cmd-C")
 
 
