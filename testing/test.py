@@ -2081,6 +2081,56 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(changed_file, oldest_checksummed_backup/relative_path)
         self.assertNotEqual(old_checksum, new_checksum)
 
+    def test_verify_checksum_with_newest_option_verifies_oldest_backup(self) -> None:
+        """Test that --newest option causes newest backup with checksum to be verified."""
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+        exit_code = main.main([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "-l", str(self.log_path),
+            "--timestamp", unique_timestamp_string(),
+            "--checksum"],
+            testing=True)
+        self.assertEqual(exit_code, 0)
+        default_backup(self.user_path, self.backup_path)
+        exit_code = main.main([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "-l", str(self.log_path),
+            "--timestamp", unique_timestamp_string(),
+            "--checksum"],
+            testing=True)
+        self.assertEqual(exit_code, 0)
+        default_backup(self.user_path, self.backup_path)
+
+        backups = all_backups(self.backup_path)
+        self.assertEqual(len(backups), 5)
+        newest_checksummed_backup = backups[3]
+        self.assertTrue((newest_checksummed_backup/verify.checksum_file_name).is_file())
+
+        changed_file = (
+            newest_checksummed_backup/"sub_directory_0"/"sub_sub_directory_1"/"file_2.txt")
+        self.assertTrue(changed_file.is_file())
+        changed_file.write_text("Corrupted data")
+
+        exit_code = main.main([
+            "-b", str(self.backup_path),
+            "-l", str(self.log_path),
+            "--verify-checksum", str(self.user_path),
+            "--newest"],
+            testing=True)
+        self.assertEqual(exit_code, 0)
+
+        checksum_verify_path = self.user_path/verify.verify_checksum_file_name
+        self.assertTrue(checksum_verify_path.is_file())
+        verify_data = checksum_verify_path.read_text().splitlines()
+        self.assertEqual(len(verify_data), 2)
+        self.assertEqual(verify_data[0], f"Verifying checksums of {newest_checksummed_backup}")
+        relative_path, old_checksum, new_checksum = verify_data[1].rsplit(maxsplit=2)
+        self.assertEqual(changed_file, newest_checksummed_backup/relative_path)
+        self.assertNotEqual(old_checksum, new_checksum)
+
 
 class ConfigurationFileTests(TestCaseWithTemporaryFilesAndFolders):
     """Test configuration file functionality."""
