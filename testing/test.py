@@ -1704,7 +1704,8 @@ def read_paths_file(verify_file: TextIO) -> set[Path]:
         else:
             if not current_directory:
                 raise ValueError("File names must be preceded by a directory path.")
-            files_from_verify.add(current_directory/line.removeprefix("    ").removesuffix("\n"))
+            file_name = line.removeprefix("    ").removesuffix("\n")
+            files_from_verify.add(current_directory/file_name)
     return files_from_verify
 
 
