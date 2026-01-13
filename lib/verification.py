@@ -108,6 +108,7 @@ def create_checksum_for_folder(folder: Path) -> Path:
                     continue
                 digest = get_file_checksum(path)
                 relative_path = path.relative_to(folder)
+                logger.debug("Checksum: %s --> %s", relative_path, digest)
                 checksum_file.write(f"{relative_path} {digest}\n")
 
     return checksum_path
