@@ -93,12 +93,12 @@ def create_checksum_for_last_backup(backup_folder: Path) -> None:
         raise CommandLineError(f"Could not find backup in {backup_folder}")
 
     create_checksum_for_folder(last_backup)
-    logger.info("Done creating checksum file")
 
 
 def create_checksum_for_folder(folder: Path) -> Path:
     """Create a file containing checksums of all files in the given folder."""
     checksum_path = fs.unique_path_name(folder/checksum_file_name)
+    logger.info("")
     logger.info("Creating checksum file: %s ...", checksum_path)
     with checksum_path.open("w", encoding="utf8") as checksum_file:
         for current_directory, _, file_names in folder.walk():
@@ -111,6 +111,7 @@ def create_checksum_for_folder(folder: Path) -> Path:
                 logger.debug("Checksum: %s --> %s", relative_path, digest)
                 checksum_file.write(f"{relative_path} {digest}\n")
 
+    logger.info("Done creating checksum file")
     return checksum_path
 
 
