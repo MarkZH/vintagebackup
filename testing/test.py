@@ -1965,6 +1965,11 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             checksum_exists,
             [True, False, False, True, False, False, True, False, False])
 
+    def test_no_checksum_overrides_checksum_every_on_command_line(self) -> None:
+        """Test that --no-checksum cancels --checksum-every in argument_parser."""
+        args = argparse.parse_command_line(["--checksum-every", "1m", "--no-checksum"])
+        self.assertFalse(verify.should_do_periodic_action(args, "checksum", self.backup_path))
+
     def test_no_checksum_overrides_checksum_every(self) -> None:
         """Test that --no-checksum cancels --checksum-every."""
         create_user_data(self.user_path)
