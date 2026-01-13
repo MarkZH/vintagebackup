@@ -2008,9 +2008,10 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         backup_folder = find_previous_backup(self.backup_path)
         self.assertIsNotNone(backup_folder)
         backup_folder = cast(Path, backup_folder)
-        with self.assertNoLogs(level=logging.WARNING):
+        with self.assertLogs(level=logging.INFO) as logs:
             checksum_verify_file = verify.verify_backup_checksum(backup_folder, self.user_path)
         self.assertIsNone(checksum_verify_file)
+        self.assertEqual(logs.output, [f"INFO:root:No changed files found in {backup_folder}"])
 
     def test_verify_checksum_writes_changed_file(self) -> None:
         """Test that a file is written when a changed file in a backup is detected."""

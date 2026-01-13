@@ -167,6 +167,8 @@ def verify_backup_checksum(backup_folder: Path, result_directory: Path) -> Path 
             with checksum_verify_path.open("w", encoding="utf8") as checksum_verify_file:
                 temp.seek(0)
                 shutil.copyfileobj(temp, checksum_verify_file)
+        else:
+            logger.info("No changed files found in %s", backup_folder)
 
         return checksum_verify_path
 
