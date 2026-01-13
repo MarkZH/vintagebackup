@@ -2254,6 +2254,8 @@ backup folder:   {backup_folder}
 FiLteR    :    {filter_file}
 force-copy:
 compare    contents :
+checkSUM       :
+Checksum Every: 1m
 """, encoding="utf8")
         command_line = config.read_configuation_file(Path(self.config_path))
         expected_command_line = [
@@ -2261,7 +2263,9 @@ compare    contents :
             "--backup-folder", backup_folder,
             "--filter", filter_file,
             "--force-copy",
-            "--compare-contents"]
+            "--compare-contents",
+            "--checksum",
+            "--checksum-every", "1m"]
 
         self.assertEqual(command_line, expected_command_line)
         arg_parser = argparse.argument_parser()
@@ -2270,6 +2274,8 @@ compare    contents :
         self.assertEqual(args.backup_folder, backup_folder)
         self.assertEqual(args.filter, filter_file)
         self.assertTrue(args.force_copy)
+        self.assertTrue(args.checksum)
+        self.assertEqual(args.checksum_every, "1m")
 
     def test_command_line_options_override_config_file_options(self) -> None:
         """Test that command line options override file configurations and leave others alone."""
@@ -2303,18 +2309,21 @@ compare contents:
 Debug:
 delete first:
 force copy:
+checksum:
 """, encoding="utf8")
         command_line_options = [
             "-c", str(self.config_path),
             "--no-compare-contents",
             "--no-debug",
             "--no-delete-first",
-            "--no-force-copy"]
+            "--no-force-copy",
+            "--no-checksum"]
         options = argparse.parse_command_line(command_line_options)
         self.assertFalse(argparse.toggle_is_set(options, "compare_contents"))
         self.assertFalse(argparse.toggle_is_set(options, "debug"))
         self.assertFalse(argparse.toggle_is_set(options, "delete_first"))
         self.assertFalse(argparse.toggle_is_set(options, "force_copy"))
+        self.assertFalse(argparse.toggle_is_set(options, "checksum"))
 
     def test_recursive_config_files_are_not_allowed(self) -> None:
         """Test that putting a config parameter in a configuration file raises an exception."""
