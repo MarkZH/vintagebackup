@@ -3760,7 +3760,7 @@ class CancelKeyTests(unittest.TestCase):
 
     @unittest.skipUnless(platform.system() == "Darwin", "This test is for MacOS.")
     def test_mac_cancel_key(self) -> None:
-        """Test that cancel_key() returns 'Ctrl-C'."""
+        """Test that cancel_key() returns 'Cmd-C'."""
         self.assertEqual(console.cancel_key(), "Cmd-C")
 
 
@@ -3995,14 +3995,13 @@ class BackupInfoTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that the log for the backup is written to the backup info_file."""
         backup_info_file = backup_info.get_backup_info_file(self.backup_path)
         self.assertFalse(backup_info_file.exists())
-        log_file = self.user_path/"log.log"
-        self.assertFalse(log_file.exists())
+        self.assertFalse(self.log_path.exists())
         main.main([
             "-u", str(self.user_path),
             "-b", str(self.backup_path),
-            "--log", str(log_file)],
+            "--log", str(self.log_path)],
             testing=True)
         self.assertTrue(backup_info_file.exists())
-        self.assertTrue(log_file.exists())
+        self.assertTrue(self.log_path.exists())
         actual_log_file = backup_info.backup_log_file(self.backup_path)
-        self.assertEqual(log_file, actual_log_file)
+        self.assertEqual(self.log_path, actual_log_file)
