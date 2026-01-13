@@ -1872,6 +1872,11 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         default_backup(self.user_path, self.backup_path)
         self.assertIsNone(verify.last_checksum(self.backup_path))
 
+    def test_checksum_with_no_backups_is_error(self) -> None:
+        """Test that calling create_checksum_for_last_backup() with no backups is an error."""
+        with self.assertRaises(CommandLineError):
+            verify.create_checksum_for_last_backup(self.backup_path)
+
     def test_checksum_date_is_found_if_checksum_performed(self) -> None:
         """Test that a checksum date can be found if checksumming occurred."""
         create_user_data(self.user_path)
