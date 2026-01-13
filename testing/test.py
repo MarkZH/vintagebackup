@@ -1857,12 +1857,12 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
 
         verify.create_checksum_for_last_backup(self.backup_path)
         backup_checksum_file = last_backup/verify.checksum_file_name
-        backup_checksums = backup_checksum_file.read_text(encoding="utf8").split("\n")
+        backup_checksums = backup_checksum_file.read_text(encoding="utf8").splitlines()
         backup_checksums.sort()
 
         verify.create_checksum_for_folder(self.user_path)
         user_checksum_file = self.user_path/verify.checksum_file_name
-        user_checksums = user_checksum_file.read_text(encoding="utf8").split("\n")
+        user_checksums = user_checksum_file.read_text(encoding="utf8").splitlines()
         user_checksums.sort()
 
         self.assertEqual(backup_checksums, user_checksums)
