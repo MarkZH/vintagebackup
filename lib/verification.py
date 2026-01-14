@@ -177,6 +177,7 @@ def verify_backup_checksum(backup_folder: Path, result_directory: Path) -> Path 
 
 def start_verify_checksum(args: argparse.Namespace) -> None:
     """Parse command line for verifying backup checksums."""
+    print_run_title(args, "Verify backup checksum")
     backup_folder = fs.absolute_path(args.backup_folder)
     checksummed_backups = [
         backup for backup in util.all_backups(backup_folder)

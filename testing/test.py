@@ -2219,7 +2219,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that verifying a checksum file with no checksummed backups prints error message."""
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
-        with self.assertLogs() as logs:
+        with self.assertLogs(level=logging.ERROR) as logs:
             exit_code = main.main([
                 "-u", str(self.user_path),
                 "-b", str(self.backup_path),
