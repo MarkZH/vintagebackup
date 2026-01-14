@@ -2088,7 +2088,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         backup_folder = find_previous_backup(self.backup_path)
         self.assertIsNotNone(backup_folder)
         backup_folder = cast(Path, backup_folder)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(FileNotFoundError):
             verify.verify_backup_checksum(backup_folder, self.user_path)
 
     def test_verify_checksum_with_oldest_option_verifies_oldest_backup(self) -> None:
@@ -2248,7 +2248,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         previous_backup = find_previous_backup(self.backup_path)
         self.assertIsNotNone(previous_backup)
         previous_backup = cast(Path, previous_backup)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(FileNotFoundError):
             verify.verify_backup_checksum(previous_backup, self.user_path)
 
     def test_verify_checksum_with_no_checksummed_backups_on_command_line_is_error(self) -> None:
@@ -2307,6 +2307,28 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         relative_path, old_checksum, new_checksum = verify_data[1].rsplit(maxsplit=2)
         self.assertEqual(changed_file, checksummed_backup/relative_path)
         self.assertNotEqual(old_checksum, new_checksum)
+
+    def test_verify_checksum_before_deletion_with_no_checksum(self) -> None:
+        """Test that a checksummed backup is verified before automatic deletion."""
+        create_user_data(self.user_path)
+        timestamp = datetime.datetime.now() - datetime.timedelta(days=2)
+        main.main([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "-l", os.devnull,
+            "--timestamp", timestamp.strftime(backup_date_format)],
+            testing=True)
+
+        main.main([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "-l", os.devnull,
+            "--delete-after", "1d",
+            "--verify-checksum-before-deletion", str(self.user_path)],
+        testing=False)
+
+        result_path = self.user_path/verify.verify_checksum_file_name
+        self.assertFalse(result_path.exists())
 
 
 class ConfigurationFileTests(TestCaseWithTemporaryFilesAndFolders):

@@ -1,5 +1,6 @@
 """Functions for deleting old backups."""
 
+import contextlib
 import logging
 import shutil
 import argparse
@@ -96,7 +97,8 @@ def delete_backups_older_than(
 def delete_single_backup(backup: Path, verify_checksum_result_folder: Path | None) -> None:
     """Delete a backup and, if it is the last in a year, the year folder that contains it."""
     if verify_checksum_result_folder:
-        verify_backup_checksum(backup, verify_checksum_result_folder)
+        with contextlib.suppress(FileNotFoundError):
+            verify_backup_checksum(backup, verify_checksum_result_folder)
 
     fs.delete_directory_tree(backup, ignore_errors=True)
     try:

@@ -144,7 +144,7 @@ def verify_backup_checksum(backup_folder: Path, result_directory: Path) -> Path 
     """Verify the checksums of backed up files and write changed files to a new file."""
     checksum_path = fs.find_unique_path(backup_folder/checksum_file_name)
     if not checksum_path:
-        raise ValueError(f"Could not find checksum file in {backup_folder}")
+        raise FileNotFoundError(f"Could not find checksum file in {backup_folder}")
 
     with (checksum_path.open(encoding="utf8") as checksum_file,
           tempfile.TemporaryFile("w+", encoding="utf8") as temp):
