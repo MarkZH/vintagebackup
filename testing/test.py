@@ -2047,6 +2047,38 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(backup_folder/relative_path, changed_path)
         self.assertNotEqual(old_checksum, new_checksum)
 
+    def test_verify_checksum_writes_missing_file(self) -> None:
+        """Test that a file is written when a changed file in a backup is detected."""
+        create_user_data(self.user_path)
+        exit_code = main.main([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "--checksum",
+            "--log", str(self.log_path)],
+        testing=True)
+        self.assertEqual(exit_code, 0)
+        backup_folder = find_previous_backup(self.backup_path)
+        self.assertIsNotNone(backup_folder)
+        backup_folder = cast(Path, backup_folder)
+        missing_path = backup_folder/"sub_directory_2"/"sub_root_file.txt"
+        self.assertTrue(missing_path.exists())
+        missing_path.unlink()
+        with self.assertLogs(level=logging.WARNING) as checksum_verify_logs:
+            checksum_verify_file = verify.verify_backup_checksum(backup_folder, self.user_path)
+        self.assertEqual(
+            checksum_verify_logs.output,
+            [f"WARNING:root:File missing in backup: {missing_path.relative_to(backup_folder)}",
+             f"WARNING:root:Writing changed files to {checksum_verify_file} ..."])
+        self.assertIsNotNone(checksum_verify_file)
+        checksum_verify_file = cast(Path, checksum_verify_file)
+        self.assertTrue(checksum_verify_file.is_file())
+        verify_data = checksum_verify_file.read_text(encoding="utf8").splitlines()
+        self.assertEqual(len(verify_data), 2)
+        self.assertEqual(verify_data[0], f"Verifying checksums of {backup_folder}")
+        relative_path, _, new_checksum = verify_data[1].rsplit(" ", maxsplit=2)
+        self.assertEqual(backup_folder/relative_path, missing_path)
+        self.assertEqual("-", new_checksum)
+
     def test_verifying_checksum_creates_non_existent_result_directory(self) -> None:
         """Test that checksum verification creates a non-existent result folder."""
         create_user_data(self.user_path)

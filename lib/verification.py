@@ -156,9 +156,14 @@ def verify_backup_checksum(backup_folder: Path, result_directory: Path) -> Path 
                 continue
             relative_path, checksum = line.rsplit(" ", maxsplit=1)
             backup_path = backup_folder/relative_path
-            current_checksum = get_file_checksum(backup_path)
+            try:
+                current_checksum = get_file_checksum(backup_path)
+            except FileNotFoundError:
+                current_checksum = "-"
+
             if current_checksum != checksum:
-                logger.warning("File changed in backup: %s", relative_path)
+                problem = "missing" if current_checksum == "-" else "changed"
+                logger.warning("File %s in backup: %s", problem, relative_path)
                 write_count += temp.write(f"{relative_path} {checksum} {current_checksum}\n")
 
         checksum_verify_path = None
