@@ -72,7 +72,11 @@ If regular checksums are desired, the `--checksum-every` option can do this peri
 
 Create a new checksum file (as if by `--checksum`) for the latest backup if one hasn't been created in the timespan given in the argument.
 The argument has the same format as [`--delete-after`](delete.md#--delete-after).
-So, `--checksum-every 6m` will create a checksum file for the latest backup if one has not been created in six months.
+So, for example
+```
+python vintagebackup.py --user-folder C:\Users\Alice --backup-folder E:\backups --checksum-every 6m
+```
+will create a checksum file for the latest backup if one has not been created in six months.
 The date of the last checksum will be found by searching through all previous backups for the `checksums.sha3` or a number-renamed version.
 
 #### `--no-checksum`
