@@ -165,6 +165,7 @@ def verify_backup_checksum(backup_folder: Path, result_directory: Path) -> Path 
         checksum_verify_path = None
         if write_count > 0:
             checksum_verify_path = fs.unique_path_name(result_directory/verify_checksum_file_name)
+            checksum_verify_path.parent.mkdir(parents=True, exist_ok=True)
             logger.warning("Writing changed files to %s ...", checksum_verify_path)
             with checksum_verify_path.open("w", encoding="utf8") as checksum_verify_file:
                 temp.seek(0)
