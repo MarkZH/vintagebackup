@@ -36,6 +36,6 @@ jobs:
     - name: Test with doctest
       run: python -m doctest lib/filesystem.py lib/datetime_calculations.py lib/configuration.py lib/console.py || exit /b
     - name: Test with mypy
-      run: python -m mypy --strict vintagebackup.py testing/test.py
+      run: python -m mypy --strict .
     - name: Test with unittest
       run: python -m unittest testing/test.py
