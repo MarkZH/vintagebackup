@@ -1246,7 +1246,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             goal_space = after_backup_space + size_of_deleted_backups - file_size/2
             goal_space_str = f"{goal_space}B"
             if method == Invocation.function:
-                deletion.delete_oldest_backups_for_space(self.backup_path, goal_space_str)
+                deletion.delete_oldest_backups_for_space(self.backup_path, goal_space_str, None)
             elif method == Invocation.cli:
                 create_large_files(self.user_path, file_size)
                 exit_code = main_assert_no_error_log([
@@ -1284,6 +1284,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             deletion.delete_oldest_backups_for_space(
                 self.backup_path,
                 goal_space_str,
+                None,
                 expected_backups_count)
         self.assertIn(
             "INFO:root:Stopped after reaching maximum number of deletions.",
@@ -1301,7 +1302,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
                 now.year - 1, now.month, now.day,
                 now.hour, now.minute, now.second, now.microsecond)
             if method == Invocation.function:
-                deletion.delete_backups_older_than(self.backup_path, max_age)
+                deletion.delete_backups_older_than(self.backup_path, max_age, None)
             elif method == Invocation.cli:
                 create_user_data(self.user_path)
                 most_recent_backup = moving.last_n_backups(1, self.backup_path)[0]
@@ -1332,6 +1333,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             deletion.delete_backups_older_than(
                 self.backup_path,
                 max_age,
+                None,
                 expected_backup_count)
         self.assertIn(
             "INFO:root:Stopped after reaching maximum number of deletions.",
@@ -1345,7 +1347,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         most_recent_backup = moving.last_n_backups(1, self.backup_path)[0]
         last_backup = moving.last_n_backups(2, self.backup_path)[0]
         fs.delete_directory_tree(most_recent_backup)
-        deletion.delete_backups_older_than(self.backup_path, "1d")
+        deletion.delete_backups_older_than(self.backup_path, "1d", None)
         self.assertEqual(all_backups(self.backup_path), [last_backup])
 
     def test_free_up_never_deletes_most_recent_backup(self) -> None:
@@ -1353,7 +1355,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         create_old_monthly_backups(self.backup_path, 30)
         last_backup = moving.last_n_backups(1, self.backup_path)[0]
         total_space = shutil.disk_usage(self.backup_path).total
-        deletion.delete_oldest_backups_for_space(self.backup_path, f"{total_space}B")
+        deletion.delete_oldest_backups_for_space(self.backup_path, f"{total_space}B", None)
         self.assertEqual(all_backups(self.backup_path), [last_backup])
 
     def test_attempt_to_free_more_space_than_capacity_of_backup_location_is_an_error(self) -> None:
@@ -1361,7 +1363,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         max_space = shutil.disk_usage(self.backup_path).total
         too_much_space = 2*max_space
         with self.assertRaises(CommandLineError):
-            deletion.delete_oldest_backups_for_space(self.backup_path, f"{too_much_space}B")
+            deletion.delete_oldest_backups_for_space(self.backup_path, f"{too_much_space}B", None)
 
     def test_deleting_last_backup_in_year_folder_deletes_year_folder(self) -> None:
         """Test that deleting a backup leaves a year folder empty, that year folder is deleted."""
@@ -1370,7 +1372,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         oldest_backup_year_folder = self.backup_path/f"{today.year - 1}"
         self.assertTrue(oldest_backup_year_folder.is_dir())
         self.assertEqual(len(list(oldest_backup_year_folder.iterdir())), 1)
-        deletion.delete_backups_older_than(self.backup_path, f"{today.month}m")
+        deletion.delete_backups_older_than(self.backup_path, f"{today.month}m", None)
         self.assertFalse(oldest_backup_year_folder.is_dir())
         this_year_backup_folder = self.backup_path/f"{today.year}"
         self.assertIsNotNone(this_year_backup_folder)
@@ -2061,16 +2063,16 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         changed_path = backup_folder/"sub_directory_2"/"sub_root_file.txt"
         self.assertTrue(changed_path.exists())
         changed_path.write_text("Corrupted data\n", encoding="utf8")
-        verify_result_folder = self.user_path/"result"
+        verify_folder = self.user_path/"result"
         with self.assertLogs(level=logging.WARNING) as checksum_verify_logs:
-            checksum_verify_file = verify.verify_backup_checksum(backup_folder, verify_result_folder)
+            checksum_verify_file = verify.verify_backup_checksum(backup_folder, verify_folder)
         self.assertEqual(
             checksum_verify_logs.output,
             [f"WARNING:root:File changed in backup: {changed_path.relative_to(backup_folder)}",
              f"WARNING:root:Writing changed files to {checksum_verify_file} ..."])
         self.assertIsNotNone(checksum_verify_file)
         checksum_verify_file = cast(Path, checksum_verify_file)
-        self.assertEqual(checksum_verify_file.parent, verify_result_folder)
+        self.assertEqual(checksum_verify_file.parent, verify_folder)
         self.assertTrue(checksum_verify_file.is_file())
         verify_data = checksum_verify_file.read_text(encoding="utf8").splitlines()
         self.assertEqual(len(verify_data), 2)
@@ -2266,6 +2268,45 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(
             logs.output,
             [f"ERROR:root:No backups with checksums found in {self.backup_path}"])
+
+    def test_verify_checksum_before_deletion(self) -> None:
+        """Test that a checksummed backup is verified before automatic deletion."""
+        create_user_data(self.user_path)
+        timestamp = datetime.datetime.now() - datetime.timedelta(days=2)
+        main.main([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "-l", os.devnull,
+            "--checksum",
+            "--timestamp", timestamp.strftime(backup_date_format)],
+            testing=True)
+
+        backups = all_backups(self.backup_path)
+        self.assertEqual(len(backups), 1)
+        checksummed_backup = backups[0]
+        self.assertTrue((checksummed_backup/verify.checksum_file_name).is_file())
+
+        changed_file = (
+            checksummed_backup/"sub_directory_2"/"sub_sub_directory_1"/"file_2.txt")
+        self.assertTrue(changed_file.is_file())
+        changed_file.write_text("Corrupted data")
+
+        main.main([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "-l", os.devnull,
+            "--delete-after", "1d",
+            "--verify-checksum-before-deletion", str(self.user_path)],
+        testing=False)
+
+        result_path = self.user_path/verify.verify_checksum_file_name
+        self.assertTrue(result_path.is_file())
+        verify_data = result_path.read_text().splitlines()
+        self.assertEqual(len(verify_data), 2)
+        self.assertEqual(verify_data[0], f"Verifying checksums of {checksummed_backup}")
+        relative_path, old_checksum, new_checksum = verify_data[1].rsplit(maxsplit=2)
+        self.assertEqual(changed_file, checksummed_backup/relative_path)
+        self.assertNotEqual(old_checksum, new_checksum)
 
 
 class ConfigurationFileTests(TestCaseWithTemporaryFilesAndFolders):

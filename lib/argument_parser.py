@@ -10,7 +10,7 @@ from typing import TextIO
 
 from lib.configuration import read_configuation_file
 from lib.exceptions import CommandLineError
-from lib.filesystem import absolute_path, default_log_file_name
+from lib.filesystem import default_log_file_name
 
 
 def format_paragraphs(lines: str, line_length: int) -> str:
@@ -69,11 +69,6 @@ def toggle_is_set(args: argparse.Namespace, name: str) -> bool:
     """Check that a boolean command line option --X has been selected and not negated by --no-X."""
     options = vars(args)
     return options[name] and not options[f"no_{name}"]
-
-
-def path_or_none(arg: str | None) -> Path | None:
-    """Create a Path instance if the input string is valid."""
-    return absolute_path(arg) if arg else None
 
 
 def confirm_choice_made(args: argparse.Namespace, *options: str) -> None:
@@ -298,6 +293,11 @@ kept once the time span in the argument has passed. The format of the argument i
 prior to starting a new backup."""))
 
     add_no_option(deletion_group, "delete-first")
+
+    deletion_group.add_argument(
+        "--verify-checksum-before-deletion", metavar="RESULT_DIR", help=format_help(
+"""If a backup with a checksum is about to be automatically deleted, verify the checksum first. The
+result of the verification will be placed in the folder RESULT_DIR."""))
 
     backup_group.add_argument("--force-copy", action="store_true", help=format_help(
 """Copy all files instead of linking to files previous backups. The

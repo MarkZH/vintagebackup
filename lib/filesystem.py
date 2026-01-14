@@ -90,6 +90,11 @@ def find_unique_path(path: Path) -> Path | None:
     return result
 
 
+def path_or_none(arg: str | None) -> Path | None:
+    """Create a Path instance if the input string is valid."""
+    return absolute_path(arg) if arg else None
+
+
 def delete_directory_tree(directory: Path, *, ignore_errors: bool = False) -> None:
     """
     Delete a single directory.

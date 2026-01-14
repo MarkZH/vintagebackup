@@ -9,7 +9,6 @@ from pathlib import Path
 import tempfile
 import shutil
 
-from lib.argument_parser import path_or_none
 import lib.backup_utilities as util
 from lib.backup_info import backup_source
 from lib.backup_set import Backup_Set
@@ -75,7 +74,7 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
 def start_verify_backup(args: argparse.Namespace) -> None:
     """Parse command line options for verifying backups."""
     backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
-    filter_file = path_or_none(args.filter)
+    filter_file = fs.path_or_none(args.filter)
     result_folder = fs.absolute_path(args.verify)
     print_run_title(args, "Verifying last backup")
     verify_last_backup(result_folder, backup_folder, filter_file)
@@ -178,6 +177,7 @@ def verify_backup_checksum(backup_folder: Path, result_directory: Path) -> Path 
 
 def start_verify_checksum(args: argparse.Namespace) -> None:
     """Parse command line for verifying backup checksums."""
+    result_folder = fs.absolute_path(args.verify_checksum)
     print_run_title(args, "Verify backup checksum")
     backup_folder = fs.absolute_path(args.backup_folder)
     checksummed_backups = [
@@ -198,7 +198,6 @@ def start_verify_checksum(args: argparse.Namespace) -> None:
             test_choice=int(args.choice) if args.choice else None)
         target = checksummed_backups[choice]
 
-    result_folder = fs.absolute_path(args.verify_checksum)
     verify_backup_checksum(target, result_folder)
 
 
