@@ -91,8 +91,10 @@ This is usually used to override options in a [configuration file](configuration
 Recalculate checksums of a backup, compare them with the checksum file, and write the result into a file.
 The file will be put into a directory named in the argument of this option.
 The user will be given a choice of which backups with a checksum file to verify from an on-screen menu, or according to `--oldest` or `--newest` (see below).
+
 The result of this comparison will be a list of files which have different checksums from when the backup occured.
-This file will be written into the directory
+Each line of the file will contain the file name, its old checksum, and its current checksum.
+If a backed up file is missing, its current checksum will be written as `-`.
 If no files have changed, no result file will be written.
 
 Like creating checksum files, verifying a backup's checksum will also take a long time.
