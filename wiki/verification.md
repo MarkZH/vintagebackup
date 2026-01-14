@@ -42,7 +42,7 @@ The idea of a checksum is that, if any change occurs within a file, even a singl
 So, at any time in the future, one can verify that the data within a backup has not changed by recalculating the checksums of the files in a backup and comparing them to the checksums in the file.
 If a difference is found, then there can be further investigation to determine what data was changed and what was the cause.
 
-*Technical details*: The algorithm used for calculating checksums is SHA-3, which outputs 256-bit checksums as hexadecimal strings.
+*Technical details*: The algorithm used for calculating checksums is SHA-3 outputting 256-bit checksums as hexadecimal strings.
 
 ### Options for creating a checksum
 
