@@ -65,6 +65,9 @@ Each line of `checksums.sha3` consists of a file name, followed by a single spac
 
 If a file named `checksums.sha3` already exists in the root of the backup, the file will be renamed `checksums.1.sha3`, `checksums.2.sha3`, etc. as needed to not overwrite an existing file.
 
+Creating a checksum can take a very long time, much longer than a backup where every file is copied.
+If regular checksums are desired, the `--checksum-every` option can do this periodically with long intervals in between.
+
 #### `--checksum-every`
 
 Create a new checksum file (as if by `--checksum`) for the latest backup if one hasn't been created in the timespan given in the argument.
@@ -87,6 +90,8 @@ The user will be given a choice of which backups with a checksum file to verify 
 The result of this comparison will be a list of files which have different checksums from when the backup occured.
 This file will be written into the directory
 If no files have changed, no result file will be written.
+
+Like creating checksum files, verifying a backup's checksum will also take a long time.
 
 #### `--oldest`
 
