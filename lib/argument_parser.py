@@ -94,16 +94,19 @@ def argument_parser() -> argparse.ArgumentParser:
         description=format_text(
 """A backup utility that combines the best aspects of full and incremental backups.
 
-Every time Vintage Backup runs, a new folder is created at the backup location
-that contains copies of all of the files in the directory being backed up.
-If a file in the directory being backed up is unchanged since the last
-back up, a hard link to the same file in the previous backup is created.
-This way, unchanged files do not take up more storage space in the backup
-location, allowing for possible years of daily backups, all while having
-each folder in the backup location contain a full backup.
+Every time Vintage Backup runs, the user's data is copied to a new dated folder at the backup
+location.
+If a file has not been changed since the last backup, a hard link is created to the same file in the
+previous backup.
+This way, backups of unchanged files do not take up storage space, allowing for months of daily
+backups, all while having every backup contain all of a user's data.
+The backup folders are just like regular folders and can be accessed through any file explorer
+without needing Vintage Backup.
 
-Vintage Backup can also perform other operations besides backups. See the Actions section below for
-more capabilities.
+Vintage Backup can also perform other backup-related operations including recovering individual
+files and folders, verifying backed up data, and automatically deleting old backups to make space
+for new ones.
+See the Actions section below for more capabilities.
 
 Technical notes:
 
@@ -128,8 +131,8 @@ modification times are recorded. Using the --compare-contents option may mitigat
 will take much more time."""))
 
     action_group = user_input.add_argument_group("Actions", format_text(
-"""The default action when vintage backups is run is to create a new backup. If one of the following
-options are chosen, then that action is performed instead."""))
+"""The default action when Vintage Backup runs is to create a new backup. If any of the following
+options are used, a different action will be performed instead."""))
 
     only_one_action_group = action_group.add_mutually_exclusive_group()
 
