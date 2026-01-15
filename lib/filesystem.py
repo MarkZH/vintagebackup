@@ -69,6 +69,32 @@ def unique_path_name(destination_path: Path) -> Path:
     return unique_path
 
 
+def find_unique_path(path: Path) -> Path | None:
+    """Determine whether a path or one created by unique_path_name() exists."""
+    result: Path | None = None
+    if path.exists():
+        result = path
+
+    stem = path.stem
+    ext = path.suffix
+    number = 0
+    for p in path.parent.iterdir():
+        if p.stem.startswith(stem) and p.suffix == ext:
+            addition = p.stem.removeprefix(path.stem)
+            if addition.startswith(".") and addition[1:].isdigit():
+                new_number = int(addition[1:])
+                if new_number > number:
+                    result = p
+                    number = new_number
+
+    return result
+
+
+def path_or_none(arg: str | None) -> Path | None:
+    """Create a Path instance if the input string is valid."""
+    return absolute_path(arg) if arg else None
+
+
 def delete_directory_tree(directory: Path, *, ignore_errors: bool = False) -> None:
     """
     Delete a single directory.

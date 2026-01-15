@@ -6,7 +6,7 @@ import argparse
 from pathlib import Path
 
 from lib.argument_parser import confirm_choice_made
-from lib.backup import all_backups, backup_datetime, create_new_backup
+from lib.backup import create_new_backup
 from lib.backup_info import (
     backup_log_file,
     backup_source,
@@ -14,6 +14,7 @@ from lib.backup_info import (
     record_backup_log_file,
     record_user_location)
 from lib.backup_lock import Backup_Lock
+from lib.backup_utilities import all_backups, backup_datetime
 from lib.console import plural_noun, print_run_title
 from lib.datetime_calculations import parse_time_span_to_timepoint
 from lib.filesystem import absolute_path, get_existing_path

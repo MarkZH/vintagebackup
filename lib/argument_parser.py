@@ -10,7 +10,7 @@ from typing import TextIO
 
 from lib.configuration import read_configuation_file
 from lib.exceptions import CommandLineError
-from lib.filesystem import absolute_path, default_log_file_name
+from lib.filesystem import default_log_file_name
 
 
 def format_paragraphs(lines: str, line_length: int) -> str:
@@ -56,15 +56,19 @@ f"""Disable the --{name} option. This is primarily used if "{name}" appears in a
 configuration file. This option has priority even if --{name} is listed later."""))
 
 
+def add_periodic_option(
+        user_input: argparse.ArgumentParser | argparse._ArgumentGroup,
+        name: str) -> None:
+    """Add an option for performing actions periodically."""
+    user_input.add_argument(f"--{name}-every", help=format_help(
+f"""Perform the --{name} action if it has not been done within the time span of the argument.
+See --delete-after for the time span format to use."""))
+
+
 def toggle_is_set(args: argparse.Namespace, name: str) -> bool:
     """Check that a boolean command line option --X has been selected and not negated by --no-X."""
     options = vars(args)
     return options[name] and not options[f"no_{name}"]
-
-
-def path_or_none(arg: str | None) -> Path | None:
-    """Create a Path instance if the input string is valid."""
-    return absolute_path(arg) if arg else None
 
 
 def confirm_choice_made(args: argparse.Namespace, *options: str) -> None:
@@ -170,6 +174,13 @@ match, a list of files that do not match, and a list of files that caused errors
 comparison. The --backup-folder argument is required. If a filter file was used
 to create the backup, then --filter should be supplied as well."""))
 
+    only_one_action_group.add_argument("--verify-checksum", metavar="RESULT_DIR", help=format_help(
+"""Verify that files in a backup have not changed since the backup was created by recalculating
+checksums. If changes are found, a file with a list of all changed backed up files will be placed
+in RESULT_DIR. The options --oldest and --newest can be used to select which backup to verify. The
+first will choose the oldest backup with a checksum file; the second will choose the latest. If
+neither option is used then a menu with every backup with a checksum file."""))
+
     only_one_action_group.add_argument(
         "--preview-filter",
         metavar="FILE_NAME",
@@ -238,6 +249,13 @@ take considerably longer."""))
 
     add_no_option(backup_group, "compare-contents")
 
+    backup_group.add_argument("--checksum", action="store_true", help=format_help(
+"""After a successful backup, scan the new backup and write the checksums of all backed up files
+to a file stored in the base folder of the backup."""))
+
+    add_no_option(backup_group, "checksum")
+    add_periodic_option(backup_group, "checksum")
+
     deletion_group = user_input.add_argument_group("Backup deletion", description=format_help(
 """Automatically delete old backups according to various criteria. Multiple deletion options can be
 used at the same time. When using these options, the most recent backup is never deleted."""))
@@ -275,6 +293,11 @@ kept once the time span in the argument has passed. The format of the argument i
 prior to starting a new backup."""))
 
     add_no_option(deletion_group, "delete-first")
+
+    deletion_group.add_argument(
+        "--verify-checksum-before-deletion", metavar="RESULT_DIR", help=format_help(
+"""If a backup with a checksum is about to be automatically deleted, verify the checksum first. The
+result of the verification will be placed in the folder RESULT_DIR."""))
 
     backup_group.add_argument("--force-copy", action="store_true", help=format_help(
 """Copy all files instead of linking to files previous backups. The
@@ -357,6 +380,14 @@ required."""))
     other_group.add_argument("-c", "--config", metavar="FILE_NAME", help=format_help(
 r"""Read options from a configuration file instead of command-line arguments.
 See below for the configuration file format."""))
+
+    backup_pick_options = other_group.add_mutually_exclusive_group()
+
+    backup_pick_options.add_argument("--oldest", action="store_true", help=format_help(
+"""Choose the oldest backup suitable for a task."""))
+
+    backup_pick_options.add_argument("--newest", action="store_true", help=format_help(
+"""Choose the newest backup suitable for a task."""))
 
     other_group.add_argument("--debug", action="store_true", help=format_help(
         """Log information on all actions during a program run."""))

@@ -6,8 +6,7 @@ import sys
 from collections.abc import Iterator
 from pathlib import Path
 
-from lib.argument_parser import path_or_none
-from lib.filesystem import get_existing_path, path_listing
+from lib.filesystem import get_existing_path, path_listing, path_or_none
 
 logger = logging.getLogger()
 

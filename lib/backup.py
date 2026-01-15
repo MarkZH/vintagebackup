@@ -14,50 +14,16 @@ from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Any, cast
 
-from lib.argument_parser import path_or_none, toggle_is_set
+from lib.argument_parser import toggle_is_set
+from lib.backup_utilities import all_backups, backup_date_format, find_previous_backup
 from lib.backup_info import confirm_user_location_is_unchanged, record_user_location
 from lib.backup_lock import Backup_Lock
 from lib.backup_set import Backup_Set
 from lib.console import print_run_title
 from lib.exceptions import CommandLineError
-from lib.filesystem import (
-    absolute_path,
-    byte_units,
-    delete_directory_tree,
-    get_existing_path,
-    is_real_directory,
-    parse_storage_space)
+import lib.filesystem as fs
 
 logger = logging.getLogger()
-
-
-backup_date_format = "%Y-%m-%d %H-%M-%S"
-
-
-def all_backups(backup_location: Path) -> list[Path]:
-    """Return a sorted list of all backups at the given location."""
-
-    def is_valid_directory(date_folder: Path) -> bool:
-        try:
-            year = datetime.datetime.strptime(date_folder.parent.name, "%Y").year
-            date = datetime.datetime.strptime(date_folder.name, backup_date_format)
-            return year == date.year and is_real_directory(date_folder)
-        except ValueError:
-            return False
-
-    all_backup_list: list[Path] = []
-    for year_folder in filter(is_real_directory, backup_location.iterdir()):
-        all_backup_list.extend(filter(is_valid_directory, year_folder.iterdir()))
-
-    return sorted(all_backup_list)
-
-
-def find_previous_backup(backup_location: Path) -> Path | None:
-    """Return the most recent backup at the given location."""
-    try:
-        return all_backups(backup_location)[-1]
-    except IndexError:
-        return None
 
 
 def shallow_stats(stats: os.stat_result) -> tuple[int, int, int]:
@@ -302,7 +268,7 @@ def create_new_backup(
     if staging_backup_path.exists():
         logger.info("There is a staging folder leftover from previous incomplete backup.")
         logger.info("Deleting %s ...", staging_backup_path)
-        delete_directory_tree(staging_backup_path)
+        fs.delete_directory_tree(staging_backup_path)
 
     confirm_user_location_is_unchanged(user_data_location, backup_location)
     record_user_location(user_data_location, backup_location)
@@ -388,11 +354,6 @@ def check_paths_for_validity(
         raise CommandLineError(f"Filter file not found: {filter_file}")
 
 
-def backup_datetime(backup: Path) -> datetime.datetime:
-    """Get the timestamp of a backup from the backup folder name."""
-    return datetime.datetime.strptime(backup.name, backup_date_format)
-
-
 def print_backup_storage_stats(backup_location: Path) -> None:
     """Log information about the storage space of the backup medium."""
     backup_storage = shutil.disk_usage(backup_location)
@@ -401,10 +362,10 @@ def print_backup_storage_stats(backup_location: Path) -> None:
     logger.info("")
     logger.info(
         "Backup storage space: Total = %s  Used = %s (%d%%)  Free = %s (%d%%)",
-        byte_units(backup_storage.total),
-        byte_units(backup_storage.used),
+        fs.byte_units(backup_storage.total),
+        fs.byte_units(backup_storage.used),
         percent_used,
-        byte_units(backup_storage.free),
+        fs.byte_units(backup_storage.free),
         percent_free)
     backups = all_backups(backup_location)
     logger.info("Backups stored: %d", len(backups))
@@ -447,21 +408,22 @@ def copy_probability_from_hard_link_count(hard_link_count: str) -> float:
 
 def start_backup(args: argparse.Namespace) -> None:
     """Parse command line arguments to start a backup."""
-    user_folder = get_existing_path(args.user_folder, "user's folder")
+    user_folder = fs.get_existing_path(args.user_folder, "user's folder")
 
     if not args.backup_folder:
         raise CommandLineError("Backup folder not specified.")
 
-    backup_folder = absolute_path(args.backup_folder)
+    backup_folder = fs.absolute_path(args.backup_folder)
     backup_folder.mkdir(parents=True, exist_ok=True)
 
     with Backup_Lock(backup_folder, "backup"):
         print_run_title(args, "Starting new backup")
         free_space_before_backup = shutil.disk_usage(backup_folder).free
+        filter_file = fs.path_or_none(args.filter)
         create_new_backup(
             user_folder,
             backup_folder,
-            filter_file=path_or_none(args.filter),
+            filter_file=filter_file,
             examine_whole_file=toggle_is_set(args, "compare_contents"),
             force_copy=toggle_is_set(args, "force_copy"),
             copy_probability=copy_probability(args),
@@ -480,13 +442,13 @@ def log_backup_size(free_up_parameter: str | None, backup_space_taken: int) -> N
     This should warn the user that a future backup may not have enough storage space to complete
     sucessfully.
     """
-    free_up = parse_storage_space(free_up_parameter or "0")
+    free_up = fs.parse_storage_space(free_up_parameter or "0")
     free_up_percent = math.ceil(100*backup_space_taken/free_up) if free_up else 0
     free_up_text = f" ({free_up_percent}% of --free-up)" if free_up else ""
     free_up_warning_percent = 90
     is_warning = free_up_percent >= free_up_warning_percent
     log_destination = logger.warning if is_warning else logger.info
-    log_destination(f"Backup space used: {byte_units(backup_space_taken)}{free_up_text}")
+    log_destination(f"Backup space used: {fs.byte_units(backup_space_taken)}{free_up_text}")
     if is_warning:
         logger.warning("Consider increasing the size of the --free-up parameter.")
 
