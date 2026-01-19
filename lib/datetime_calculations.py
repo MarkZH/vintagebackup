@@ -78,8 +78,10 @@ def fix_end_of_month(year: int, month: int, day: int) -> datetime.date:
     >>> fix_end_of_month(2025, 5, 23)
     datetime.date(2025, 5, 23)
     """
-    while True:
+    for fixed_day in range(day, 0, -1):
         try:
-            return datetime.date(year, month, day)
+            return datetime.date(year, month, fixed_day)
         except ValueError:
-            day -= 1
+            pass
+
+    raise ValueError(f"Cannot fix date: {year}-{month}-{day}")

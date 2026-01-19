@@ -3214,6 +3214,27 @@ class EndOfMonthFixTests(unittest.TestCase):
                     first_day_of_next_month = datetime.date(year, month + 1, 1)
                 self.assertEqual(day_after, first_day_of_next_month)
 
+    def test_fix_end_of_month_rejects_inherently_bad_dates(self) -> None:
+        """Test that fix_end_of_month() rejects bad values: zero, negatives, etc."""
+        def assert_is_bad_date(year: int, month: int, day: int) -> None:
+            with self.assertRaises(ValueError):
+                dates.fix_end_of_month(year, month, day)
+
+        # Bad years
+        assert_is_bad_date(datetime.MINYEAR - 2, 1, 1)
+        assert_is_bad_date(datetime.MINYEAR - 1, 1, 1)
+        assert_is_bad_date(datetime.MAXYEAR + 1, 1, 1)
+        assert_is_bad_date(datetime.MAXYEAR + 2, 1, 1)
+
+        # Bad months
+        assert_is_bad_date(2026, -1, 1)
+        assert_is_bad_date(2026, 0, 1)
+        assert_is_bad_date(2026, 13, 1)
+
+        # Bad days
+        assert_is_bad_date(2026, 1, -1)
+        assert_is_bad_date(2026, 1, 0)
+
 
 class PluralTests(unittest.TestCase):
     """Test pluralizing function."""
