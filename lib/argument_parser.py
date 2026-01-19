@@ -227,7 +227,7 @@ folder, it is not deleted. The backup location argument --backup-folder is requi
         help=format_help(
 """Generate scripts and config files for use with Windows Task Scheduler."""))
 
-    backup_group = user_input.add_argument_group("Options for backing up")
+    backup_group = user_input.add_argument_group("Options for Backing Up")
 
     backup_group.add_argument("-u", "--user-folder", help=format_help(
 """The directory to be backed up. The contents of this
@@ -259,7 +259,7 @@ to a file stored in the base folder of the backup."""))
     add_no_option(backup_group, "checksum")
     add_periodic_option(backup_group, "checksum")
 
-    deletion_group = user_input.add_argument_group("Backup deletion", description=format_help(
+    deletion_group = user_input.add_argument_group("Backup Deletion", description=format_help(
 """Automatically delete old backups according to various criteria. Multiple deletion options can be
 used at the same time. When using these options, the most recent backup is never deleted."""))
 
@@ -321,7 +321,7 @@ unchanged file will be copied with a probability of 1/(HARD_LINK_COUNT + 1).""")
 backup. The probability can be expressed as a decimal (0.1) or as a percent (10%%). This is an
 alternate to --hard-link-count and cannot be used together with it."""))
 
-    recover_group = user_input.add_argument_group("Recover options", format_text(
+    recover_group = user_input.add_argument_group("Recovery Options", format_text(
 """Choose how to search for which version of a file or folder to recover from backup."""))
 
     recover_group.add_argument("--search", action="store_true", help=format_help(
@@ -329,7 +329,7 @@ alternate to --hard-link-count and cannot be used together with it."""))
 Then, after the examining the file, decide whether to restore a newer or older version as
 needed."""))
 
-    move_group = user_input.add_argument_group("Move backup options", format_text(
+    move_group = user_input.add_argument_group("Move Backup Options", format_text(
 """Use exactly one of these options to specify which backups to move when using --move-backup."""))
 
     only_one_move_group = move_group.add_mutually_exclusive_group()
@@ -377,7 +377,7 @@ required."""))
     restore_group.add_argument("--destination", help=format_help(
 """Specify a different destination for the backup restoration."""))
 
-    other_group = user_input.add_argument_group("Other options")
+    other_group = user_input.add_argument_group("Other Options")
 
     other_group.add_argument("-c", "--config", metavar="FILE_NAME", help=format_help(
 r"""Read options from a configuration file instead of command-line arguments.
@@ -412,7 +412,7 @@ events occur."""))
 """The format of the arguments asking for time spans is Nt, where N is a whole number and t is a
 single letter: d for days, w for weeks, m for calendar months, or y for calendar years."""))
 
-    user_input.add_argument_group("Configuration file format", description=format_help(
+    user_input.add_argument_group("Configuration File Format", description=format_help(
 r"""The format of the file should be one option per line with a colon separating the parameter name
 and value. The parameter names have the same names as the double-dashed command line options
 (i.e., "user-folder", not "u"). If a parameter does not take a value, like "compare-contents",
@@ -449,7 +449,7 @@ line options override the config file options.
 A final note: recursive configuration files are not supported. Using the parameter "config" inside
 a configuration file will cause the program to quit with an error."""))
 
-    user_input.add_argument_group("Filter file format", description=format_help(
+    user_input.add_argument_group("Filter File Format", description=format_help(
 """Each line in the file consists of a symbol followed by a path. The symbol must be a minus (-),
 plus (+), or hash (#). Lines with minus signs specify files and folders to exclude. Lines with plus
 signs specify files and folders to include. Lines with hash signs are ignored. Prior to reading the
