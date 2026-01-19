@@ -58,11 +58,12 @@ configuration file. This option has priority even if --{name} is listed later.""
 
 def add_periodic_option(
         user_input: argparse.ArgumentParser | argparse._ArgumentGroup,
-        name: str) -> None:
+        name: str,
+        extra_info: str = "") -> None:
     """Add an option for performing actions periodically."""
     user_input.add_argument(f"--{name}-every", help=format_help(
 f"""Perform the --{name} action if it has not been done within the time span of the argument.
-See the Time Span Format section below for how to specify a time span."""))
+See the Time Span Format section below for how to specify a time span. {extra_info}""".strip()))
 
 
 def toggle_is_set(args: argparse.Namespace, name: str) -> bool:
@@ -257,7 +258,11 @@ take considerably longer."""))
 to a file stored in the base folder of the backup."""))
 
     add_no_option(backup_group, "checksum")
-    add_periodic_option(backup_group, "checksum")
+    add_periodic_option(
+        backup_group,
+        "checksum",
+        ("Be sure to specify --oldest or --newest so the program doesn't get stuck waiting for a "
+         "menu choice."))
 
     deletion_group = user_input.add_argument_group("Backup Deletion", description=format_help(
 """Automatically delete old backups according to various criteria. Multiple deletion options can be
