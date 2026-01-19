@@ -74,12 +74,8 @@ def read_backup_information(backup_folder: Path) -> Backup_Info:
                 line = line_raw.lstrip().removesuffix("\n")
                 if not line:
                     continue
-                if any(line.startswith(k) for k in extracted_info):
-                    key, value_string = line.split(": ", maxsplit=1)
-                else:
-                    key = "Source"
-                    value_string = line
 
+                key, value_string = line.split(": ", maxsplit=1)
                 key = backup_info_key(key)
                 value = absolute_path(value_string)
                 extracted_info[key] = value
