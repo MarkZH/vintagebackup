@@ -62,7 +62,7 @@ def add_periodic_option(
     """Add an option for performing actions periodically."""
     user_input.add_argument(f"--{name}-every", help=format_help(
 f"""Perform the --{name} action if it has not been done within the time span of the argument.
-See --delete-after for the time span format to use."""))
+See the Time Span Format section below for how to specify a time span."""))
 
 
 def toggle_is_set(args: argparse.Namespace, name: str) -> bool:
@@ -216,7 +216,7 @@ specified after --purge-list, then the current directory is used. If the file ex
 folder, it is not deleted. The backup location argument --backup-folder is required."""))
 
     only_one_action_group.add_argument("--delete-only", action="store_true", help=format_help(
-"""Delete old backups according to --free-up or --delete-after without running a backup first."""))
+"""Delete old backups according to --free-up or --delete-after without running a backup."""))
 
     action_group.add_argument("--generate-config", metavar="FILE_NAME", help=format_help(
 """Generate a configuration file that matches the other arguments in the call."""))
@@ -275,12 +275,11 @@ will be deleted until at least that much space is free."""))
 
     deletion_group.add_argument("--delete-after", metavar="TIME", help=format_help(
 """After a successful backup, delete backups if they are older than the time span in the argument.
-The format of the argument is Nt, where N is a whole number and t is a single letter: d for days, w
-for weeks, m for calendar months, or y for calendar years."""))
+See the Time Span Format section below for how to specify time spans."""))
 
     keep_x_after_help = """After a successful backup, delete backups so that only {} backups are
-kept once the time span in the argument has passed. The format of the argument is the same as in
---delete-after."""
+kept once the time span in the argument has passed. The format of the argument is described in
+the Time Span Format section below."""
 
     for keep_time in ("weekly", "monthly", "yearly"):
         deletion_group.add_argument(
@@ -340,8 +339,8 @@ needed."""))
 to the new location."""))
 
     only_one_move_group.add_argument("--move-age", help=format_help(
-"""Specify the maximum age of backups to move. See --delete-after for the time span format to use.
-"""))
+"""Specify the maximum age of backups to move. See the Time Span Format section below for the time
+span format to use."""))
 
     only_one_move_group.add_argument("--move-since", help=format_help(
 """Move all backups made on or after the specified date (YYYY-MM-DD)."""))
@@ -408,6 +407,10 @@ log file is desired, use the file name {os.devnull}."""))
     other_group.add_argument("--error-log", help=format_help(
 """Where to copy log lines that are warnings or errors. This file will only appear when unexpected
 events occur."""))
+
+    user_input.add_argument_group("Time Span Format", description=format_help(
+"""The format of the arguments asking for time spans is Nt, where N is a whole number and t is a
+single letter: d for days, w for weeks, m for calendar months, or y for calendar years."""))
 
     user_input.add_argument_group("Configuration file format", description=format_help(
 r"""The format of the file should be one option per line with a colon separating the parameter name
