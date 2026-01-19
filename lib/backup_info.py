@@ -28,13 +28,9 @@ def record_user_location(user_location: Path, backup_location: Path) -> None:
     write_backup_information(backup_location, backup_info)
 
 
-def backup_source(backup_location: Path) -> Path:
+def backup_source(backup_location: Path) -> Path | None:
     """Read the user directory that was backed up to the given backup location."""
-    user_folder = read_backup_information(backup_location)["Source"]
-    if user_folder:
-        return user_folder
-    else:
-        raise FileNotFoundError(f"No source for backups in {backup_location} found.")
+    return read_backup_information(backup_location)["Source"]
 
 
 def confirm_user_location_is_unchanged(user_data_location: Path, backup_location: Path) -> None:
@@ -45,16 +41,16 @@ def confirm_user_location_is_unchanged(user_data_location: Path, backup_location
     that was backed up previously. Backing up multiple different directories to the same backup
     location negates the hard linking functionality.
     """
-    try:
-        recorded_user_folder = backup_source(backup_location)
-        if not recorded_user_folder.samefile(user_data_location):
-            raise CommandLineError(
-                "Previous backup stored a different user folder."
-                f" Previously: {absolute_path(recorded_user_folder)};"
-                f" Now: {absolute_path(user_data_location)}")
-    except FileNotFoundError:
+    recorded_user_folder = backup_source(backup_location)
+    if not recorded_user_folder:
         # This is probably the first backup, hence no user folder record.
-        pass
+        return
+
+    if not recorded_user_folder.samefile(user_data_location):
+        raise CommandLineError(
+            "Previous backup stored a different user folder."
+            f" Previously: {absolute_path(recorded_user_folder)};"
+            f" Now: {absolute_path(user_data_location)}")
 
 
 class Backup_Info(TypedDict):

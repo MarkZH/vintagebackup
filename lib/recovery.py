@@ -217,9 +217,8 @@ def prompt_for_binary_choice(backup_choices: list[Path]) -> Binary_Response:
 
 def path_relative_to_backups(user_path: Path, backup_location: Path) -> Path:
     """Return a path to a user's file or folder relative to the backups folder."""
-    try:
-        user_data_location = backup_source(backup_location)
-    except FileNotFoundError:
+    user_data_location = backup_source(backup_location)
+    if not user_data_location:
         raise CommandLineError(f"No backups found at {backup_location}") from None
 
     try:

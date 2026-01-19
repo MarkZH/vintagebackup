@@ -43,7 +43,10 @@ def restore_backup(
     :param delete_extra_files: Whether to delete files and folders that are not present in the
     backup.
     """
-    user_folder = backup_source(dated_backup_folder.parent.parent)
+    root_backup_folder = dated_backup_folder.parent.parent
+    user_folder = backup_source(root_backup_folder)
+    if not user_folder:
+        raise CommandLineError("Could not get location of user data from %s", root_backup_folder)
     logger.info("Restoring: %s", user_folder)
     logger.info("From     : %s", dated_backup_folder)
     logger.info("Deleting extra files: %s", delete_extra_files)
