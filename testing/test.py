@@ -648,6 +648,33 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
             list(self.backup_path.iterdir()),
             [self.backup_path/"vintagebackup.source.txt"])
 
+    def test_hard_links_in_user_data_are_not_preserved(self) -> None:
+        """
+        Test that files that are hard-linked in the user's folder are not linked in backups.
+
+        This test ensures that the documentation about hard links in user data is correct, (see the
+        Technical Details in the command line help and the Other Details section in the Backup page
+        of the wiki). It's not really a feature, just a limitation.
+        """
+        create_user_data(self.user_path)
+        linked_file = self.user_path/"root_file.txt"
+        self.assertTrue(linked_file.is_file())
+        other_linked_file = self.user_path/"linked_root_file.txt"
+        self.assertFalse(other_linked_file.exists())
+        other_linked_file.hardlink_to(linked_file)
+        self.assertEqual(linked_file.stat().st_ino, other_linked_file.stat().st_ino)
+        default_backup(self.user_path, self.backup_path)
+        backup = find_previous_backup(self.backup_path)
+        self.assertIsNotNone(backup)
+        backup = cast(Path, backup)
+        linked_backup_file = backup/linked_file.relative_to(self.user_path)
+        self.assertTrue(linked_backup_file.is_file())
+        other_linked_backup_file = backup/other_linked_file.relative_to(self.user_path)
+        self.assertTrue(other_linked_backup_file.is_file())
+        self.assertNotEqual(
+            linked_backup_file.stat().st_ino,
+            other_linked_backup_file.stat().st_ino)
+
 
 class FilterTests(TestCaseWithTemporaryFilesAndFolders):
     """Test that filter files work properly."""
