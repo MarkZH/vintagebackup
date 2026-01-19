@@ -95,6 +95,7 @@ This is an alternative to `--hard-link-count` and has the same trade-offs.
 ## Other details
 
 - If a folder contains no files and none of its subfolders contain files, that folder will not appear in the backup.
+This is true whether the folders are actually empty or if a filter file removes them from the backup.
 - Symbolic links are copied as symbolic links.
 The data they point to will not be copied to the backup.
 - Windows junction points are excluded by default.
