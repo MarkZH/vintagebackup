@@ -101,4 +101,5 @@ The data they point to will not be copied to the backup.
 They may be added with a filter file.
 - Hard links in the user's data are not preserved.
 They will be copied or hard-linked separately.
-- Backing up to a location with a different file system may prevent hard links from forming due to discrepancies in how file metadata is recorded. The option `--compare-contents` can mitigate this by examining file contents, but this is much slower.
+- Backing up to a location with a different file system may prevent hard links from forming due to discrepancies in how file metadata is recorded.
+The option `--compare-contents` can mitigate this by examining file contents, but this is much slower.
