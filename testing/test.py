@@ -683,7 +683,7 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that filter files with only exclusions result in the right files being excluded."""
         create_user_data(self.user_path)
         with self.filter_path.open("w", encoding="utf8") as filter_file:
-            filter_file.write("- sub_directory_2/**\n\n")
+            filter_file.write("- sub_directory_2/**\n    \n")
             filter_file.write(str(Path("- *")/"sub_sub_directory_0/**\n\n"))
 
         user_paths = directory_contents(self.user_path)
@@ -2389,6 +2389,41 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         result_path = self.user_path/verify.verify_checksum_file_name
         self.assertFalse(result_path.exists())
 
+    def test_that_verifying_checksum_files_ignore_blank_lines(self) -> None:
+        """Test that lines with just whitespace do not affect checksum verification."""
+        create_user_data(self.user_path)
+        exit_code = main.main([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "-l", os.devnull,
+            "--checksum"],
+            testing=True)
+        self.assertEqual(exit_code, 0)
+        backup = find_previous_backup(self.backup_path)
+        self.assertIsNotNone(backup)
+        backup = cast(Path, backup)
+        checksum_file_name = backup/"checksums.sha3"
+        self.assertTrue(checksum_file_name.is_file())
+        new_checksum_file = fs.unique_path_name(checksum_file_name)
+        with (checksum_file_name.open(encoding="utf8") as reader,
+            new_checksum_file.open("w", encoding="utf8") as writer):
+
+            for line in reader:
+                writer.write(line)
+                writer.write(" \n")
+
+        checksum_file_name.unlink()
+
+        with self.assertNoLogs(level=logging.WARNING):
+            exit_code = main.main([
+                "--verify-checksum", str(self.user_path),
+                "--oldest",
+                "-b", str(self.backup_path),
+                "-l", os.devnull],
+                testing=True)
+
+        self.assertEqual(exit_code, 0)
+
 
 class ConfigurationFileTests(TestCaseWithTemporaryFilesAndFolders):
     """Test configuration file functionality."""
@@ -2409,8 +2444,10 @@ class ConfigurationFileTests(TestCaseWithTemporaryFilesAndFolders):
 rf"""
 USER FOLDER:     {user_folder}
 backup folder:   {backup_folder}
+
 FiLteR    :    {filter_file}
 force-copy:
+
 compare    contents :
 checkSUM       :
 Checksum Every: 1m
@@ -4635,3 +4672,31 @@ class BackupInfoTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertTrue(self.log_path.exists())
         actual_log_file = backup_info.backup_log_file(self.backup_path)
         self.assertEqual(self.log_path, actual_log_file)
+
+    def test_blank_lines_are_ignored_in_backup_source_files(self) -> None:
+        """Test that blank lines in a backup source file do not change behavior."""
+        backup_info_file = backup_info.get_backup_info_file(self.backup_path)
+        self.assertFalse(backup_info_file.exists())
+        create_user_data(self.user_path)
+        exit_code = main.main([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "--log", str(self.log_path)],
+            testing=True)
+        self.assertEqual(exit_code, 0)
+        self.assertTrue(backup_info_file.exists())
+
+        original_backup_info = backup_info.read_backup_information(self.backup_path)
+        temp_backup_info_file = fs.unique_path_name(backup_info_file)
+        with (backup_info_file.open(encoding="utf8") as reader,
+            temp_backup_info_file.open("w", encoding="utf8") as writer):
+
+            for line in reader:
+                writer.write(line)
+                writer.write("  \n")
+
+        backup_info_file.rename(fs.unique_path_name(backup_info_file))
+        temp_backup_info_file.rename(backup_info_file)
+        new_backup_info = backup_info.read_backup_information(self.backup_path)
+
+        self.assertEqual(original_backup_info, new_backup_info)
