@@ -97,8 +97,8 @@ def remove_quotes(s: str) -> str:
     If the file name actually does begin and end with quotation marks, then surround the
     file name with another pair of quotation marks. Only one pair will be removed.
 
-    >>> remove_quotes('""abc""')
-    '"abc"'
+    >>> remove_quotes('""abc.txt""')
+    '"abc.txt"'
     """
     s = s.strip()
     if len(s) > 1 and (s[0] == s[-1] == '"'):
