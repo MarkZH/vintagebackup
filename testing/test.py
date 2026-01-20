@@ -1,6 +1,7 @@
 """Testing code for Vintage Backup."""
 import sys
 import unittest
+import doctest
 import tempfile
 import os
 import filecmp
@@ -43,6 +44,15 @@ import lib.configuration as config
 import lib.backup_lock as lock
 from lib import console
 from lib.exceptions import CommandLineError, ConcurrencyError
+
+
+def load_tests(loader, tests, ignore):  # type: ignore[no-untyped-def] # noqa: ANN001 ANN201 ARG001
+    """Load doctests for running with unittest."""
+    tests.addTests(doctest.DocTestSuite(fs))
+    tests.addTests(doctest.DocTestSuite(dates))
+    tests.addTests(doctest.DocTestSuite(config))
+    tests.addTests(doctest.DocTestSuite(console))
+    return tests
 
 
 def main_no_log(args: list[str]) -> int:
