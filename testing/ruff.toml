@@ -29,7 +29,6 @@ ignore = [
     "PT027", # Use pytest.raises instead of assertRaises
     "RET505", # Unnecessary else after return statement
     "S311", # Standard pseudo-random generators are not suitable for cryptographic purposes
-    "S608", # Possible SQL injection vector through string-based query construction
     "T201", # print() found
     "TC006", # Add quotes to type expression in typing.cast()
     "TRY003", # No string arguments in custom exceptions
