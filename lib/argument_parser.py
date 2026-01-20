@@ -58,11 +58,12 @@ configuration file. This option has priority even if --{name} is listed later.""
 
 def add_periodic_option(
         user_input: argparse.ArgumentParser | argparse._ArgumentGroup,
-        name: str) -> None:
+        name: str,
+        extra_info: str = "") -> None:
     """Add an option for performing actions periodically."""
     user_input.add_argument(f"--{name}-every", help=format_help(
 f"""Perform the --{name} action if it has not been done within the time span of the argument.
-See --delete-after for the time span format to use."""))
+See the Time Span Format section below for how to specify a time span. {extra_info}""".strip()))
 
 
 def toggle_is_set(args: argparse.Namespace, name: str) -> bool:
@@ -216,7 +217,7 @@ specified after --purge-list, then the current directory is used. If the file ex
 folder, it is not deleted. The backup location argument --backup-folder is required."""))
 
     only_one_action_group.add_argument("--delete-only", action="store_true", help=format_help(
-"""Delete old backups according to --free-up or --delete-after without running a backup first."""))
+"""Delete old backups according to --free-up or --delete-after without running a backup."""))
 
     action_group.add_argument("--generate-config", metavar="FILE_NAME", help=format_help(
 """Generate a configuration file that matches the other arguments in the call."""))
@@ -227,7 +228,7 @@ folder, it is not deleted. The backup location argument --backup-folder is requi
         help=format_help(
 """Generate scripts and config files for use with Windows Task Scheduler."""))
 
-    backup_group = user_input.add_argument_group("Options for backing up")
+    backup_group = user_input.add_argument_group("Options for Backing Up")
 
     backup_group.add_argument("-u", "--user-folder", help=format_help(
 """The directory to be backed up. The contents of this
@@ -257,9 +258,13 @@ take considerably longer."""))
 to a file stored in the base folder of the backup."""))
 
     add_no_option(backup_group, "checksum")
-    add_periodic_option(backup_group, "checksum")
+    add_periodic_option(
+        backup_group,
+        "checksum",
+        ("Be sure to specify --oldest or --newest so the program doesn't get stuck waiting for a "
+         "menu choice."))
 
-    deletion_group = user_input.add_argument_group("Backup deletion", description=format_help(
+    deletion_group = user_input.add_argument_group("Backup Deletion", description=format_help(
 """Automatically delete old backups according to various criteria. Multiple deletion options can be
 used at the same time. When using these options, the most recent backup is never deleted."""))
 
@@ -275,12 +280,11 @@ will be deleted until at least that much space is free."""))
 
     deletion_group.add_argument("--delete-after", metavar="TIME", help=format_help(
 """After a successful backup, delete backups if they are older than the time span in the argument.
-The format of the argument is Nt, where N is a whole number and t is a single letter: d for days, w
-for weeks, m for calendar months, or y for calendar years."""))
+See the Time Span Format section below for how to specify time spans."""))
 
     keep_x_after_help = """After a successful backup, delete backups so that only {} backups are
-kept once the time span in the argument has passed. The format of the argument is the same as in
---delete-after."""
+kept once the time span in the argument has passed. The format of the argument is described in
+the Time Span Format section below."""
 
     for keep_time in ("weekly", "monthly", "yearly"):
         deletion_group.add_argument(
@@ -322,7 +326,7 @@ unchanged file will be copied with a probability of 1/(HARD_LINK_COUNT + 1).""")
 backup. The probability can be expressed as a decimal (0.1) or as a percent (10%%). This is an
 alternate to --hard-link-count and cannot be used together with it."""))
 
-    recover_group = user_input.add_argument_group("Recover options", format_text(
+    recover_group = user_input.add_argument_group("Recovery Options", format_text(
 """Choose how to search for which version of a file or folder to recover from backup."""))
 
     recover_group.add_argument("--search", action="store_true", help=format_help(
@@ -330,7 +334,7 @@ alternate to --hard-link-count and cannot be used together with it."""))
 Then, after the examining the file, decide whether to restore a newer or older version as
 needed."""))
 
-    move_group = user_input.add_argument_group("Move backup options", format_text(
+    move_group = user_input.add_argument_group("Move Backup Options", format_text(
 """Use exactly one of these options to specify which backups to move when using --move-backup."""))
 
     only_one_move_group = move_group.add_mutually_exclusive_group()
@@ -340,8 +344,8 @@ needed."""))
 to the new location."""))
 
     only_one_move_group.add_argument("--move-age", help=format_help(
-"""Specify the maximum age of backups to move. See --delete-after for the time span format to use.
-"""))
+"""Specify the maximum age of backups to move. See the Time Span Format section below for the time
+span format to use."""))
 
     only_one_move_group.add_argument("--move-since", help=format_help(
 """Move all backups made on or after the specified date (YYYY-MM-DD)."""))
@@ -378,7 +382,7 @@ required."""))
     restore_group.add_argument("--destination", help=format_help(
 """Specify a different destination for the backup restoration."""))
 
-    other_group = user_input.add_argument_group("Other options")
+    other_group = user_input.add_argument_group("Other Options")
 
     other_group.add_argument("-c", "--config", metavar="FILE_NAME", help=format_help(
 r"""Read options from a configuration file instead of command-line arguments.
@@ -409,7 +413,11 @@ log file is desired, use the file name {os.devnull}."""))
 """Where to copy log lines that are warnings or errors. This file will only appear when unexpected
 events occur."""))
 
-    user_input.add_argument_group("Configuration file format", description=format_help(
+    user_input.add_argument_group("Time Span Format", description=format_help(
+"""The format of the arguments asking for time spans is Nt, where N is a whole number and t is a
+single letter: d for days, w for weeks, m for calendar months, or y for calendar years."""))
+
+    user_input.add_argument_group("Configuration File Format", description=format_help(
 r"""The format of the file should be one option per line with a colon separating the parameter name
 and value. The parameter names have the same names as the double-dashed command line options
 (i.e., "user-folder", not "u"). If a parameter does not take a value, like "compare-contents",
@@ -446,7 +454,7 @@ line options override the config file options.
 A final note: recursive configuration files are not supported. Using the parameter "config" inside
 a configuration file will cause the program to quit with an error."""))
 
-    user_input.add_argument_group("Filter file format", description=format_help(
+    user_input.add_argument_group("Filter File Format", description=format_help(
 """Each line in the file consists of a symbol followed by a path. The symbol must be a minus (-),
 plus (+), or hash (#). Lines with minus signs specify files and folders to exclude. Lines with plus
 signs specify files and folders to include. Lines with hash signs are ignored. Prior to reading the
