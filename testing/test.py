@@ -542,10 +542,9 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(exit_code, 0)
 
         prefix = r"WARNING:root:"
-        space_warning = re.compile(
-            rf"{prefix}Backup space used: 50\.0. MB \(500.% of --free-up\)")
+        space_warning = f"{prefix}Backup space used: 50.00 MB (5000% of --free-up)"
         self.assertEqual(len(log_lines.output), 2)
-        self.assertTrue(space_warning.fullmatch(log_lines.output[0]), log_lines.output[0])
+        self.assertEqual(space_warning, log_lines.output[0])
         self.assertEqual(
             log_lines.output[1],
             f"{prefix}Consider increasing the size of the --free-up parameter.")
@@ -563,10 +562,9 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(exit_code, 0)
 
         prefix = r"WARNING:root:"
-        space_warning = re.compile(
-            rf"{prefix}Backup space used: 50\.0. MB \(99% of --free-up\)")
+        space_warning = f"{prefix}Backup space used: 50.00 MB (99% of --free-up)"
         self.assertEqual(len(log_lines.output), 2)
-        self.assertTrue(space_warning.fullmatch(log_lines.output[0]), log_lines.output[0])
+        self.assertEqual(space_warning, log_lines.output[0])
         self.assertEqual(
             log_lines.output[1],
             f"{prefix}Consider increasing the size of the --free-up parameter.")
