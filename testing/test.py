@@ -581,9 +581,8 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
         with self.assertLogs(level=logging.INFO) as logs:
             exit_code = main_no_log(arguments)
         self.assertEqual(exit_code, 0)
-        expected_message = re.compile(
-            r"INFO:root:Backup space used: 50\.\d\d MB \(51% of --free-up\)")
-        self.assertTrue(any(expected_message.fullmatch(line) for line in logs.output), logs.output)
+        expected_message = "INFO:root:Backup space used: 50.00 MB (50% of --free-up)"
+        self.assertIn(expected_message, logs.output)
         self.assertFalse(any(line.startswith("WARNING:") for line in logs.output), logs.output)
         self.assertFalse(any(line.startswith("ERROR:") for line in logs.output), logs.output)
 
