@@ -4286,11 +4286,10 @@ class UniquePathNameTests(TestCaseWithTemporaryFilesAndFolders):
 def close_all_file_logs() -> None:
     """Close error file to prevent errors when leaving assertLogs contexts."""
     logger = logging.getLogger()
-    file_handlers = filter(lambda h: isinstance(h, logging.FileHandler), logger.handlers)
+    file_handlers = list(filter(lambda h: isinstance(h, logging.FileHandler), logger.handlers))
     for handler in file_handlers:
-        if isinstance(handler, logging.FileHandler):
-            handler.close()
-            logger.removeHandler(handler)
+        handler.close()
+        logger.removeHandler(handler)
 
 
 class ErrorLogTests(TestCaseWithTemporaryFilesAndFolders):
