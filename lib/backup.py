@@ -178,7 +178,7 @@ def backup_directory(
         action_counter: Counter[str],
         *,
         examine_whole_file: bool,
-        copy_probability: float) -> None:
+        copy_probability: float) -> int:
     """
     Backup the files in a subfolder in the user's directory.
 
@@ -192,6 +192,8 @@ def backup_directory(
     :param copy_probability: Probability of copying a file when it would normally be hard-linked
     :param action_counter: A counter to track how many files have been linked, copied, or failed for
     both
+
+    :returns copy size: Total size of copied files in bytes
     """
     relative_path = current_user_path.relative_to(user_data_location)
     new_backup_directory = new_backup_path/relative_path
@@ -214,16 +216,20 @@ def backup_directory(
         else:
             files_to_copy.append(file_name)
 
+    size_of_copied_files = 0
     for file_name in files_to_copy:
         new_backup_file = new_backup_directory/file_name
         user_file = current_user_path/file_name
         try:
             shutil.copy2(user_file, new_backup_file, follow_symlinks=False)
             action_counter["copied files"] += 1
+            size_of_copied_files += user_file.stat().st_size
             logger.debug("Copied %s to %s", user_file, new_backup_file)
         except Exception as error:
             logger.warning("Could not copy %s (%s)", user_file, error)
             action_counter["failed copies"] += 1
+
+    return size_of_copied_files
 
 
 def backup_name(backup_datetime: datetime.datetime | str | None) -> Path:
@@ -244,7 +250,7 @@ def create_new_backup(
         force_copy: bool,
         copy_probability: float,
         timestamp: datetime.datetime | str | None,
-        is_backup_move: bool = False) -> None:
+        is_backup_move: bool = False) -> int:
     """
     Create a new dated backup.
 
@@ -260,6 +266,8 @@ def create_new_backup(
     copied.
     :param timestamp: Manually set timestamp of new backup. Used for debugging.
     :param is_backup_move: Used to customize log messages when moving a backup to a new location.
+
+    :returns backup size: Total size of copied files in bytes
     """
     check_paths_for_validity(user_data_location, backup_location, filter_file)
 
@@ -295,8 +303,9 @@ def create_new_backup(
     action_counter: Counter[str] = Counter()
     logger.info("Filter file: %s", filter_file)
     logger.info("Running backup ...")
+    size_of_backup = 0
     for current_user_path, user_file_names in Backup_Set(user_data_location, filter_file):
-        backup_directory(
+        size_of_backup += backup_directory(
             user_data_location,
             staging_backup_path,
             last_backup_path,
@@ -311,6 +320,7 @@ def create_new_backup(
         staging_backup_path.rename(new_backup_path)
 
     report_backup_file_counts(action_counter)
+    return size_of_backup
 
 
 def backup_staging_folder(backup_location: Path) -> Path:
@@ -418,9 +428,8 @@ def start_backup(args: argparse.Namespace) -> None:
 
     with Backup_Lock(backup_folder, "backup"):
         print_run_title(args, "Starting new backup")
-        free_space_before_backup = shutil.disk_usage(backup_folder).free
         filter_file = fs.path_or_none(args.filter)
-        create_new_backup(
+        backup_space_taken = create_new_backup(
             user_folder,
             backup_folder,
             filter_file=filter_file,
@@ -430,8 +439,6 @@ def start_backup(args: argparse.Namespace) -> None:
             timestamp=args.timestamp)
 
         logger.info("")
-        free_space_after_backup = shutil.disk_usage(backup_folder).free
-        backup_space_taken = max(free_space_before_backup - free_space_after_backup, 0)
         log_backup_size(args.free_up, backup_space_taken)
 
 
