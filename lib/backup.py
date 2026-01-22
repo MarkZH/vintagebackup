@@ -12,7 +12,7 @@ import random
 from collections import Counter
 from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 
 from lib.argument_parser import toggle_is_set
 from lib.backup_utilities import all_backups, backup_date_format, find_previous_backup
@@ -38,10 +38,10 @@ def shallow_stats(stats: os.stat_result) -> tuple[int, int, int]:
     return (stats.st_size, stat.S_IFMT(stats.st_mode), stats.st_mtime_ns)
 
 
-def random_filter(probability: float) -> Callable[[Any], bool]:
+def random_filter(probability: float) -> Callable[[object], bool]:
     """Create a filter that chooses items with the given probability."""
 
-    def actual_random_filter(_: Any) -> bool:
+    def actual_random_filter(_: object) -> bool:
         return random.random() < probability
 
     return actual_random_filter

@@ -5,7 +5,6 @@ line-length = 100
 preview = true
 select = ["ALL"]
 ignore = [
-    "ANN401", # Dynamically typed expressions (typing.Any) are disallowed
     "BLE001", # Do not catch blind exception: Exception
     "CPY001", # Missing copyright notice at top of file
     "D203", # Require blank line after class declaration before docstring

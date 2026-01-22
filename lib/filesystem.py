@@ -7,7 +7,7 @@ import stat
 import math
 from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import Any, TextIO
+from typing import TextIO
 
 from lib.exceptions import CommandLineError
 
@@ -103,7 +103,7 @@ def delete_directory_tree(directory: Path, *, ignore_errors: bool = False) -> No
     the rest of the directory's contents. Otherwise, the function will raise an exception.
     """
 
-    def remove_readonly(func: Callable[..., Any], path: str, _: Any) -> None:
+    def remove_readonly(func: Callable[..., object], path: str, _: object) -> None:
         """
         Clear the readonly bit and reattempt the removal.
 
