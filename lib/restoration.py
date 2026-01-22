@@ -43,12 +43,13 @@ def restore_backup(
     :param delete_extra_files: Whether to delete files and folders that are not present in the
     backup.
     """
-    user_folder = backup_source(dated_backup_folder.parent.parent)
-    logger.info("Restoring: %s", user_folder)
-    logger.info("From     : %s", dated_backup_folder)
+    root_backup_folder = dated_backup_folder.parent.parent
+    user_folder = backup_source(root_backup_folder)
+    if user_folder:
+        logger.info("Original data from  : %s", user_folder)
+    logger.info("Restoring from      : %s", dated_backup_folder)
     logger.info("Deleting extra files: %s", delete_extra_files)
-    if absolute_path(user_folder) != absolute_path(destination):
-        logger.info("Restoring to: %s", destination)
+    logger.info("Restoring to        : %s", destination)
 
     for current_backup_path, folder_names, file_names in dated_backup_folder.walk():
         current_user_folder = destination/current_backup_path.relative_to(dated_backup_folder)

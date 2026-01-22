@@ -48,7 +48,11 @@ def move_backups(
         logger.info("---------------------")
 
     original_backup_source = backup_source(old_backup_location)
-    record_user_location(original_backup_source, new_backup_location)
+    if original_backup_source:
+        record_user_location(original_backup_source, new_backup_location)
+    else:
+        logger.warning("Could not find source of user data in %s", old_backup_location)
+
     old_log_file = backup_log_file(old_backup_location)
     if old_log_file:
         record_backup_log_file(old_log_file, new_backup_location)

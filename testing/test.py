@@ -4644,10 +4644,9 @@ class FolderNavigationTests(TestCaseWithTemporaryFilesAndFolders):
 class BackupInfoTests(TestCaseWithTemporaryFilesAndFolders):
     """Tests for reading and writing backup info files."""
 
-    def test_backup_source_raises_exception_if_there_is_no_backup_info_file(self) -> None:
+    def test_backup_source_returns_none_if_there_is_no_backup_info_file(self) -> None:
         """Test that it is an error when backup source queried and there is no info file."""
-        with self.assertRaises(FileNotFoundError):
-            backup_info.backup_source(self.backup_path)
+        self.assertIsNone(backup_info.backup_source(self.backup_path))
 
     def test_backup_log_file_returns_none_if_there_is_no_backup_info_file(self) -> None:
         """Test that None is returned for log file if there is no backup info file."""
