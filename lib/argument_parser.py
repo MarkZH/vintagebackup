@@ -162,7 +162,9 @@ is required."""))
 
     only_one_action_group.add_argument("--find-missing", metavar="DIRECTORY", help=format_help(
 """Search through backups to find files that are no longer in the user's folder. The argument is
-a directory where the list of missing files--if any--will be written."""))
+a directory where the file missing_files.txt will be written if any missing files are found. The
+argument --backup-folder is required. The argument --filter is optional, but can save time if
+large files are normally filtered out."""))
 
     only_one_action_group.add_argument(
         "--move-backup",
