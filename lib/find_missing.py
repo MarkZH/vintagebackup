@@ -52,6 +52,7 @@ def find_missing_files(
         return
 
     logger.warning("Files missing from user folder %s found", user_directory)
+    result_directory.mkdir(parents=True, exist_ok=True)
     result_file = unique_path_name(result_directory/"missing_files.txt")
     logger.warning("Copying list to %s", result_file)
     current_directory: Path | None = None
