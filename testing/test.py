@@ -44,6 +44,7 @@ import lib.configuration as config
 import lib.backup_lock as lock
 from lib import console
 from lib.exceptions import CommandLineError, ConcurrencyError
+from lib import find_missing
 
 
 def load_tests(loader, tests, ignore):  # type: ignore[no-untyped-def] # noqa: ANN001 ANN201 ARG001
@@ -4705,3 +4706,93 @@ class BackupInfoTests(TestCaseWithTemporaryFilesAndFolders):
         new_backup_info = backup_info.read_backup_information(self.backup_path)
 
         self.assertEqual(original_backup_info, new_backup_info)
+
+
+class FindMissingFilesTests(TestCaseWithTemporaryFilesAndFolders):
+    """Test the --find-missing functions."""
+
+    def test_no_missing_files_results_in_no_warning_logs_and_no_list_files(self) -> None:
+        """Test that no WARNING log messages are printed if no missing files are found."""
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+        backup = find_previous_backup(self.backup_path)
+        self.assertIsNotNone(backup)
+        backup = cast(Path, backup)
+
+        output = io.StringIO()
+        with self.assertNoLogs(level=logging.WARNING):
+            find_missing.find_missing_files(self.backup_path, None, self.user_path, output)
+
+        self.assertEqual(output.getvalue(), f"[1/1] {backup.name}\n")
+
+        list_file = self.user_path/"missing_files.txt"
+        self.assertFalse(list_file.exists())
+
+    def test_missing_file_results_in_warning_output_and_list_file(self) -> None:
+        """Test that no WARNING log messages are printed if no missing files are found."""
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+        backup = find_previous_backup(self.backup_path)
+        self.assertIsNotNone(backup)
+        backup = cast(Path, backup)
+
+        missing_file = self.user_path/"sub_directory_1"/"sub_root_file.txt"
+        missing_file.unlink()
+
+        output = io.StringIO()
+        with self.assertLogs(level=logging.WARNING) as logs:
+            find_missing.find_missing_files(self.backup_path, None, self.user_path, output)
+
+        list_file = self.user_path/"missing_files.txt"
+        log_messages = [
+            f"Files missing from user folder {self.user_path} found in {self.backup_path}",
+            f"Copying list to {list_file}",
+            f"{missing_file.relative_to(self.user_path).parent}",
+            f"    {missing_file.name}    last seen: {backup.name}"]
+
+        log_output = [f"WARNING:root:{message}" for message in log_messages]
+
+        self.assertEqual(logs.output, log_output)
+
+        self.assertEqual(output.getvalue(), f"[1/1] {backup.name}\n")
+
+        file_lines = [f"Missing user files found in {self.backup_path}:"] + log_messages[2:]
+        file_contents = "\n".join(file_lines) + "\n"
+        self.assertTrue(list_file.is_file())
+        self.assertEqual(list_file.read_text(encoding="utf8"), file_contents)
+
+    def test_missing_files_across_backups_result_in_warning_output_and_list_file(self) -> None:
+        """Test that no WARNING log messages are printed if no missing files are found."""
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+
+        missing_file_1 = self.user_path/"sub_directory_1"/"sub_root_file.txt"
+        missing_file_1.unlink()
+
+        default_backup(self.user_path, self.backup_path)
+        backup_1, backup_2 = all_backups(self.backup_path)
+
+        missing_file_2 = self.user_path/"sub_directory_2"/"sub_sub_directory_0"/"file_1.txt"
+        missing_file_2.unlink()
+
+        output = io.StringIO()
+        with self.assertLogs(level=logging.WARNING) as logs:
+            find_missing.find_missing_files(self.backup_path, None, self.user_path, output)
+
+        list_file = self.user_path/"missing_files.txt"
+        log_messages = [
+            f"Files missing from user folder {self.user_path} found in {self.backup_path}",
+            f"Copying list to {list_file}",
+            f"{missing_file_1.relative_to(self.user_path).parent}",
+            f"    {missing_file_1.name}    last seen: {backup_1.name}",
+            f"{missing_file_2.relative_to(self.user_path).parent}",
+            f"    {missing_file_2.name}    last seen: {backup_2.name}"]
+
+        self.assertEqual(logs.output, [f"WARNING:root:{message}" for message in log_messages])
+
+        self.assertEqual(output.getvalue(), f"[1/2] {backup_1.name}\n[2/2] {backup_2.name}\n")
+
+        file_lines = [f"Missing user files found in {self.backup_path}:"] + log_messages[2:]
+        file_contents = "\n".join(file_lines) + "\n"
+        self.assertTrue(list_file.is_file())
+        self.assertEqual(list_file.read_text(encoding="utf8"), file_contents)
