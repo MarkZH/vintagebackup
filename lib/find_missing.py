@@ -59,6 +59,7 @@ def find_missing_files(
     logger.warning("Copying list to %s", result_file)
     current_directory: Path | None = None
     with result_file.open("w") as result:
+        result.write(f"Missing user files found in {backup_directory}:\n")
         for user_file, backup in last_seen.items():
             if user_file.parent != current_directory:
                 logger.warning(user_file.parent)
