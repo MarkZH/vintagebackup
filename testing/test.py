@@ -4756,7 +4756,7 @@ class FindMissingFilesTests(TestCaseWithTemporaryFilesAndFolders):
 
         self.assertEqual(output.getvalue(), f"[1/1] {backup.name}\n")
 
-        file_lines = [f"Missing user files found in {self.backup_path}:"] + log_messages[2:]
+        file_lines = [f"Missing user files found in {self.backup_path}:", *log_messages[2:]]
         file_contents = "\n".join(file_lines) + "\n"
         self.assertTrue(list_file.is_file())
         self.assertEqual(list_file.read_text(encoding="utf8"), file_contents)
@@ -4792,7 +4792,7 @@ class FindMissingFilesTests(TestCaseWithTemporaryFilesAndFolders):
 
         self.assertEqual(output.getvalue(), f"[1/2] {backup_1.name}\n[2/2] {backup_2.name}\n")
 
-        file_lines = [f"Missing user files found in {self.backup_path}:"] + log_messages[2:]
+        file_lines = [f"Missing user files found in {self.backup_path}:", *log_messages[2:]]
         file_contents = "\n".join(file_lines) + "\n"
         self.assertTrue(list_file.is_file())
         self.assertEqual(list_file.read_text(encoding="utf8"), file_contents)
