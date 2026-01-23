@@ -14,6 +14,7 @@ from lib.logs import setup_initial_null_logger, setup_log_file
 from lib.move_backups import start_move_backups
 from lib.purge import choose_purge_target_from_backups, start_backup_purge
 from lib.recovery import choose_recovery_target_from_backups, start_recovery_from_backup
+from lib.find_missing import start_finding_missing_files
 from lib.restoration import start_backup_restore
 from lib.verification import start_verify_backup, start_checksum, start_verify_checksum
 
@@ -47,6 +48,7 @@ def main(argv: list[str], *, testing: bool) -> int:
             else generate_windows_scripts if args.generate_windows_scripts
             else start_recovery_from_backup if args.recover
             else choose_recovery_target_from_backups if args.list
+            else start_finding_missing_files if args.find_missing
             else start_move_backups if args.move_backup
             else start_verify_backup if args.verify
             else start_verify_checksum if args.verify_checksum
