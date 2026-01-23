@@ -854,7 +854,7 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
 
         backup_list_path = self.user_path/"backed_up.txt"
         last_backup = cast(Path, find_previous_backup(self.backup_path))
-        with backup_list_path.open("w") as backup_list:
+        with backup_list_path.open("w", encoding="utf8") as backup_list:
             for directory, _, files in last_backup.walk():
                 fs.write_directory(backup_list, directory, files)
 
@@ -1876,7 +1876,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
 
         verify.create_checksum_for_last_backup(self.backup_path)
         checksum_path = last_backup/verify.checksum_file_name
-        with checksum_path.open() as checksum_data:
+        with checksum_path.open(encoding="utf8") as checksum_data:
             for line in checksum_data:
                 path, digest = line.rstrip("\n").rsplit(maxsplit=1)
                 relative_path = Path(path)
