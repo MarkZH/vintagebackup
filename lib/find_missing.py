@@ -3,7 +3,6 @@
 import argparse
 from pathlib import Path
 import logging
-from typing import TextIO
 
 from lib.backup_info import backup_source
 from lib.backup_set import Backup_Set
@@ -18,8 +17,7 @@ logger = logging.getLogger()
 def find_missing_files(
         backup_directory: Path,
         filter_file: Path | None,
-        result_directory: Path,
-        output: TextIO | None = None) -> None:
+        result_directory: Path) -> None:
     """Find files that are missing in the user's folder and exist only in backups."""
     backups = all_backups(backup_directory)
     if not backups:
@@ -38,9 +36,8 @@ def find_missing_files(
     logger.info("Searching for missing files in backups: %s ...", backup_directory)
     last_seen: dict[Path, Path] = {}  # last_seen[user file] = backup path
     backup_count = len(backups)
-    width = len(str(backup_count))
     for index, backup in enumerate(backups, 1):
-        print(f"[{index:>{width}}/{backup_count}] {backup.name}", file=output)
+        logger.info("[%d/%d] %s", index, backup_count, backup.name)
         for directory, _, file_names in backup.walk():
             relative_directory = directory.relative_to(backup)
             last_seen.update({
