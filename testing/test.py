@@ -4828,7 +4828,12 @@ class FindMissingFilesTests(TestCaseWithTemporaryFilesAndFolders):
 
         for method in Invocation:
             with self.assertLogs(level=logging.DEBUG) as logs:
-                run_find_missing_files(method, self.backup_path, self.user_path, debug=True)
+                exit_code = run_find_missing_files(
+                    method,
+                    self.backup_path,
+                    self.user_path,
+                    debug=True)
+                self.assertEqual(exit_code, 0)
 
             list_file = self.user_path/"missing_files.txt"
             warning_log_messages = [
