@@ -59,12 +59,12 @@ def find_missing_files(
         result.write(f"Missing user files found in {backup_directory}:\n")
         for user_file, backup in last_seen.items():
             if user_file.parent != current_directory:
-                logger.warning(user_file.parent)
+                logger.debug(user_file.parent)
                 result.write(f"{user_file.parent}\n")
                 current_directory = user_file.parent
 
             line = f"    {user_file.name}    last seen: {backup.name}"
-            logger.warning(line)
+            logger.debug(line)
             result.write(f"{line}\n")
 
 
