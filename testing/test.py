@@ -4833,7 +4833,7 @@ class FindMissingFilesTests(TestCaseWithTemporaryFilesAndFolders):
                     self.backup_path,
                     self.user_path,
                     debug=True)
-                self.assertEqual(exit_code, 0)
+                self.assertEqual(exit_code, 0, method)
 
             list_file = self.user_path/"missing_files.txt"
             warning_log_messages = [
