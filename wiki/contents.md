@@ -1,13 +1,13 @@
 # Vintage Backup operations
 
-1. [Backup](backup.md)
-2. [Recover files and folders from backup](recover.md)
-3. [Find files that have gone missing](find_missing_files.md)
-4. [Move backups to new location](move_backups.md)
-5. [Verify backup](verification.md)
-6. [Restore all data from backup](restore.md)
-7. [Purge files and folders from backups](purge.md)
-8. [Delete old backups](delete.md)
+- [Backup](backup.md)
+- [Recover files and folders from backup](recover.md)
+- [Restore all data from backup](restore.md)
+- [Verify backup](verification.md)
+- [Delete old backups](delete.md)
+- [Purge files and folders from backups](purge.md)
+- [Find files that have gone missing](find_missing_files.md)
+- [Move backups to new location](move_backups.md)
 
 The `--help` or `-h` parameter also prints an overview of the program's command line parameters.
 See [this page](other_options.md) for more options.
