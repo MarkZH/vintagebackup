@@ -2,7 +2,7 @@
 
 1. [Backup](backup.md)
 2. [Recover files and folders from backup](recover.md)
-3. [Find files that have been deleted](find_missing_files.md)
+3. [Find files that have gone missing](find_missing_files.md)
 4. [Move backups to new location](move_backups.md)
 5. [Verify backup](verification.md)
 6. [Restore all data from backup](restore.md)
