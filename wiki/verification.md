@@ -30,9 +30,9 @@ If a filter file is used to create the backups, then it should be used when veri
 ## Checksumming
 
 This process checks that the backed up data does not change while it is on the disk.
-This can happen for many reasons:
+Unwanted changes can happen for many reasons:
   1. Accidentally writing to a backup instead of a personal folder
-  2. Errors in the backup storage media
+  2. Hardware errors in the backup storage media
   3. Cosmic rays hitting the backup storage media
 
 To detect when this occurs, Vintage Backup can create a checksum file after a backup completes.
@@ -44,7 +44,7 @@ If a difference is found, then there can be further investigation to determine w
 
 *Technical details*: The algorithm used for calculating checksums is SHA-3 outputting 256-bit checksums as hexadecimal strings.
 
-### Options for creating a checksum
+### Required options
 
 These are not standalone options.
 They are added onto options when running a backup.
