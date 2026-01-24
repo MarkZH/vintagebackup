@@ -4812,18 +4812,18 @@ class FindMissingFilesTests(TestCaseWithTemporaryFilesAndFolders):
         Test that WARNING and DEBUG messages are printed if multiple missing files are found.
 
         Process messages are printed as warnings.
-        Files are printed as DEBUG.
+        Files are printed as DEBUG in sorted order.
         """
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
 
-        missing_file_1 = self.user_path/"sub_directory_1"/"sub_root_file.txt"
+        missing_file_1 = self.user_path/"sub_directory_2"/"sub_sub_directory_0"/"file_1.txt"
         missing_file_1.unlink()
 
         default_backup(self.user_path, self.backup_path)
         backup_1, backup_2 = all_backups(self.backup_path)
 
-        missing_file_2 = self.user_path/"sub_directory_2"/"sub_sub_directory_0"/"file_1.txt"
+        missing_file_2 = self.user_path/"sub_directory_1"/"sub_root_file.txt"
         missing_file_2.unlink()
 
         for method in Invocation:
@@ -4840,10 +4840,10 @@ class FindMissingFilesTests(TestCaseWithTemporaryFilesAndFolders):
                 f"Files missing from user folder {self.user_path} found in {self.backup_path}",
                 f"Copying list to {list_file}"]
             debug_log_messages = [
-                f"{missing_file_1.relative_to(self.user_path).parent}",
-                f"    {missing_file_1.name}    last seen: {backup_1.name}",
                 f"{missing_file_2.relative_to(self.user_path).parent}",
-                f"    {missing_file_2.name}    last seen: {backup_2.name}"]
+                f"    {missing_file_2.name}    last seen: {backup_2.name}",
+                f"{missing_file_1.relative_to(self.user_path).parent}",
+                f"    {missing_file_1.name}    last seen: {backup_1.name}"]
 
             log_lines: list[str] = []
             for line in logs.output:

@@ -57,7 +57,7 @@ def find_missing_files(
     current_directory: Path | None = None
     with result_file.open("w", encoding="utf8") as result:
         result.write(f"Missing user files found in {backup_directory}:\n")
-        for user_file, backup in last_seen.items():
+        for user_file, backup in sorted(last_seen.items()):
             if user_file.parent != current_directory:
                 logger.debug(user_file.parent)
                 result.write(f"{user_file.parent}\n")
