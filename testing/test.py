@@ -44,6 +44,7 @@ import lib.configuration as config
 import lib.backup_lock as lock
 from lib import console
 from lib.exceptions import CommandLineError, ConcurrencyError
+from lib import find_missing
 
 
 def load_tests(loader, tests, ignore):  # type: ignore[no-untyped-def] # noqa: ANN001 ANN201 ARG001
@@ -4753,3 +4754,161 @@ class BackupInfoTests(TestCaseWithTemporaryFilesAndFolders):
         new_backup_info = backup_info.read_backup_information(self.backup_path)
 
         self.assertEqual(original_backup_info, new_backup_info)
+
+
+def run_find_missing_files(
+        method: Invocation,
+        backup_path: Path,
+        result_directory: Path,
+        *,
+        debug: bool) -> int:
+    """Run the missing files function either from a function call or from command line arguments."""
+    if method == Invocation.function:
+        find_missing.find_missing_files(backup_path, None, result_directory)
+        return 0
+    else:
+        args = [
+            "--find-missing", str(result_directory),
+            "-b", str(backup_path),
+            "-l", os.devnull]
+
+        if debug:
+            args.append("--debug")
+
+        return main.main(args, testing=True)
+
+
+class FindMissingFilesTests(TestCaseWithTemporaryFilesAndFolders):
+    """Test the --find-missing functions."""
+
+    def test_no_missing_files_results_in_no_warning_logs_and_no_list_files(self) -> None:
+        """Test that no WARNING log messages are printed if no missing files are found."""
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+        backup = find_previous_backup(self.backup_path)
+        self.assertIsNotNone(backup)
+        backup = cast(Path, backup)
+
+        for method in Invocation:
+            with self.assertNoLogs(level=logging.WARNING):
+                exit_code = run_find_missing_files(
+                    method,
+                    self.backup_path,
+                    self.user_path,
+                    debug=False)
+                self.assertEqual(exit_code, 0, method)
+
+            list_file = self.user_path/"missing_files.txt"
+            self.assertFalse(list_file.exists(), method)
+
+    def test_missing_file_results_in_warning_and_debug_output_and_list_file(self) -> None:
+        """
+        Test that WARNING and DEBUG messages are printed if missing files are found.
+
+        Process messages are printed as warnings.
+        Files are printed as DEBUG.
+        """
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+        backup = find_previous_backup(self.backup_path)
+        self.assertIsNotNone(backup)
+        backup = cast(Path, backup)
+
+        missing_file = self.user_path/"sub_directory_1"/"sub_root_file.txt"
+        missing_file.unlink()
+
+        for method in Invocation:
+            with self.assertLogs(level=logging.DEBUG) as logs:
+                exit_code = run_find_missing_files(
+                    method,
+                    self.backup_path,
+                    self.user_path,
+                    debug=True)
+                self.assertEqual(exit_code, 0, method)
+
+            list_file = self.user_path/"missing_files.txt"
+            warning_log_messages = [
+                f"Files missing from user folder {self.user_path} found in {self.backup_path}",
+                f"Copying list to {list_file}"]
+            debug_log_messages = [
+                f"{missing_file.relative_to(self.user_path).parent}",
+                f"    {missing_file.name}    last seen: {backup.name}"]
+
+            warning_log_output = [f"WARNING:root:{message}" for message in warning_log_messages]
+            debug_log_output = [f"DEBUG:root:{message}" for message in debug_log_messages]
+
+            log_output: list[str] = []
+            for line in logs.output:
+                if line.startswith("INFO:"):
+                    continue
+
+                if line.startswith("DEBUG:root:Namespace"):
+                    continue
+
+                log_output.append(line)
+
+            self.assertEqual(log_output, warning_log_output + debug_log_output, method)
+
+            file_lines = [f"Missing user files found in {self.backup_path}:", *debug_log_messages]
+            file_contents = "\n".join(file_lines) + "\n"
+            self.assertTrue(list_file.is_file(), method)
+            self.assertEqual(list_file.read_text(encoding="utf8"), file_contents, method)
+            list_file.unlink()
+
+    def test_missing_files_in_backups_outputs_warning_and_debug_and_list_file(self) -> None:
+        """
+        Test that WARNING and DEBUG messages are printed if multiple missing files are found.
+
+        Process messages are printed as warnings.
+        Files are printed as DEBUG in sorted order.
+        """
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+
+        missing_file_1 = self.user_path/"sub_directory_2"/"sub_sub_directory_0"/"file_1.txt"
+        missing_file_1.unlink()
+
+        default_backup(self.user_path, self.backup_path)
+        backup_1, backup_2 = all_backups(self.backup_path)
+
+        missing_file_2 = self.user_path/"sub_directory_1"/"sub_root_file.txt"
+        missing_file_2.unlink()
+
+        for method in Invocation:
+            with self.assertLogs(level=logging.DEBUG) as logs:
+                exit_code = run_find_missing_files(
+                    method,
+                    self.backup_path,
+                    self.user_path,
+                    debug=True)
+                self.assertEqual(exit_code, 0, method)
+
+            list_file = self.user_path/"missing_files.txt"
+            warning_log_messages = [
+                f"Files missing from user folder {self.user_path} found in {self.backup_path}",
+                f"Copying list to {list_file}"]
+            debug_log_messages = [
+                f"{missing_file_2.relative_to(self.user_path).parent}",
+                f"    {missing_file_2.name}    last seen: {backup_2.name}",
+                f"{missing_file_1.relative_to(self.user_path).parent}",
+                f"    {missing_file_1.name}    last seen: {backup_1.name}"]
+
+            log_lines: list[str] = []
+            for line in logs.output:
+                if line.startswith("INFO:"):
+                    continue
+
+                if line.startswith("DEBUG:root:Namespace"):
+                    continue
+
+                log_lines.append(line)
+
+            warning_log_lines = [f"WARNING:root:{message}" for message in warning_log_messages]
+            debug_log_lines = [f"DEBUG:root:{message}" for message in debug_log_messages]
+            self.assertEqual(log_lines, warning_log_lines + debug_log_lines, method)
+
+            file_lines = [f"Missing user files found in {self.backup_path}:", *debug_log_messages]
+            file_contents = "\n".join(file_lines) + "\n"
+            self.assertTrue(list_file.is_file(), method)
+            self.assertEqual(list_file.read_text(encoding="utf8"), file_contents, method)
+            list_file.unlink()
