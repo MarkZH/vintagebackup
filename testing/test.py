@@ -4180,7 +4180,7 @@ class LogTests(TestCaseWithTemporaryFilesAndFolders):
     def test_return_default_log_if_no_log_and_backup_folder_specified(self) -> None:
         """Return default log file if no log and no previous backup but backup folder specified."""
         selected_log_file = backup_info.primary_log_path(None, str(self.backup_path))
-        self.assertEqual(selected_log_file, fs.default_log_file_name())
+        self.assertEqual(selected_log_file, fs.default_log_file_name)
 
     def test_return_none_if_os_devnull_is_specified(self) -> None:
         """Return nul or /dev/null if the user selects it."""
@@ -4214,35 +4214,42 @@ class LogTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_recorded_log_file_used_when_next_backup_does_not_specify_log(self) -> None:
         """Test that subsequent backups use the same log file even if --log is not specified."""
-        default_log_file = fs.default_log_file_name(self.user_path)
-        non_testing_default_log_file = fs.default_log_file_name()
-        self.assertNotEqual(default_log_file.absolute(), self.log_path.absolute())
-        self.assertFalse(default_log_file.is_file())
-        self.assertFalse(non_testing_default_log_file.is_file())
+        self.assertNotEqual(fs.default_log_file_name.absolute(), self.log_path.absolute())
         self.assertFalse(self.log_path.is_file())
 
         create_user_data(self.user_path)
-        main.main([
+        exit_code = main.main([
             "-u", str(self.user_path),
             "-b", str(self.backup_path),
-            "-l", str(self.log_path)],
+            "-l", str(self.log_path),
+            "--timestamp", unique_timestamp_string()],
             testing=True)
+        self.assertEqual(exit_code, 0)
+
+        if fs.default_log_file_name.is_file():
+            with open(fs.default_log_file_name) as default_log:
+                for line in default_log:
+                    self.assertNotIn(str(self.user_path), line)
 
         self.assertTrue(self.log_path.is_file())
-        self.assertFalse(default_log_file.is_file())
-        self.assertFalse(non_testing_default_log_file.is_file())
         log_size = self.log_path.stat().st_size
         self.assertGreater(log_size, 0)
 
-        main.main([
+        exit_code = main.main([
             "-u", str(self.user_path),
-            "-b", str(self.backup_path)],
+            "-b", str(self.backup_path),
+            "--timestamp", unique_timestamp_string()],
             testing=True)
+        self.assertEqual(exit_code, 0)
 
         self.assertTrue(self.log_path.is_file())
-        self.assertFalse(default_log_file.is_file())
-        self.assertFalse(non_testing_default_log_file.is_file())
         self.assertGreater(self.log_path.stat().st_size, log_size)
+
+        if fs.default_log_file_name.is_file():
+            with open(fs.default_log_file_name) as default_log:
+                for line in default_log:
+                    self.assertNotIn(str(self.user_path), line)
+
 
 
 class UniquePathNameTests(TestCaseWithTemporaryFilesAndFolders):

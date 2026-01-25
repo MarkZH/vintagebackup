@@ -411,7 +411,7 @@ See below for the configuration file format."""))
         "-l", "--log",
         help=format_help(
 f"""Where to log the activity of this program. The default is
-{default_log_file_name().name} in the user's home folder. If no
+{default_log_file_name.name} in the user's home folder. If no
 log file is desired, use the file name {os.devnull}."""))
 
     other_group.add_argument("--error-log", help=format_help(

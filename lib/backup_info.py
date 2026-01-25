@@ -115,7 +115,7 @@ def primary_log_path(log_file_name: str | None, backup_folder: str | None) -> Pa
     elif backup_folder:
         backup_path = absolute_path(backup_folder)
         log_file_path = backup_log_file(backup_path)
-        return log_file_path or default_log_file_name()
+        return log_file_path or default_log_file_name
     else:
         return None
 
