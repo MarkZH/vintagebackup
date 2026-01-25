@@ -403,7 +403,6 @@ See below for the configuration file format."""))
 
     other_group.add_argument(
         "-l", "--log",
-        default=str(default_log_file_name),
         help=format_help(
 f"""Where to log the activity of this program. The default is
 {default_log_file_name.name} in the user's home folder. If no
