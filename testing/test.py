@@ -110,6 +110,16 @@ def create_user_data(base_directory: Path) -> None:
                 file_path.write_text(
                     f"File contents: {sub_num}/{sub_sub_num}/{file_num}\n", encoding="utf8")
 
+    music_folder = base_directory/"Music"
+    music_folder.mkdir(parents=True)
+    for movement in (
+            "01 Dvořák Piano Quintent in A (Op. 81) - I. Allegro ma non tanto.mp3",
+            "02 Dvořák Piano Quintent in A (Op. 81) - II. Dumka - Andante con moto.mp3",
+            "03 Dvořák Piano Quintent in A (Op. 81) - III. Scherzo (Furiant) - Molto vivace.mp3",
+            "04 Dvořák Piano Quintent in A (Op. 81) - IV. Finale - Allegro.mp3"):
+        movement_file = music_folder/movement
+        movement_file.write_text(movement, encoding="utf8")
+
 
 def default_backup(user_path: Path, backup_path: Path) -> None:
     """
@@ -640,7 +650,7 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
     def test_warning_printed_if_all_user_files_filtered_out(self) -> None:
         """Make sure the user is warned if a filter file removes all files from the backup set."""
         create_user_data(self.user_path)
-        self.filter_path.write_text("- **/*.txt\n", encoding="utf8")
+        self.filter_path.write_text("- **/*.txt\n- **/*.mp3\n", encoding="utf8")
 
         with self.assertLogs(level=logging.WARNING) as assert_log:
             bak.create_new_backup(
@@ -4871,8 +4881,12 @@ class FindMissingFilesTests(TestCaseWithTemporaryFilesAndFolders):
         default_backup(self.user_path, self.backup_path)
         backup_1, backup_2 = all_backups(self.backup_path)
 
-        missing_file_2 = self.user_path/"sub_directory_1"/"sub_root_file.txt"
+        missing_file_2 = (
+            self.user_path/"Music"/
+            "02 Dvořák Piano Quintent in A (Op. 81) - II. Dumka - Andante con moto.mp3")
         missing_file_2.unlink()
+
+        self.assertGreater(missing_file_1, missing_file_2)
 
         for method in Invocation:
             with self.assertLogs(level=logging.DEBUG) as logs:

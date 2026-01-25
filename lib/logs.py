@@ -15,7 +15,7 @@ def setup_initial_null_logger() -> None:
         handler.close()
         logger.removeHandler(handler)
 
-    logger.addHandler(logging.FileHandler(os.devnull))
+    logger.addHandler(logging.FileHandler(os.devnull, encoding="utf8"))
     logger.setLevel(logging.INFO)
 
 
