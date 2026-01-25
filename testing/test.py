@@ -4227,7 +4227,7 @@ class LogTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(exit_code, 0)
 
         if fs.default_log_file_name.is_file():
-            with open(fs.default_log_file_name) as default_log:
+            with fs.default_log_file_name.open(encoding="utf8") as default_log:
                 for line in default_log:
                     self.assertNotIn(str(self.user_path), line)
 
@@ -4246,10 +4246,9 @@ class LogTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertGreater(self.log_path.stat().st_size, log_size)
 
         if fs.default_log_file_name.is_file():
-            with open(fs.default_log_file_name) as default_log:
+            with fs.default_log_file_name.open(encoding="utf8") as default_log:
                 for line in default_log:
                     self.assertNotIn(str(self.user_path), line)
-
 
 
 class UniquePathNameTests(TestCaseWithTemporaryFilesAndFolders):
