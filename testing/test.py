@@ -835,7 +835,7 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
     def test_filter_preview_lists_correct_files(self) -> None:
         """Test that previewing a filter matches the files that are backed up."""
         create_user_data(self.user_path)
-        self.filter_path.write_text("- **/*1.txt\n")
+        self.filter_path.write_text("- **/*1.txt\n", encoding="utf8")
         preview_path = self.user_path/"preview.txt"
         main_assert_no_error_log([
             "--user-folder", str(self.user_path),
@@ -2199,7 +2199,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         changed_file = (
             oldest_checksummed_backup/"sub_directory_2"/"sub_sub_directory_0"/"file_1.txt")
         self.assertTrue(changed_file.is_file())
-        changed_file.write_text("Corrupted data")
+        changed_file.write_text("Corrupted data", encoding="utf8")
 
         exit_code = main.main([
             "-b", str(self.backup_path),
@@ -2249,7 +2249,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         changed_file = (
             newest_checksummed_backup/"sub_directory_0"/"sub_sub_directory_1"/"file_2.txt")
         self.assertTrue(changed_file.is_file())
-        changed_file.write_text("Corrupted data")
+        changed_file.write_text("Corrupted data", encoding="utf8")
 
         exit_code = main.main([
             "-b", str(self.backup_path),
@@ -2299,7 +2299,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         changed_file = (
             chosen_checksummed_backup/"sub_directory_2"/"sub_sub_directory_1"/"file_0.txt")
         self.assertTrue(changed_file.is_file())
-        changed_file.write_text("Corrupted data")
+        changed_file.write_text("Corrupted data", encoding="utf8")
 
         exit_code = main.main([
             "-b", str(self.backup_path),
@@ -2366,7 +2366,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         changed_file = (
             checksummed_backup/"sub_directory_2"/"sub_sub_directory_1"/"file_2.txt")
         self.assertTrue(changed_file.is_file())
-        changed_file.write_text("Corrupted data")
+        changed_file.write_text("Corrupted data", encoding="utf8")
 
         main.main([
             "-u", str(self.user_path),
@@ -2574,7 +2574,7 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
         second_extra_folder = self.user_path/"extra_folder_2"
         second_extra_folder.mkdir()
         second_extra_folder_file = second_extra_folder/"file_in_folder_2.txt"
-        second_extra_folder_file.write_text("extra file in folder 2\n")
+        second_extra_folder_file.write_text("extra file in folder 2\n", encoding="utf8")
 
         exit_code = main_assert_no_error_log([
             "--restore",
@@ -2617,7 +2617,7 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
         second_extra_folder = self.user_path/"extra_folder_2"
         second_extra_folder.mkdir()
         second_extra_folder_file = second_extra_folder/"file_in_folder_2.txt"
-        second_extra_folder_file.write_text("extra file in folder 2\n")
+        second_extra_folder_file.write_text("extra file in folder 2\n", encoding="utf8")
 
         exit_code = main_assert_no_error_log([
             "--restore",
