@@ -14,7 +14,15 @@ from lib.exceptions import CommandLineError
 logger = logging.getLogger()
 
 
-default_log_file_name = Path.home()/"vintagebackup.log"
+def default_log_file_name(test_directory: Path | None = None) -> Path:
+    """
+    Get the default file path for the log.
+
+    :param test_directory: The directory where the default log file should be put for testing.
+    If None, the user's home directory is used.
+    """
+    directory = test_directory or Path.home()
+    return directory/"vintagebackup.log"
 
 
 storage_prefixes = ["", "k", "M", "G", "T", "P", "E", "Z", "Y", "R", "Q"]
