@@ -963,7 +963,9 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
                 missing_only=True,
                 operation="Recovery")
         self.assertIsNone(result)
-        self.assertEqual(logs.output[-1], f"INFO:root:No backups found for the folder {self.user_path}")
+        self.assertEqual(
+            logs.output[-1],
+            f"INFO:root:No backups found for the folder {self.user_path}")
 
     def test_missing_only_only_shows_missing_files_in_menu(self) -> None:
         """Test that the --missing-only option only shows missing files in menu."""
