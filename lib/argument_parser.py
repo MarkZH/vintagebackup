@@ -332,7 +332,7 @@ unchanged file will be copied with a probability of 1/(HARD_LINK_COUNT + 1).""")
 backup. The probability can be expressed as a decimal (0.1) or as a percent (10%%). This is an
 alternate to --hard-link-count and cannot be used together with it."""))
 
-    recover_group = user_input.add_argument_group("Recovery Options", format_text(
+    recover_group = user_input.add_argument_group("Recovery Listing Options", format_text(
 """Choose how to search for which version of a file or folder to recover from backup."""))
 
     recover_group.add_argument("--search", action="store_true", help=format_help(
