@@ -935,7 +935,7 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertTrue(directories_are_completely_copied(folder_path, recovered_folder_path))
 
     def test_file_to_be_recovered_can_be_chosen_from_menu(self) -> None:
-        """Test that a file can be recovered after choosing from a list ."""
+        """Test that a file can be recovered after choosing from a list."""
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
         folder_path = self.user_path/"sub_directory_1"/"sub_sub_directory_1"
