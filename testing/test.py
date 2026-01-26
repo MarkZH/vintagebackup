@@ -939,13 +939,63 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
         folder_path = self.user_path/"sub_directory_1"/"sub_sub_directory_1"
-        chosen_file = recovery.search_backups(folder_path, self.backup_path, "recovery", 1)
+        chosen_file = recovery.search_backups(
+            folder_path,
+            self.backup_path,
+            missing_only=False,
+            operation="recovery",
+            choice=1)
         self.assertIsNotNone(chosen_file)
         chosen_file = cast(Path, chosen_file)
         self.assertEqual(chosen_file, folder_path/"file_1.txt")
         recovery.recover_path(chosen_file, self.backup_path, search=False, choice=0)
         recovered_file_path = chosen_file.parent/f"{chosen_file.stem}.1{chosen_file.suffix}"
         self.assertTrue(filecmp.cmp(chosen_file, recovered_file_path, shallow=False))
+
+    def test_missing_only_has_no_results_if_no_files_are_missing(self) -> None:
+        """Test that if no user files are missing, --missing-only does not show a menu."""
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+        with self.assertLogs(level=logging.INFO) as logs:
+            result = recovery.search_backups(
+                self.user_path,
+                self.backup_path,
+                missing_only=True,
+                operation="Recovery")
+        self.assertIsNone(result)
+        self.assertEqual(logs.output[-1], f"INFO:root:No backups found for the folder {self.user_path}")
+
+    def test_missing_only_only_shows_missing_files_in_menu(self) -> None:
+        """Test that the --missing-only option only shows missing files in menu."""
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+        missing_path = self.user_path/"sub_directory_2"/"sub_sub_directory_2"/"file_2.txt"
+        missing_data = missing_path.read_text()
+        missing_path.unlink()
+        folder_path = missing_path.parent
+
+        # No other choices beside the missing file
+        with self.assertRaises(IndexError):
+            chosen_file = recovery.search_backups(
+                folder_path,
+                self.backup_path,
+                missing_only=True,
+                operation="recovery",
+                choice=1)
+
+        chosen_file = recovery.search_backups(
+            folder_path,
+            self.backup_path,
+            missing_only=True,
+            operation="recovery",
+            choice=0)
+        self.assertIsNotNone(chosen_file)
+        chosen_file = cast(Path, chosen_file)
+        self.assertEqual(chosen_file, missing_path)
+        recovery.recover_path(chosen_file, self.backup_path, search=False, choice=0)
+        self.assertTrue(missing_path.is_file())
+        recovered_data = missing_path.read_text()
+        self.assertEqual(missing_data, recovered_data)
 
     def test_binary_search(self) -> None:
         """Test that sequences of older/newer choices result in the right backup."""
@@ -1091,8 +1141,9 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
                 found_path = recovery.search_backups(
                     current_directory,
                     self.backup_path,
-                    "",
-                    choice)
+                    missing_only=False,
+                    operation="",
+                    choice=choice)
                 self.assertEqual(current_directory/path, found_path)
 
     def test_search_backups_finds_added_user_files(self) -> None:
@@ -1107,8 +1158,9 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
                 found_path = recovery.search_backups(
                     current_directory,
                     self.backup_path,
-                    "",
-                    choice)
+                    missing_only=False,
+                    operation="",
+                    choice=choice)
                 self.assertEqual(current_directory/path, found_path)
 
     def test_search_backups_raises_error_for_non_existant_folder(self) -> None:
@@ -1117,7 +1169,11 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         default_backup(self.user_path, self.backup_path)
         bad_directory = self.user_path/"does-not-exist"
         with self.assertRaises(CommandLineError) as error:
-            recovery.search_backups(bad_directory, self.backup_path, "")
+            recovery.search_backups(
+                bad_directory,
+                self.backup_path,
+                missing_only=False,
+                operation="")
         self.assertEqual(
             error.exception.args[0],
             f"The given search path is not a directory: {bad_directory}")
@@ -1129,7 +1185,11 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         bad_directory = self.user_path/"does-not-exist"
         bad_directory.touch()
         with self.assertRaises(CommandLineError) as error:
-            recovery.search_backups(bad_directory, self.backup_path, "")
+            recovery.search_backups(
+                bad_directory,
+                self.backup_path,
+                missing_only=False,
+                operation="")
         self.assertEqual(
             error.exception.args[0],
             f"The given search path is not a directory: {bad_directory}")
@@ -1141,7 +1201,11 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         bad_directory.mkdir()
         default_backup(self.user_path, self.backup_path)
         with self.assertLogs(level=logging.INFO) as logs:
-            found_path = recovery.search_backups(bad_directory, self.backup_path, "")
+            found_path = recovery.search_backups(
+                bad_directory,
+                self.backup_path,
+                missing_only=False,
+                operation="")
         self.assertIsNone(found_path)
         self.assertEqual(
             logs.output[-1],

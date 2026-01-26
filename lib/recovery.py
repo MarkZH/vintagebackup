@@ -25,6 +25,8 @@ logger = logging.getLogger()
 def search_backups(
         search_directory: Path,
         backup_folder: Path,
+        *,
+        missing_only: bool,
         operation: str,
         choice: int | None = None) -> Path | None:
     """
@@ -35,6 +37,7 @@ def search_backups(
 
     :param search_directory: The directory from which backed up files and folders will be listed
     :param backup_folder: The backup destination
+    :param missing_only: Whether to limit menu items to paths that don't exist in the user's folder.
     :param operation: The name of the operation that called for this search. This will be put into
     the user choice prompt "Which path for {operation}:".
     :param choice: Pre-selected choice of which file to recover (used for testing).
@@ -43,6 +46,14 @@ def search_backups(
     or None if no backed up files are found in the search_directory.
     """
     target_relative_path = directory_relative_to_backup(search_directory, backup_folder)
+    user_folder = backup_source(backup_folder)
+    user_folder = cast(Path, user_folder)
+
+    def include(relative_path: Path) -> bool:
+        if missing_only:
+            return not (user_folder/relative_path).exists(follow_symlinks=False)
+        else:
+            return True
 
     all_paths: set[tuple[str, str]] = set()
     for backup in all_backups(backup_folder):
@@ -50,7 +61,7 @@ def search_backups(
         try:
             all_paths.update(
                 (item.name, classify_path(item))
-                for item in backup_search_directory.iterdir())
+                for item in backup_search_directory.iterdir() if include(item.relative_to(backup)))
         except FileNotFoundError:
             continue
 
@@ -248,7 +259,12 @@ def choose_target_path_from_backups(args: argparse.Namespace) -> Path | None:
     print_run_title(args, f"Listing files and directories for {operation}")
     logger.info("Searching for everything backed up from %s ...", search_directory)
     test_choice = None if args.choice is None else int(args.choice)
-    return search_backups(search_directory, backup_folder, operation, test_choice)
+    return search_backups(
+        search_directory,
+        backup_folder,
+        missing_only=args.missing_only,
+        operation=operation,
+        choice=test_choice)
 
 
 def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:

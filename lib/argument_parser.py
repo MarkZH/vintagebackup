@@ -340,6 +340,10 @@ alternate to --hard-link-count and cannot be used together with it."""))
 Then, after the examining the file, decide whether to restore a newer or older version as
 needed."""))
 
+    recover_group.add_argument("--missing-only", action="store_true", help=format_help(
+"""Instead of returning all backed up paths in a folder, only list files and folders that no longer
+exist in the user's folder."""))
+
     move_group = user_input.add_argument_group("Move Backup Options", format_text(
 """Use exactly one of these options to specify which backups to move when using --move-backup."""))
 
