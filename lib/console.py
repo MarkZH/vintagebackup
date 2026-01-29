@@ -18,11 +18,16 @@ def choose_from_menu(
     """
     Let user choose from options presented a numbered list in a terminal.
 
-    :param menu_choices: List of choices
-    :param prompt: Message to show user prior to the prompt for a choice.
+    Arguments:
+        menu_choices: List of choices
+        prompt: Message to show user prior to the prompt for a choice.
+        test_choice: A present menu choice to be used during testing.
+        output: An alternate destination for console output during testing.
 
-    :returns int: The returned number is an index into the input list. The interface has the user
-    choose a number from 1 to len(menu_list), but returns a number from 0 to len(menu_list) - 1.
+    Returns:
+        int: The returned number is an index into the input list. The interface has the user
+            choose a number from 1 to len(menu_list), but returns a number from 0 to
+            len(menu_list) - 1.
     """
     if test_choice is None or output is not None:
         number_column_size = len(str(len(menu_choices)))

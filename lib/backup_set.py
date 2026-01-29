@@ -18,8 +18,9 @@ class Backup_Set:
         """
         Prepare the path generator by parsing the filter file.
 
-        :param user_folder: The folder to be backed up.
-        :param filter_file: The path of the filter file that edits the paths to backup.
+        Arguments:
+            user_folder: The folder to be backed up.
+            filter_file: The path of the filter file that edits the paths to backup.
         """
         self.entries: list[tuple[int, str, Path]] = []
         self.lines_used: set[int] = set()

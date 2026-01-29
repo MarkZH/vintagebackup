@@ -25,9 +25,10 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
     """
     Verify the most recent backup by comparing with the user's files.
 
-    :param backup_folder: The location of the backed up data.
-    :param filter_file: The file that filters which files are backed up.
-    :param result_folder: Where the resulting files will be saved.
+    Arguments:
+        backup_folder: The location of the backed up data.
+        filter_file: The file that filters which files are backed up.
+        result_folder: Where the resulting files will be saved.
     """
     user_folder = backup_source(backup_folder)
     if not user_folder:

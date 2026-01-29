@@ -38,10 +38,11 @@ def restore_backup(
 
     Existing files that were backed up will be overwritten with the backup.
 
-    :param dated_backup_folder: The backup from which to restore files and folders
-    :param destination: The folder that will be restored to a backed up state.
-    :param delete_extra_files: Whether to delete files and folders that are not present in the
-    backup.
+    Arguments:
+        dated_backup_folder: The backup from which to restore files and folders
+        destination: The folder that will be restored to a backed up state.
+        delete_extra_files: Whether to delete files and folders that are not present in the
+            backup.
     """
     root_backup_folder = dated_backup_folder.parent.parent
     user_folder = backup_source(root_backup_folder)

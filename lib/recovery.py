@@ -35,15 +35,17 @@ def search_backups(
     The user will pick from a list of all files and folders in search_directory that have ever been
     backed up.
 
-    :param search_directory: The directory from which backed up files and folders will be listed
-    :param backup_folder: The backup destination
-    :param missing_only: Whether to limit menu items to paths that don't exist in the user's folder.
-    :param operation: The name of the operation that called for this search. This will be put into
-    the user choice prompt "Which path for {operation}:".
-    :param choice: Pre-selected choice of which file to recover (used for testing).
+    Arguments:
+        search_directory: The directory from which backed up files and folders will be listed
+        backup_folder: The backup destination
+        missing_only: Whether to limit menu items to paths that don't exist in the user's folder.
+        operation: The name of the operation that called for this search. This will be put into
+            the user choice prompt "Which path for {operation}:".
+        choice: Pre-selected choice of which file to recover (used for testing).
 
-    :returns Path | None: The path to a file or folder that will then be searched for among backups,
-    or None if no backed up files are found in the search_directory.
+    Returns:
+        path: The path to a file or folder that will then be searched for among backups,
+            or None if no backed up files are found in the search_directory.
     """
     target_relative_path = directory_relative_to_backup(search_directory, backup_folder)
     user_folder = backup_source(backup_folder)
@@ -100,9 +102,11 @@ def recover_path(
     corresponding location in the user's data. The copy from the backup will be renamed with a
     number so as to not overwrite any existing file with the same name.
 
-    :param recovery_path: The file or folder that is to be restored.
-    :param backup_location: The folder containing all backups.
-    :param choice: Pre-selected choice of which file to recover (used for testing).
+    Arguments:
+        recovery_path: The file or folder that is to be restored.
+        backup_location: The folder containing all backups.
+        search: Whether the user chooses the version from a menu or by binary serach.
+        choice: Pre-selected choice of which file to recover (used for testing).
     """
     recovery_relative_path = path_relative_to_backups(recovery_path, backup_location)
     unique_backups: dict[int, Path] = {}
@@ -146,9 +150,10 @@ def recover_path_to_original_location(backed_up_source: Path, destination: Path)
     """
     Copy a path from backup without clobbering existing data.
 
-    :param backed_up_source: The file or folder to be copied to its original location.
-    :param destination: The full path to the original location. This should include the name of
-    the recovered file or folder, not just the destination folder.
+    Arguments:
+        backed_up_source: The file or folder to be copied to its original location.
+        destination: The full path to the original location. This should include the name of
+            the recovered file or folder, not just the destination folder.
     """
     if destination.exists(follow_symlinks=False) and destination.name != backed_up_source.name:
         raise RuntimeError(

@@ -58,7 +58,8 @@ def unique_path_name(destination_path: Path) -> Path:
     be inserted between the name and suffix (if any) to prevent clobbering any existing files or
     folders.
 
-    :param destination_path: The path that will be modified if something already exists there.
+    Arguments:
+        destination_path: The path that will be modified if something already exists there.
     """
     unique_path = destination_path
     unique_id = 0
@@ -154,8 +155,9 @@ def parse_storage_space(space_requirement: str) -> float:
     """
     Parse a string into a number of bytes of storage space.
 
-    :param space_requirement: A string indicating an amount of space as an absolute number of
-    bytes. Byte units and prefixes are allowed.
+    Arguments:
+        space_requirement: A string indicating an amount of space as an absolute number of
+            bytes. Byte units and prefixes are allowed.
 
     >>> parse_storage_space("100")
     100.0
@@ -206,9 +208,11 @@ def absolute_path(path: Path | str, *, strict: bool = False) -> Path:
 
     Relative path segments (..) are removed. Symlinks are not resolved.
 
-    :param path: The path to be made absolute.
-    :param stict: If True, raise a FileNotFoundError if the path does not exist. Symlinks are
-    not followed, so an existing symlink to a non-existent file or folder does not raise an error.
+    Arguments:
+        path: The path to be made absolute.
+        strict: If True, raise a FileNotFoundError if the path does not exist. Symlinks are
+            not followed, so an existing symlink to a non-existent file or folder does not raise an
+            error.
     """
     abs_path = Path(os.path.abspath(path))  # noqa: PTH100
     if strict and not abs_path.exists(follow_symlinks=False):
@@ -220,9 +224,11 @@ def path_listing(listing: Iterable[tuple[Path, list[str]]], output: TextIO) -> N
     """
     Print a list of paths with file names listed under their directories.
 
-    :param listing: The list of paths. Each entry should be a directory path and the files it
-    contains. The first directory should be the root directory that contains all other paths.
-    :param output: Destination for the printed output.
+    Arguments:
+        listing: The list of paths. Each entry should be a directory path and the files it
+            contains. The first directory should be the root directory that contains all other
+            paths.
+        output: Destination for the printed output.
     """
     for directory, file_names in listing:
         write_directory(output, directory, file_names)

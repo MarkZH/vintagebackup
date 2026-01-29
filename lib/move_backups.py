@@ -62,8 +62,9 @@ def last_n_backups(n: str | int, backup_location: Path) -> list[Path]:
     """
     Return a list of the paths of the last n backups.
 
-    :param backup_location: The location of the backup set.
-    :param n: A positive integer to get the last n backups, or "all" to get all backups.
+    Arguments:
+        backup_location: The location of the backup set.
+        n: A positive integer to get the last n backups, or "all" to get all backups.
     """
     backups = all_backups(backup_location)
     if str(n).lower() == "all":

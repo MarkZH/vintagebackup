@@ -28,11 +28,15 @@ def delete_oldest_backups_for_space(
 
     The most recent backup will never be deleted.
 
-    :param backup_location: The folder containing all backups
-    :param space_requirement: How much space should be free after deleting backups. This is
-    expressed in bytes with a unit ("MB", etc.) or as a percentage ("%") of the total storage space.
-    :param min_backups_remaining: The minimum number of backups remaining after deletions. The most
-    recent backup will never be deleted, so the minimum meaningful value is one.
+    Arguments:
+        backup_location: The folder containing all backups
+        space_requirement: How much space should be free after deleting backups. This is
+            expressed in bytes with a unit ("MB", etc.) or as a percentage ("%") of the total
+            storage space.
+        verify_checksum_result_folder: If the checksum of the backup is being verified prior to
+            deletion, put the verification result files in this folder.
+        min_backups_remaining: The minimum number of backups remaining after deletions. The most
+            recent backup will never be deleted, so the minimum meaningful value is one.
     """
     if not space_requirement:
         return
@@ -70,11 +74,14 @@ def delete_backups_older_than(
     """
     Delete backups older than a given timespan.
 
-    :param backup_folder: The folder containing all backups
-    :param time_span: The maximum age of a backup to not be deleted. See
-    parse_time_span_to_timepoint() for how the string is formatted.
-    :param min_backups_remaining: The minimum number of backups remaining after deletions. The most
-    recent backup will never be deleted, so the minimum meaningful value is one.
+    Arguments:
+        backup_folder: The folder containing all backups
+        time_span: The maximum age of a backup to not be deleted. See
+            parse_time_span_to_timepoint() for how the string is formatted.
+        min_backups_remaining: The minimum number of backups remaining after deletions. The most
+            recent backup will never be deleted, so the minimum meaningful value is one.
+        verify_checksum_result_folder: If the checksum of the backup is being verified prior to
+            deletion, put the verification result files in this folder.
     """
     if not time_span:
         return
@@ -120,12 +127,15 @@ def delete_backups(
     """
     Delete backups until a condition is met.
 
-    :param backup_folder: The base folder containing all backups.
-    :param min_backups_remaining: The minimum number of backups that should remain after deletions.
-    Defaults to 1 if value is less than 1 (at least one backup will always remain).
-    :param first_deletion_message: A message to print/log prior to the first deletion if any
-    deletions will take place.
-    :param stop_deletion_condition: A function that, if it returns True, stops deletions.
+    Arguments:
+        backup_folder: The base folder containing all backups.
+        min_backups_remaining: The minimum number of backups that should remain after deletions.
+            Defaults to 1 if value is less than 1 (at least one backup will always remain).
+        first_deletion_message: A message to print/log prior to the first deletion if any
+            deletions will take place.
+        stop_deletion_condition: A function that, if it returns True, stops deletions.
+        verify_checksum_result_folder: If the checksum of the backup is being verified prior to
+            deletion, put the verification result files in this folder.
     """
     min_backups_remaining = max(1, min_backups_remaining)
 

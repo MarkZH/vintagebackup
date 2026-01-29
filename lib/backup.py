@@ -33,7 +33,8 @@ def shallow_stats(stats: os.stat_result) -> tuple[int, int, int]:
     When not inspecting file contents, only look at the file size, type, and modification time--in
     that order.
 
-    :param stats: File information retrieved from a DirEntry.stat() call.
+    Arguments:
+        stats: File information retrieved from a DirEntry.stat() call.
     """
     return (stats.st_size, stat.S_IFMT(stats.st_mode), stats.st_mtime_ns)
 
@@ -57,13 +58,14 @@ def compare_to_backup(
     """
     Sort a list of files according to whether they will be hard-linked or copied.
 
-    :param user_directory: The subfolder of the user's data currently being walked through
-    :param backup_directory: The backup folder that corresponds with the user_directory
-    :param file_names: A list of files in the user directory.
-    :param examine_whole_file: Whether the contents of the file should be examined, or just file
-    attributes.
-    :param copy_probability: Instead of hard-linking a file that hasn't changed since the last
-    backup, copy it anyway with a given probability.
+    Arguments:
+        user_directory: The subfolder of the user's data currently being walked through
+        backup_directory: The backup folder that corresponds with the user_directory
+        file_names: A list of files in the user directory.
+        examine_whole_file: Whether the contents of the file should be examined, or just file
+            attributes.
+        copy_probability: Instead of hard-linking a file that hasn't changed since the last
+            backup, copy it anyway with a given probability.
 
     The file names will be sorted into two lists and returned in this order: (1) matching files
     that will be hard-linked, (2) files that will be copied due to being new, changed, unreadable,
@@ -140,10 +142,12 @@ def separate_links(directory: Path, path_names: list[str]) -> tuple[list[str], l
 
     Directories within the given directory are not traversed.
 
-    :param directory: The directory containing all the files.
-    :param path_names: A list of names in the directory.
+    Arguments:
+        directory: The directory containing all the files.
+        path_names: A list of names in the directory.
 
-    :returns Two lists: the first a list of regular files, the second a list of symlinks.
+    Returns:
+        lists: Two lists: the first a list of regular files, the second a list of symlinks.
     """
 
     def is_not_link(name: str) -> bool:
@@ -156,10 +160,13 @@ def separate[T](items: Iterable[T], predicate: Callable[[T], bool]) -> tuple[lis
     """
     Separate a sequence of items into two lists according to a predicate.
 
-    :param items: A sequence of items to be separated.
-    :param predicate: A function returning True or False for each item.
-    :returns: Two lists. The first list are items where the predicate is True, the second where the
-    predicate is False.
+    Arguments:
+        items: A sequence of items to be separated.
+        predicate: A function returning True or False for each item.
+
+    Returns:
+        lists: Two lists: The first has items where the predicate is True, the second where the
+            predicate is False.
     """
     true_items: list[T] = []
     false_items: list[T] = []
@@ -182,18 +189,20 @@ def backup_directory(
     """
     Backup the files in a subfolder in the user's directory.
 
-    :param user_data_location: The base directory that is being backed up
-    :param new_backup_path: The base directory of the new dated backup
-    :param last_backup_path: The base directory of the previous dated backup
-    :param current_user_path: The user directory currently being walked through
-    :param user_file_names: The names of files contained in the current_user_path
-    :param examine_whole_file: Whether to examine file contents to check for changes since the last
-    backup
-    :param copy_probability: Probability of copying a file when it would normally be hard-linked
-    :param action_counter: A counter to track how many files have been linked, copied, or failed for
-    both
+    Arguments:
+        user_data_location: The base directory that is being backed up
+        new_backup_path: The base directory of the new dated backup
+        last_backup_path: The base directory of the previous dated backup
+        current_user_path: The user directory currently being walked through
+        user_file_names: The names of files contained in the current_user_path
+        examine_whole_file: Whether to examine file contents to check for changes since the last
+            backup
+        copy_probability: Probability of copying a file when it would normally be hard-linked
+        action_counter: A counter to track how many files have been linked, copied, or failed for
+            both
 
-    :returns copy size: Total size of copied files in bytes
+    Returns:
+        size: Total size of copied files in bytes
     """
     relative_path = current_user_path.relative_to(user_data_location)
     new_backup_directory = new_backup_path/relative_path
@@ -254,20 +263,21 @@ def create_new_backup(
     """
     Create a new dated backup.
 
-    :param user_data_location: The folder containing the data to be backed up
-    :param backup_location: The base directory of the backup destination. This directory should
-    already exist.
-    :param filter_file: A file containg a list of path glob patterns to exclude/include from the
-    backup
-    :param examine_whole_file: Whether to examine file contents to check for changes since the last
-    backup
-    :param force_copy: Whether to always copy files, regardless of whether a previous backup exists.
-    :param max_average_hard_links: How many times on average a file will be hardlinked before being
-    copied.
-    :param timestamp: Manually set timestamp of new backup. Used for debugging.
-    :param is_backup_move: Used to customize log messages when moving a backup to a new location.
+    Arguments:
+        user_data_location: The folder containing the data to be backed up
+        backup_location: The base directory of the backup destination. This directory should
+            already exist.
+        filter_file: A file containg a list of path glob patterns to exclude/include from the
+            backup
+        examine_whole_file: Whether to examine file contents to check for changes since the last
+            backup
+        force_copy: Whether to always copy files, regardless of whether a previous backup exists.
+        copy_probability: Probability that an unchanged file will be copied instead of hardlinked.
+        timestamp: Manually set timestamp of new backup. Used for debugging.
+        is_backup_move: Used to customize log messages when moving a backup to a new location.
 
-    :returns backup size: Total size of copied files in bytes
+    Returns:
+        size: Total size of copied files in bytes
     """
     check_paths_for_validity(user_data_location, backup_location, filter_file)
 

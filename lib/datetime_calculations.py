@@ -13,10 +13,11 @@ def parse_time_span_to_timepoint(
 
     For example, if time_span is "6m", the result is a date six calendar months ago.
 
-    :param time_span: A string consisting of a positive integer followed by a single letter: "d"
-    for days, "w" for weeks, "m" for calendar months, and "y" for calendar years.
-    :param now: The point from which to calculate the past point. If None, use
-    datetime.datetime.now().
+    Arguments:
+        time_span: A string consisting of a positive integer followed by a single letter: "d"
+            for days, "w" for weeks, "m" for calendar months, and "y" for calendar years.
+        now: The point from which to calculate the past point. If None, use
+            datetime.datetime.now().
     """
     time_span = "".join(time_span.lower().split())
     try:

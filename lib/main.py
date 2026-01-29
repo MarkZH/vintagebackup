@@ -26,7 +26,10 @@ def main(argv: list[str], *, testing: bool) -> int:
     """
     Start the main program.
 
-    :param argv: A list of command line arguments as from sys.argv
+    Arguments:
+        argv: A list of command line arguments as from sys.argv
+        testing: Whether this function is being run during testing. If True, some console output
+            will be disabled.
     """
     try:
         args = parse_command_line(argv)
