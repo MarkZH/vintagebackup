@@ -29,6 +29,7 @@ ignore = [
     "RET505", # Unnecessary else after return statement
     "S311", # Standard pseudo-random generators are not suitable for cryptographic purposes
     "T201", # print() found
+    "TC003", # Move standard library import into a type-checking block
     "TC006", # Add quotes to type expression in typing.cast()
     "TRY003", # No string arguments in custom exceptions
     "TRY300", # Move return to else block
