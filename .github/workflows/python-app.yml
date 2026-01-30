@@ -34,6 +34,6 @@ jobs:
     - name: Lint with ruff
       run: python -m ruff check --config=testing/ruff.toml --config "target-version = \"${{matrix.python}}\""
     - name: Test with mypy
-      run: python -m mypy --strict .
+      run: python -m mypy --strict . --python-version ${{matrix.python}}
     - name: Test with unittest
       run: python -m unittest testing/test.py

@@ -8,7 +8,7 @@ echo ruff
 py -3.13 -m ruff check --config=testing\ruff.toml --config "target-version = \"py313\"" || exit /b
 
 echo mypy
-py -3.13 -m mypy --strict . || exit /b
+py -3.13 -m mypy --strict . --python-version 3.13 || exit /b
 
 echo unittest
 py -3.13 -m unittest testing\test.py || exit /b
