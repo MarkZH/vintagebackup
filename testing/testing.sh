@@ -3,7 +3,7 @@ python3.13 -m pip install --upgrade pip
 python3.13 -m pip install --upgrade mypy ruff
 
 echo ruff
-python3.13 -m ruff check --config=testing/ruff.toml || exit 1
+python3.13 -m ruff check --config=testing/ruff.toml --config "target-version = \"py313\"" || exit 1
 
 echo mypy
 python3.13 -m mypy --strict vintagebackup.py testing/test.py || exit 1

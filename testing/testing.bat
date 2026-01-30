@@ -5,7 +5,7 @@ py -3.13 -m pip install --upgrade pip
 py -3.13 -m pip install --upgrade mypy ruff
 
 echo ruff
-py -3.13 -m ruff check --config=testing\ruff.toml || exit /b
+py -3.13 -m ruff check --config=testing\ruff.toml --config "target-version = \"py313\"" || exit /b
 
 echo mypy
 py -3.13 -m mypy --strict . || exit /b
