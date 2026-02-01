@@ -4994,3 +4994,54 @@ class FindMissingFilesTests(TestCaseWithTemporaryFilesAndFolders):
             self.assertTrue(list_file.is_file(), method)
             self.assertEqual(list_file.read_text(encoding="utf8"), file_contents, method)
             list_file.unlink()
+
+    def test_missing_files_printed_in_correct_order(self) -> None:
+        """
+        Test that missing files are printed in correct order.
+
+        With the built-in sorting for paths, the following files would be printed in this order:
+          ./broker.txt
+          ./code/script.py
+          ./new_file.txt
+
+        But, the correct order is
+          ./broker.txt
+          ./new_file.txt
+          ./code/script.py
+        because broker.txt and new_file.txt are in the same directory.
+        """
+        file_1 = self.user_path/"broker.txt"
+        file_1.touch()
+        folder = self.user_path/"code"
+        folder.mkdir()
+        file_2 = folder/"script.py"
+        file_2.touch()
+        file_3 = self.user_path/"new_file.txt"
+        file_3.touch()
+
+        default_backup(self.user_path, self.backup_path)
+        backup = find_previous_backup(self.backup_path)
+        self.assertIsNotNone(backup)
+        backup = cast(Path, backup)
+        old_user_path = self.user_path
+        self.reset_user_folder()
+
+        expected_missing_file_contents = (
+f"""Missing user files found in {self.backup_path}:
+{file_1.parent.relative_to(old_user_path)}
+    {file_1.name}    last seen: {backup.name}
+    {file_3.name}    last seen: {backup.name}
+{file_2.parent.relative_to(old_user_path)}
+    {file_2.name}    last seen: {backup.name}
+""")
+
+        for method in Invocation:
+            run_find_missing_files(
+                method,
+                self.backup_path,
+                self.user_path,
+                debug=False)
+
+            missing_file = self.user_path/"missing_files.txt"
+            missing_file_data = missing_file.read_text(encoding="utf8")
+            self.assertEqual(expected_missing_file_contents, missing_file_data)
