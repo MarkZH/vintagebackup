@@ -3,6 +3,7 @@
 import argparse
 from pathlib import Path
 import logging
+from functools import cmp_to_key
 
 from lib.backup_info import backup_source
 from lib.backup_set import Backup_Set
@@ -55,9 +56,17 @@ def find_missing_files(
     result_file = unique_path_name(result_directory/"missing_files.txt")
     logger.warning("Copying list to %s", result_file)
     current_directory: Path | None = None
+
+    def path_compare(at: tuple[Path, Path], bt: tuple[Path, Path]) -> int:
+        a = at[0]
+        b = bt[0]
+        part_a, part_b = (
+            (Path(a.name), Path(b.name)) if a.parent == b.parent else (a.parent, b.parent))
+        return -1 if part_a < part_b else 0 if part_a == part_b else 1
+
     with result_file.open("w", encoding="utf8") as result:
         result.write(f"Missing user files found in {backup_directory}:\n")
-        for user_file, backup in sorted(last_seen.items()):
+        for user_file, backup in sorted(last_seen.items(), key=cmp_to_key(path_compare)):
             if user_file.parent != current_directory:
                 logger.debug(user_file.parent)
                 result.write(f"{user_file.parent}\n")
