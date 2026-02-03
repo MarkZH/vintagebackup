@@ -9,11 +9,12 @@ from collections.abc import Callable
 from pathlib import Path
 
 from lib.backup_utilities import all_backups, backup_datetime
-from lib.backup import print_backup_storage_stats, start_backup
+from lib.backup import print_backup_storage_stats
 from lib.datetime_calculations import parse_time_span_to_timepoint
 from lib.exceptions import CommandLineError
 import lib.filesystem as fs
-from lib.verification import start_checksum, verify_backup_checksum
+from lib.verification import verify_backup_checksum
+from lib.backup_lock import Backup_Lock
 
 logger = logging.getLogger()
 
@@ -140,6 +141,9 @@ def delete_backups(
     min_backups_remaining = max(1, min_backups_remaining)
 
     backups_to_delete = all_backups(backup_folder)[:-min_backups_remaining]
+    if not backups_to_delete:
+        return
+
     for deletion_count, backup in enumerate(backups_to_delete, 1):
         if stop_deletion_condition(backup):
             break
@@ -233,22 +237,23 @@ def check_time_span_parameters(args: argparse.Namespace) -> None:
 
 def delete_old_backups(args: argparse.Namespace) -> None:
     """Delete the oldest backups by various criteria in the command line options."""
-    backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
-    backup_count = len(all_backups(backup_folder))
-    verify_checksum_result_folder = fs.path_or_none(args.verify_checksum_before_deletion)
-    max_deletions = int(args.max_deletions or backup_count)
-    min_backups_remaining = max(backup_count - max_deletions, 1)
-    delete_too_frequent_backups(
-        backup_folder, args, min_backups_remaining, verify_checksum_result_folder)
-    delete_oldest_backups_for_space(
-        backup_folder, args.free_up, verify_checksum_result_folder, min_backups_remaining)
-    delete_backups_older_than(
-        backup_folder, args.delete_after, verify_checksum_result_folder, min_backups_remaining)
-    print_backup_storage_stats(backup_folder)
+    try:
+        backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
+    except CommandLineError:
+        if args.delete_only:
+            raise
+        else:
+            return
 
-
-def delete_before_backup(args: argparse.Namespace) -> None:
-    """Delete old backups before running a backup process."""
-    delete_old_backups(args)
-    start_backup(args)
-    start_checksum(args)
+    with Backup_Lock(backup_folder, "backup deletion"):
+        backup_count = len(all_backups(backup_folder))
+        verify_checksum_result_folder = fs.path_or_none(args.verify_checksum_before_deletion)
+        max_deletions = int(args.max_deletions or backup_count)
+        min_backups_remaining = max(backup_count - max_deletions, 1)
+        delete_too_frequent_backups(
+            backup_folder, args, min_backups_remaining, verify_checksum_result_folder)
+        delete_oldest_backups_for_space(
+            backup_folder, args.free_up, verify_checksum_result_folder, min_backups_remaining)
+        delete_backups_older_than(
+            backup_folder, args.delete_after, verify_checksum_result_folder, min_backups_remaining)
+        print_backup_storage_stats(backup_folder)

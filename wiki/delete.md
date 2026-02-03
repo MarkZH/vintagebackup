@@ -68,13 +68,6 @@ The option `--max-deletions 5` will delete no more than 5 of the oldest backups 
 
 The value of the parameter must be a positive whole number.
 
-### `--delete-first`
-
-Delete old backups according to `--free-up` or `--delete-after` before creating a new backup.
-This can be useful if the next backup is expected to contain more new data than the free space on the backup location.
-
-This option is overridden by `--no-delete-first`.
-
 ### `--delete-only`
 
-The option is the same as `--delete-first`, but no backup is created afterwards.
+Only delete old backups. Do not create a backup.

@@ -388,8 +388,9 @@ def print_backup_storage_stats(backup_location: Path) -> None:
         fs.byte_units(backup_storage.free),
         percent_free)
     backups = all_backups(backup_location)
-    logger.info("Backups stored: %d", len(backups))
-    logger.info("Earliest backup: %s", backups[0].name)
+    if backups:
+        logger.info("Backups stored: %d", len(backups))
+        logger.info("Earliest backup: %s", backups[0].name)
 
 
 def copy_probability_from_hard_link_count(hard_link_count: str) -> float:

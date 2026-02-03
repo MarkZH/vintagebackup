@@ -1509,47 +1509,6 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         earliest_backup_timestamp = backup_datetime(backups[0])
         self.assertLessEqual(now - earliest_backup_timestamp, oldest_backup_age)
 
-    def test_delete_first_deletes_backups_before_backing_up(self) -> None:
-        """Test that --delete-first deletes backups before creating a new backup."""
-        initial_backups = 20
-        create_old_monthly_backups(self.backup_path, initial_backups)
-        create_user_data(self.user_path)
-        arguments = [
-            "--user-folder", str(self.user_path),
-            "--backup-folder", str(self.backup_path),
-            "--delete-after", "1y",
-            "--delete-first",
-            "--timestamp", unique_timestamp_string()]
-        backups_in_year = 12
-        expected_deletions_before_backup = initial_backups - backups_in_year
-        expected_backup_count_before_backup = initial_backups - expected_deletions_before_backup
-        with self.assertLogs(level=logging.INFO) as logs:
-            exit_code = main_no_log(arguments)
-        self.assertEqual(exit_code, 0)
-        backups_remaining = all_backups(self.backup_path)
-        expected_backups_left = expected_backup_count_before_backup + 1
-        self.assertEqual(len(backups_remaining), expected_backups_left)
-        backup_log_line = "INFO:root: Starting new backup"
-        self.assertIn(backup_log_line, logs.output)
-        backup_start_index = logs.output.index(backup_log_line)
-        deletion_log_prefix = "INFO:root:Deleting oldest backup:"
-
-        deletions_before_backup = 0
-        for log_line in logs.output[:backup_start_index]:
-            if log_line.startswith(deletion_log_prefix):
-                deletions_before_backup += 1
-        self.assertEqual(deletions_before_backup, expected_deletions_before_backup)
-
-        deletions_after_backup = 0
-        for log_line in logs.output[backup_start_index:]:
-            if log_line.startswith(deletion_log_prefix):
-                deletions_after_backup += 1
-        self.assertEqual(deletions_after_backup, 0)
-
-        for log_line in logs.output:
-            self.assertFalse(log_line.startswith("WARNING:"), log_line)
-            self.assertFalse(log_line.startswith("ERROR:"), log_line)
-
     def test_keep_weekly_after_only_retains_weekly_backups_after_time_span(self) -> None:
         """After the given time span, every backup is at least a week apart."""
         create_old_daily_backups(self.backup_path, 30)
@@ -2598,7 +2557,6 @@ Debug:""", encoding="utf8")
 r"""
 compare contents:
 Debug:
-delete first:
 force copy:
 checksum:
 """, encoding="utf8")
@@ -2606,13 +2564,11 @@ checksum:
             "-c", str(self.config_path),
             "--no-compare-contents",
             "--no-debug",
-            "--no-delete-first",
             "--no-force-copy",
             "--no-checksum"]
         options = argparse.parse_command_line(command_line_options)
         self.assertFalse(argparse.toggle_is_set(options, "compare_contents"))
         self.assertFalse(argparse.toggle_is_set(options, "debug"))
-        self.assertFalse(argparse.toggle_is_set(options, "delete_first"))
         self.assertFalse(argparse.toggle_is_set(options, "force_copy"))
         self.assertFalse(argparse.toggle_is_set(options, "checksum"))
 
