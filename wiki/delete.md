@@ -5,7 +5,9 @@ Deleting old backups is necessary for keeping space available for new backups.
 ## Deletion actions
 
 Any and all of the options in this section can be used at the same time.
-They will run after a backup completes successfully.
+Backup deletions will run both before a backup is attempted and after a backup completes successfully.
+Backup deletions before a backup ensure that there is adequate space for a new backup.
+Backup deletions after a backup ensure that most of the time the next backup can start quickly once the program starts.
 
 ### `--free-up`
 
