@@ -1466,6 +1466,43 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         deletion.delete_backups_older_than(self.backup_path, "1d", None)
         self.assertEqual(all_backups(self.backup_path), [last_backup])
 
+    def test_delete_after_deletes_too_old_backups_before_new_backup(self) -> None:
+        """Test that backups older than a given date can be deleted with --delete-after."""
+        create_old_monthly_backups(self.backup_path, 30)
+        max_age = "1y"
+        now = datetime.datetime.now()
+        earliest_backup = datetime.datetime(
+            now.year - 1, now.month, now.day,
+            now.hour, now.minute, now.second, now.microsecond)
+        create_user_data(self.user_path)
+        most_recent_backup = moving.last_n_backups(1, self.backup_path)[0]
+        fs.delete_directory_tree(most_recent_backup)
+        with self.assertLogs(level=logging.INFO) as logs:
+            exit_code = main.main([
+                "-u", str(self.user_path),
+                "-b", str(self.backup_path),
+                "--delete-after", max_age],
+                testing=True)
+        self.assertEqual(exit_code, 0)
+        backups = all_backups(self.backup_path)
+        self.assertEqual(len(backups), 12)
+        self.assertLessEqual(earliest_backup, backup_datetime(backups[0]))
+
+        backups_deleted = False
+        created_backup = False
+        for line in logs.output:
+            self.assertFalse(line.startswith("WARNING:root:"))
+            if line.startswith("INFO:root:Deleting oldest backup"):
+                self.assertFalse(created_backup)
+                backups_deleted = True
+
+            if line == "INFO:root:Running backup ...":
+                self.assertTrue(backups_deleted)
+                created_backup = True
+
+        self.assertTrue(backups_deleted)
+        self.assertTrue(created_backup)
+
     def test_free_up_never_deletes_most_recent_backup(self) -> None:
         """Test that deleting all backups with --free-up actually leaves the last one."""
         create_old_monthly_backups(self.backup_path, 30)
