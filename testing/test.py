@@ -1414,9 +1414,9 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             create_old_monthly_backups(self.backup_path, 30)
             max_age = "1y"
             now = datetime.datetime.now()
-            earliest_backup = datetime.datetime(
-                now.year - 1, now.month, now.day,
-                now.hour, now.minute, now.second, now.microsecond)
+            earliest_backup = datetime.datetime.combine(
+                dates.fix_end_of_month(now.year - 1, now.month, now.day),
+                datetime.time(now.hour, now.minute, now.second, now.microsecond))
             if method == Invocation.function:
                 deletion.delete_backups_older_than(self.backup_path, max_age, None)
             elif method == Invocation.cli:
