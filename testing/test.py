@@ -1420,13 +1420,11 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             if method == Invocation.function:
                 deletion.delete_backups_older_than(self.backup_path, max_age, None)
             elif method == Invocation.cli:
-                create_user_data(self.user_path)
-                most_recent_backup = moving.last_n_backups(1, self.backup_path)[0]
-                fs.delete_directory_tree(most_recent_backup)
                 exit_code = main_assert_no_error_log([
                     "--user-folder", str(self.user_path),
                     "--backup-folder", str(self.backup_path),
                     "--delete-after", max_age,
+                    "--delete-only",
                     "--timestamp", unique_timestamp_string()],
                     self)
                 self.assertEqual(exit_code, 0, method)
