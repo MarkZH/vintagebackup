@@ -1492,6 +1492,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         created_backup = False
         for line in logs.output:
             self.assertFalse(line.startswith("WARNING:root:"))
+            self.assertFalse(line.startswith("ERROR:root:"))
             if line.startswith("INFO:root:Deleting oldest backup"):
                 self.assertFalse(created_backup)
                 backups_deleted = True
