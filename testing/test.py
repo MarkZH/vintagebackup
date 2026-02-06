@@ -1481,7 +1481,8 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             exit_code = main.main([
                 "-u", str(self.user_path),
                 "-b", str(self.backup_path),
-                "--delete-after", max_age],
+                "--delete-after", max_age,
+                "--log", os.devnull],
                 testing=True)
         self.assertEqual(exit_code, 0)
         backups = all_backups(self.backup_path)
