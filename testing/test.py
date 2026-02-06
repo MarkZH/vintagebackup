@@ -228,13 +228,33 @@ def all_files_are_hardlinked(standard_directory: Path, test_directory: Path) -> 
 
 
 def directories_are_completely_hardlinked(base_directory_1: Path, base_directory_2: Path) -> bool:
-    """Check that both directories have same tree and all files are hardlinked together."""
+    """
+    Check that both directories have same tree and all files are hardlinked together.
+
+    Arguments:
+        base_directory_1: Path to folders for comparison
+        base_directory_2: Path to folders for comparison
+
+    Returns:
+        link_result: True if all files in both directories are hardlinked to their counterparts in
+            the other folder.
+    """
     return (all_files_are_hardlinked(base_directory_1, base_directory_2)
             and all_files_are_hardlinked(base_directory_2, base_directory_1))
 
 
 def no_files_are_hardlinks(standard_directory: Path, test_directory: Path) -> bool:
-    """Test files in standard directory are not hard linked to counterparts in test directory."""
+    """
+    Test files in standard directory are not hard linked to counterparts in test directory.
+
+    Arguments:
+        standard_directory: Path to folders to check for links
+        test_directory: Path to folders to check for links
+
+    Returns:
+        no_links: True if there is no file in standard_directory that is hardlinked to its
+            counterpart in test_directory
+    """
     for directory_1, _, file_names in standard_directory.walk():
         directory_2 = test_directory/(directory_1.relative_to(standard_directory))
         for file_name in file_names:
@@ -246,7 +266,20 @@ def no_files_are_hardlinks(standard_directory: Path, test_directory: Path) -> bo
 
 
 def directories_are_completely_copied(base_directory_1: Path, base_directory_2: Path) -> bool:
-    """Check that both directories have same tree and all files are copies."""
+    """
+    Check that both directories have same tree and all files are copies.
+
+    Arguments:
+        base_directory_1: Path to folders to compare
+        base_directory_2: Path to folders to compare
+
+    Returns:
+        compare_result: Whether both folders have the same directory tree, both file sets contain
+            the same data, and no files are hardlinked between them
+
+
+
+    """
     return (no_files_are_hardlinks(base_directory_1, base_directory_2)
             and no_files_are_hardlinks(base_directory_2, base_directory_1)
             and directories_have_identical_content(base_directory_1, base_directory_2))
@@ -268,7 +301,22 @@ def run_backup(
         examine_whole_file: bool,
         force_copy: bool,
         timestamp: datetime.datetime) -> int:
-    """Create a new backup while choosing a direct function call or a CLI invocation."""
+    """
+    Create a new backup while choosing a direct function call or a CLI invocation.
+
+    Arguments:
+        run_method: How to run the function under test: direct call or command line arguments
+        user_data: Path to test user data
+        backup_location: Path to test backup directory
+        filter_file: Path to a file with a backup set filter
+        examine_whole_file: Whether to compare file contents when making a new backup
+        force_copy: If True, do not hard link any files, even if unchanged
+        timestamp: The timestamp to use for the backup to make sure backups created successively do
+            not have the same timestamp
+
+    Returns:
+        exit_code: The exit code of the program run: zero for success and non-zero for failure.
+    """
     if run_method == Invocation.function:
         bak.create_new_backup(
             user_data,
@@ -305,7 +353,23 @@ def run_backup_assert_no_error_logs(
         examine_whole_file: bool,
         force_copy: bool,
         timestamp: datetime.datetime) -> int:
-    """Run backup while asserting that no errors are logged."""
+    """
+    Run backup while asserting that no errors are logged.
+
+    Arguments:
+        testcase: The current TestCase being run
+        run_method: How to run the function under test: direct call or command line arguments
+        user_data: Path to test user data
+        backup_location: Path to test backup directory
+        filter_file: Path to a file with a backup set filter
+        examine_whole_file: Whether to compare file contents when making a new backup
+        force_copy: If True, do not hard link any files, even if unchanged
+        timestamp: The timestamp to use for the backup to make sure backups created successively do
+            not have the same timestamp
+
+    Returns:
+        exit_code: The exit code of the program run: zero for success and non-zero for failure.
+    """
     with testcase.assertNoLogs(level=logging.ERROR):
         return run_backup(
             run_method,
@@ -885,7 +949,22 @@ def run_recovery(
         *,
         choices: int | str,
         search: bool) -> int:
-    """Test file recovery through a direct function call or a CLI invocation."""
+    """
+    Test file recovery through a direct function call or a CLI invocation.
+
+    Arguments:
+        method: How to run the function under test: direct call or command line arguments
+        backup_location: Folder containing all dated backups
+        file_path: The original path to the file being recovered
+        choices: Which backup to recover. If a single integer, then that choice will be made from
+            the console menu. If a string, then it should be a sequence of the letters "o", "n",
+            and "c" to choose a recovery target using binary choice.
+        search: If True, use binary choice to pick the backup version. If False, choose the
+            recovery target from a menu.
+
+    Returns:
+        exit_code: The exit code of the program run: zero for success and non-zero for failure.
+    """
     if method == Invocation.function:
         recovery.recover_path(file_path, backup_location, search=search, choice=choices)
         return 0
@@ -1818,7 +1897,15 @@ class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
 
 
 def read_paths_file(verify_file: TextIO) -> set[Path]:
-    """Read an opened verification file and return the path contents."""
+    """
+    Read an opened verification file and return the path contents.
+
+    Arguments:
+        verify_file: A stream from opening a file in text mode
+
+    Returns:
+        path_set: A set of paths read from the file
+    """
     files_from_verify: set[Path] = set()
     current_directory: Path | None = None
     for line in verify_file:
@@ -4838,7 +4925,18 @@ def run_find_missing_files(
         result_directory: Path,
         *,
         debug: bool) -> int:
-    """Run the missing files function either from a function call or from command line arguments."""
+    """
+    Run the missing files function either from a function call or from command line arguments.
+
+    Arguments:
+        method: How to run the function under test: direct call or command line arguments
+        backup_path: The path to the base backup directory that holds all backups
+        result_directory: The directory where the missing_files.txt file will be written
+        debug: Whether to turn on debug logging
+
+    Returns:
+        exit_code: The exit code of the program run: zero for success and non-zero for failure
+    """
     if method == Invocation.function:
         find_missing.find_missing_files(backup_path, None, result_directory)
         return 0
