@@ -9,7 +9,6 @@ from collections.abc import Callable
 from pathlib import Path
 
 from lib.backup_utilities import all_backups, backup_datetime
-from lib.backup import print_backup_storage_stats
 from lib.datetime_calculations import parse_time_span_to_timepoint
 from lib.exceptions import CommandLineError
 import lib.filesystem as fs
@@ -256,4 +255,3 @@ def delete_old_backups(args: argparse.Namespace) -> None:
             backup_folder, args.free_up, verify_checksum_result_folder, min_backups_remaining)
         delete_backups_older_than(
             backup_folder, args.delete_after, verify_checksum_result_folder, min_backups_remaining)
-        print_backup_storage_stats(backup_folder)

@@ -2,10 +2,11 @@
 
 import argparse
 import logging
+from pathlib import Path
 
 from lib.argument_parser import parse_command_line, print_help, print_usage, toggle_is_set
 from lib.automation import generate_windows_scripts
-from lib.backup import start_backup
+from lib.backup import start_backup, print_backup_storage_stats
 from lib.backup_deletion import delete_old_backups
 from lib.backup_set import preview_filter
 from lib.configuration import generate_config
@@ -46,6 +47,7 @@ def main(argv: list[str], *, testing: bool) -> int:
             start_backup(args)
             start_checksum(args)
             delete_old_backups(args)
+            print_backup_storage_stats(Path(args.backup_folder))
 
         action = (
             generate_config if args.generate_config
