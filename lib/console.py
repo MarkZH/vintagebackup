@@ -48,7 +48,7 @@ def choose_from_menu(
 
         print(f"Enter a number from 1 to {len(menu_choices)}", file=output)
         if test_choice is not None:
-            test_choice = test_choice[1:]
+            test_choice.pop(0)
 
 
 def cancel_key() -> str:
