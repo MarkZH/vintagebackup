@@ -12,7 +12,7 @@ Backup deletions after a backup ensure that most of the time the next backup can
 ### `--free-up`
 
 Specify how much disk space should be kept free at the backup location.
-If there is less space after a backup, old backups will be deleted until this amount of space is free.
+If there is less space before or after a backup, old backups will be deleted until this amount of space is free.
 This parameter can be just a number or a number with a byte unit.
 For example,
 
