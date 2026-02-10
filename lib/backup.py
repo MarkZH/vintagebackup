@@ -19,7 +19,6 @@ from lib.backup_utilities import all_backups, backup_date_format, find_previous_
 from lib.backup_info import confirm_user_location_is_unchanged, record_user_location
 from lib.backup_lock import Backup_Lock
 from lib.backup_set import Backup_Set
-from lib.console import print_run_title
 from lib.exceptions import CommandLineError
 import lib.filesystem as fs
 
@@ -438,7 +437,6 @@ def start_backup(args: argparse.Namespace) -> None:
     backup_folder.mkdir(parents=True, exist_ok=True)
 
     with Backup_Lock(backup_folder, "backup"):
-        print_run_title(args, "Starting new backup")
         filter_file = fs.path_or_none(args.filter)
         backup_space_taken = create_new_backup(
             user_folder,

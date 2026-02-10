@@ -10,6 +10,7 @@ from lib.backup import start_backup, print_backup_storage_stats
 from lib.backup_deletion import delete_old_backups
 from lib.backup_set import preview_filter
 from lib.configuration import generate_config
+from lib.console import print_run_title
 from lib.exceptions import CommandLineError, ConcurrencyError
 from lib.logs import setup_initial_null_logger, setup_log_file
 from lib.move_backups import start_move_backups
@@ -43,6 +44,7 @@ def main(argv: list[str], *, testing: bool) -> int:
         logger.debug(args)
 
         def default_action(args: argparse.Namespace) -> None:
+            print_run_title(args, "Starting new backup")
             delete_old_backups(args)
             start_backup(args)
             start_checksum(args)
