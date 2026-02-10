@@ -13,13 +13,18 @@ Within a configuration file, put one parameter per line like so:
 `<parameter>: <value>`
 
 The `<parameter>` is the name of an option without the leading `--`. The parameter `--user-folder "C:\Users\Alice"` becomes `user-folder: C:\Users\Alice`.
-To make the file more readable, dashes may be replaced with spaces and captilization is ignored.
+To make the file more readable:
+  - dashes may be replaced with spaces,
+  - captilization is ignored,
+  - and, spacing around the colon is ignored.
+
 So, all of the following are equivalent:
 
 ```
 user-folder: C:\Users\Alice
 user folder: C:\Users\Alice
-User Folder : C:\Users\Alice
+User Folder: C:\Users\Alice
+User Folder  :  C:\Users\Alice
 ```
 
 If a parameter does not take a value (`--compare-contents`, `--delete-first`, `--force-copy`, or `--debug`), it should be written with the same format but with a blank value.
@@ -116,7 +121,8 @@ This means that recursive configuration files that contain a line like `Config: 
 
 ### Quoting to preserve leading and trailing spaces in file names
 
-Normally, and leading or trailing spaces will be trimmed from the parameter values.
+Normally, no parameter value needs quotations marks unless quotation marks are a part of the value, like for a file name.
+However, leading or trailing spaces will be trimmed from the parameter values.
 If the value needs to retain those spaces, then put double quotes around the value.
 
 ```
