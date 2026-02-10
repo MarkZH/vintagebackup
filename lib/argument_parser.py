@@ -303,12 +303,6 @@ the Time Span Format section below."""
     deletion_group.add_argument("--max-deletions", help=format_help(
 """Specify the maximum number of deletions per program run."""))
 
-    deletion_group.add_argument("--delete-first", action="store_true", help=format_help(
-"""Delete old backups (according to --free-up, --delete-after, and --max-deletions) to make room
-prior to starting a new backup."""))
-
-    add_no_option(deletion_group, "delete-first")
-
     deletion_group.add_argument(
         "--verify-checksum-before-deletion", metavar="RESULT_DIR", help=format_help(
 """If a backup with a checksum is about to be automatically deleted, verify the checksum first. The

@@ -5,12 +5,14 @@ Deleting old backups is necessary for keeping space available for new backups.
 ## Deletion actions
 
 Any and all of the options in this section can be used at the same time.
-They will run after a backup completes successfully.
+Backup deletions will run both before a backup is attempted and after a backup completes successfully.
+Backup deletions before a backup ensure that there is adequate space for a new backup.
+Backup deletions after a backup ensure that most of the time the next backup can start quickly once the program starts.
 
 ### `--free-up`
 
 Specify how much disk space should be kept free at the backup location.
-If there is less space after a backup, old backups will be deleted until this amount of space is free.
+If there is less space before or after a backup, old backups will be deleted until this amount of space is free.
 This parameter can be just a number or a number with a byte unit.
 For example,
 
@@ -69,13 +71,6 @@ The option `--max-deletions 5` will delete no more than 5 of the oldest backups 
 
 The value of the parameter must be a positive whole number.
 
-### `--delete-first`
-
-Delete old backups according to `--free-up` or `--delete-after` before creating a new backup.
-This can be useful if the next backup is expected to contain more new data than the free space on the backup location.
-
-This option is overridden by `--no-delete-first`.
-
 ### `--delete-only`
 
-The option is the same as `--delete-first`, but no backup is created afterwards.
+Only delete old backups. Do not create a backup.

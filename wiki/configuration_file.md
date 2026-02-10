@@ -27,7 +27,7 @@ User Folder: C:\Users\Alice
 User Folder  :  C:\Users\Alice
 ```
 
-If a parameter does not take a value (`--compare-contents`, `--delete-first`, `--force-copy`, or `--debug`), it should be written with the same format but with a blank value.
+If a parameter does not take a value (`--compare-contents`, `--force-copy`, or `--debug`), it should be written with the same format but with a blank value.
 
 ```
 Force copy:
