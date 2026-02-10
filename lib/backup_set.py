@@ -54,7 +54,13 @@ class Backup_Set:
                 self.entries.append((line_number, sign, pattern))
 
     def __iter__(self) -> Iterator[tuple[Path, list[str]]]:
-        """Create the iterator that yields the paths to backup."""
+        """
+        Create the iterator that yields the paths to backup.
+
+        Yields:
+            Sequence: Yields a sequence of tuples, each is a directory path and the file names
+                within that have not been filtered out.
+        """
         for current_directory, _, files in self.user_folder.walk():
             good_files = list(filter(self.passes, (current_directory/file for file in files)))
             if good_files:
