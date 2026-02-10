@@ -15,7 +15,7 @@ Within a configuration file, put one parameter per line like so:
 The `<parameter>` is the name of an option without the leading `--`. The parameter `--user-folder "C:\Users\Alice"` becomes `user-folder: C:\Users\Alice`.
 To make the file more readable:
   - dashes may be replaced with spaces,
-  - captilization is ignored,
+  - capitalization is ignored,
   - and, spacing around the colon is ignored.
 
 So, all of the following are equivalent:
