@@ -161,7 +161,6 @@ def delete_backups(
             logger.warning("Stopped backup deletions to preserve most recent backup.")
         else:
             logger.info("Stopped after reaching maximum number of deletions.")
-    logger.info("")
 
 
 def delete_too_frequent_backups(
