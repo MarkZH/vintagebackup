@@ -24,11 +24,7 @@ import hashlib
 from lib import backup_set
 from lib import main
 import lib.argument_parser as argparse
-from lib.backup_utilities import (
-    backup_date_format,
-    backup_datetime,
-    all_backups,
-    find_previous_backup)
+import lib.backup_utilities as util
 import lib.filesystem as fs
 import lib.backup as bak
 import lib.datetime_calculations as dates
@@ -77,7 +73,7 @@ def unique_timestamp() -> datetime.datetime:
 
 def unique_timestamp_string() -> str:
     """Return the stringified version of the unique_timestamp() result."""
-    return unique_timestamp().strftime(backup_date_format)
+    return unique_timestamp().strftime(util.backup_date_format)
 
 
 def random_string(length: int) -> str:
@@ -157,7 +153,7 @@ def create_old_monthly_backups(backup_base_directory: Path, count: int) -> None:
 
 def create_old_backup(backup_base_directory: Path, backup_timestamp: datetime.datetime) -> None:
     """Create a single empty backup with the given timestamp."""
-    backup_name = backup_timestamp.strftime(backup_date_format)
+    backup_name = backup_timestamp.strftime(util.backup_date_format)
     backup_path = backup_base_directory/str(backup_timestamp.year)/backup_name
     backup_path.mkdir(parents=True)
 
@@ -283,7 +279,7 @@ def run_backup(
         argv = [
             "--user-folder", str(user_data),
             "--backup-folder", str(backup_location),
-            "--timestamp", timestamp.strftime(backup_date_format)]
+            "--timestamp", timestamp.strftime(util.backup_date_format)]
         if filter_file:
             argv.extend(["--filter", str(filter_file)])
         if examine_whole_file:
@@ -370,9 +366,9 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
                 force_copy=False,
                 timestamp=unique_timestamp())
             self.assertEqual(exit_code, 0, method)
-            backups = all_backups(self.backup_path)
+            backups = util.all_backups(self.backup_path)
             self.assertEqual(len(backups), 1, method)
-            self.assertEqual(backups[0], find_previous_backup(self.backup_path), method)
+            self.assertEqual(backups[0], util.find_previous_backup(self.backup_path), method)
             self.assertTrue(directories_are_completely_copied(self.user_path, backups[0]), method)
             self.reset_backup_folder()
 
@@ -391,9 +387,9 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
                     force_copy=False,
                     timestamp=unique_timestamp())
                 self.assertEqual(exit_code, 0)
-            backups = all_backups(self.backup_path)
+            backups = util.all_backups(self.backup_path)
             self.assertEqual(len(backups), 2, method)
-            self.assertEqual(backups[1], find_previous_backup(self.backup_path), method)
+            self.assertEqual(backups[1], util.find_previous_backup(self.backup_path), method)
             self.assertTrue(directories_are_completely_hardlinked(*backups), method)
             self.reset_backup_folder()
 
@@ -412,9 +408,9 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
                     force_copy=True,
                     timestamp=unique_timestamp())
                 self.assertEqual(exit_code, 0)
-            backups = all_backups(self.backup_path)
+            backups = util.all_backups(self.backup_path)
             self.assertEqual(len(backups), 2, method)
-            self.assertEqual(backups[1], find_previous_backup(self.backup_path), method)
+            self.assertEqual(backups[1], util.find_previous_backup(self.backup_path), method)
             self.assertTrue(directories_are_completely_copied(self.user_path, backups[-1]), method)
             self.assertTrue(directories_are_completely_copied(*backups), method)
             self.reset_backup_folder()
@@ -443,9 +439,9 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
                     for file in files:
                         (current_directory/file).touch()  # update timestamps
 
-            backups = all_backups(self.backup_path)
+            backups = util.all_backups(self.backup_path)
             self.assertEqual(len(backups), 2, method)
-            self.assertEqual(backups[-1], find_previous_backup(self.backup_path), method)
+            self.assertEqual(backups[-1], util.find_previous_backup(self.backup_path), method)
             self.assertTrue(directories_are_completely_hardlinked(*backups), method)
             self.reset_backup_folder()
 
@@ -464,9 +460,9 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
                     force_copy=True,
                     timestamp=unique_timestamp())
                 self.assertEqual(exit_code, 0, method)
-            backups = all_backups(self.backup_path)
+            backups = util.all_backups(self.backup_path)
             self.assertEqual(len(backups), 2, method)
-            self.assertEqual(backups[-1], find_previous_backup(self.backup_path), method)
+            self.assertEqual(backups[-1], util.find_previous_backup(self.backup_path), method)
             self.assertTrue(directories_are_completely_copied(*backups), method)
             self.reset_backup_folder()
 
@@ -480,7 +476,7 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
             changed_file.write("the change\n")
 
         default_backup(self.user_path, self.backup_path)
-        backup_1, backup_2 = all_backups(self.backup_path)
+        backup_1, backup_2 = util.all_backups(self.backup_path)
         contents_1 = directory_contents(backup_1)
         contents_2 = directory_contents(backup_2)
         self.assertEqual(contents_1, contents_2)
@@ -503,7 +499,7 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
         (self.user_path/file_symlink_name).symlink_to(file_link_target)
 
         default_backup(self.user_path, self.backup_path)
-        last_backup = find_previous_backup(self.backup_path)
+        last_backup = util.find_previous_backup(self.backup_path)
         self.assertIsNotNone(last_backup)
         last_backup = cast(Path, last_backup)
         self.assertTrue((last_backup/directory_symlink_name).is_symlink())
@@ -523,7 +519,7 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
 
         for _ in range(2):
             default_backup(self.user_path, self.backup_path)
-        backup_1, backup_2 = all_backups(self.backup_path)
+        backup_1, backup_2 = util.all_backups(self.backup_path)
         self.assertNotEqual(
             (backup_1/directory_symlink_name).stat(follow_symlinks=False).st_ino,
             (backup_2/directory_symlink_name).stat(follow_symlinks=False).st_ino)
@@ -684,7 +680,7 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
         other_linked_file.hardlink_to(linked_file)
         self.assertEqual(linked_file.stat().st_ino, other_linked_file.stat().st_ino)
         default_backup(self.user_path, self.backup_path)
-        backup = find_previous_backup(self.backup_path)
+        backup = util.find_previous_backup(self.backup_path)
         self.assertIsNotNone(backup)
         backup = cast(Path, backup)
         linked_backup_file = backup/linked_file.relative_to(self.user_path)
@@ -725,7 +721,7 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
                 timestamp=unique_timestamp())
             self.assertEqual(exit_code, 0)
 
-            last_backup = find_previous_backup(self.backup_path)
+            last_backup = util.find_previous_backup(self.backup_path)
             self.assertIsNotNone(last_backup, method)
             last_backup = cast(Path, last_backup)
 
@@ -755,7 +751,7 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
                 timestamp=unique_timestamp())
             self.assertEqual(exit_code, 0, method)
 
-            last_backup = find_previous_backup(self.backup_path)
+            last_backup = util.find_previous_backup(self.backup_path)
             self.assertIsNotNone(last_backup, method)
             last_backup = cast(Path, last_backup)
 
@@ -789,8 +785,8 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
             copy_probability=0.0,
             timestamp=unique_timestamp())
 
-        self.assertEqual(len(all_backups(self.backup_path)), 1)
-        last_backup = find_previous_backup(self.backup_path)
+        self.assertEqual(len(util.all_backups(self.backup_path)), 1)
+        last_backup = util.find_previous_backup(self.backup_path)
         self.assertIsNotNone(last_backup)
         last_backup = cast(Path, last_backup)
 
@@ -866,7 +862,7 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
             self)
 
         backup_list_path = self.user_path/"backed_up.txt"
-        last_backup = cast(Path, find_previous_backup(self.backup_path))
+        last_backup = cast(Path, util.find_previous_backup(self.backup_path))
         with backup_list_path.open("w", encoding="utf8") as backup_list:
             for directory, _, files in last_backup.walk():
                 fs.write_directory(backup_list, directory, files)
@@ -1028,7 +1024,7 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
                     search=True)
                 self.assertEqual(exit_code, 0, method)
 
-            backups = all_backups(self.backup_path)
+            backups = util.all_backups(self.backup_path)
             expected_backup_sequence = [backups[i] for i in [4, 2, 3]]
             current_recovery_index = 0
             log_prefix = "INFO:root:"
@@ -1313,10 +1309,10 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
     def test_deleting_single_backup(self) -> None:
         """Test deleting only the most recent backup."""
         create_old_monthly_backups(self.backup_path, 10)
-        backups = all_backups(self.backup_path)
+        backups = util.all_backups(self.backup_path)
         fs.delete_directory_tree(backups[0])
         expected_remaining_backups = backups[1:]
-        all_backups_left = all_backups(self.backup_path)
+        all_backups_left = util.all_backups(self.backup_path)
         self.assertEqual(expected_remaining_backups, all_backups_left)
 
     def test_deleting_backup_with_read_only_file(self) -> None:
@@ -1324,11 +1320,11 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         (self.user_path/"sub_directory_1"/"sub_sub_directory_1"/"file_1.txt").chmod(stat.S_IRUSR)
         default_backup(self.user_path, self.backup_path)
-        backups = all_backups(self.backup_path)
+        backups = util.all_backups(self.backup_path)
         self.assertEqual(len(backups), 1)
 
         fs.delete_directory_tree(backups[0])
-        backup_count_after = len(all_backups(self.backup_path))
+        backup_count_after = len(util.all_backups(self.backup_path))
         self.assertEqual(backup_count_after, 0)
 
     def test_deleting_backup_with_read_only_folder(self) -> None:
@@ -1339,11 +1335,11 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         read_only_folder.chmod(read_only)
 
         default_backup(self.user_path, self.backup_path)
-        backups = all_backups(self.backup_path)
+        backups = util.all_backups(self.backup_path)
         self.assertEqual(len(backups), 1)
 
         fs.delete_directory_tree(backups[0])
-        backup_count_after = len(all_backups(self.backup_path))
+        backup_count_after = len(util.all_backups(self.backup_path))
         self.assertEqual(backup_count_after, 0)
 
         # Restore write access to folder so it can be deleted in self.tearDown()
@@ -1378,7 +1374,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
                 backups_after_deletion -= 1
             else:
                 raise NotImplementedError(f"Delete backup test not implemented for {method}")
-            backups_left = len(all_backups(self.backup_path))
+            backups_left = len(util.all_backups(self.backup_path))
             self.assertIn(backups_left - backups_after_deletion, [0, 1], method)
 
             self.reset_backup_folder()
@@ -1405,7 +1401,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertIn(
             "INFO:root:Stopped after reaching maximum number of deletions.",
             log_check.output)
-        all_backups_after_deletion = all_backups(self.backup_path)
+        all_backups_after_deletion = util.all_backups(self.backup_path)
         self.assertEqual(len(all_backups_after_deletion), expected_backups_count)
 
     def test_delete_after_deletes_all_backups_prior_to_given_date(self) -> None:
@@ -1430,9 +1426,9 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
                 self.assertEqual(exit_code, 0, method)
             else:
                 raise NotImplementedError(f"Delete backup test not implemented for {method}")
-            backups = all_backups(self.backup_path)
+            backups = util.all_backups(self.backup_path)
             self.assertEqual(len(backups), 12, method)
-            self.assertLessEqual(earliest_backup, backup_datetime(backups[0]), method)
+            self.assertLessEqual(earliest_backup, util.backup_datetime(backups[0]), method)
 
             self.reset_backup_folder()
 
@@ -1452,7 +1448,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertIn(
             "INFO:root:Stopped after reaching maximum number of deletions.",
             log_check.output)
-        backups_left = all_backups(self.backup_path)
+        backups_left = util.all_backups(self.backup_path)
         self.assertEqual(len(backups_left), expected_backup_count)
 
     def test_delete_after_never_deletes_most_recent_backup(self) -> None:
@@ -1462,7 +1458,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         last_backup = moving.last_n_backups(2, self.backup_path)[0]
         fs.delete_directory_tree(most_recent_backup)
         deletion.delete_backups_older_than(self.backup_path, "1d", None)
-        self.assertEqual(all_backups(self.backup_path), [last_backup])
+        self.assertEqual(util.all_backups(self.backup_path), [last_backup])
 
     def test_delete_after_deletes_too_old_backups_before_new_backup(self) -> None:
         """Test that backups older than a given date can be deleted with --delete-after."""
@@ -1483,9 +1479,9 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
                 "--log", os.devnull],
                 testing=True)
         self.assertEqual(exit_code, 0)
-        backups = all_backups(self.backup_path)
+        backups = util.all_backups(self.backup_path)
         self.assertEqual(len(backups), 12)
-        self.assertLessEqual(earliest_backup, backup_datetime(backups[0]))
+        self.assertLessEqual(earliest_backup, util.backup_datetime(backups[0]))
 
         backups_deleted = False
         created_backup = False
@@ -1508,7 +1504,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         last_backup = moving.last_n_backups(1, self.backup_path)[0]
         total_space = shutil.disk_usage(self.backup_path).total
         deletion.delete_oldest_backups_for_space(self.backup_path, f"{total_space}B", None)
-        self.assertEqual(all_backups(self.backup_path), [last_backup])
+        self.assertEqual(util.all_backups(self.backup_path), [last_backup])
 
     def test_attempt_to_free_more_space_than_capacity_of_backup_location_is_an_error(self) -> None:
         """Test that error is thrown when trying to free too much space."""
@@ -1539,17 +1535,17 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             "--delete-only"]
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
-        backups = all_backups(self.backup_path)
+        backups = util.all_backups(self.backup_path)
         self.assertEqual(len(backups), 4)  # 120 days = 4 months
         now = datetime.datetime.now()
-        earliest_backup_timestamp = backup_datetime(backups[0])
+        earliest_backup_timestamp = util.backup_datetime(backups[0])
         self.assertLessEqual(now - earliest_backup_timestamp, oldest_backup_age)
 
     def test_keep_weekly_after_only_retains_weekly_backups_after_time_span(self) -> None:
         """After the given time span, every backup is at least a week apart."""
         create_old_daily_backups(self.backup_path, 30)
         time_span_keep_all_backups = "2w"
-        backups = all_backups(self.backup_path)
+        backups = util.all_backups(self.backup_path)
         expected_indexes_remaining = [
             0, 7, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
         expected_backups_remaining = [backups[i] for i in expected_indexes_remaining]
@@ -1558,7 +1554,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             "--delete-only",
             "--backup-folder", str(self.backup_path)],
             self)
-        backups_remaining = all_backups(self.backup_path)
+        backups_remaining = util.all_backups(self.backup_path)
         self.assertEqual(backups_remaining, expected_backups_remaining)
 
     def test_keep_monthly_after_only_retains_monthly_backups_after_time_span(self) -> None:
@@ -1568,8 +1564,8 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
 
         create_old_daily_backups(self.backup_path, 33)
         time_span_to_keep_all_backups = "1d"
-        backups = all_backups(self.backup_path)
-        first_backup_timestamp = backup_datetime(backups[0])
+        backups = util.all_backups(self.backup_path)
+        first_backup_timestamp = util.backup_datetime(backups[0])
         first_retained_index = days_in_month(
             first_backup_timestamp.year,
             first_backup_timestamp.month)
@@ -1580,14 +1576,14 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             "--delete-only",
             "--backup-folder", str(self.backup_path)],
             self)
-        backups_remaining = all_backups(self.backup_path)
+        backups_remaining = util.all_backups(self.backup_path)
         self.assertEqual(backups_remaining, expected_backups_remaining)
 
     def test_keep_yearly_after_only_retains_yearly_backups_after_time_span(self) -> None:
         """After the given time span, every backup is at least a calendar year apart."""
         create_old_monthly_backups(self.backup_path, 27)
         time_span_to_keep_all_backups = "2w"
-        backups = all_backups(self.backup_path)
+        backups = util.all_backups(self.backup_path)
         expected_backups_remaining = [backups[0], backups[12], backups[24], backups[-1]]
 
         main_assert_no_error_log([
@@ -1595,7 +1591,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             "--delete-only",
             "--backup-folder", str(self.backup_path)],
             self)
-        backups_remaining = all_backups(self.backup_path)
+        backups_remaining = util.all_backups(self.backup_path)
         self.assertEqual(backups_remaining, expected_backups_remaining)
 
     def test_incorrect_keep_x_after_parameters_raise_exceptions(self) -> None:
@@ -1653,14 +1649,14 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         max_deletions = 50
         for option in ("weekly", "monthly", "yearly"):
             create_old_daily_backups(self.backup_path, 100)
-            starting_backup_count = len(all_backups(self.backup_path))
+            starting_backup_count = len(util.all_backups(self.backup_path))
             main_assert_no_error_log([
                 "--backup-folder", str(self.backup_path),
                 f"--keep-{option}-after", "1d",
                 "--delete-only",
                 "--max-deletions", str(max_deletions)],
                 self)
-            retained_backup_count = len(all_backups(self.backup_path))
+            retained_backup_count = len(util.all_backups(self.backup_path))
             self.assertEqual(starting_backup_count - retained_backup_count, 50)
             self.reset_backup_folder()
 
@@ -1679,7 +1675,7 @@ class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
             with tempfile.TemporaryDirectory() as new_backup_folder:
                 new_backup_location = Path(new_backup_folder)
                 if method == Invocation.function:
-                    backups_to_move = all_backups(self.backup_path)
+                    backups_to_move = util.all_backups(self.backup_path)
                     self.assertEqual(len(backups_to_move), backup_count, method)
                     moving.move_backups(
                         self.backup_path,
@@ -1703,9 +1699,9 @@ class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
                     backup_info.backup_source(new_backup_location),
                     method)
 
-                original_backups = all_backups(self.backup_path)
+                original_backups = util.all_backups(self.backup_path)
                 original_names = [p.relative_to(self.backup_path) for p in original_backups]
-                moved_backups = all_backups(new_backup_location)
+                moved_backups = util.all_backups(new_backup_location)
                 moved_names = [p.relative_to(new_backup_location) for p in moved_backups]
                 self.assertEqual(original_names, moved_names, method)
                 for backup_1, backup_2 in itertools.pairwise(moved_backups):
@@ -1740,11 +1736,11 @@ class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
                 else:
                     raise NotImplementedError(f"Move backup test not implemented for {method}")
 
-                backups_at_new_location = all_backups(new_backup_location)
+                backups_at_new_location = util.all_backups(new_backup_location)
                 self.assertEqual(len(backups_at_new_location), move_count, method)
                 old_backups = moving.last_n_backups(move_count, self.backup_path)
                 old_backup_names = [p.relative_to(self.backup_path) for p in old_backups]
-                new_backups = all_backups(new_backup_location)
+                new_backups = util.all_backups(new_backup_location)
                 new_backup_names = [p.relative_to(new_backup_location) for p in new_backups]
                 self.assertEqual(old_backup_names, new_backup_names, method)
                 self.assertEqual(
@@ -1763,7 +1759,7 @@ class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
         backups_to_move = moving.backups_since(six_months_ago, self.backup_path)
         self.assertEqual(len(backups_to_move), 6)
         self.assertEqual(moving.last_n_backups(6, self.backup_path), backups_to_move)
-        oldest_backup_timestamp = backup_datetime(backups_to_move[0])
+        oldest_backup_timestamp = util.backup_datetime(backups_to_move[0])
         self.assertLessEqual(six_months_ago, oldest_backup_timestamp)
 
     def test_move_without_specifying_how_many_to_move_is_an_error(self) -> None:
@@ -1790,7 +1786,7 @@ class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
         backups = moving.choose_backups_to_move(args, self.backup_path)
         expected_backup_count = 4
         self.assertEqual(len(backups), expected_backup_count)
-        expected_backups = all_backups(self.backup_path)[-expected_backup_count:]
+        expected_backups = util.all_backups(self.backup_path)[-expected_backup_count:]
         self.assertEqual(backups, expected_backups)
 
     def test_move_since_argument_selects_correct_backups(self) -> None:
@@ -1810,7 +1806,7 @@ class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
         backups = moving.choose_backups_to_move(args, self.backup_path)
         expected_backup_count = 17  # Aug. 15 to Aug. 31
         self.assertEqual(len(backups), expected_backup_count)
-        expected_backups = all_backups(self.backup_path)[-expected_backup_count:]
+        expected_backups = util.all_backups(self.backup_path)[-expected_backup_count:]
         self.assertEqual(backups, expected_backups)
 
 
@@ -1842,7 +1838,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             file.write("\naddition\n")
 
         error_file = self.user_path/"sub_directory_2"/"sub_sub_directory_0"/"file_1.txt"
-        last_backup = find_previous_backup(self.backup_path)
+        last_backup = util.find_previous_backup(self.backup_path)
         self.assertIsNotNone(last_backup)
         last_backup = cast(Path, last_backup)
         (last_backup/error_file.relative_to(self.user_path)).unlink()
@@ -1930,7 +1926,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
 
-        last_backup = find_previous_backup(self.backup_path)
+        last_backup = util.find_previous_backup(self.backup_path)
         self.assertIsNotNone(last_backup)
         last_backup = cast(Path, last_backup)
         fs.delete_directory_tree(last_backup)
@@ -1943,7 +1939,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
 
-        last_backup = find_previous_backup(self.backup_path)
+        last_backup = util.find_previous_backup(self.backup_path)
         self.assertIsNotNone(last_backup)
         last_backup = cast(Path, last_backup)
         backed_up_files = directory_contents(last_backup)
@@ -1971,7 +1967,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
 
-        last_backup = find_previous_backup(self.backup_path)
+        last_backup = util.find_previous_backup(self.backup_path)
         self.assertIsNotNone(last_backup)
         last_backup = cast(Path, last_backup)
 
@@ -2011,10 +2007,10 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         last_checksum_date = verify.last_checksum(self.backup_path)
         self.assertIsNotNone(last_checksum_date)
         last_checksum_date = cast(datetime.datetime, last_checksum_date)
-        backup_with_checksum = find_previous_backup(self.backup_path)
+        backup_with_checksum = util.find_previous_backup(self.backup_path)
         self.assertIsNotNone(backup_with_checksum)
         backup_with_checksum = cast(Path, backup_with_checksum)
-        backup_date = backup_datetime(backup_with_checksum)
+        backup_date = util.backup_datetime(backup_with_checksum)
         self.assertEqual(backup_date, last_checksum_date)
 
     def test_checksum_date_found_among_backups_with_no_checksums(self) -> None:
@@ -2029,11 +2025,11 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             testing=True)
         self.assertEqual(exit_code, 0)
         default_backup(self.user_path, self.backup_path)
-        backups = all_backups(self.backup_path)
+        backups = util.all_backups(self.backup_path)
         self.assertEqual(len(backups), 3)
         checksum_date = verify.last_checksum(self.backup_path)
         backup_with_checksum = backups[1]
-        self.assertEqual(checksum_date, backup_datetime(backup_with_checksum))
+        self.assertEqual(checksum_date, util.backup_datetime(backup_with_checksum))
 
     def test_last_checksum_finds_most_recent_checksum(self) -> None:
         """Test that last_checksum() finds most recent backup with checksum."""
@@ -2049,10 +2045,10 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             self.assertEqual(exit_code, 0)
 
         last_checksum_date = verify.last_checksum(self.backup_path)
-        last_backup = find_previous_backup(self.backup_path)
+        last_backup = util.find_previous_backup(self.backup_path)
         self.assertIsNotNone(last_backup)
         last_backup = cast(Path, last_backup)
-        self.assertEqual(last_checksum_date, backup_datetime(last_backup))
+        self.assertEqual(last_checksum_date, util.backup_datetime(last_backup))
 
     def test_checksum_every_creates_checksum_when_no_prior_checksums(self) -> None:
         """Test that a checksum is performed when there are not prior checksums."""
@@ -2064,7 +2060,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             "-l", str(self.log_path),
             "--timestamp", unique_timestamp_string()],
             testing=True)
-        self.assertTrue((all_backups(self.backup_path)[0]/verify.checksum_file_name).is_file())
+        self.assertTrue((util.all_backups(self.backup_path)[0]/verify.checksum_file_name).is_file())
 
     def test_checksum_created_after_enough_time_passes_without_a_checksum(self) -> None:
         """Test that checksum is created using --checksum-every option after enough time passed."""
@@ -2077,10 +2073,10 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
                 "-b", str(self.backup_path),
                 "--checksum-every", "3d",
                 "-l", str(self.log_path),
-                "--timestamp", timestamp.strftime(backup_date_format)],
+                "--timestamp", timestamp.strftime(util.backup_date_format)],
                 testing=True)
 
-        backups = all_backups(self.backup_path)
+        backups = util.all_backups(self.backup_path)
         checksum_exists = [(backup/verify.checksum_file_name).is_file() for backup in backups]
         self.assertEqual(
             checksum_exists,
@@ -2089,7 +2085,12 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
     def test_no_checksum_overrides_checksum_every_on_command_line(self) -> None:
         """Test that --no-checksum cancels --checksum-every in argument_parser."""
         args = argparse.parse_command_line(["--checksum-every", "1m", "--no-checksum"])
-        self.assertFalse(verify.should_do_periodic_action(args, "checksum", self.backup_path))
+        self.assertFalse(
+            util.should_do_periodic_action(
+                args,
+                "checksum",
+                self.backup_path,
+                verify.last_checksum))
 
     def test_no_checksum_overrides_checksum_every(self) -> None:
         """Test that --no-checksum cancels --checksum-every."""
@@ -2101,7 +2102,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             "--checksum-every", "1m",
             "-l", str(self.log_path)],
             testing=True)
-        self.assertFalse((all_backups(self.backup_path)[0]/verify.checksum_file_name).exists())
+        self.assertFalse((util.all_backups(self.backup_path)[0]/verify.checksum_file_name).exists())
 
     def test_no_checksum_overrides_checksum(self) -> None:
         """Test that --no-checksum cancels --checksum."""
@@ -2113,7 +2114,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             "--checksum",
             "-l", str(self.log_path)],
             testing=True)
-        self.assertFalse((all_backups(self.backup_path)[0]/verify.checksum_file_name).exists())
+        self.assertFalse((util.all_backups(self.backup_path)[0]/verify.checksum_file_name).exists())
 
     def test_verifying_checksum_with_no_changes_does_not_create_result_file(self) -> None:
         """Test that if checksum verification finds no changed files, no result file is created."""
@@ -2125,7 +2126,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             "--log", str(self.log_path)],
         testing=True)
         self.assertEqual(exit_code, 0)
-        backup_folder = find_previous_backup(self.backup_path)
+        backup_folder = util.find_previous_backup(self.backup_path)
         self.assertIsNotNone(backup_folder)
         backup_folder = cast(Path, backup_folder)
         with self.assertLogs(level=logging.INFO) as logs:
@@ -2143,7 +2144,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             "--log", str(self.log_path)],
         testing=True)
         self.assertEqual(exit_code, 0)
-        backup_folder = find_previous_backup(self.backup_path)
+        backup_folder = util.find_previous_backup(self.backup_path)
         self.assertIsNotNone(backup_folder)
         backup_folder = cast(Path, backup_folder)
         changed_path = backup_folder/"sub_directory_1"/"sub_root_file.txt"
@@ -2175,7 +2176,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             "--log", str(self.log_path)],
         testing=True)
         self.assertEqual(exit_code, 0)
-        backup_folder = find_previous_backup(self.backup_path)
+        backup_folder = util.find_previous_backup(self.backup_path)
         self.assertIsNotNone(backup_folder)
         backup_folder = cast(Path, backup_folder)
         missing_path = backup_folder/"sub_directory_2"/"sub_root_file.txt"
@@ -2207,7 +2208,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             "--log", str(self.log_path)],
         testing=True)
         self.assertEqual(exit_code, 0)
-        backup_folder = find_previous_backup(self.backup_path)
+        backup_folder = util.find_previous_backup(self.backup_path)
         self.assertIsNotNone(backup_folder)
         backup_folder = cast(Path, backup_folder)
         changed_path = backup_folder/"sub_directory_2"/"sub_root_file.txt"
@@ -2235,7 +2236,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that an error is raised when the backup being checked has no checksum file."""
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
-        backup_folder = find_previous_backup(self.backup_path)
+        backup_folder = util.find_previous_backup(self.backup_path)
         self.assertIsNotNone(backup_folder)
         backup_folder = cast(Path, backup_folder)
         with self.assertRaises(FileNotFoundError):
@@ -2264,7 +2265,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(exit_code, 0)
         default_backup(self.user_path, self.backup_path)
 
-        backups = all_backups(self.backup_path)
+        backups = util.all_backups(self.backup_path)
         self.assertEqual(len(backups), 5)
         oldest_checksummed_backup = backups[1]
         self.assertTrue((oldest_checksummed_backup/verify.checksum_file_name).is_file())
@@ -2314,7 +2315,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(exit_code, 0)
         default_backup(self.user_path, self.backup_path)
 
-        backups = all_backups(self.backup_path)
+        backups = util.all_backups(self.backup_path)
         self.assertEqual(len(backups), 5)
         newest_checksummed_backup = backups[3]
         self.assertTrue((newest_checksummed_backup/verify.checksum_file_name).is_file())
@@ -2364,7 +2365,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(exit_code, 0)
         default_backup(self.user_path, self.backup_path)
 
-        backups = all_backups(self.backup_path)
+        backups = util.all_backups(self.backup_path)
         self.assertEqual(len(backups), 5)
         chosen_checksummed_backup = backups[1]
         self.assertTrue((chosen_checksummed_backup/verify.checksum_file_name).is_file())
@@ -2395,7 +2396,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that trying to verify a checksum file with no checksummed backups raises error."""
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
-        previous_backup = find_previous_backup(self.backup_path)
+        previous_backup = util.find_previous_backup(self.backup_path)
         self.assertIsNotNone(previous_backup)
         previous_backup = cast(Path, previous_backup)
         with self.assertRaises(FileNotFoundError):
@@ -2428,10 +2429,10 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             "-b", str(self.backup_path),
             "-l", os.devnull,
             "--checksum",
-            "--timestamp", timestamp.strftime(backup_date_format)],
+            "--timestamp", timestamp.strftime(util.backup_date_format)],
             testing=True)
 
-        backups = all_backups(self.backup_path)
+        backups = util.all_backups(self.backup_path)
         self.assertEqual(len(backups), 1)
         checksummed_backup = backups[0]
         self.assertTrue((checksummed_backup/verify.checksum_file_name).is_file())
@@ -2466,7 +2467,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             "-u", str(self.user_path),
             "-b", str(self.backup_path),
             "-l", os.devnull,
-            "--timestamp", timestamp.strftime(backup_date_format)],
+            "--timestamp", timestamp.strftime(util.backup_date_format)],
             testing=True)
 
         main.main([
@@ -2490,7 +2491,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             "--checksum"],
             testing=True)
         self.assertEqual(exit_code, 0)
-        backup = find_previous_backup(self.backup_path)
+        backup = util.find_previous_backup(self.backup_path)
         self.assertIsNotNone(backup)
         backup = cast(Path, backup)
         checksum_file_name = backup/"checksums.sha3"
@@ -2627,7 +2628,7 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that restoring with --delete-extra deletes new files since last backup."""
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
-        self.assertEqual(len(all_backups(self.backup_path)), 1)
+        self.assertEqual(len(util.all_backups(self.backup_path)), 1)
 
         first_extra_file = self.user_path/"extra_file1.txt"
         first_extra_file.write_text("extra 1\n", encoding="utf8")
@@ -2637,7 +2638,7 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
         first_extra_folder_file.write_text("extra file in folder 1\n", encoding="utf8")
 
         default_backup(self.user_path, self.backup_path)
-        self.assertEqual(len(all_backups(self.backup_path)), 2)
+        self.assertEqual(len(util.all_backups(self.backup_path)), 2)
 
         second_extra_file = self.user_path/"extra_file2.txt"
         second_extra_file.write_text("extra 2\n", encoding="utf8")
@@ -2655,7 +2656,7 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
             self)
 
         self.assertEqual(exit_code, 0)
-        last_backup = find_previous_backup(self.backup_path)
+        last_backup = util.find_previous_backup(self.backup_path)
         self.assertIsNotNone(last_backup)
         last_backup = cast(Path, last_backup)
         self.assertTrue(first_extra_file.is_file(follow_symlinks=False))
@@ -2670,7 +2671,7 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that restoring with --keep-extra does not delete new files since the last backup."""
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
-        self.assertEqual(len(all_backups(self.backup_path)), 1)
+        self.assertEqual(len(util.all_backups(self.backup_path)), 1)
 
         first_extra_file = self.user_path/"extra_file1.txt"
         first_extra_file.write_text("extra 1\n", encoding="utf8")
@@ -2680,7 +2681,7 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
         first_extra_folder_file.write_text("extra file in folder 1\n", encoding="utf8")
 
         default_backup(self.user_path, self.backup_path)
-        self.assertEqual(len(all_backups(self.backup_path)), 2)
+        self.assertEqual(len(util.all_backups(self.backup_path)), 2)
 
         second_extra_file = self.user_path/"extra_file2.txt"
         second_extra_file.write_text("extra 2\n", encoding="utf8")
@@ -2698,7 +2699,7 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
             self)
 
         self.assertEqual(exit_code, 0)
-        last_backup = find_previous_backup(self.backup_path)
+        last_backup = util.find_previous_backup(self.backup_path)
         self.assertIsNotNone(last_backup)
         last_backup = cast(Path, last_backup)
         self.assertTrue(first_extra_file.is_file(follow_symlinks=False))
@@ -2715,13 +2716,13 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
         """Test restoring a chosen backup from a menu with --delete-extra deletes new files."""
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
-        self.assertEqual(len(all_backups(self.backup_path)), 1)
+        self.assertEqual(len(util.all_backups(self.backup_path)), 1)
 
         first_extra_file = self.user_path/"extra_file1.txt"
         first_extra_file.write_text("extra 1\n", encoding="utf8")
 
         default_backup(self.user_path, self.backup_path)
-        self.assertEqual(len(all_backups(self.backup_path)), 2)
+        self.assertEqual(len(util.all_backups(self.backup_path)), 2)
 
         second_extra_file = self.user_path/"extra_file2.txt"
         second_extra_file.write_text("extra 2\n", encoding="utf8")
@@ -2737,7 +2738,7 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
             self)
 
         self.assertEqual(exit_code, 0)
-        restored_backup = all_backups(self.backup_path)[choice]
+        restored_backup = util.all_backups(self.backup_path)[choice]
         self.assertFalse(first_extra_file.exists(follow_symlinks=False))
         self.assertFalse(second_extra_file.exists(follow_symlinks=False))
         self.assertTrue(directories_have_identical_content(self.user_path, restored_backup))
@@ -2746,13 +2747,13 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
         """Test restoring a chosen backup from a menu with --keep-extra preserves new files."""
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
-        self.assertEqual(len(all_backups(self.backup_path)), 1)
+        self.assertEqual(len(util.all_backups(self.backup_path)), 1)
 
         first_extra_file = self.user_path/"extra_file1.txt"
         first_extra_file.write_text("extra 1\n", encoding="utf8")
 
         default_backup(self.user_path, self.backup_path)
-        self.assertEqual(len(all_backups(self.backup_path)), 2)
+        self.assertEqual(len(util.all_backups(self.backup_path)), 2)
 
         second_extra_file = self.user_path/"extra_file2.txt"
         second_extra_file.write_text("extra 2\n", encoding="utf8")
@@ -2768,7 +2769,7 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
             self)
 
         self.assertEqual(exit_code, 0)
-        restored_backup = all_backups(self.backup_path)[choice]
+        restored_backup = util.all_backups(self.backup_path)[choice]
         self.assertTrue(first_extra_file.is_file(follow_symlinks=False))
         self.assertTrue(second_extra_file.is_file(follow_symlinks=False))
         first_extra_file.unlink()
@@ -2790,7 +2791,7 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
 
             self.assertEqual(exit_code, 0)
             destination_path = Path(destination_folder)
-            last_backup = find_previous_backup(self.backup_path)
+            last_backup = util.find_previous_backup(self.backup_path)
             self.assertIsNotNone(last_backup)
             last_backup = cast(Path, last_backup)
             self.assertTrue(directories_have_identical_content(last_backup, destination_path))
@@ -2816,7 +2817,7 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
 
             self.assertEqual(exit_code, 0)
             self.assertTrue(extra_file.is_file(follow_symlinks=False))
-            last_backup = find_previous_backup(self.backup_path)
+            last_backup = util.find_previous_backup(self.backup_path)
             self.assertIsNotNone(last_backup)
             last_backup = cast(Path, last_backup)
             extra_file.unlink()
@@ -2892,7 +2893,7 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
         """If there are no backups, then a log message is printed and no errors occur."""
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
-        last_backup = find_previous_backup(self.backup_path)
+        last_backup = util.find_previous_backup(self.backup_path)
         last_backup = cast(Path, last_backup)
         self.assertTrue(last_backup.is_dir())
         fs.delete_directory_tree(last_backup)
@@ -2961,7 +2962,7 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
 
-        backups = all_backups(self.backup_path)
+        backups = util.all_backups(self.backup_path)
         self.assertEqual(len(backups), 2)
         self.assertTrue(all_files_have_same_content(*backups))
         self.assertFalse(directories_are_completely_hardlinked(*backups))
@@ -3020,7 +3021,7 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
 
-        backups = all_backups(self.backup_path)
+        backups = util.all_backups(self.backup_path)
         self.assertEqual(len(backups), 2)
         self.assertTrue(directories_are_completely_hardlinked(*backups))
 
@@ -3037,7 +3038,7 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
 
-        backups = all_backups(self.backup_path)
+        backups = util.all_backups(self.backup_path)
         self.assertEqual(len(backups), 2)
         self.assertTrue(directories_are_completely_hardlinked(*backups))
 
@@ -3055,7 +3056,7 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
 
-        backups = all_backups(self.backup_path)
+        backups = util.all_backups(self.backup_path)
         self.assertEqual(len(backups), 2)
         self.assertTrue(directories_are_completely_copied(*backups))
 
@@ -3073,7 +3074,7 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
 
-        backups = all_backups(self.backup_path)
+        backups = util.all_backups(self.backup_path)
         self.assertEqual(len(backups), 2)
         self.assertTrue(all_files_have_same_content(*backups))
         self.assertFalse(directories_are_completely_hardlinked(*backups))
@@ -3143,7 +3144,7 @@ class PurgeTests(TestCaseWithTemporaryFilesAndFolders):
         purge.start_backup_purge(purge_command_line, "y")
         expected_contents = directory_contents(self.user_path)
         expected_contents.remove(purged_file.relative_to(self.user_path))
-        for backup in all_backups(self.backup_path):
+        for backup in util.all_backups(self.backup_path):
             self.assertEqual(expected_contents, directory_contents(backup))
 
     def test_folder_purge(self) -> None:
@@ -3162,7 +3163,7 @@ class PurgeTests(TestCaseWithTemporaryFilesAndFolders):
         purged_contents = set(filter(
             lambda p: (self.user_path/p).is_relative_to(purged_folder), expected_contents))
         expected_contents.difference_update(purged_contents)
-        for backup in all_backups(self.backup_path):
+        for backup in util.all_backups(self.backup_path):
             self.assertEqual(expected_contents, directory_contents(backup))
 
     def test_purging_missing_file_logs_absence(self) -> None:
@@ -3199,7 +3200,7 @@ class PurgeTests(TestCaseWithTemporaryFilesAndFolders):
             "--choice", "0"])
         purge.start_backup_purge(purge_command_line, "y")
         relative_purge_file = purged_path.relative_to(self.user_path)
-        for backup in all_backups(self.backup_path):
+        for backup in util.all_backups(self.backup_path):
             backup_file_path = backup/relative_purge_file
             self.assertTrue(
                 fs.is_real_directory(backup_file_path)
@@ -3227,7 +3228,7 @@ class PurgeTests(TestCaseWithTemporaryFilesAndFolders):
             "--choice", "1"])
         purge.start_backup_purge(purge_command_line, "y")
         relative_purge_file = purged_path.relative_to(self.user_path)
-        for backup in all_backups(self.backup_path):
+        for backup in util.all_backups(self.backup_path):
             backup_file_path = backup/relative_purge_file
             self.assertTrue(backup_file_path.is_file() or not backup_file_path.exists())
 
@@ -3245,7 +3246,7 @@ class PurgeTests(TestCaseWithTemporaryFilesAndFolders):
             "--backup-folder", str(self.backup_path)])
         purge.start_backup_purge(purge_command_line, "thing")
 
-        for backup in all_backups(self.backup_path):
+        for backup in util.all_backups(self.backup_path):
             self.assertTrue(directories_have_identical_content(backup, self.user_path))
 
     def test_folder_purge_from_list_with_prompt_only_deletes_folders(self) -> None:
@@ -3271,7 +3272,7 @@ class PurgeTests(TestCaseWithTemporaryFilesAndFolders):
             "--choice", "2"])
         purge.choose_purge_target_from_backups(purge_command_line, "y")
         relative_purge_file = purged_path.relative_to(self.user_path)
-        for backup in all_backups(self.backup_path):
+        for backup in util.all_backups(self.backup_path):
             backup_file_path = backup/relative_purge_file
             self.assertTrue(
                 fs.is_real_directory(backup_file_path) or not backup_file_path.exists())
@@ -3375,10 +3376,10 @@ class PluralTests(unittest.TestCase):
 
 
 class AllBackupsTests(TestCaseWithTemporaryFilesAndFolders):
-    """Test all_backups() function."""
+    """Test util.all_backups() function."""
 
     def test_all_backups_returns_all_backups(self) -> None:
-        """Test that all_backups() returns all expected backups."""
+        """Test that util.all_backups() returns all expected backups."""
         create_user_data(self.user_path)
         backups_to_create = 7
         timestamps: list[datetime.datetime] = []
@@ -3393,15 +3394,15 @@ class AllBackupsTests(TestCaseWithTemporaryFilesAndFolders):
                 force_copy=False,
                 copy_probability=0.0,
                 timestamp=timestamp)
-        backups = all_backups(self.backup_path)
+        backups = util.all_backups(self.backup_path)
         for timestamp, backup in zip(timestamps, backups, strict=True):
             year_path = str(timestamp.year)
-            dated_folder_name = timestamp.strftime(backup_date_format)
+            dated_folder_name = timestamp.strftime(util.backup_date_format)
             expected_folder = self.backup_path/year_path/dated_folder_name
             self.assertEqual(backup, expected_folder)
 
     def test_all_backups_returns_only_backups(self) -> None:
-        """Test that all_backups() returns all expected backups."""
+        """Test that util.all_backups() returns all expected backups."""
         create_user_data(self.user_path)
         backups_to_create = 7
         timestamps: list[datetime.datetime] = []
@@ -3417,23 +3418,23 @@ class AllBackupsTests(TestCaseWithTemporaryFilesAndFolders):
                 copy_probability=0.0,
                 timestamp=timestamp)
 
-        # Create entries that should be left out of all_backups() list
+        # Create entries that should be left out of util.all_backups() list
         timestamp = timestamps[-1]
         (self.backup_path/"extra year folder"/"extra backup folder").mkdir(parents=True)
         (self.backup_path/"extra year file").touch()
         (self.backup_path/str(timestamp.year)/"extra backup folder").mkdir()
         (self.backup_path/str(timestamp.year)/"extra backup file").touch()
 
-        backups = all_backups(self.backup_path)
+        backups = util.all_backups(self.backup_path)
         for timestamp, backup in zip(timestamps, backups, strict=True):
             year_path = str(timestamp.year)
-            dated_folder_name = timestamp.strftime(backup_date_format)
+            dated_folder_name = timestamp.strftime(util.backup_date_format)
             expected_folder = self.backup_path/year_path/dated_folder_name
             self.assertEqual(backup, expected_folder)
 
 
 class BackupNameTests(unittest.TestCase):
-    """Test backup_name() and backup_datetime() functions."""
+    """Test backup_name() and util.backup_datetime() functions."""
 
     def test_backup_name_and_backup_datetime_are_inverse_functions(self) -> None:
         """Test that a timestamp is preserved in a backup name."""
@@ -3441,14 +3442,14 @@ class BackupNameTests(unittest.TestCase):
         timestamp = datetime.datetime(
             now.year, now.month, now.day, now.hour, now.minute, now.second)
         backup = bak.backup_name(timestamp)
-        backup_timestamp = backup_datetime(backup)
+        backup_timestamp = util.backup_datetime(backup)
         self.assertEqual(timestamp, backup_timestamp)
 
     def test_backup_name_puts_backup_folder_in_correct_year_folder(self) -> None:
         """Test that backups with the same year are grouped together."""
         timestamp = datetime.datetime.now()
         backup_folder = bak.backup_name(timestamp)
-        backup_timestamp = backup_datetime(backup_folder)
+        backup_timestamp = util.backup_datetime(backup_folder)
         self.assertEqual(int(backup_folder.parent.name), backup_timestamp.year)
 
 
@@ -3827,13 +3828,13 @@ class LastNBackupTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_last_n_backups_with_all_argument_returns_all_backups(self) -> None:
         """Test that the argument 'all' returns all backups."""
-        backups = all_backups(self.backup_path)
+        backups = util.all_backups(self.backup_path)
         all_n_backups = moving.last_n_backups("all", self.backup_path)
         self.assertEqual(backups, all_n_backups)
 
     def test_all_argument_is_case_insensitive(self) -> None:
         """Test that capitalization does not matter for value 'all'."""
-        backups = all_backups(self.backup_path)
+        backups = util.all_backups(self.backup_path)
         all_n_backups = moving.last_n_backups("All", self.backup_path)
         self.assertEqual(backups, all_n_backups)
 
@@ -4855,7 +4856,7 @@ class FindMissingFilesTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that no WARNING log messages are printed if no missing files are found."""
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
-        backup = find_previous_backup(self.backup_path)
+        backup = util.find_previous_backup(self.backup_path)
         self.assertIsNotNone(backup)
         backup = cast(Path, backup)
 
@@ -4880,7 +4881,7 @@ class FindMissingFilesTests(TestCaseWithTemporaryFilesAndFolders):
         """
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
-        backup = find_previous_backup(self.backup_path)
+        backup = util.find_previous_backup(self.backup_path)
         self.assertIsNotNone(backup)
         backup = cast(Path, backup)
 
@@ -4939,7 +4940,7 @@ class FindMissingFilesTests(TestCaseWithTemporaryFilesAndFolders):
         missing_file_1.unlink()
 
         default_backup(self.user_path, self.backup_path)
-        backup_1, backup_2 = all_backups(self.backup_path)
+        backup_1, backup_2 = util.all_backups(self.backup_path)
 
         missing_file_2 = (
             self.user_path/"Music"/
@@ -5012,7 +5013,7 @@ class FindMissingFilesTests(TestCaseWithTemporaryFilesAndFolders):
         file_3.touch()
 
         default_backup(self.user_path, self.backup_path)
-        backup = find_previous_backup(self.backup_path)
+        backup = util.find_previous_backup(self.backup_path)
         self.assertIsNotNone(backup)
         backup = cast(Path, backup)
         old_user_path = self.user_path
