@@ -259,6 +259,7 @@ option, only the file's size, type, and modification date are
 checked for differences. Using this option will make backups
 take considerably longer."""))
 
+    add_periodic_option(backup_group, "compare-contents")
     add_no_option(backup_group, "compare-contents")
 
     backup_group.add_argument("--checksum", action="store_true", help=format_help(

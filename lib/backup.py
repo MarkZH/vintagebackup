@@ -329,6 +329,10 @@ def create_new_backup(
         staging_backup_path.rename(new_backup_path)
 
     report_backup_file_counts(action_counter)
+    if examine_whole_file:
+        backup_info.record_compare_contents_timestamp(
+            backup_location,
+            util.backup_datetime(new_backup_path))
     return size_of_backup
 
 
@@ -426,6 +430,11 @@ def copy_probability_from_hard_link_count(hard_link_count: str) -> float:
     return 1/(average_hard_link_count + 1)
 
 
+def last_compare_contents(backup_folder: Path) -> datetime.datetime | None:
+    """Read previous time backup compared file contents from backup info."""
+    return backup_info.read_backup_information(backup_folder)["Compare_Timestamp"]
+
+
 def start_backup(args: argparse.Namespace) -> None:
     """Parse command line arguments to start a backup."""
     user_folder = fs.get_existing_path(args.user_folder, "user's folder")
@@ -436,13 +445,19 @@ def start_backup(args: argparse.Namespace) -> None:
     backup_folder = fs.absolute_path(args.backup_folder)
     backup_folder.mkdir(parents=True, exist_ok=True)
 
+    should_compare_contents = util.should_do_periodic_action(
+        args,
+        "compare_contents",
+        backup_folder,
+        last_compare_contents)
+
     with Backup_Lock(backup_folder, "backup"):
         filter_file = fs.path_or_none(args.filter)
         backup_space_taken = create_new_backup(
             user_folder,
             backup_folder,
             filter_file=filter_file,
-            examine_whole_file=toggle_is_set(args, "compare_contents"),
+            examine_whole_file=should_compare_contents,
             force_copy=toggle_is_set(args, "force_copy"),
             copy_probability=copy_probability(args),
             timestamp=args.timestamp)

@@ -466,6 +466,48 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
             self.assertTrue(directories_are_completely_copied(*backups), method)
             self.reset_backup_folder()
 
+    def test_compare_contents_every_compares_contents_on_first_backup(self) -> None:
+        """Test that --compare-contents-every causes contents to be compared on first backup."""
+        create_user_data(self.user_path)
+        with self.assertLogs(level=logging.INFO) as logs:
+            exit_code = main.main([
+                "-u", str(self.user_path),
+                "-b", str(self.backup_path),
+                "--compare-contents-every", "30d",
+                "-l", os.devnull],
+                testing=True)
+            self.assertEqual(exit_code, 0)
+
+        compare_contents_line = "INFO:root:Reading file contents = True"
+        self.assertIn(compare_contents_line, logs.output)
+
+    def test_compare_contents_every_does_not_compare_contents_on_second_backup(self) -> None:
+        """Test that --compare-contents-every does not compare contents before time elapsed."""
+        create_user_data(self.user_path)
+        interval = datetime.timedelta(days=1)
+        timestamp = datetime.datetime.now()
+        with self.assertLogs(level=logging.INFO) as logs:
+            for _ in range(2):
+                exit_code = main.main([
+                    "-u", str(self.user_path),
+                    "-b", str(self.backup_path),
+                    "--compare-contents-every", "30d",
+                    "--timestamp", timestamp.strftime(util.backup_date_format),
+                    "-l", os.devnull],
+                    testing=True)
+                self.assertEqual(exit_code, 0)
+                timestamp += interval
+
+        compare_contents_line = "INFO:root:Reading file contents = True"
+        self.assertEqual(logs.output.count(compare_contents_line), 1)
+        compare_index = logs.output.index(compare_contents_line)
+
+        no_compare_contents_line = "INFO:root:Reading file contents = False"
+        self.assertEqual(logs.output.count(no_compare_contents_line), 1)
+        no_compare_index = logs.output.index(no_compare_contents_line)
+
+        self.assertGreater(no_compare_index, compare_index)
+
     def test_file_that_changed_between_backups_is_copied(self) -> None:
         """Check that a file changed between backups is copied with others are hardlinked."""
         create_user_data(self.user_path)
