@@ -2086,11 +2086,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that --no-checksum cancels --checksum-every in argument_parser."""
         args = argparse.parse_command_line(["--checksum-every", "1m", "--no-checksum"])
         self.assertFalse(
-            util.should_do_periodic_action(
-                args,
-                "checksum",
-                self.backup_path,
-                verify.last_checksum))
+            verify.should_do_periodic_action(args, "checksum", self.backup_path))
 
     def test_no_checksum_overrides_checksum_every(self) -> None:
         """Test that --no-checksum cancels --checksum-every."""
