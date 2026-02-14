@@ -15,8 +15,8 @@ from pathlib import Path
 from typing import cast
 
 from lib.argument_parser import toggle_is_set
-from lib.backup_utilities import all_backups, backup_date_format, find_previous_backup
-from lib.backup_info import confirm_user_location_is_unchanged, record_user_location
+import lib.backup_utilities as util
+from lib import backup_info
 from lib.backup_lock import Backup_Lock
 from lib.backup_set import Backup_Set
 from lib.exceptions import CommandLineError
@@ -243,10 +243,10 @@ def backup_directory(
 def backup_name(backup_datetime: datetime.datetime | str | None) -> Path:
     """Create the name and relative path for the new dated backup."""
     now = (
-        datetime.datetime.strptime(backup_datetime, backup_date_format)
+        datetime.datetime.strptime(backup_datetime, util.backup_date_format)
         if isinstance(backup_datetime, str)
         else (backup_datetime or datetime.datetime.now()))
-    return Path(str(now.year))/now.strftime(backup_date_format)
+    return Path(str(now.year))/now.strftime(util.backup_date_format)
 
 
 def create_new_backup(
@@ -287,8 +287,8 @@ def create_new_backup(
         logger.info("Deleting %s ...", staging_backup_path)
         fs.delete_directory_tree(staging_backup_path)
 
-    confirm_user_location_is_unchanged(user_data_location, backup_location)
-    record_user_location(user_data_location, backup_location)
+    backup_info.confirm_user_location_is_unchanged(user_data_location, backup_location)
+    backup_info.record_user_location(user_data_location, backup_location)
 
     if is_backup_move:
         logger.info("Original backup  : %s", user_data_location)
@@ -298,7 +298,7 @@ def create_new_backup(
         logger.info("Backup location  : %s", new_backup_path)
     logger.info("Staging area     : %s", staging_backup_path)
 
-    last_backup_path = None if force_copy else find_previous_backup(backup_location)
+    last_backup_path = None if force_copy else util.find_previous_backup(backup_location)
     if last_backup_path:
         logger.info("Previous backup  : %s", last_backup_path)
     elif force_copy:
@@ -386,7 +386,7 @@ def print_backup_storage_stats(backup_location: Path) -> None:
         percent_used,
         fs.byte_units(backup_storage.free),
         percent_free)
-    backups = all_backups(backup_location)
+    backups = util.all_backups(backup_location)
     if backups:
         logger.info("Backups stored: %d", len(backups))
         logger.info("Earliest backup: %s", backups[0].name)
