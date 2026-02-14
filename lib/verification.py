@@ -13,10 +13,10 @@ import lib.backup_utilities as util
 from lib.backup_info import backup_source
 from lib.backup_set import Backup_Set
 from lib.console import print_run_title
-from lib.datetime_calculations import parse_time_span_to_timepoint
 from lib.exceptions import CommandLineError
 import lib.filesystem as fs
 from lib import console
+from lib.backup_utilities import should_do_periodic_action
 
 logger = logging.getLogger()
 
@@ -127,7 +127,7 @@ def get_file_checksum(path: Path) -> str:
 def start_checksum(args: argparse.Namespace) -> None:
     """Create checksum file for latest backup if specified by arguments."""
     backup_folder = fs.absolute_path(args.backup_folder)
-    if should_do_periodic_action(args, "checksum", backup_folder):
+    if should_do_periodic_action(args, "checksum", backup_folder, last_checksum):
         create_checksum_for_last_backup(backup_folder)
 
 
@@ -205,31 +205,3 @@ def start_verify_checksum(args: argparse.Namespace) -> None:
         target = checksummed_backups[choice]
 
     verify_backup_checksum(target, result_folder)
-
-
-def should_do_periodic_action(args: argparse.Namespace, action: str, backup_folder: Path) -> bool:
-    """Check whether the action has taken place recently according to --{action}-every argument."""
-    options = vars(args)
-    if options[f"no_{action}"]:
-        return False
-
-    if options[action]:
-        return True
-
-    time_span = options[f"{action}_every"]
-    if not time_span:
-        return False
-
-    previous_action_lookup = last_checksum if action == "checksum" else None
-    if not previous_action_lookup:
-        raise ValueError(f"No backup info lookup for {action}")
-
-    previous_action_date = previous_action_lookup(backup_folder)
-    if not previous_action_date:
-        return True
-
-    now = (
-        datetime.datetime.strptime(args.timestamp, util.backup_date_format) if args.timestamp
-        else datetime.datetime.now())
-    required_action_date = parse_time_span_to_timepoint(time_span, now)
-    return previous_action_date <= required_action_date
