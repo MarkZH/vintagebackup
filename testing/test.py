@@ -508,6 +508,31 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
 
         self.assertGreater(no_compare_index, compare_index)
 
+    def test_compare_contents_every_compares_contents_on_correct_backups(self) -> None:
+        """Test that --compare-contents-every compare contents at correct interval."""
+        create_user_data(self.user_path)
+        backup_interval = datetime.timedelta(days=1)
+        timestamp = datetime.datetime.now()
+        backups = 11
+        compare_interval = 5
+        with self.assertLogs(level=logging.INFO) as logs:
+            for _ in range(backups):
+                exit_code = main.main([
+                    "-u", str(self.user_path),
+                    "-b", str(self.backup_path),
+                    "--compare-contents-every", f"{compare_interval} d",
+                    "--timestamp", timestamp.strftime(util.backup_date_format),
+                    "-l", os.devnull],
+                    testing=True)
+                self.assertEqual(exit_code, 0)
+                timestamp += backup_interval
+
+        compare_line_start = "INFO:root:Reading file contents = "
+        compare_lines = filter(lambda s: s.startswith(compare_line_start), logs.output)
+        actually_compared = [s.removeprefix(compare_line_start) == "True" for s in compare_lines]
+        expected_compares = [i % compare_interval == 0 for i in range(backups)]
+        self.assertEqual(actually_compared, expected_compares)
+
     def test_file_that_changed_between_backups_is_copied(self) -> None:
         """Check that a file changed between backups is copied with others are hardlinked."""
         create_user_data(self.user_path)
