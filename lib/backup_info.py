@@ -1,5 +1,6 @@
 """Functions for reading information about previous backups."""
 
+import datetime
 import logging
 import os
 from pathlib import Path
@@ -7,6 +8,7 @@ from typing import TypedDict, Literal
 
 from lib.exceptions import CommandLineError
 from lib.filesystem import absolute_path, default_log_file_name
+from lib.backup_utilities import backup_date_format
 
 logger = logging.getLogger()
 
@@ -58,13 +60,14 @@ class Backup_Info(TypedDict):
 
     Source: Path | None
     Log: Path | None
+    Compare_Timestamp: datetime.datetime | None
 
 
 def read_backup_information(backup_folder: Path) -> Backup_Info:
     """Get information about a backup folder."""
     info_file = get_backup_info_file(backup_folder)
     try:
-        extracted_info = Backup_Info(Source=None, Log=None)
+        extracted_info = Backup_Info(Source=None, Log=None, Compare_Timestamp=None)
         with info_file.open(encoding="utf8") as info:
             for line_raw in info:
                 line = line_raw.lstrip().removesuffix("\n")
@@ -73,14 +76,18 @@ def read_backup_information(backup_folder: Path) -> Backup_Info:
 
                 key, value_string = line.split(": ", maxsplit=1)
                 key = backup_info_key(key)
-                value = absolute_path(value_string)
-                extracted_info[key] = value
+                if key == "Compare_Timestamp":
+                    timestamp = datetime.datetime.strptime(value_string, backup_date_format)
+                    extracted_info[key] = timestamp
+                else:
+                    path = absolute_path(value_string)
+                    extracted_info[key] = path
         return extracted_info
     except FileNotFoundError:
-        return Backup_Info(Source=None, Log=None)
+        return Backup_Info(Source=None, Log=None, Compare_Timestamp=None)
 
 
-def backup_info_key(key: str) -> Literal["Source", "Log"]:
+def backup_info_key(key: str) -> Literal["Source", "Log", "Compare_Timestamp"]:
     """Verify that backup info keys read from a file are valid keys."""
     key = key.strip()
     if key == "Source":
@@ -88,6 +95,9 @@ def backup_info_key(key: str) -> Literal["Source", "Log"]:
 
     if key == "Log":
         return "Log"
+
+    if key == "Compare_Timestamp":
+        return "Compare_Timestamp"
 
     raise KeyError(f"Unknown key for Backup_Info: {key}")
 
@@ -97,10 +107,17 @@ def write_backup_information(backup_folder: Path, backup_info: Backup_Info) -> N
     info_file = get_backup_info_file(backup_folder)
     info_file.parent.mkdir(parents=True, exist_ok=True)
     with info_file.open("w", encoding="utf8") as info:
-        for key, value in backup_info.items():
-            if value:
-                logger.debug("Writing %s : %s to %s", key, value, info_file)
-                info.write(f"{key}: {value}\n")
+        for key in map(backup_info_key, backup_info):
+            if key == "Compare_Timestamp":
+                timestamp = backup_info[key]
+                if timestamp:
+                    logger.debug("Writing %s : %s to %s", key, timestamp, info_file)
+                    info.write(f"{key}: {timestamp.strftime(backup_date_format)}")
+            else:
+                path = backup_info[key]
+                if path:
+                    logger.debug("Writing %s : %s to %s", key, path, info_file)
+                    info.write(f"{key}: {path}\n")
 
 
 def backup_log_file(backup_folder: Path) -> Path | None:
@@ -125,3 +142,10 @@ def record_backup_log_file(log_file_path: Path, backup_path: Path) -> None:
     backup_info = read_backup_information(backup_path)
     backup_info["Log"] = absolute_path(log_file_path)
     write_backup_information(backup_path, backup_info)
+
+
+def record_compare_contents_timestamp(backup_location: Path, timestamp: datetime.datetime) -> None:
+    """Record timestamp of last time file contents were compared during backup."""
+    info = read_backup_information(backup_location)
+    info["Compare_Timestamp"] = timestamp
+    write_backup_information(backup_location, info)
