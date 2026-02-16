@@ -25,6 +25,7 @@ ignore = [
     "PT009", # Use assert instead of unittest.assertIn
     "PT027", # Use pytest.raises instead of assertRaises
     "RET505", # Unnecessary else after return statement
+    "RET506", # Unnecessary else after raise statement
     "S311", # Standard pseudo-random generators are not suitable for cryptographic purposes
     "T201", # print() found
     "TC003", # Move standard library import into a type-checking block

@@ -5,12 +5,14 @@ Deleting old backups is necessary for keeping space available for new backups.
 ## Deletion actions
 
 Any and all of the options in this section can be used at the same time.
-They will run after a backup completes successfully.
+Backup deletions will run both before a backup is attempted and after a backup completes successfully.
+Backup deletions before a backup ensure that there is adequate space for a new backup.
+Backup deletions after a backup ensure that most of the time the next backup can start quickly once the program starts.
 
 ### `--free-up`
 
 Specify how much disk space should be kept free at the backup location.
-If there is less space after a backup, old backups will be deleted until this amount of space is free.
+If there is less space before or after a backup, old backups will be deleted until this amount of space is free.
 This parameter can be just a number or a number with a byte unit.
 For example,
 
@@ -20,6 +22,7 @@ will delete old backups until at least 10 GB are free at the backup location.
 
 Spacing and capitalization don't matter for the unit, and the `B` is optional.
 All of the following are equivalent: `10 GB`, `10GB`, `10gb`, `10G`.
+If there is space between the number and unit like `10 GB`, then the whole parameter needs to be quoted: `"10 GB"`.
 
 This size of this parameter should be an overestimate of the space needed for each backup.
 This depends on how much new data is added between backups and how often files are copied instead of hard-linked (see the `--hard-link-count` and `--copy-probability` parameters, below).
@@ -68,13 +71,6 @@ The option `--max-deletions 5` will delete no more than 5 of the oldest backups 
 
 The value of the parameter must be a positive whole number.
 
-### `--delete-first`
-
-Delete old backups according to `--free-up` or `--delete-after` before creating a new backup.
-This can be useful if the next backup is expected to contain more new data than the free space on the backup location.
-
-This option is overridden by `--no-delete-first`.
-
 ### `--delete-only`
 
-The option is the same as `--delete-first`, but no backup is created afterwards.
+Only delete old backups. Do not create a backup.

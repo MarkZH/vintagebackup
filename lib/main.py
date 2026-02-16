@@ -2,13 +2,15 @@
 
 import argparse
 import logging
+from pathlib import Path
 
 from lib.argument_parser import parse_command_line, print_help, print_usage, toggle_is_set
 from lib.automation import generate_windows_scripts
-from lib.backup import start_backup
-from lib.backup_deletion import delete_before_backup, delete_old_backups
+from lib.backup import start_backup, print_backup_storage_stats
+from lib.backup_deletion import delete_old_backups
 from lib.backup_set import preview_filter
 from lib.configuration import generate_config
+from lib.console import print_run_title
 from lib.exceptions import CommandLineError, ConcurrencyError
 from lib.logs import setup_initial_null_logger, setup_log_file
 from lib.move_backups import start_move_backups
@@ -42,9 +44,12 @@ def main(argv: list[str], *, testing: bool) -> int:
         logger.debug(args)
 
         def default_action(args: argparse.Namespace) -> None:
-            start_backup(args)
+            print_run_title(args, "Starting new backup")
             delete_old_backups(args)
+            start_backup(args)
             start_checksum(args)
+            delete_old_backups(args)
+            print_backup_storage_stats(Path(args.backup_folder))
 
         action = (
             generate_config if args.generate_config
@@ -59,7 +64,6 @@ def main(argv: list[str], *, testing: bool) -> int:
             else start_backup_purge if args.purge
             else choose_purge_target_from_backups if args.purge_list
             else delete_old_backups if args.delete_only
-            else delete_before_backup if toggle_is_set(args, "delete_first")
             else preview_filter if args.preview_filter is not None
             else default_action)
         action(args)

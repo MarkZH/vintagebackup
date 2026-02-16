@@ -15,11 +15,10 @@ from pathlib import Path
 from typing import cast
 
 from lib.argument_parser import toggle_is_set
-from lib.backup_utilities import all_backups, backup_date_format, find_previous_backup
-from lib.backup_info import confirm_user_location_is_unchanged, record_user_location
+import lib.backup_utilities as util
+from lib import backup_info
 from lib.backup_lock import Backup_Lock
 from lib.backup_set import Backup_Set
-from lib.console import print_run_title
 from lib.exceptions import CommandLineError
 import lib.filesystem as fs
 
@@ -244,10 +243,10 @@ def backup_directory(
 def backup_name(backup_datetime: datetime.datetime | str | None) -> Path:
     """Create the name and relative path for the new dated backup."""
     now = (
-        datetime.datetime.strptime(backup_datetime, backup_date_format)
+        datetime.datetime.strptime(backup_datetime, util.backup_date_format)
         if isinstance(backup_datetime, str)
         else (backup_datetime or datetime.datetime.now()))
-    return Path(str(now.year))/now.strftime(backup_date_format)
+    return Path(str(now.year))/now.strftime(util.backup_date_format)
 
 
 def create_new_backup(
@@ -288,8 +287,8 @@ def create_new_backup(
         logger.info("Deleting %s ...", staging_backup_path)
         fs.delete_directory_tree(staging_backup_path)
 
-    confirm_user_location_is_unchanged(user_data_location, backup_location)
-    record_user_location(user_data_location, backup_location)
+    backup_info.confirm_user_location_is_unchanged(user_data_location, backup_location)
+    backup_info.record_user_location(user_data_location, backup_location)
 
     if is_backup_move:
         logger.info("Original backup  : %s", user_data_location)
@@ -299,7 +298,7 @@ def create_new_backup(
         logger.info("Backup location  : %s", new_backup_path)
     logger.info("Staging area     : %s", staging_backup_path)
 
-    last_backup_path = None if force_copy else find_previous_backup(backup_location)
+    last_backup_path = None if force_copy else util.find_previous_backup(backup_location)
     if last_backup_path:
         logger.info("Previous backup  : %s", last_backup_path)
     elif force_copy:
@@ -330,6 +329,10 @@ def create_new_backup(
         staging_backup_path.rename(new_backup_path)
 
     report_backup_file_counts(action_counter)
+    if examine_whole_file:
+        backup_info.record_compare_contents_timestamp(
+            backup_location,
+            util.backup_datetime(new_backup_path))
     return size_of_backup
 
 
@@ -387,9 +390,10 @@ def print_backup_storage_stats(backup_location: Path) -> None:
         percent_used,
         fs.byte_units(backup_storage.free),
         percent_free)
-    backups = all_backups(backup_location)
-    logger.info("Backups stored: %d", len(backups))
-    logger.info("Earliest backup: %s", backups[0].name)
+    backups = util.all_backups(backup_location)
+    if backups:
+        logger.info("Backups stored: %d", len(backups))
+        logger.info("Earliest backup: %s", backups[0].name)
 
 
 def copy_probability_from_hard_link_count(hard_link_count: str) -> float:
@@ -426,6 +430,11 @@ def copy_probability_from_hard_link_count(hard_link_count: str) -> float:
     return 1/(average_hard_link_count + 1)
 
 
+def last_compare_contents(backup_folder: Path) -> datetime.datetime | None:
+    """Read previous time backup compared file contents from backup info."""
+    return backup_info.read_backup_information(backup_folder)["Compare_Timestamp"]
+
+
 def start_backup(args: argparse.Namespace) -> None:
     """Parse command line arguments to start a backup."""
     user_folder = fs.get_existing_path(args.user_folder, "user's folder")
@@ -436,14 +445,19 @@ def start_backup(args: argparse.Namespace) -> None:
     backup_folder = fs.absolute_path(args.backup_folder)
     backup_folder.mkdir(parents=True, exist_ok=True)
 
+    should_compare_contents = util.should_do_periodic_action(
+        args,
+        "compare_contents",
+        backup_folder,
+        last_compare_contents)
+
     with Backup_Lock(backup_folder, "backup"):
-        print_run_title(args, "Starting new backup")
         filter_file = fs.path_or_none(args.filter)
         backup_space_taken = create_new_backup(
             user_folder,
             backup_folder,
             filter_file=filter_file,
-            examine_whole_file=toggle_is_set(args, "compare_contents"),
+            examine_whole_file=should_compare_contents,
             force_copy=toggle_is_set(args, "force_copy"),
             copy_probability=copy_probability(args),
             timestamp=args.timestamp)

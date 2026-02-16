@@ -4,6 +4,7 @@ import datetime
 import logging
 import argparse
 from pathlib import Path
+import math
 
 from lib.argument_parser import confirm_choice_made
 from lib.backup import create_new_backup
@@ -71,7 +72,7 @@ def last_n_backups(n: str | int, backup_location: Path) -> list[Path]:
         return backups
 
     count = int(n)
-    if count < 1 or count != float(n):
+    if count < 1 or count != math.ceil(float(n)):
         raise ValueError(f"Value must be a positive whole number: {n}")
 
     return backups[-count:]

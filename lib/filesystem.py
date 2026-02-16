@@ -30,11 +30,11 @@ def byte_units(size: float) -> str:
     >>> byte_units(12)
     '12.00 B'
     """
-    if size == 0.0:
-        return "0.000 B"
-
     if size < 0.0:
         raise RuntimeError(f"Got invalid value for byte_units(): {size}")
+
+    if size < 1.0:
+        return "0.000 B"
 
     prefix_step = 1000
     index = int(math.log10(size)/math.log10(prefix_step))
