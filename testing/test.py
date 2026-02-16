@@ -44,19 +44,36 @@ from lib import find_missing
 
 
 def load_tests(loader, tests, ignore):  # type: ignore[no-untyped-def] # noqa: ANN001 ANN201 ARG001
-    """Load doctests for running with unittest."""
+    """Load doctests for running with unittest."""  # noqa: DOC201
     for module in (fs, dates, config, console):
         tests.addTests(doctest.DocTestSuite(module))
     return tests
 
 
 def main_no_log(args: list[str]) -> int:
-    """Run the main() function without logging to a file."""
+    """
+    Run the main() function without logging to a file.
+
+    Arguments:
+        args: A list of arguments similar to sys.argv
+
+    Returns:
+        exit_code: The exit code of the call to main.main()
+    """
     return main.main([*args, "--log", os.devnull], testing=True)
 
 
 def main_assert_no_error_log(args: list[str], testcase: unittest.TestCase) -> int:
-    """Run the main() function to assert there are no errors logged without logging to a file."""
+    """
+    Run the main() function to assert there are no errors logged without logging to a file.
+
+    Arguments:
+        args: A list of arguments similar to sys.argv
+        testcase: The test case that is calling this function
+
+    Returns:
+        exit_code: The exit code of the call to main.main()
+    """
     with testcase.assertNoLogs(level=logging.ERROR):
         return main_no_log(args)
 
@@ -65,7 +82,12 @@ testing_timestamp = datetime.datetime.now()
 
 
 def unique_timestamp() -> datetime.datetime:
-    """Create a unique timestamp backups in testing so that backups can be made more rapidly."""
+    """
+    Create a unique timestamp backups in testing so that backups can be made more rapidly.
+
+    Returns:
+        timestamp: A datetime value 10 seconds after the previous call to unique_timestamp().
+    """
     global testing_timestamp  # noqa:PLW0603
     testing_timestamp += datetime.timedelta(seconds=10)
     return testing_timestamp
@@ -192,6 +214,10 @@ def all_files_have_same_content(standard_directory: Path, test_directory: Path) 
         test_directory: This directory must possess every file in the standard directory in the
             same location and with the same contents. Extra files in this directory will not result
             in failure.
+
+    Returns:
+        compare_result: Whether test_directory contains all of the files and folders in
+            standard_directory.
     """
     for directory_1, _, file_names in standard_directory.walk():
         directory_2 = test_directory/directory_1.relative_to(standard_directory)
@@ -206,13 +232,33 @@ def all_files_have_same_content(standard_directory: Path, test_directory: Path) 
 
 
 def directories_have_identical_content(base_directory_1: Path, base_directory_2: Path) -> bool:
-    """Check that both directories have same directory tree and file contents."""
+    """
+    Check that both directories have same directory tree and file contents.
+
+    Arguments:
+        base_directory_1: Path to folder
+        base_directory_2: Path to folder
+
+    Returns:
+        compare_result: whether both directories have the same files in the same folders with the
+            same content.
+    """
     return (all_files_have_same_content(base_directory_1, base_directory_2)
             and all_files_have_same_content(base_directory_2, base_directory_1))
 
 
 def all_files_are_hardlinked(standard_directory: Path, test_directory: Path) -> bool:
-    """Test that every file in the standard directory is hardlinked in the test_directory."""
+    """
+    Test that every file in the standard directory is hardlinked in the test_directory.
+
+    Arguments:
+        standard_directory: A directory whose files should all have links in the test_directory
+        test_directory: A directory that should contain hard links to all file in standard_directory
+
+    Returns:
+        hard_link_result: Whether all files in standard_directory are hard linked to files in
+            test_directory.
+    """
     for directory_1, _, file_names in standard_directory.walk():
         directory_2 = test_directory/(directory_1.relative_to(standard_directory))
         for file_name in file_names:
