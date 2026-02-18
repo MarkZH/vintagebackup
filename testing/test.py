@@ -910,7 +910,7 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that a filter symbol not in "+-#" raises an exceptions."""
         self.filter_path.write_text("* invalid_sign\n", encoding="utf8")
         with self.assertRaises(ValueError) as error:
-            backup_set.Backup_Set(fs.Absolute_Path(Path()), self.filter_path)
+            backup_set.Backup_Set(fs.Absolute_Path("."), self.filter_path)
         self.assertIn("The first symbol of each line", error.exception.args[0])
 
     def test_path_outside_user_folder_in_filter_file_raises_exception(self) -> None:
