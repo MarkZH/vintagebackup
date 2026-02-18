@@ -53,7 +53,7 @@ def confirm_user_location_is_unchanged(
         raise CommandLineError(
             "Previous backup stored a different user folder."
             f" Previously: {recorded_user_folder};"
-            f" Now: {Absolute_Path(user_data_location)}")
+            f" Now: {user_data_location}")
 
 
 class Backup_Info(TypedDict):

@@ -46,13 +46,9 @@ def byte_units(size: float) -> str:
 class Absolute_Path:
     """A class representing absolute paths."""
 
-    def __init__(self, path: "str | Path | Absolute_Path") -> None:
+    def __init__(self, path: str | Path) -> None:
         """Initialize an absolute path."""
-        self.path: Path
-        if isinstance(path, Absolute_Path):
-            self.path = path.path
-        else:
-            self.path = Path(os.path.abspath(path))  # noqa: PTH100
+        self.path = Path(os.path.abspath(path))  # noqa: PTH100
 
     def exists(self) -> bool:
         """
