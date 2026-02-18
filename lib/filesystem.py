@@ -44,12 +44,20 @@ def byte_units(size: float) -> str:
     return f"{size_in_units:.{decimal_digits}f} {prefix}B"
 
 
+def get_regular_path(path: Absolute_Path | Path | str) -> Path:
+    """Return an optional Path instance from multiple sources."""
+    if isinstance(path, Absolute_Path):
+        return path.path
+
+    return Path(path)
+
+
 class Absolute_Path:
     """A class representing absolute paths."""
 
-    def __init__(self, path: str | Path) -> None:
+    def __init__(self, path: str | Path | Absolute_Path) -> None:
         """Initialize an absolute path."""
-        self.path = Path(os.path.abspath(path))  # noqa: PTH100
+        self.path = Path(os.path.abspath(get_regular_path(path)))  # noqa: PTH100
 
     def exists(self) -> bool:
         """
@@ -66,8 +74,7 @@ class Absolute_Path:
 
     def __truediv__(self, new_part: str | Path | Absolute_Path) -> Absolute_Path:
         """Concatenate paths."""
-        return Absolute_Path(
-            self.path/new_part.path if isinstance(new_part, Absolute_Path) else self.path/new_part)
+        return Absolute_Path(self.path/get_regular_path(new_part))
 
     def mkdir(self, *, mode: int = 511, parents: bool = False, exist_ok: bool = False) -> None:
         """Create the current path as a directory."""
@@ -166,15 +173,15 @@ class Absolute_Path:
 
     def symlink_to(self, target: Absolute_Path | Path | str) -> None:
         """Create symlink to target at current path."""
-        self.path.symlink_to(target.path if isinstance(target, Absolute_Path) else target)
+        self.path.symlink_to(get_regular_path(target))
 
     def hardlink_to(self, target: Absolute_Path | Path | str) -> None:
         """Create hardlink to target path."""
-        self.path.hardlink_to(target.path if isinstance(target, Absolute_Path) else target)
+        self.path.hardlink_to(get_regular_path(target))
 
     def full_match(self, pattern: Path | Absolute_Path) -> bool:
         """Whether the current path matches the glob-style pattern."""
-        return self.path.full_match(pattern if isinstance(pattern, Path) else pattern.path)
+        return self.path.full_match(get_regular_path(pattern))
 
     def stat(self) -> os.stat_result:
         """
@@ -190,16 +197,15 @@ class Absolute_Path:
 
     def relative_to(self, other_path: Path | Absolute_Path) -> Path:
         """Returns a new path relative to the current path."""
-        other = other_path.path if isinstance(other_path, Absolute_Path) else other_path
-        return self.path.relative_to(other)
+        return self.path.relative_to(get_regular_path(other_path))
 
     def is_relative_to(self, other: Path | Absolute_Path) -> bool:
         """Whether current path is contained without other path."""
-        return self.path.is_relative_to(other.path if isinstance(other, Absolute_Path) else other)
+        return self.path.is_relative_to(get_regular_path(other))
 
     def samefile(self, other: str | Path | Absolute_Path) -> bool:
         """Whether the current path references the same file as the argument."""
-        return self.path.samefile(other.path if isinstance(other, Absolute_Path) else other)
+        return self.path.samefile(get_regular_path(other))
 
     def __lt__(self, other: Absolute_Path) -> bool:
         """Whether this path sorts before another path."""
@@ -294,8 +300,7 @@ def delete_directory_tree(directory: Path | Absolute_Path, *, ignore_errors: boo
             else:
                 raise
 
-    directory_path = directory.path if isinstance(directory, Absolute_Path) else directory
-    shutil.rmtree(directory_path, onexc=remove_readonly)
+    shutil.rmtree(get_regular_path(directory), onexc=remove_readonly)
 
 
 def delete_file(file_path: Absolute_Path, *, ignore_errors: bool = False) -> None:
