@@ -219,7 +219,7 @@ class Absolute_Path:
 
     def __repr__(self) -> str:
         """Return standard representation."""
-        return self.path.__repr__()
+        return f"{type(self).__name__}({self.path})"
 
 
 default_log_file_name = Absolute_Path(Path.home())/"vintagebackup.log"
