@@ -81,7 +81,7 @@ def random_string(length: int) -> str:
     return "".join(random.choices(string.ascii_letters, k=length))
 
 
-def create_user_data(base_directory: Path | fs.Absolute_Path) -> None:
+def create_user_data(base_directory: fs.Absolute_Path) -> None:
     """
     Fill the given directory with folders and files.
 
