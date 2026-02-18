@@ -3,7 +3,6 @@
 import datetime
 import logging
 import argparse
-from pathlib import Path
 import math
 
 from lib.argument_parser import confirm_choice_made
@@ -18,15 +17,15 @@ from lib.backup_lock import Backup_Lock
 from lib.backup_utilities import all_backups, backup_datetime
 from lib.console import plural_noun, print_run_title
 from lib.datetime_calculations import parse_time_span_to_timepoint
-from lib.filesystem import absolute_path, get_existing_path
+from lib.filesystem import Absolute_Path, get_existing_path
 
 logger = logging.getLogger()
 
 
 def move_backups(
-        old_backup_location: Path,
-        new_backup_location: Path,
-        backups_to_move: list[Path]) -> None:
+        old_backup_location: Absolute_Path,
+        new_backup_location: Absolute_Path,
+        backups_to_move: list[Absolute_Path]) -> None:
     """Move a set of backups to a new location."""
     move_count = len(backups_to_move)
     logger.info("Moving %s", plural_noun(move_count, "backup"))
@@ -59,7 +58,7 @@ def move_backups(
         record_backup_log_file(old_log_file, new_backup_location)
 
 
-def last_n_backups(n: str | int, backup_location: Path) -> list[Path]:
+def last_n_backups(n: str | int, backup_location: Absolute_Path) -> list[Absolute_Path]:
     """
     Return a list of the paths of the last n backups.
 
@@ -78,10 +77,12 @@ def last_n_backups(n: str | int, backup_location: Path) -> list[Path]:
     return backups[-count:]
 
 
-def backups_since(oldest_backup_date: datetime.datetime, backup_location: Path) -> list[Path]:
+def backups_since(
+        oldest_backup_date: datetime.datetime,
+        backup_location: Absolute_Path) -> list[Absolute_Path]:
     """Return a list of the backups created since a given date."""
 
-    def recent_enough(backup_folder: Path) -> bool:
+    def recent_enough(backup_folder: Absolute_Path) -> bool:
         return backup_datetime(backup_folder) >= oldest_backup_date
 
     return list(filter(recent_enough, all_backups(backup_location)))
@@ -90,7 +91,7 @@ def backups_since(oldest_backup_date: datetime.datetime, backup_location: Path) 
 def start_move_backups(args: argparse.Namespace) -> None:
     """Parse command line options to move backups to another location."""
     old_backup_location = get_existing_path(args.backup_folder, "current backup location")
-    new_backup_location = absolute_path(args.move_backup)
+    new_backup_location = Absolute_Path(args.move_backup)
     backups_to_move = choose_backups_to_move(args, old_backup_location)
     new_backup_location.mkdir(parents=True, exist_ok=True)
     with Backup_Lock(new_backup_location, "backup move"):
@@ -98,7 +99,9 @@ def start_move_backups(args: argparse.Namespace) -> None:
         move_backups(old_backup_location, new_backup_location, backups_to_move)
 
 
-def choose_backups_to_move(args: argparse.Namespace, old_backup_location: Path) -> list[Path]:
+def choose_backups_to_move(
+        args: argparse.Namespace,
+        old_backup_location: Absolute_Path) -> list[Absolute_Path]:
     """Choose which backups to move based on the command line arguments."""
     confirm_choice_made(args, "move_count", "move_age", "move_since")
     if args.move_count:

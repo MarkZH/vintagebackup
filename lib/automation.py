@@ -6,14 +6,14 @@ import sys
 from pathlib import Path
 
 from lib.configuration import generate_config
-from lib.filesystem import absolute_path, unique_path_name
+from lib.filesystem import Absolute_Path, unique_path_name
 
 logger = logging.getLogger()
 
 
 def generate_windows_scripts(args: argparse.Namespace) -> None:
     """Generate files for use with Windows Task Scheduler."""
-    destination = absolute_path(args.generate_windows_scripts)
+    destination = Absolute_Path(args.generate_windows_scripts)
     args.generate_config = str(destination/"config.txt")
     config_path = generate_config(args)
 

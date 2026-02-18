@@ -3,19 +3,18 @@
 import logging
 import shutil
 import argparse
-from pathlib import Path
 
 from lib.argument_parser import confirm_choice_made
 from lib.backup_utilities import all_backups, find_previous_backup
 from lib.backup_info import backup_source
 from lib.console import cancel_key, choose_from_menu, print_run_title
 from lib.exceptions import CommandLineError
-from lib.filesystem import absolute_path, delete_path, get_existing_path
+from lib.filesystem import Absolute_Path, delete_path, get_existing_path
 
 logger = logging.getLogger()
 
 
-def choose_backup(backup_folder: Path, choice: int | None) -> Path | None:
+def choose_backup(backup_folder: Absolute_Path, choice: int | None) -> Absolute_Path | None:
     """Choose a backup from a numbered list shown in a terminal."""
     backup_choices = all_backups(backup_folder)
     if not backup_choices:
@@ -29,8 +28,8 @@ def choose_backup(backup_folder: Path, choice: int | None) -> Path | None:
 
 
 def restore_backup(
-        dated_backup_folder: Path,
-        destination: Path,
+        dated_backup_folder: Absolute_Path,
+        destination: Absolute_Path,
         *,
         delete_extra_files: bool) -> None:
     """
@@ -66,7 +65,7 @@ def restore_backup(
                 current_backup_path,
                 current_user_folder)
             try:
-                shutil.copy2(file_source, file_destination, follow_symlinks=False)
+                shutil.copy2(file_source.path, file_destination.path, follow_symlinks=False)
             except Exception as error:
                 logger.warning(
                     "Could not restore %s from %s: %s",
@@ -88,7 +87,7 @@ def start_backup_restore(args: argparse.Namespace) -> None:
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     if not args.destination:
         raise CommandLineError("The --destination argument is required for restoring backups.")
-    destination = absolute_path(args.destination)
+    destination = Absolute_Path(args.destination)
     confirm_choice_made(args, "delete_extra", "keep_extra")
     delete_extra_files = bool(args.delete_extra)
 

@@ -5,7 +5,7 @@ import platform
 import argparse
 from typing import TextIO
 
-from lib.filesystem import absolute_path
+from lib.filesystem import Absolute_Path
 
 logger = logging.getLogger()
 
@@ -84,5 +84,5 @@ def print_run_title(command_line_args: argparse.Namespace, action_title: str) ->
     logger.info("")
 
     if command_line_args.config:
-        logger.info("Reading configuration from file: %s", absolute_path(command_line_args.config))
+        logger.info("Reading configuration from file: %s", Absolute_Path(command_line_args.config))
         logger.info("")

@@ -3,17 +3,11 @@
 import argparse
 import logging
 from collections import Counter
-from pathlib import Path
 
 from lib.backup import backup_staging_folder
 from lib.backup_utilities import all_backups, find_previous_backup
 from lib.console import choose_from_menu, plural_noun, print_run_title
-from lib.filesystem import (
-    absolute_path,
-    delete_path,
-    get_existing_path,
-    is_real_directory,
-    classify_path)
+from lib.filesystem import Absolute_Path, delete_path, get_existing_path, classify_path
 from lib import recovery
 
 logger = logging.getLogger()
@@ -32,14 +26,14 @@ def choose_purge_target_from_backups(
 def start_backup_purge(args: argparse.Namespace, confirmation_reponse: str | None = None) -> None:
     """Parse command line options to purge file or folder from all backups."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
-    purge_target = absolute_path(args.purge)
+    purge_target = Absolute_Path(args.purge)
     print_run_title(args, "Purging from backups")
     purge_path(purge_target, backup_folder, confirmation_reponse, args.choice)
 
 
 def purge_path(
-        purge_target: Path,
-        backup_folder: Path,
+        purge_target: Absolute_Path,
+        backup_folder: Absolute_Path,
         confirmation_reponse: str | None,
         arg_choice: str | None) -> None:
     """Purge a file/folder by deleting it from all backups."""
@@ -47,7 +41,7 @@ def purge_path(
 
     backup_list = all_backups(backup_folder)
     potential_deletions = (backup/relative_purge_target for backup in backup_list)
-    paths_to_delete = list(filter(lambda p: p.exists(follow_symlinks=False), potential_deletions))
+    paths_to_delete = list(filter(lambda p: p.exists(), potential_deletions))
     if not paths_to_delete:
         logger.info("Could not find any backed up copies of %s", purge_target)
         return
@@ -78,12 +72,12 @@ def purge_path(
     logger.info("If you want to prevent the purged item from being backed up in the future,")
     logger.info("consider adding the following line to a filter file:")
     filter_line = (
-        relative_purge_target/"**" if is_real_directory(purge_target) else relative_purge_target)
+        relative_purge_target/"**" if purge_target.is_real_directory() else relative_purge_target)
     logger.info("- %s", filter_line)
 
 
 def choose_types_to_delete(
-        paths_to_delete: list[Path],
+        paths_to_delete: list[Absolute_Path],
         path_type_counts: Counter[str],
         test_choice: str | None) -> list[str]:
     """If a purge target has more than one type in backups, choose which type to delete."""

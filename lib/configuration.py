@@ -3,16 +3,15 @@
 import logging
 import os
 import argparse
-from pathlib import Path
 from typing import Any
 
 from lib.exceptions import CommandLineError
-from lib.filesystem import absolute_path, unique_path_name
+from lib.filesystem import Absolute_Path, unique_path_name
 
 logger = logging.getLogger()
 
 
-def generate_config(args: argparse.Namespace) -> Path:
+def generate_config(args: argparse.Namespace) -> Absolute_Path:
     """Generate a configuration file from the arguments and return the path of that file."""
     no_arguments: set[str] = set()
     no_prefix = "no_"
@@ -28,15 +27,15 @@ def generate_config(args: argparse.Namespace) -> Path:
         arguments.append((option, value))
 
     arguments = [(arg, val) for arg, val in arguments if arg not in no_arguments]
-    config_path = unique_path_name(Path(args.generate_config))
-    with config_path.open("w", encoding="utf8") as config_file:
+    config_path = unique_path_name(Absolute_Path(args.generate_config))
+    with config_path.open_text("w", encoding="utf8") as config_file:
         for option, value in arguments:
             parameter = option.replace("_", " ").capitalize()
             value_string = "" if value is True else str(value)
             is_path = option in {"user_folder", "backup_folder", "filter", "destination"}
             is_non_null_log = option == "log" and value_string != os.devnull
             if is_path or is_non_null_log:
-                value_string = str(absolute_path(value_string))
+                value_string = str(Absolute_Path(value_string))
             needs_quotes = (value_string.strip() != value_string)
             parameter_value = f'"{value_string}"' if needs_quotes else value_string
             config_file.write(f"{parameter}: {parameter_value}".strip() + "\n")
@@ -45,10 +44,10 @@ def generate_config(args: argparse.Namespace) -> Path:
     return config_path
 
 
-def read_configuation_file(config_file: Path) -> list[str]:
+def read_configuation_file(config_file: Absolute_Path) -> list[str]:
     """Parse a configuration file into command line arguments."""
     try:
-        with config_file.open(encoding="utf8") as file:
+        with config_file.open_text(encoding="utf8") as file:
             arguments: list[str] = []
             for line_raw in file:
                 line = line_raw.strip()

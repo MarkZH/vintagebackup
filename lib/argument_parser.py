@@ -5,12 +5,11 @@ import shutil
 import argparse
 import sys
 import textwrap
-from pathlib import Path
 from typing import TextIO
 
 from lib.configuration import read_configuation_file
 from lib.exceptions import CommandLineError
-from lib.filesystem import default_log_file_name
+from lib.filesystem import default_log_file_name, Absolute_Path
 
 
 def format_paragraphs(lines: str, line_length: int) -> str:
@@ -527,7 +526,7 @@ def parse_command_line(argv: list[str]) -> argparse.Namespace:
     user_input = argument_parser()
     command_line_args = user_input.parse_args(command_line_options)
     if command_line_args.config:
-        file_options = read_configuation_file(Path(command_line_args.config))
+        file_options = read_configuation_file(Absolute_Path(command_line_args.config))
         return user_input.parse_args(file_options + command_line_options)
     else:
         return command_line_args

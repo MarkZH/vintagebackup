@@ -2,9 +2,9 @@
 
 import logging
 import os
-from pathlib import Path
 
 from lib.backup_info import primary_log_path, record_backup_log_file
+from lib.filesystem import Absolute_Path
 
 
 def setup_initial_null_logger() -> None:
@@ -31,11 +31,11 @@ def setup_log_file(
     log_file_path = primary_log_path(log_file_name, backup_folder)
 
     if backup_folder and log_file_path:
-        record_backup_log_file(log_file_path, Path(backup_folder))
+        record_backup_log_file(log_file_path, Absolute_Path(backup_folder))
 
     log_format = "%(asctime)s %(levelname)s    %(message)s"
     if log_file_path:
-        log_file = logging.FileHandler(log_file_path, encoding="utf8")
+        log_file = logging.FileHandler(log_file_path.path, encoding="utf8")
         log_file_format = logging.Formatter(fmt=log_format)
         log_file.setFormatter(log_file_format)
         logger.addHandler(log_file)

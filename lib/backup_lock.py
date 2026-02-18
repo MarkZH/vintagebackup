@@ -1,9 +1,9 @@
 """A class for preventing more than one operation from simultaneously modifying backups."""
 
 import os
-from pathlib import Path
 
 from lib.exceptions import ConcurrencyError
+import lib.filesystem as fs
 
 
 class Backup_Lock:
@@ -17,7 +17,7 @@ class Backup_Lock:
     ```
     """
 
-    def __init__(self, backup_location: Path, operation: str) -> None:
+    def __init__(self, backup_location: fs.Absolute_Path, operation: str) -> None:
         """Set up the lock."""
         self.lock_file_path = backup_location/"vintagebackup.lock"
         self.pid = str(os.getpid())
@@ -57,13 +57,13 @@ class Backup_Lock:
 
     def create_lock(self) -> None:
         """Write PID and operation to the lock file."""
-        with self.lock_file_path.open("x", encoding="utf8") as lock_file:
+        with self.lock_file_path.open_text("x", encoding="utf8") as lock_file:
             lock_file.write(f"{self.pid}\n")
             lock_file.write(f"{self.operation}\n")
 
     def read_lock_data(self) -> tuple[str, str]:
         """Get all data from lock file."""
-        with self.lock_file_path.open(encoding="utf8") as lock_file:
+        with self.lock_file_path.open_text(encoding="utf8") as lock_file:
             pid = lock_file.readline().strip()
             operation = lock_file.readline().strip()
             return (pid, operation)

@@ -2,7 +2,6 @@
 
 import argparse
 import logging
-from pathlib import Path
 
 from lib.argument_parser import parse_command_line, print_help, print_usage, toggle_is_set
 from lib.automation import generate_windows_scripts
@@ -12,6 +11,7 @@ from lib.backup_set import preview_filter
 from lib.configuration import generate_config
 from lib.console import print_run_title
 from lib.exceptions import CommandLineError, ConcurrencyError
+from lib.filesystem import Absolute_Path
 from lib.logs import setup_initial_null_logger, setup_log_file
 from lib.move_backups import start_move_backups
 from lib.purge import choose_purge_target_from_backups, start_backup_purge
@@ -49,7 +49,7 @@ def main(argv: list[str], *, testing: bool) -> int:
             start_backup(args)
             start_checksum(args)
             delete_old_backups(args)
-            print_backup_storage_stats(Path(args.backup_folder))
+            print_backup_storage_stats(Absolute_Path(args.backup_folder))
 
         action = (
             generate_config if args.generate_config

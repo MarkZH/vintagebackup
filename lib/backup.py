@@ -48,8 +48,8 @@ def random_filter(probability: float) -> Callable[[object], bool]:
 
 
 def compare_to_backup(
-        user_directory: Path,
-        backup_directory: Path | None,
+        user_directory: fs.Absolute_Path,
+        backup_directory: fs.Absolute_Path | None,
         file_names: list[str],
         *,
         examine_whole_file: bool,
@@ -81,21 +81,21 @@ def compare_to_backup(
 
 
 def deep_comparison(
-        user_directory: Path,
-        backup_directory: Path,
+        user_directory: fs.Absolute_Path,
+        backup_directory: fs.Absolute_Path,
         file_names: list[str]) -> tuple[list[str], list[str], list[str]]:
     """Inspect file contents to determine if files match the most recent backup."""
-    return filecmp.cmpfiles(user_directory, backup_directory, file_names, shallow=False)
+    return filecmp.cmpfiles(user_directory.path, backup_directory.path, file_names, shallow=False)
 
 
 def shallow_comparison(
-        user_directory: Path,
-        backup_directory: Path,
+        user_directory: fs.Absolute_Path,
+        backup_directory: fs.Absolute_Path,
         file_names: list[str]) -> tuple[list[str], list[str], list[str]]:
     """Decide which files match the previous backup based on quick stat information."""
 
-    def scan_directory(directory: Path) -> dict[str, os.stat_result]:
-        with os.scandir(directory) as scan:
+    def scan_directory(directory: fs.Absolute_Path) -> dict[str, os.stat_result]:
+        with os.scandir(directory.path) as scan:
             return {entry.name: entry.stat() for entry in scan}
 
     try:
@@ -119,7 +119,7 @@ def shallow_comparison(
     return matches, mismatches, errors
 
 
-def create_hard_link(previous_backup: Path, new_backup: Path) -> bool:
+def create_hard_link(previous_backup: fs.Absolute_Path, new_backup: fs.Absolute_Path) -> bool:
     """
     Create a hard link between unchanged backup files.
 
@@ -135,7 +135,9 @@ def create_hard_link(previous_backup: Path, new_backup: Path) -> bool:
         return False
 
 
-def separate_links(directory: Path, path_names: list[str]) -> tuple[list[str], list[str]]:
+def separate_links(
+        directory: fs.Absolute_Path,
+        path_names: list[str]) -> tuple[list[str], list[str]]:
     """
     Separate regular files and folders from symlinks.
 
@@ -176,10 +178,10 @@ def separate[T](items: Iterable[T], predicate: Callable[[T], bool]) -> tuple[lis
 
 
 def backup_directory(
-        user_data_location: Path,
-        new_backup_path: Path,
-        last_backup_path: Path | None,
-        current_user_path: Path,
+        user_data_location: fs.Absolute_Path,
+        new_backup_path: fs.Absolute_Path,
+        last_backup_path: fs.Absolute_Path | None,
+        current_user_path: fs.Absolute_Path,
         user_file_names: list[str],
         action_counter: Counter[str],
         *,
@@ -215,7 +217,7 @@ def backup_directory(
         copy_probability=copy_probability)
 
     for file_name in files_to_link:
-        previous_backup = cast(Path, previous_backup_directory)/file_name
+        previous_backup = cast(fs.Absolute_Path, previous_backup_directory)/file_name
         new_backup = new_backup_directory/file_name
 
         if create_hard_link(previous_backup, new_backup):
@@ -229,7 +231,7 @@ def backup_directory(
         new_backup_file = new_backup_directory/file_name
         user_file = current_user_path/file_name
         try:
-            shutil.copy2(user_file, new_backup_file, follow_symlinks=False)
+            shutil.copy2(user_file.path, new_backup_file.path, follow_symlinks=False)
             action_counter["copied files"] += 1
             size_of_copied_files += user_file.stat().st_size
             logger.debug("Copied %s to %s", user_file, new_backup_file)
@@ -250,10 +252,10 @@ def backup_name(backup_datetime: datetime.datetime | str | None) -> Path:
 
 
 def create_new_backup(
-        user_data_location: Path,
-        backup_location: Path,
+        user_data_location: fs.Absolute_Path,
+        backup_location: fs.Absolute_Path,
         *,
-        filter_file: Path | None,
+        filter_file: fs.Absolute_Path | None,
         examine_whole_file: bool,
         force_copy: bool,
         copy_probability: float,
@@ -336,7 +338,7 @@ def create_new_backup(
     return size_of_backup
 
 
-def backup_staging_folder(backup_location: Path) -> Path:
+def backup_staging_folder(backup_location: fs.Absolute_Path) -> fs.Absolute_Path:
     """Get the name of the staging folder for new backups."""
     return backup_location/"Staging"
 
@@ -357,9 +359,9 @@ def report_backup_file_counts(action_counter: Counter[str]) -> None:
 
 
 def check_paths_for_validity(
-        user_data_location: Path,
-        backup_location: Path,
-        filter_file: Path | None) -> None:
+        user_data_location: fs.Absolute_Path,
+        backup_location: fs.Absolute_Path,
+        filter_file: fs.Absolute_Path | None) -> None:
     """Check the given paths for validity and raise an exception for improper inputs."""
     if not user_data_location.is_dir():
         raise CommandLineError(f"The user folder path is not a folder: {user_data_location}")
@@ -377,9 +379,9 @@ def check_paths_for_validity(
         raise CommandLineError(f"Filter file not found: {filter_file}")
 
 
-def print_backup_storage_stats(backup_location: Path) -> None:
+def print_backup_storage_stats(backup_location: fs.Absolute_Path) -> None:
     """Log information about the storage space of the backup medium."""
-    backup_storage = shutil.disk_usage(backup_location)
+    backup_storage = shutil.disk_usage(backup_location.path)
     percent_used = round(100*backup_storage.used/backup_storage.total)
     percent_free = round(100*backup_storage.free/backup_storage.total)
     logger.info("")
@@ -430,7 +432,7 @@ def copy_probability_from_hard_link_count(hard_link_count: str) -> float:
     return 1/(average_hard_link_count + 1)
 
 
-def last_compare_contents(backup_folder: Path) -> datetime.datetime | None:
+def last_compare_contents(backup_folder: fs.Absolute_Path) -> datetime.datetime | None:
     """Read previous time backup compared file contents from backup info."""
     return backup_info.read_backup_information(backup_folder)["Compare_Timestamp"]
 
@@ -442,7 +444,7 @@ def start_backup(args: argparse.Namespace) -> None:
     if not args.backup_folder:
         raise CommandLineError("Backup folder not specified.")
 
-    backup_folder = fs.absolute_path(args.backup_folder)
+    backup_folder = fs.Absolute_Path(args.backup_folder)
     backup_folder.mkdir(parents=True, exist_ok=True)
 
     should_compare_contents = util.should_do_periodic_action(

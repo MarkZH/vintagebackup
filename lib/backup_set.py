@@ -4,9 +4,8 @@ import argparse
 import logging
 import sys
 from collections.abc import Iterator
-from pathlib import Path
 
-from lib.filesystem import get_existing_path, path_listing, path_or_none
+from lib.filesystem import get_existing_path, path_listing, path_or_none, Absolute_Path
 
 logger = logging.getLogger()
 
@@ -14,7 +13,7 @@ logger = logging.getLogger()
 class Backup_Set:
     """Generate the list of all paths to be backed up after filtering."""
 
-    def __init__(self, user_folder: Path, filter_file: Path | None) -> None:
+    def __init__(self, user_folder: Absolute_Path, filter_file: Absolute_Path | None) -> None:
         """
         Prepare the path generator by parsing the filter file.
 
@@ -22,7 +21,7 @@ class Backup_Set:
             user_folder: The folder to be backed up.
             filter_file: The path of the filter file that edits the paths to backup.
         """
-        self.entries: list[tuple[int, str, Path]] = []
+        self.entries: list[tuple[int, str, Absolute_Path]] = []
         self.lines_used: set[int] = set()
         self.user_folder = user_folder
         self.filter_file = filter_file
@@ -30,7 +29,7 @@ class Backup_Set:
         if not filter_file:
             return
 
-        with filter_file.open(encoding="utf8") as filters:
+        with filter_file.open_text(encoding="utf8") as filters:
             for line_number, line_raw in enumerate(filters, 1):
                 line = line_raw.strip()
                 if not line:
@@ -53,7 +52,7 @@ class Backup_Set:
                 logger.debug("Filter added: %s --> %s %s", line, sign, pattern)
                 self.entries.append((line_number, sign, pattern))
 
-    def __iter__(self) -> Iterator[tuple[Path, list[str]]]:
+    def __iter__(self) -> Iterator[tuple[Absolute_Path, list[str]]]:
         """Create the iterator that yields the paths to backup."""
         for current_directory, _, files in self.user_folder.walk():
             good_files = list(filter(self.passes, (current_directory/file for file in files)))
@@ -62,7 +61,7 @@ class Backup_Set:
 
         self.log_unused_lines()
 
-    def passes(self, path: Path) -> bool:
+    def passes(self, path: Absolute_Path) -> bool:
         """Determine if a path should be included in the backup according to the filter file."""
         is_included = not path.is_junction()
         for line_number, sign, pattern in self.entries:
@@ -101,7 +100,7 @@ def preview_filter(args: argparse.Namespace) -> None:
     output_file = path_or_none(args.preview_filter)
     backup_set = Backup_Set(user_folder, filter_file)
     if output_file:
-        with output_file.open("w", encoding="utf8") as output:
+        with output_file.open_text("w", encoding="utf8") as output:
             path_listing(backup_set, output)
     else:
         path_listing(backup_set, sys.stdout)

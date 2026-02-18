@@ -6,7 +6,6 @@ import shutil
 import argparse
 import datetime
 from collections.abc import Callable
-from pathlib import Path
 
 from lib.backup_utilities import all_backups, backup_datetime
 from lib.datetime_calculations import parse_time_span_to_timepoint
@@ -19,9 +18,9 @@ logger = logging.getLogger()
 
 
 def delete_oldest_backups_for_space(
-        backup_location: Path,
+        backup_location: fs.Absolute_Path,
         space_requirement: str | None,
-        verify_checksum_result_folder: Path | None,
+        verify_checksum_result_folder: fs.Absolute_Path | None,
         min_backups_remaining: int = 1) -> None:
     """
     Delete backups--starting with the oldest--until enough space is free on the backup destination.
@@ -41,7 +40,7 @@ def delete_oldest_backups_for_space(
     if not space_requirement:
         return
 
-    total_storage = shutil.disk_usage(backup_location).total
+    total_storage = shutil.disk_usage(backup_location.path).total
     free_storage_required = fs.parse_storage_space(space_requirement)
 
     if free_storage_required > total_storage:
@@ -49,14 +48,14 @@ def delete_oldest_backups_for_space(
             f"Cannot free more storage ({fs.byte_units(free_storage_required)})"
             f" than exists at {backup_location} ({fs.byte_units(total_storage)})")
 
-    current_free_space = shutil.disk_usage(backup_location).free
+    current_free_space = shutil.disk_usage(backup_location.path).free
     first_deletion_message = (
         "Deleting old backups to free up "
         f"{fs.byte_units(free_storage_required)}"
         f" ({fs.byte_units(current_free_space)} currently free).")
 
-    def stop(backup: Path) -> bool:
-        return shutil.disk_usage(backup).free > free_storage_required
+    def stop(backup: fs.Absolute_Path) -> bool:
+        return shutil.disk_usage(backup.path).free > free_storage_required
 
     delete_backups(
         backup_location,
@@ -67,9 +66,9 @@ def delete_oldest_backups_for_space(
 
 
 def delete_backups_older_than(
-        backup_folder: Path,
+        backup_folder: fs.Absolute_Path,
         time_span: str | None,
-        verify_checksum_result_folder: Path | None,
+        verify_checksum_result_folder: fs.Absolute_Path | None,
         min_backups_remaining: int = 1) -> None:
     """
     Delete backups older than a given timespan.
@@ -90,7 +89,7 @@ def delete_backups_older_than(
     first_deletion_message = (
         f"Deleting backups prior to {timestamp_to_keep.strftime('%Y-%m-%d %H:%M:%S')}.")
 
-    def stop(backup: Path) -> bool:
+    def stop(backup: fs.Absolute_Path) -> bool:
         return backup_datetime(backup) >= timestamp_to_keep
 
     delete_backups(
@@ -101,7 +100,9 @@ def delete_backups_older_than(
         verify_checksum_result_folder)
 
 
-def delete_single_backup(backup: Path, verify_checksum_result_folder: Path | None) -> None:
+def delete_single_backup(
+        backup: fs.Absolute_Path,
+        verify_checksum_result_folder: fs.Absolute_Path | None) -> None:
     """Delete a backup and, if it is the last in a year, the year folder that contains it."""
     if verify_checksum_result_folder:
         with contextlib.suppress(FileNotFoundError):
@@ -115,15 +116,15 @@ def delete_single_backup(backup: Path, verify_checksum_result_folder: Path | Non
     except OSError:
         pass
 
-    logger.info("Free space: %s", fs.byte_units(shutil.disk_usage(backup.parent.parent).free))
+    logger.info("Free space: %s", fs.byte_units(shutil.disk_usage(backup.parent.parent.path).free))
 
 
 def delete_backups(
-        backup_folder: Path,
+        backup_folder: fs.Absolute_Path,
         min_backups_remaining: int,
         first_deletion_message: str,
-        stop_deletion_condition: Callable[[Path], bool],
-        verify_checksum_result_folder: Path | None) -> None:
+        stop_deletion_condition: Callable[[fs.Absolute_Path], bool],
+        verify_checksum_result_folder: fs.Absolute_Path | None) -> None:
     """
     Delete backups until a condition is met.
 
@@ -164,10 +165,10 @@ def delete_backups(
 
 
 def delete_too_frequent_backups(
-        backup_folder: Path,
+        backup_folder: fs.Absolute_Path,
         args: argparse.Namespace,
         min_backups_remaining: int,
-        verify_checksum_result_folder: Path | None) -> None:
+        verify_checksum_result_folder: fs.Absolute_Path | None) -> None:
     """
     Delete backups according to retention arguments.
 
@@ -180,7 +181,7 @@ def delete_too_frequent_backups(
     deletion_count = 0
     now = datetime.datetime.now()
 
-    def old_enough(date_cutoff: datetime.datetime) -> Callable[[Path], bool]:
+    def old_enough(date_cutoff: datetime.datetime) -> Callable[[fs.Absolute_Path], bool]:
         return lambda backup: backup_datetime(backup) < date_cutoff
 
     for period, period_word, time_span_str in (

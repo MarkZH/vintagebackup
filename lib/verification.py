@@ -5,7 +5,6 @@ import filecmp
 import logging
 import hashlib
 import datetime
-from pathlib import Path
 import tempfile
 import shutil
 
@@ -21,7 +20,10 @@ from lib.backup_utilities import should_do_periodic_action
 logger = logging.getLogger()
 
 
-def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Path | None) -> None:
+def verify_last_backup(
+        result_folder: fs.Absolute_Path,
+        backup_folder: fs.Absolute_Path,
+        filter_file: fs.Absolute_Path | None) -> None:
     """
     Verify the most recent backup by comparing with the user's files.
 
@@ -50,9 +52,9 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
     mismatching_file_name = fs.unique_path_name(result_folder/"mismatching files.txt")
     error_file_name = fs.unique_path_name(result_folder/"error files.txt")
 
-    with (matching_file_name.open("w", encoding="utf8") as matching_file,
-        mismatching_file_name.open("w", encoding="utf8") as mismatching_file,
-        error_file_name.open("w", encoding="utf8") as error_file):
+    with (matching_file_name.open_text("w", encoding="utf8") as matching_file,
+        mismatching_file_name.open_text("w", encoding="utf8") as mismatching_file,
+        error_file_name.open_text("w", encoding="utf8") as error_file):
 
         for file in (matching_file, mismatching_file, error_file):
             file.write(f"Comparison: {user_folder} <---> {backup_folder}\n")
@@ -61,8 +63,8 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
             relative_directory = directory.relative_to(user_folder)
             backup_directory = last_backup_folder/relative_directory
             matches, mismatches, errors = filecmp.cmpfiles(
-                directory,
-                backup_directory,
+                directory.path,
+                backup_directory.path,
                 file_names,
                 shallow=False)
 
@@ -75,7 +77,7 @@ def start_verify_backup(args: argparse.Namespace) -> None:
     """Parse command line options for verifying backups."""
     backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
     filter_file = fs.path_or_none(args.filter)
-    result_folder = fs.absolute_path(args.verify)
+    result_folder = fs.Absolute_Path(args.verify)
     print_run_title(args, "Verifying last backup")
     verify_last_backup(result_folder, backup_folder, filter_file)
 
@@ -85,7 +87,7 @@ checksum_file_name = "checksums.sha3"
 verify_checksum_file_name = "checksum_verification.txt"
 
 
-def create_checksum_for_last_backup(backup_folder: Path) -> None:
+def create_checksum_for_last_backup(backup_folder: fs.Absolute_Path) -> None:
     """Create a file containing checksums of all files in the latest backup."""
     last_backup = util.find_previous_backup(backup_folder)
     if not last_backup:
@@ -94,12 +96,12 @@ def create_checksum_for_last_backup(backup_folder: Path) -> None:
     create_checksum_for_folder(last_backup)
 
 
-def create_checksum_for_folder(folder: Path) -> Path:
+def create_checksum_for_folder(folder: fs.Absolute_Path) -> fs.Absolute_Path:
     """Create a file containing checksums of all files in the given folder."""
     checksum_path = fs.unique_path_name(folder/checksum_file_name)
     logger.info("")
     logger.info("Creating checksum file: %s ...", checksum_path)
-    with checksum_path.open("w", encoding="utf8") as checksum_file:
+    with checksum_path.open_text("w", encoding="utf8") as checksum_file:
         for current_directory, _, file_names in folder.walk():
             for file_name in file_names:
                 path = current_directory/file_name
@@ -114,24 +116,24 @@ def create_checksum_for_folder(folder: Path) -> Path:
     return checksum_path
 
 
-def get_file_checksum(path: Path) -> str:
+def get_file_checksum(path: fs.Absolute_Path) -> str:
     """
     Read a file and calculate its checksum.
 
     Returns a hexadecimal string.
     """
-    with path.open("rb") as file:
+    with path.open_binary() as file:
         return hashlib.file_digest(file, hash_function).hexdigest()
 
 
 def start_checksum(args: argparse.Namespace) -> None:
     """Create checksum file for latest backup if specified by arguments."""
-    backup_folder = fs.absolute_path(args.backup_folder)
+    backup_folder = fs.Absolute_Path(args.backup_folder)
     if should_do_periodic_action(args, "checksum", backup_folder, last_checksum):
         create_checksum_for_last_backup(backup_folder)
 
 
-def last_checksum(backup_folder: Path) -> datetime.datetime | None:
+def last_checksum(backup_folder: fs.Absolute_Path) -> datetime.datetime | None:
     """Find the date of the last backup with a checksum file."""
     backup_found = None
     for backup in util.all_backups(backup_folder):
@@ -140,13 +142,15 @@ def last_checksum(backup_folder: Path) -> datetime.datetime | None:
     return backup_found
 
 
-def verify_backup_checksum(backup_folder: Path, result_directory: Path) -> Path | None:
+def verify_backup_checksum(
+        backup_folder: fs.Absolute_Path,
+        result_directory: fs.Absolute_Path) -> fs.Absolute_Path | None:
     """Verify the checksums of backed up files and write changed files to a new file."""
     checksum_path = fs.find_unique_path(backup_folder/checksum_file_name)
     if not checksum_path:
         raise FileNotFoundError(f"Could not find checksum file in {backup_folder}")
 
-    with (checksum_path.open(encoding="utf8") as checksum_file,
+    with (checksum_path.open_text(encoding="utf8") as checksum_file,
         tempfile.TemporaryFile("w+", encoding="utf8") as temp):
 
         temp.write(f"Verifying checksums of {backup_folder}\n")
@@ -172,7 +176,7 @@ def verify_backup_checksum(backup_folder: Path, result_directory: Path) -> Path 
             checksum_verify_path = fs.unique_path_name(result_directory/verify_checksum_file_name)
             checksum_verify_path.parent.mkdir(parents=True, exist_ok=True)
             logger.warning("Writing changed files to %s ...", checksum_verify_path)
-            with checksum_verify_path.open("w", encoding="utf8") as checksum_verify_file:
+            with checksum_verify_path.open_text("w", encoding="utf8") as checksum_verify_file:
                 temp.seek(0)
                 shutil.copyfileobj(temp, checksum_verify_file)
         else:
@@ -183,9 +187,9 @@ def verify_backup_checksum(backup_folder: Path, result_directory: Path) -> Path 
 
 def start_verify_checksum(args: argparse.Namespace) -> None:
     """Parse command line for verifying backup checksums."""
-    result_folder = fs.absolute_path(args.verify_checksum)
+    result_folder = fs.Absolute_Path(args.verify_checksum)
     print_run_title(args, "Verify backup checksum")
-    backup_folder = fs.absolute_path(args.backup_folder)
+    backup_folder = fs.Absolute_Path(args.backup_folder)
     checksummed_backups = [
         backup for backup in util.all_backups(backup_folder)
         if fs.find_unique_path(backup/checksum_file_name)]
