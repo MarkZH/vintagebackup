@@ -13,7 +13,7 @@ backup_date_format = "%Y-%m-%d %H-%M-%S"
 
 def backup_datetime(backup: Absolute_Path) -> datetime.datetime:
     """Get the timestamp of a backup from the backup folder name."""
-    return datetime.datetime.strptime(backup.path.name, backup_date_format)
+    return datetime.datetime.strptime(backup.name, backup_date_format)
 
 
 def all_backups(backup_location: Absolute_Path) -> list[Absolute_Path]:
