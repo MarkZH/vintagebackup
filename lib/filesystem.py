@@ -1,5 +1,6 @@
 """Functions for working with the storage filesystem."""
 
+from __future__ import annotations
 from io import BytesIO
 import logging
 import os
@@ -59,11 +60,11 @@ class Absolute_Path:
         return self.path.exists(follow_symlinks=False)
 
     @property
-    def parent(self) -> "Absolute_Path":
+    def parent(self) -> Absolute_Path:
         """Return parent of current Absolute_Path."""
         return Absolute_Path(self.path.parent)
 
-    def __truediv__(self, new_part: "str | Path | Absolute_Path") -> "Absolute_Path":
+    def __truediv__(self, new_part: str | Path | Absolute_Path) -> Absolute_Path:
         """Concatenate paths."""
         return Absolute_Path(
             self.path/new_part.path if isinstance(new_part, Absolute_Path) else self.path/new_part)
@@ -76,11 +77,11 @@ class Absolute_Path:
         """Delete the empty directory at the current path."""
         self.path.rmdir()
 
-    def iterdir(self) -> Generator["Absolute_Path"]:
+    def iterdir(self) -> Generator[Absolute_Path]:
         """Iterate through contents of current directory path."""
         yield from map(Absolute_Path, self.path.iterdir())
 
-    def walk(self) -> Generator[tuple["Absolute_Path", list[str], list[str]]]:
+    def walk(self) -> Generator[tuple[Absolute_Path, list[str], list[str]]]:
         """Walk through directory tree as in Path.walk()."""
         yield from (
             (Absolute_Path(directory), dirs, files)
@@ -109,7 +110,7 @@ class Absolute_Path:
         """Return suffix (i.e., file name extension) or current path."""
         return self.path.suffix
 
-    def with_suffix(self, new_suffix: str) -> "Absolute_Path":
+    def with_suffix(self, new_suffix: str) -> Absolute_Path:
         """Create a new absolute path with the given suffix."""
         return Absolute_Path(self.path.with_suffix(new_suffix))
 
@@ -131,7 +132,7 @@ class Absolute_Path:
         data_file = self.path.open("rb")
         return cast(BytesIO, data_file)
 
-    def rename(self, other: "Absolute_Path") -> None:
+    def rename(self, other: Absolute_Path) -> None:
         """Rename the current path to the other path."""
         self.path.rename(other.path)
 
@@ -163,15 +164,15 @@ class Absolute_Path:
         """Whether the current path is a symlink."""
         return self.path.is_symlink()
 
-    def symlink_to(self, target: "Absolute_Path | Path | str") -> None:
+    def symlink_to(self, target: Absolute_Path | Path | str) -> None:
         """Create symlink to target at current path."""
         self.path.symlink_to(target.path if isinstance(target, Absolute_Path) else target)
 
-    def hardlink_to(self, target: "Absolute_Path | Path | str") -> None:
+    def hardlink_to(self, target: Absolute_Path | Path | str) -> None:
         """Create hardlink to target path."""
         self.path.hardlink_to(target.path if isinstance(target, Absolute_Path) else target)
 
-    def full_match(self, pattern: "Path | Absolute_Path") -> bool:
+    def full_match(self, pattern: Path | Absolute_Path) -> bool:
         """Whether the current path matches the glob-style pattern."""
         return self.path.full_match(pattern if isinstance(pattern, Path) else pattern.path)
 
@@ -187,20 +188,20 @@ class Absolute_Path:
         """Change permissions of current path as in Path.chmod()."""
         self.path.chmod(mode, follow_symlinks=False)
 
-    def relative_to(self, other_path: "Path | Absolute_Path") -> Path:
+    def relative_to(self, other_path: Path | Absolute_Path) -> Path:
         """Returns a new path relative to the current path."""
         other = other_path.path if isinstance(other_path, Absolute_Path) else other_path
         return self.path.relative_to(other)
 
-    def is_relative_to(self, other: "Path | Absolute_Path") -> bool:
+    def is_relative_to(self, other: Path | Absolute_Path) -> bool:
         """Whether current path is contained without other path."""
         return self.path.is_relative_to(other.path if isinstance(other, Absolute_Path) else other)
 
-    def samefile(self, other: "str | Path | Absolute_Path") -> bool:
+    def samefile(self, other: str | Path | Absolute_Path) -> bool:
         """Whether the current path references the same file as the argument."""
         return self.path.samefile(other.path if isinstance(other, Absolute_Path) else other)
 
-    def __lt__(self, other: "Absolute_Path") -> bool:
+    def __lt__(self, other: Absolute_Path) -> bool:
         """Whether this path sorts before another path."""
         return self.path.__lt__(other.path)
 
