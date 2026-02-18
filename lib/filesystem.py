@@ -215,7 +215,7 @@ class Absolute_Path:
 
     def __str__(self) -> str:
         """Create string representation."""
-        return self.path.__str__()
+        return str(self.path)
 
     def __repr__(self) -> str:
         """Return standard representation."""
