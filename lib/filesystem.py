@@ -180,7 +180,7 @@ class Absolute_Path:
         """
         Return stat information as from Path.stat().
 
-        Symlink are not followed.
+        Symlinks are not followed.
         """
         return self.path.stat(follow_symlinks=False)
 
