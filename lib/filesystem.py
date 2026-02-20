@@ -273,7 +273,7 @@ def find_unique_path(path: Absolute_Path) -> Absolute_Path | None:
 
 
 def path_or_none(arg: str | None) -> Absolute_Path | None:
-    """Create a Path instance if the input string is valid."""
+    """Create an Absolute_Path instance if the input string is valid."""
     return Absolute_Path(arg) if arg else None
 
 
