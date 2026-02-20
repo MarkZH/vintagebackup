@@ -57,11 +57,11 @@ class Absolute_Path:
 
     def __init__(self, path: str | Path | Absolute_Path) -> None:
         """Initialize an absolute path."""
-        self._path = Path(os.path.abspath(get_regular_path(path)))  # noqa: PTH100
+        self.__path = Path(os.path.abspath(get_regular_path(path)))  # noqa: PTH100
 
     def path(self) -> Path:
         """Return a builtin Path for use with other libraries (shutil and the like)."""
-        return self._path
+        return self.__path
 
     def exists(self) -> bool:
         """
