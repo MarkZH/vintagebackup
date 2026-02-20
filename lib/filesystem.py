@@ -277,7 +277,7 @@ def path_or_none(arg: str | None) -> Absolute_Path | None:
     return Absolute_Path(arg) if arg else None
 
 
-def delete_directory_tree(directory: Path | Absolute_Path, *, ignore_errors: bool = False) -> None:
+def delete_directory_tree(directory: Absolute_Path, *, ignore_errors: bool = False) -> None:
     """
     Delete a single directory.
 
@@ -300,7 +300,7 @@ def delete_directory_tree(directory: Path | Absolute_Path, *, ignore_errors: boo
             else:
                 raise
 
-    shutil.rmtree(get_regular_path(directory), onexc=remove_readonly)
+    shutil.rmtree(directory.path, onexc=remove_readonly)
 
 
 def delete_file(file_path: Absolute_Path, *, ignore_errors: bool = False) -> None:
