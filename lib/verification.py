@@ -63,8 +63,8 @@ def verify_last_backup(
             relative_directory = directory.relative_to(user_folder)
             backup_directory = last_backup_folder/relative_directory
             matches, mismatches, errors = filecmp.cmpfiles(
-                directory.path,
-                backup_directory.path,
+                directory.path(),
+                backup_directory.path(),
                 file_names,
                 shallow=False)
 

@@ -47,7 +47,7 @@ def byte_units(size: float) -> str:
 def get_regular_path(path: Absolute_Path | Path | str) -> Path:
     """Return an optional Path instance from multiple sources."""
     if isinstance(path, Absolute_Path):
-        return path.path
+        return path.path()
 
     return Path(path)
 
@@ -57,7 +57,11 @@ class Absolute_Path:
 
     def __init__(self, path: str | Path | Absolute_Path) -> None:
         """Initialize an absolute path."""
-        self.path = Path(os.path.abspath(get_regular_path(path)))  # noqa: PTH100
+        self._path = Path(os.path.abspath(get_regular_path(path)))  # noqa: PTH100
+
+    def path(self) -> Path:
+        """Return a builtin Path for use with other libraries (shutil and the like)."""
+        return self._path
 
     def exists(self) -> bool:
         """
@@ -65,83 +69,83 @@ class Absolute_Path:
 
         Symlinks are not followed.
         """
-        return self.path.exists(follow_symlinks=False)
+        return self.path().exists(follow_symlinks=False)
 
     @property
     def parent(self) -> Absolute_Path:
         """Return parent of current Absolute_Path."""
-        return Absolute_Path(self.path.parent)
+        return Absolute_Path(self.path().parent)
 
     def __truediv__(self, new_part: str | Path | Absolute_Path) -> Absolute_Path:
         """Concatenate paths."""
-        return Absolute_Path(self.path/get_regular_path(new_part))
+        return Absolute_Path(self.path()/get_regular_path(new_part))
 
     def mkdir(self, *, mode: int = 511, parents: bool = False, exist_ok: bool = False) -> None:
         """Create the current path as a directory."""
-        self.path.mkdir(mode, parents, exist_ok)
+        self.path().mkdir(mode, parents, exist_ok)
 
     def rmdir(self) -> None:
         """Delete the empty directory at the current path."""
-        self.path.rmdir()
+        self.path().rmdir()
 
     def iterdir(self) -> Generator[Absolute_Path]:
         """Iterate through contents of current directory path."""
-        yield from map(Absolute_Path, self.path.iterdir())
+        yield from map(Absolute_Path, self.path().iterdir())
 
     def walk(self) -> Generator[tuple[Absolute_Path, list[str], list[str]]]:
         """Walk through directory tree as in Path.walk()."""
         yield from (
             (Absolute_Path(directory), dirs, files)
-            for directory, dirs, files in self.path.walk())
+            for directory, dirs, files in self.path().walk())
 
     def touch(self, *, exist_ok: bool = True) -> None:
         """Create a file at the current path and/or update its mtime."""
-        self.path.touch(exist_ok=exist_ok)
+        self.path().touch(exist_ok=exist_ok)
 
     def unlink(self) -> None:
         """Delete file named by path."""
-        self.path.unlink()
+        self.path().unlink()
 
     @property
     def name(self) -> str:
         """Return the last part of the path."""
-        return str(self.path.name)
+        return str(self.path().name)
 
     @property
     def stem(self) -> str:
         """Returns name of current path without suffix."""
-        return self.path.stem
+        return self.path().stem
 
     @property
     def suffix(self) -> str:
         """Return suffix (i.e., file name extension) or current path."""
-        return self.path.suffix
+        return self.path().suffix
 
     def with_suffix(self, new_suffix: str) -> Absolute_Path:
         """Create a new absolute path with the given suffix."""
-        return Absolute_Path(self.path.with_suffix(new_suffix))
+        return Absolute_Path(self.path().with_suffix(new_suffix))
 
     def read_text(self, encoding: str) -> str:
         """Read text information from file path."""
-        return self.path.read_text(encoding=encoding)
+        return self.path().read_text(encoding=encoding)
 
     def write_text(self, text: str, encoding: str) -> None:
         """Write text inforamation to file path."""
-        self.path.write_text(data=text, encoding=encoding)
+        self.path().write_text(data=text, encoding=encoding)
 
     def open_text(self, mode: str = "r", *, encoding: str | None) -> TextIO:
         """Open file for reading and/or writing."""
-        text_file = self.path.open(mode=mode, encoding=encoding)
+        text_file = self.path().open(mode=mode, encoding=encoding)
         return cast(TextIO, text_file)
 
     def open_binary(self) -> BytesIO:
         """Open file in binary read mode."""
-        data_file = self.path.open("rb")
+        data_file = self.path().open("rb")
         return cast(BytesIO, data_file)
 
     def rename(self, other: Absolute_Path) -> None:
         """Rename the current path to the other path."""
-        self.path.rename(other.path)
+        self.path().rename(other.path())
 
     def is_real_file(self) -> bool:
         """
@@ -149,39 +153,39 @@ class Absolute_Path:
 
         Does not follow symlinks.
         """
-        return self.path.is_file(follow_symlinks=False)
+        return self.path().is_file(follow_symlinks=False)
 
     def is_file(self) -> bool:
         """Whether the current path is a file or a symlink to a file."""
-        return self.path.is_file()
+        return self.path().is_file()
 
     def is_real_directory(self) -> bool:
         """Whether the current path is a directory and not a symlink."""
-        return self.path.is_dir(follow_symlinks=False)
+        return self.path().is_dir(follow_symlinks=False)
 
     def is_dir(self) -> bool:
         """Whether the current path is a directory or a symlink to a directory."""
-        return self.path.is_dir()
+        return self.path().is_dir()
 
     def is_junction(self) -> bool:
         """Whether the current path is a Windows junction point."""
-        return self.path.is_junction()
+        return self.path().is_junction()
 
     def is_symlink(self) -> bool:
         """Whether the current path is a symlink."""
-        return self.path.is_symlink()
+        return self.path().is_symlink()
 
     def symlink_to(self, target: Absolute_Path | Path | str) -> None:
         """Create symlink to target at current path."""
-        self.path.symlink_to(get_regular_path(target))
+        self.path().symlink_to(get_regular_path(target))
 
     def hardlink_to(self, target: Absolute_Path | Path | str) -> None:
         """Create hardlink to target path."""
-        self.path.hardlink_to(get_regular_path(target))
+        self.path().hardlink_to(get_regular_path(target))
 
     def full_match(self, pattern: Path | Absolute_Path) -> bool:
         """Whether the current path matches the glob-style pattern."""
-        return self.path.full_match(get_regular_path(pattern))
+        return self.path().full_match(get_regular_path(pattern))
 
     def stat(self) -> os.stat_result:
         """
@@ -189,43 +193,46 @@ class Absolute_Path:
 
         Symlinks are not followed.
         """
-        return self.path.stat(follow_symlinks=False)
+        return self.path().stat(follow_symlinks=False)
 
     def chmod(self, mode: int) -> None:
         """Change permissions of current path as in Path.chmod()."""
-        self.path.chmod(mode, follow_symlinks=False)
+        self.path().chmod(mode, follow_symlinks=False)
 
     def relative_to(self, other_path: Path | Absolute_Path) -> Path:
         """Returns a new path relative to the current path."""
-        return self.path.relative_to(get_regular_path(other_path))
+        return self.path().relative_to(get_regular_path(other_path))
 
     def is_relative_to(self, other: Path | Absolute_Path) -> bool:
         """Whether current path is contained without other path."""
-        return self.path.is_relative_to(get_regular_path(other))
+        return self.path().is_relative_to(get_regular_path(other))
 
     def samefile(self, other: str | Path | Absolute_Path) -> bool:
         """Whether the current path references the same file as the argument."""
-        return self.path.samefile(get_regular_path(other))
+        return self.path().samefile(get_regular_path(other))
 
     def __lt__(self, other: Absolute_Path) -> bool:
         """Whether this path sorts before another path."""
-        return self.path.__lt__(other.path)
+        return self.path().__lt__(other.path())
 
     def __eq__(self, value: object) -> bool:
         """Check paths for equality."""
-        return self.path == value.path if isinstance(value, Absolute_Path) else self.path == value
+        return (
+            self.path() == value.path()
+            if isinstance(value, Absolute_Path)
+            else self.path() == value)
 
     def __hash__(self) -> int:
         """Get hash value for current path."""
-        return self.path.__hash__()
+        return self.path().__hash__()
 
     def __str__(self) -> str:
         """Create string representation."""
-        return str(self.path)
+        return str(self.path())
 
     def __repr__(self) -> str:
         """Return standard representation."""
-        return f"{type(self).__name__}({self.path})"
+        return f"{type(self).__name__}({self.path()})"
 
 
 default_log_file_name = Absolute_Path(Path.home())/"vintagebackup.log"
@@ -300,7 +307,7 @@ def delete_directory_tree(directory: Absolute_Path, *, ignore_errors: bool = Fal
             else:
                 raise
 
-    shutil.rmtree(directory.path, onexc=remove_readonly)
+    shutil.rmtree(directory.path(), onexc=remove_readonly)
 
 
 def delete_file(file_path: Absolute_Path, *, ignore_errors: bool = False) -> None:

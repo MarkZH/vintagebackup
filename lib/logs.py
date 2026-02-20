@@ -35,7 +35,7 @@ def setup_log_file(
 
     log_format = "%(asctime)s %(levelname)s    %(message)s"
     if log_file_path:
-        log_file = logging.FileHandler(log_file_path.path, encoding="utf8")
+        log_file = logging.FileHandler(log_file_path.path(), encoding="utf8")
         log_file_format = logging.Formatter(fmt=log_format)
         log_file.setFormatter(log_file_format)
         logger.addHandler(log_file)

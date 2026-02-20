@@ -65,7 +65,7 @@ def restore_backup(
                 current_backup_path,
                 current_user_folder)
             try:
-                shutil.copy2(file_source.path, file_destination.path, follow_symlinks=False)
+                shutil.copy2(file_source.path(), file_destination.path(), follow_symlinks=False)
             except Exception as error:
                 logger.warning(
                     "Could not restore %s from %s: %s",

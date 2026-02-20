@@ -40,7 +40,7 @@ def delete_oldest_backups_for_space(
     if not space_requirement:
         return
 
-    total_storage = shutil.disk_usage(backup_location.path).total
+    total_storage = shutil.disk_usage(backup_location.path()).total
     free_storage_required = fs.parse_storage_space(space_requirement)
 
     if free_storage_required > total_storage:
@@ -48,14 +48,14 @@ def delete_oldest_backups_for_space(
             f"Cannot free more storage ({fs.byte_units(free_storage_required)})"
             f" than exists at {backup_location} ({fs.byte_units(total_storage)})")
 
-    current_free_space = shutil.disk_usage(backup_location.path).free
+    current_free_space = shutil.disk_usage(backup_location.path()).free
     first_deletion_message = (
         "Deleting old backups to free up "
         f"{fs.byte_units(free_storage_required)}"
         f" ({fs.byte_units(current_free_space)} currently free).")
 
     def stop(backup: fs.Absolute_Path) -> bool:
-        return shutil.disk_usage(backup.path).free > free_storage_required
+        return shutil.disk_usage(backup.path()).free > free_storage_required
 
     delete_backups(
         backup_location,
@@ -116,7 +116,9 @@ def delete_single_backup(
     except OSError:
         pass
 
-    logger.info("Free space: %s", fs.byte_units(shutil.disk_usage(backup.parent.parent.path).free))
+    logger.info(
+        "Free space: %s",
+        fs.byte_units(shutil.disk_usage(backup.parent.parent.path()).free))
 
 
 def delete_backups(

@@ -162,9 +162,9 @@ def recover_path_to_original_location(
     recovered_path = unique_path_name(destination)
     logger.info("Copying %s to %s", backed_up_source, recovered_path)
     if backed_up_source.is_real_directory():
-        shutil.copytree(backed_up_source.path, recovered_path.path, symlinks=True)
+        shutil.copytree(backed_up_source.path(), recovered_path.path(), symlinks=True)
     else:
-        shutil.copy2(backed_up_source.path, recovered_path.path, follow_symlinks=False)
+        shutil.copy2(backed_up_source.path(), recovered_path.path(), follow_symlinks=False)
 
 
 def binary_search_recovery(

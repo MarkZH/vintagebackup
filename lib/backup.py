@@ -85,7 +85,11 @@ def deep_comparison(
         backup_directory: fs.Absolute_Path,
         file_names: list[str]) -> tuple[list[str], list[str], list[str]]:
     """Inspect file contents to determine if files match the most recent backup."""
-    return filecmp.cmpfiles(user_directory.path, backup_directory.path, file_names, shallow=False)
+    return filecmp.cmpfiles(
+        user_directory.path(),
+        backup_directory.path(),
+        file_names,
+        shallow=False)
 
 
 def shallow_comparison(
@@ -95,7 +99,7 @@ def shallow_comparison(
     """Decide which files match the previous backup based on quick stat information."""
 
     def scan_directory(directory: fs.Absolute_Path) -> dict[str, os.stat_result]:
-        with os.scandir(directory.path) as scan:
+        with os.scandir(directory.path()) as scan:
             return {entry.name: entry.stat() for entry in scan}
 
     try:
@@ -231,7 +235,7 @@ def backup_directory(
         new_backup_file = new_backup_directory/file_name
         user_file = current_user_path/file_name
         try:
-            shutil.copy2(user_file.path, new_backup_file.path, follow_symlinks=False)
+            shutil.copy2(user_file.path(), new_backup_file.path(), follow_symlinks=False)
             action_counter["copied files"] += 1
             size_of_copied_files += user_file.stat().st_size
             logger.debug("Copied %s to %s", user_file, new_backup_file)
@@ -381,7 +385,7 @@ def check_paths_for_validity(
 
 def print_backup_storage_stats(backup_location: fs.Absolute_Path) -> None:
     """Log information about the storage space of the backup medium."""
-    backup_storage = shutil.disk_usage(backup_location.path)
+    backup_storage = shutil.disk_usage(backup_location.path())
     percent_used = round(100*backup_storage.used/backup_storage.total)
     percent_free = round(100*backup_storage.free/backup_storage.total)
     logger.info("")

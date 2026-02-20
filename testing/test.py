@@ -200,8 +200,8 @@ def all_files_have_same_content(
     for directory_1, _, file_names in standard_directory.walk():
         directory_2 = test_directory/directory_1.relative_to(standard_directory)
         _, mismatches, errors = filecmp.cmpfiles(
-            directory_1.path,
-            directory_2.path,
+            directory_1.path(),
+            directory_2.path(),
             file_names,
             shallow=False)
         if mismatches or errors:
@@ -934,7 +934,7 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
 
         with preview_path.open_text(encoding="utf8") as preview:
             previewed_paths = read_paths_file(preview)
-        previewed_paths = {path.relative_to(self.user_path.path) for path in previewed_paths}
+        previewed_paths = {path.relative_to(self.user_path.path()) for path in previewed_paths}
 
         main_assert_no_error_log([
             "--user-folder", str(self.user_path),
@@ -950,7 +950,7 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
 
         with backup_list_path.open_text(encoding="utf8") as backup_list:
             backed_up_paths = read_paths_file(backup_list)
-        backed_up_paths = {path.relative_to(last_backup.path) for path in backed_up_paths}
+        backed_up_paths = {path.relative_to(last_backup.path()) for path in backed_up_paths}
 
         self.assertEqual(previewed_paths, backed_up_paths)
 
@@ -992,7 +992,7 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
             with self.assertNoLogs(level=logging.ERROR):
                 exit_code = run_recovery(method, self.backup_path, file, choices=0, search=False)
             self.assertEqual(exit_code, 0, method)
-            self.assertTrue(filecmp.cmp(file.path, moved_file_path.path, shallow=False), method)
+            self.assertTrue(filecmp.cmp(file.path(), moved_file_path.path(), shallow=False), method)
 
             self.reset_backup_folder()
             moved_file_path.unlink()
@@ -1004,7 +1004,7 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         file_path = self.user_path/"sub_directory_0"/"sub_sub_directory_0"/"file_0.txt"
         recovery.recover_path(file_path, self.backup_path, search=False, choice=0)
         recovered_file_path = file_path.parent/f"{file_path.stem}.1{file_path.suffix}"
-        self.assertTrue(filecmp.cmp(file_path.path, recovered_file_path.path, shallow=False))
+        self.assertTrue(filecmp.cmp(file_path.path(), recovered_file_path.path(), shallow=False))
 
     def test_recovered_folder_is_renamed_to_not_clobber_original_and_has_all_data(self) -> None:
         """Test that recovering a folder retrieves all data and doesn't overwrite user data."""
@@ -1031,7 +1031,7 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(chosen_file, folder_path/"file_1.txt")
         recovery.recover_path(chosen_file, self.backup_path, search=False, choice=0)
         recovered_file_path = chosen_file.parent/f"{chosen_file.stem}.1{chosen_file.suffix}"
-        self.assertTrue(filecmp.cmp(chosen_file.path, recovered_file_path.path, shallow=False))
+        self.assertTrue(filecmp.cmp(chosen_file.path(), recovered_file_path.path(), shallow=False))
 
     def test_missing_only_has_no_results_if_no_files_are_missing(self) -> None:
         """Test that if no user files are missing, --missing-only does not show a menu."""
@@ -1435,7 +1435,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             create_large_files(self.backup_path, file_size)
             backups_after_deletion = 10
             size_of_deleted_backups = (backups_created - backups_after_deletion)*file_size
-            after_backup_space = shutil.disk_usage(self.backup_path.path).free
+            after_backup_space = shutil.disk_usage(self.backup_path.path()).free
             goal_space = after_backup_space + size_of_deleted_backups - file_size/2
             goal_space_str = f"{goal_space}B"
             if method == Invocation.function:
@@ -1468,7 +1468,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         create_large_files(self.backup_path, file_size)
         backups_after_deletion = 10
         size_of_deleted_backups = (backups_created - backups_after_deletion)*file_size
-        after_backup_space = shutil.disk_usage(self.backup_path.path).free
+        after_backup_space = shutil.disk_usage(self.backup_path.path()).free
         goal_space = after_backup_space + size_of_deleted_backups - file_size/2
         goal_space_str = f"{goal_space}B"
         maximum_deletions = 5
@@ -1583,13 +1583,13 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that deleting all backups with --free-up actually leaves the last one."""
         create_old_monthly_backups(self.backup_path, 30)
         last_backup = moving.last_n_backups(1, self.backup_path)[0]
-        total_space = shutil.disk_usage(self.backup_path.path).total
+        total_space = shutil.disk_usage(self.backup_path.path()).total
         deletion.delete_oldest_backups_for_space(self.backup_path, f"{total_space}B", None)
         self.assertEqual(util.all_backups(self.backup_path), [last_backup])
 
     def test_attempt_to_free_more_space_than_capacity_of_backup_location_is_an_error(self) -> None:
         """Test that error is thrown when trying to free too much space."""
-        max_space = shutil.disk_usage(self.backup_path.path).total
+        max_space = shutil.disk_usage(self.backup_path.path()).total
         too_much_space = 2*max_space
         with self.assertRaises(CommandLineError):
             deletion.delete_oldest_backups_for_space(self.backup_path, f"{too_much_space}B", None)
