@@ -95,7 +95,16 @@ def create_checksum_for_last_backup(backup_folder: Path) -> None:
 
 
 def create_checksum_for_folder(folder: Path) -> Path:
-    """Create a file containing checksums of all files in the given folder."""
+    """
+    Create a file containing checksums of all files in the given folder.
+
+    Arguments:
+        folder: Path to a folder.
+
+    Returns:
+        checksum_file: A path to a file with a list of all files in the folder and subfolders and
+            their corresponding checksum results.
+    """
     checksum_path = fs.unique_path_name(folder/checksum_file_name)
     logger.info("")
     logger.info("Creating checksum file: %s ...", checksum_path)
@@ -118,7 +127,11 @@ def get_file_checksum(path: Path) -> str:
     """
     Read a file and calculate its checksum.
 
-    Returns a hexadecimal string.
+    Arguments:
+        path: Path to a file.
+
+    Returns:
+        hex_string: A hexadecimal string calculated from the hash of the file data.
     """
     with path.open("rb") as file:
         return hashlib.file_digest(file, hash_function).hexdigest()
@@ -132,7 +145,15 @@ def start_checksum(args: argparse.Namespace) -> None:
 
 
 def last_checksum(backup_folder: Path) -> datetime.datetime | None:
-    """Find the date of the last backup with a checksum file."""
+    """
+    Find the date of the last backup with a checksum file.
+
+    Arguments:
+        backup_folder: Base folder of all dated backups.
+
+    Returns:
+        datetime: The timestamp of the last backup with a checksum file, if any.
+    """
     backup_found = None
     for backup in util.all_backups(backup_folder):
         if fs.find_unique_path(backup/checksum_file_name):
@@ -141,7 +162,16 @@ def last_checksum(backup_folder: Path) -> datetime.datetime | None:
 
 
 def verify_backup_checksum(backup_folder: Path, result_directory: Path) -> Path | None:
-    """Verify the checksums of backed up files and write changed files to a new file."""
+    """
+    Verify the checksums of backed up files and write changed files to a new file.
+
+    Arguments:
+        backup_folder: Base folder of all dated backups.
+        result_directory: Folder where the results of the checksum verification should be written.
+
+    Returns:
+        result_file: Path to file containing checksum verification results, if any.
+    """
     checksum_path = fs.find_unique_path(backup_folder/checksum_file_name)
     if not checksum_path:
         raise FileNotFoundError(f"Could not find checksum file in {backup_folder}")
