@@ -80,9 +80,9 @@ class Absolute_Path:
         """Concatenate paths."""
         return Absolute_Path(self.path()/self.__get_regular_path(new_part))
 
-    def mkdir(self, *, mode: int = 511, parents: bool = False, exist_ok: bool = False) -> None:
+    def mkdir(self, *, parents: bool = False, exist_ok: bool = False) -> None:
         """Create the current path as a directory."""
-        self.path().mkdir(mode, parents, exist_ok)
+        self.path().mkdir(parents=parents, exist_ok=exist_ok)
 
     def rmdir(self) -> None:
         """Delete the empty directory at the current path."""
@@ -133,7 +133,7 @@ class Absolute_Path:
         """Write text inforamation to file path."""
         self.path().write_text(data=text, encoding=encoding)
 
-    def open_text(self, mode: str = "r", *, encoding: str | None) -> TextIO:
+    def open_text(self, mode: str = "r", *, encoding: str) -> TextIO:
         """Open file for reading and/or writing."""
         text_file = self.path().open(mode=mode, encoding=encoding)
         return cast(TextIO, text_file)
