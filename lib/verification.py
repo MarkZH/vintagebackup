@@ -59,13 +59,16 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
 
         for directory, file_names in Backup_Set(user_folder, filter_file):
             relative_directory = directory.relative_to(user_folder)
+            logger.debug(relative_directory)
             backup_directory = last_backup_folder/relative_directory
+            logger.debug("Comparing files ...")
             matches, mismatches, errors = filecmp.cmpfiles(
                 directory,
                 backup_directory,
                 file_names,
                 shallow=False)
 
+            logger.debug("Writing results ...")
             fs.write_directory(matching_file, directory, matches)
             fs.write_directory(mismatching_file, directory, mismatches)
             fs.write_directory(error_file, directory, errors)
