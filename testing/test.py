@@ -1951,7 +1951,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
                         matches = cast(re.Match[str], re.match(first_line_format, first_line))
                         user_folder, backup_folder = matches.groups()
                         self.assertTrue(self.user_path.samefile(user_folder))
-                        self.assertTrue(self.backup_path.samefile(backup_folder))
+                        self.assertTrue(last_backup.samefile(backup_folder))
                         files_from_verify = read_paths_file(verify_file)
                         self.assertEqual(files_from_verify, path_set)
 

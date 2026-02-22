@@ -55,7 +55,7 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
         error_file_name.open("w", encoding="utf8") as error_file):
 
         for file in (matching_file, mismatching_file, error_file):
-            file.write(f"Comparison: {user_folder} <---> {backup_folder}\n")
+            file.write(f"Comparison: {user_folder} <---> {last_backup_folder}\n")
 
         for directory, file_names in Backup_Set(user_folder, filter_file):
             relative_directory = directory.relative_to(user_folder)
