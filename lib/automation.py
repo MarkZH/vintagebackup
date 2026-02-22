@@ -3,7 +3,6 @@
 import logging
 import argparse
 import sys
-from pathlib import Path
 
 from lib.configuration import generate_config
 from lib.filesystem import absolute_path, unique_path_name
@@ -18,7 +17,7 @@ def generate_windows_scripts(args: argparse.Namespace) -> None:
     config_path = generate_config(args)
 
     batch_file = unique_path_name(destination/"batch_script.bat")
-    script_location = Path(__file__).parent/"vintagebackup.py"
+    script_location = absolute_path(__file__).parent/"vintagebackup.py"
     python_version = f"{sys.version_info[0]}.{sys.version_info[1]}"
     batch_file.write_text(
         f'py -{python_version} "{script_location}" --config "{config_path}"\n',

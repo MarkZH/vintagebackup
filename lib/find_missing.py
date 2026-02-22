@@ -9,7 +9,7 @@ from lib.backup_set import Backup_Set
 from lib.exceptions import CommandLineError
 from lib.backup_utilities import all_backups
 from lib.console import print_run_title
-from lib.filesystem import unique_path_name, path_or_none
+from lib.filesystem import unique_path_name, path_or_none, absolute_path
 
 logger = logging.getLogger()
 
@@ -72,4 +72,7 @@ def find_missing_files(
 def start_finding_missing_files(args: argparse.Namespace) -> None:
     """Start finding missing files after parsing command line."""
     print_run_title(args, "Finding missing files")
-    find_missing_files(Path(args.backup_folder), path_or_none(args.filter), Path(args.find_missing))
+    find_missing_files(
+        absolute_path(args.backup_folder),
+        path_or_none(args.filter),
+        absolute_path(args.find_missing))

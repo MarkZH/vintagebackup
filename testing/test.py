@@ -2611,7 +2611,7 @@ compare    contents :
 checkSUM       :
 Checksum Every: 1m
 """, encoding="utf8")
-        command_line = config.read_configuation_file(Path(self.config_path))
+        command_line = config.read_configuation_file(fs.absolute_path(self.config_path))
         expected_command_line = [
             "--user-folder", user_folder,
             "--backup-folder", backup_folder,

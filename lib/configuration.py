@@ -28,7 +28,7 @@ def generate_config(args: argparse.Namespace) -> Path:
         arguments.append((option, value))
 
     arguments = [(arg, val) for arg, val in arguments if arg not in no_arguments]
-    config_path = unique_path_name(Path(args.generate_config))
+    config_path = unique_path_name(absolute_path(args.generate_config))
     with config_path.open("w", encoding="utf8") as config_file:
         for option, value in arguments:
             parameter = option.replace("_", " ").capitalize()
