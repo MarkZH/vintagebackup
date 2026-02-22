@@ -196,13 +196,14 @@ def get_existing_path(path: str | None, folder_type: str) -> Path:
     if not path:
         raise CommandLineError(f"{folder_type.capitalize()} not specified.")
 
-    try:
-        return absolute_path(path, strict=True)
-    except FileNotFoundError:
+    abs_path = absolute_path(path)
+    if not abs_path.exists(follow_symlinks=False):
         raise CommandLineError(f"Could not find {folder_type.lower()}: {path}") from None
 
+    return abs_path
 
-def absolute_path(path: Path | str, *, strict: bool = False) -> Path:
+
+def absolute_path(path: Path | str) -> Path:
     """
     Return an absolute version of the given path.
 
@@ -210,14 +211,8 @@ def absolute_path(path: Path | str, *, strict: bool = False) -> Path:
 
     Arguments:
         path: The path to be made absolute.
-        strict: If True, raise a FileNotFoundError if the path does not exist. Symlinks are
-            not followed, so an existing symlink to a non-existent file or folder does not raise an
-            error.
     """
-    abs_path = Path(os.path.abspath(path))  # noqa: PTH100
-    if strict and not abs_path.exists(follow_symlinks=False):
-        raise FileNotFoundError(f"The path {abs_path}, resolved from {path} does not exist.")
-    return abs_path
+    return Path(os.path.abspath(path))  # noqa: PTH100
 
 
 def path_listing(listing: Iterable[tuple[Path, list[str]]], output: TextIO) -> None:
