@@ -2679,13 +2679,19 @@ checksum:
     def test_recursive_config_files_are_not_allowed(self) -> None:
         """Test that putting a config parameter in a configuration file raises an exception."""
         self.config_path.write_text("config: config_file_2.txt", encoding="utf8")
-        with self.assertRaises(CommandLineError):
+        with self.assertRaises(CommandLineError) as error:
             config.read_configuation_file(Path(self.config_path))
+        self.assertEqual(
+            error.exception.args,
+            ("The parameter `config` is not allowed within a configuration file.",))
 
     def test_missing_config_file_error(self) -> None:
         """Test that a missing configuration file raises a CommandLineError."""
-        with self.assertRaises(CommandLineError):
+        with self.assertRaises(CommandLineError) as error:
             config.read_configuation_file(self.config_path)
+        self.assertEqual(
+            error.exception.args,
+            (f"Configuation file does not exist: {self.config_path}",))
 
 
 class RestorationTests(TestCaseWithTemporaryFilesAndFolders):

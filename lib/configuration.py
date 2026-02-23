@@ -59,7 +59,7 @@ def read_configuation_file(config_file: Path) -> list[str]:
                 parameter = "-".join(parameter_raw.lower().split())
                 if parameter == "config":
                     raise CommandLineError(
-                        "The parameter `config` within a configuration file has no effect.")
+                        "The parameter `config` is not allowed within a configuration file.")
                 arguments.append(f"--{parameter}")
 
                 value = remove_quotes(value_raw)
