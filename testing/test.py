@@ -1636,6 +1636,18 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         first_retained_index = days_in_month(
             first_backup_timestamp.year,
             first_backup_timestamp.month)
+
+        while True:
+            first_retained_backup = backups[first_retained_index]
+            first_retained_timestamp = util.backup_datetime(first_retained_backup)
+            if first_retained_timestamp.month <= first_backup_timestamp.month + 1:
+                break
+
+            if first_retained_timestamp.day == 1:
+                break
+
+            first_retained_index -= 1
+
         expected_backups_remaining = [backups[0], backups[first_retained_index], backups[-1]]
 
         main_assert_no_error_log([
