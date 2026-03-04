@@ -234,6 +234,10 @@ def backup_directory(
             size_of_copied_files += user_file.stat().st_size
             logger.debug("Copied %s to %s", user_file, new_backup_file)
         except Exception as error:
+            file_size = user_file.stat().st_size
+            free_space = shutil.disk_usage(new_backup_directory).free
+            if file_size > free_space:
+                raise
             logger.warning("Could not copy %s (%s)", user_file, error)
             action_counter["failed copies"] += 1
 
