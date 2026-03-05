@@ -9,5 +9,5 @@ class ConcurrencyError(RuntimeError):
     """An exception thrown when another process is using the same backup location."""
 
 
-class NotEnoughStorageSpaceError(RuntimeError):
+class NotEnoughStorageSpaceError(CommandLineError):
     """An exception thrown when there is not enough room on the backup media to copy a user file."""
