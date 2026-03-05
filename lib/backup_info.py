@@ -35,6 +35,21 @@ def backup_source(backup_location: Path) -> Path | None:
     return read_backup_information(backup_location)["Source"]
 
 
+def base_backup_folder(backup_path: Path) -> Path | None:
+    """
+    Find the base backup folder that contains all dated backups.
+
+    The folder is found by locating the vintagebackup.source.txt file.
+    """
+    while not get_backup_info_file(backup_path).exists():
+        old_path = backup_path
+        backup_path = backup_path.parent
+        if old_path == backup_path:
+            return None
+
+    return backup_path
+
+
 def confirm_user_location_is_unchanged(user_data_location: Path, backup_location: Path) -> None:
     """
     Make sure the user directory being backed up is the same as the previous backup run.

@@ -19,8 +19,9 @@ import lib.backup_utilities as util
 from lib import backup_info
 from lib.backup_lock import Backup_Lock
 from lib.backup_set import Backup_Set
-from lib.exceptions import CommandLineError
+from lib.exceptions import CommandLineError, NotEnoughStorageSpaceError
 import lib.filesystem as fs
+from lib.backup_deletion import delete_oldest_backup
 
 logger = logging.getLogger()
 
@@ -184,7 +185,9 @@ def backup_directory(
         action_counter: Counter[str],
         *,
         examine_whole_file: bool,
-        copy_probability: float) -> int:
+        copy_probability: float,
+        auto_delete: bool,
+        checksum_result_folder: Path | None) -> int:
     """
     Backup the files in a subfolder in the user's directory.
 
@@ -194,11 +197,15 @@ def backup_directory(
         last_backup_path: The base directory of the previous dated backup
         current_user_path: The user directory currently being walked through
         user_file_names: The names of files contained in the current_user_path
+        action_counter: A counter to track how many files have been linked, copied, or failed for
+            both
         examine_whole_file: Whether to examine file contents to check for changes since the last
             backup
         copy_probability: Probability of copying a file when it would normally be hard-linked
-        action_counter: A counter to track how many files have been linked, copied, or failed for
-            both
+        auto_delete: If the backup storage space becomes too low to copy a file, delete old backups
+            until there is sufficient space. At least on previous backup will always be kept.
+        checksum_result_folder: If the checksum of a backup should be verified before deletion,
+            the result file should be written here.
 
     Returns:
         size: Total size of copied files in bytes
@@ -228,20 +235,61 @@ def backup_directory(
     for file_name in files_to_copy:
         new_backup_file = new_backup_directory/file_name
         user_file = current_user_path/file_name
+        make_room_for_file(
+            user_file,
+            new_backup_file,
+            checksum_result_folder,
+            auto_delete=auto_delete)
+
         try:
             shutil.copy2(user_file, new_backup_file, follow_symlinks=False)
             action_counter["copied files"] += 1
             size_of_copied_files += user_file.stat().st_size
             logger.debug("Copied %s to %s", user_file, new_backup_file)
         except Exception as error:
-            file_size = user_file.stat().st_size
-            free_space = shutil.disk_usage(new_backup_directory).free
-            if file_size > free_space:
-                raise
             logger.warning("Could not copy %s (%s)", user_file, error)
             action_counter["failed copies"] += 1
 
     return size_of_copied_files
+
+
+def make_room_for_file(
+        user_file: Path,
+        new_backup_file: Path,
+        checksum_result_folder: Path | None,
+        *,
+        auto_delete: bool) -> None:
+    """
+    Ensure that there is enough room on the backup media for the file.
+
+    Arguments:
+        user_file: The file to be copied to the backup media.
+        new_backup_file: The destination for the copied file.
+        checksum_result_folder: If a checksum verification should be run on the deleted backup,
+            this is where the result file should be written.
+        auto_delete: If True, delete old backups until there is enough room. Otherwise, raise an
+            exception.
+    """
+    file_size = user_file.stat().st_size
+    base_backup_folder = backup_info.base_backup_folder(new_backup_file)
+    if not base_backup_folder:
+        raise RuntimeError(f"Could not find backup location for {new_backup_file}")
+
+    while True:
+        free_space = shutil.disk_usage(base_backup_folder).free
+        if free_space > file_size:
+            return
+
+        if not auto_delete:
+            raise NotEnoughStorageSpaceError(
+                f"There is not enough space to copy {user_file} to {base_backup_folder}")
+
+        try:
+            delete_oldest_backup(base_backup_folder, checksum_result_folder)
+        except Exception as error:
+            logger.exception(f"Could not delete oldest backup from {base_backup_folder}")
+            raise NotEnoughStorageSpaceError(
+                f"There is not enough space to copy {user_file} to {base_backup_folder}") from error
 
 
 def backup_name(backup_datetime: datetime.datetime | str | None) -> Path:
@@ -261,6 +309,8 @@ def create_new_backup(
         examine_whole_file: bool,
         force_copy: bool,
         copy_probability: float,
+        auto_delete: bool,
+        checksum_verify_result_folder: Path | None,
         timestamp: datetime.datetime | str | None,
         is_backup_move: bool = False) -> int:
     """
@@ -276,6 +326,10 @@ def create_new_backup(
             backup
         force_copy: Whether to always copy files, regardless of whether a previous backup exists.
         copy_probability: Probability that an unchanged file will be copied instead of hardlinked.
+        auto_delete: If the backup storage space becomes too low to copy a file, delete old backups
+            until there is sufficient space. At least on previous backup will always be kept.
+        checksum_verify_result_folder: If the checksum of a backup should be verified before
+            deletion, the result file should be written here.
         timestamp: Manually set timestamp of new backup. Used for debugging.
         is_backup_move: Used to customize log messages when moving a backup to a new location.
 
@@ -326,7 +380,9 @@ def create_new_backup(
             user_file_names,
             action_counter,
             examine_whole_file=examine_whole_file,
-            copy_probability=copy_probability)
+            copy_probability=copy_probability,
+            auto_delete=auto_delete,
+            checksum_result_folder=checksum_verify_result_folder)
 
     if staging_backup_path.is_dir():
         new_backup_path.parent.mkdir(parents=True, exist_ok=True)
@@ -464,7 +520,9 @@ def start_backup(args: argparse.Namespace) -> None:
             examine_whole_file=should_compare_contents,
             force_copy=toggle_is_set(args, "force_copy"),
             copy_probability=copy_probability(args),
-            timestamp=args.timestamp)
+            timestamp=args.timestamp,
+            auto_delete=args.auto_delete,
+            checksum_verify_result_folder=fs.path_or_none(args.verify_checksum))
 
         logger.info("")
         log_backup_size(args.free_up, backup_space_taken)

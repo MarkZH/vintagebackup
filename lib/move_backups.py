@@ -42,7 +42,9 @@ def move_backups(
             force_copy=False,
             copy_probability=0.0,
             is_backup_move=True,
-            timestamp=backup_datetime(backup))
+            timestamp=backup_datetime(backup),
+            auto_delete=False,
+            checksum_verify_result_folder=None)
 
         backup_source_file = get_backup_info_file(new_backup_location)
         backup_source_file.unlink()

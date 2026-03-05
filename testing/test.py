@@ -133,7 +133,9 @@ def default_backup(user_path: Path, backup_path: Path) -> None:
         examine_whole_file=False,
         force_copy=False,
         copy_probability=0.0,
-        timestamp=unique_timestamp())
+        timestamp=unique_timestamp(),
+        auto_delete=False,
+        checksum_verify_result_folder=None)
 
 
 def create_old_monthly_backups(backup_base_directory: Path, count: int) -> None:
@@ -273,7 +275,9 @@ def run_backup(
             examine_whole_file=examine_whole_file,
             force_copy=force_copy,
             copy_probability=0.0,
-            timestamp=timestamp)
+            timestamp=timestamp,
+            auto_delete=False,
+            checksum_verify_result_folder=None)
         return 0
     elif run_method == Invocation.cli:
         argv = [
@@ -725,7 +729,9 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
                 examine_whole_file=False,
                 force_copy=False,
                 copy_probability=0.0,
-                timestamp=unique_timestamp())
+                timestamp=unique_timestamp(),
+                auto_delete=False,
+                checksum_verify_result_folder=None)
         self.assertIn("WARNING:root:No files were backed up!", assert_log.output)
         self.assertEqual(
             list(self.backup_path.iterdir()),
@@ -850,7 +856,9 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
             examine_whole_file=False,
             force_copy=False,
             copy_probability=0.0,
-            timestamp=unique_timestamp())
+            timestamp=unique_timestamp(),
+            auto_delete=False,
+            checksum_verify_result_folder=None)
 
         self.assertEqual(len(util.all_backups(self.backup_path)), 1)
         last_backup = util.find_previous_backup(self.backup_path)
@@ -1079,7 +1087,9 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
                     examine_whole_file=False,
                     force_copy=True,
                     copy_probability=0.0,
-                    timestamp=unique_timestamp())
+                    timestamp=unique_timestamp(),
+                    auto_delete=False,
+                    checksum_verify_result_folder=None)
 
             sought_file = self.user_path/"root_file.txt"
             with self.assertLogs(level=logging.INFO) as logs:
@@ -1880,7 +1890,9 @@ class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
                 examine_whole_file=False,
                 force_copy=False,
                 copy_probability=0.0,
-                timestamp=backup_date)
+                timestamp=backup_date,
+                auto_delete=False,
+                checksum_verify_result_folder=None)
         args = argparse.parse_command_line(["--move-since", "2025-08-15"])
         backups = moving.choose_backups_to_move(args, self.backup_path)
         expected_backup_count = 17  # Aug. 15 to Aug. 31
@@ -3478,7 +3490,9 @@ class AllBackupsTests(TestCaseWithTemporaryFilesAndFolders):
                 examine_whole_file=False,
                 force_copy=False,
                 copy_probability=0.0,
-                timestamp=timestamp)
+                timestamp=timestamp,
+                auto_delete=False,
+                checksum_verify_result_folder=None)
         backups = util.all_backups(self.backup_path)
         for timestamp, backup in zip(timestamps, backups, strict=True):
             year_path = str(timestamp.year)
@@ -3501,7 +3515,9 @@ class AllBackupsTests(TestCaseWithTemporaryFilesAndFolders):
                 examine_whole_file=False,
                 force_copy=False,
                 copy_probability=0.0,
-                timestamp=timestamp)
+                timestamp=timestamp,
+                auto_delete=False,
+                checksum_verify_result_folder=None)
 
         # Create entries that should be left out of util.all_backups() list
         timestamp = timestamps[-1]
@@ -3983,7 +3999,9 @@ class ConfirmUserLocationIsUnchangedTests(TestCaseWithTemporaryFilesAndFolders):
             examine_whole_file=False,
             force_copy=False,
             copy_probability=0.0,
-            timestamp=None)
+            timestamp=None,
+            auto_delete=False,
+            checksum_verify_result_folder=None)
 
         backup_info.confirm_user_location_is_unchanged(self.user_path, self.backup_path)
 
@@ -3996,7 +4014,9 @@ class ConfirmUserLocationIsUnchangedTests(TestCaseWithTemporaryFilesAndFolders):
             examine_whole_file=False,
             force_copy=False,
             copy_probability=0.0,
-            timestamp=None)
+            timestamp=None,
+            auto_delete=False,
+            checksum_verify_result_folder=None)
 
         with self.assertRaises(CommandLineError) as error:
             backup_info.confirm_user_location_is_unchanged(self.backup_path, self.backup_path)

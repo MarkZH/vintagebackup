@@ -163,6 +163,18 @@ def delete_backups(
             logger.info("Stopped after reaching maximum number of deletions.")
 
 
+def delete_oldest_backup(backup_location: Path, checksum_verify_result_folder: Path | None) -> None:
+    """Delete the oldest backup at the backup location."""
+    backups = all_backups(backup_location)
+    if not backups:
+        raise RuntimeError(f"No backups to delete at {backup_location}")
+
+    if len(backups) == 1:
+        raise RuntimeError(f"Will not delete only backup at {backup_location}")
+
+    delete_single_backup(backups[0], checksum_verify_result_folder)
+
+
 def delete_too_frequent_backups(
         backup_folder: Path,
         args: argparse.Namespace,

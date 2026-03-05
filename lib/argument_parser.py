@@ -277,6 +277,10 @@ to a file stored in the base folder of the backup."""))
 """Automatically delete old backups according to various criteria. Multiple deletion options can be
 used at the same time. When using these options, the most recent backup is never deleted."""))
 
+    deletion_group.add_argument("--auto-delete", action="store_true", help=format_help(
+"""During a backup, if there is not enough space on the backup media to copy a file, delete old
+backups until there is. The most recent complete backup will not be deleted."""))
+
     deletion_group.add_argument("--free-up", metavar="SPACE", help=format_help(
 """After a successful backup, delete old backups until the amount of free space on the
 backup destination is at least SPACE.
