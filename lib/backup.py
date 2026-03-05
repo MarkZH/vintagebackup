@@ -287,7 +287,7 @@ def make_room_for_file(
         try:
             delete_oldest_backup(base_backup_folder, checksum_result_folder)
         except Exception as error:
-            logger.exception(f"Could not delete oldest backup from {base_backup_folder}")
+            logger.exception("Could not delete oldest backup from %s", base_backup_folder)
             raise NotEnoughStorageSpaceError(
                 f"There is not enough space to copy {user_file} to {base_backup_folder}") from error
 
