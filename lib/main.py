@@ -2,6 +2,7 @@
 
 import argparse
 import logging
+import shutil
 
 from lib.argument_parser import parse_command_line, print_help, print_usage, toggle_is_set
 from lib.automation import generate_windows_scripts
@@ -11,7 +12,7 @@ from lib.backup_set import preview_filter
 from lib.configuration import generate_config
 from lib.console import print_run_title
 from lib.exceptions import CommandLineError, ConcurrencyError, OutOfSpaceError
-from lib.filesystem import absolute_path
+from lib.filesystem import absolute_path, parse_storage_space
 from lib.logs import setup_initial_null_logger, setup_log_file
 from lib.move_backups import start_move_backups
 from lib.purge import choose_purge_target_from_backups, start_backup_purge
@@ -35,8 +36,13 @@ def default_action(args: argparse.Namespace) -> None:
             break
         except OutOfSpaceError as error:
             if args.free_up:
-                logger.warning("Could not complete backup. %s Retrying backup.", error)
-                continue
+                logger.warning("Could not complete backup. %s", error)
+                free_up_space = parse_storage_space(args.free_up)
+                free_space = shutil.disk_usage(args.backup_folder).free
+                if free_up_space < free_space:
+                    raise CommandLineError(
+                        "Cannot free up enough space to complete backup. "
+                        "Increase value of --free-up. Currently: %s", args.free_up) from None
             else:
                 raise
 
