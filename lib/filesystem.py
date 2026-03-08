@@ -157,9 +157,15 @@ def parse_storage_space(space_requirement: str) -> float:
 
     Arguments:
         space_requirement: A string indicating an amount of space as an absolute number of
-            bytes. Byte units and prefixes are allowed.
+            bytes. Byte units are allowed.
+
+    Returns:
+        bytes: The numeric value of the number of bytes.
 
     >>> parse_storage_space("100")
+    100.0
+
+    >>> parse_storage_space("100 B")
     100.0
 
     >>> parse_storage_space("152 kB")
