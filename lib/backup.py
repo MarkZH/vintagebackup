@@ -9,6 +9,7 @@ import filecmp
 import stat
 import math
 import random
+import errno
 from collections import Counter
 from collections.abc import Callable, Iterable
 from pathlib import Path
@@ -19,7 +20,7 @@ import lib.backup_utilities as util
 from lib import backup_info
 from lib.backup_lock import Backup_Lock
 from lib.backup_set import Backup_Set
-from lib.exceptions import CommandLineError
+from lib.exceptions import CommandLineError, OutOfSpaceError
 import lib.filesystem as fs
 
 logger = logging.getLogger()
@@ -205,7 +206,16 @@ def backup_directory(
     """
     relative_path = current_user_path.relative_to(user_data_location)
     new_backup_directory = new_backup_path/relative_path
-    new_backup_directory.mkdir(parents=True)
+
+    try:
+        new_backup_directory.mkdir(parents=True)
+    except OSError as error:
+        if error.errno == errno.ENOSPC:
+            raise OutOfSpaceError(
+                f"Could not create {new_backup_directory} due to lack of space.") from error
+        else:
+            raise
+
     previous_backup_directory = last_backup_path/relative_path if last_backup_path else None
     files_to_link, files_to_copy = compare_to_backup(
         current_user_path,
@@ -234,10 +244,10 @@ def backup_directory(
             size_of_copied_files += user_file.stat().st_size
             logger.debug("Copied %s to %s", user_file, new_backup_file)
         except Exception as error:
-            file_size = user_file.stat().st_size
-            free_space = shutil.disk_usage(new_backup_directory).free
-            if file_size > free_space:
-                raise
+            if isinstance(error, OSError) and error.errno == errno.ENOSPC:
+                raise OutOfSpaceError(
+                    f"No space to copy {user_file} to {new_backup_directory}.") from error
+
             logger.warning("Could not copy %s (%s)", user_file, error)
             action_counter["failed copies"] += 1
 
