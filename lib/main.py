@@ -28,7 +28,14 @@ setup_initial_null_logger()
 def default_action(args: argparse.Namespace) -> None:
     """If no other action arguments are present, run a backup by default."""
     print_run_title(args, "Starting new backup")
+    backup_cycle(args)
+    delete_old_backups(args)
+    start_checksum(args)
+    print_backup_storage_stats(absolute_path(args.backup_folder))
 
+
+def backup_cycle(args: argparse.Namespace) -> None:
+    """Retry backup creation until success, deleting old backups as needed."""
     while True:
         try:
             delete_old_backups(args)
@@ -45,10 +52,6 @@ def default_action(args: argparse.Namespace) -> None:
                         "Increase value of --free-up. Currently: %s", args.free_up) from None
             else:
                 raise
-
-    delete_old_backups(args)
-    start_checksum(args)
-    print_backup_storage_stats(absolute_path(args.backup_folder))
 
 
 def main(argv: list[str], *, testing: bool) -> int:
