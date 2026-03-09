@@ -94,7 +94,7 @@ def main(argv: list[str], *, testing: bool) -> int:
         if not testing:
             print_usage()
         logger.error(error)
-    except ConcurrencyError as error:
+    except (ConcurrencyError, OutOfSpaceError) as error:
         logger.error(error)
     except Exception:
         logger.exception("The program ended unexpectedly with an error:")
