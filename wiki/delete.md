@@ -25,7 +25,7 @@ All of the following are equivalent: `10 GB`, `10GB`, `10gb`, `10G`.
 If there is space between the number and unit like `10 GB`, then the whole parameter needs to be quoted: `"10 GB"`.
 
 This size of this parameter should be an overestimate of the space needed for each backup.
-This depends on how much new data is added between backups and how often files are copied instead of hard-linked (see the `--hard-link-count` and `--copy-probability` parameters, below).
+This depends on how much new data is added between backups and how often files are copied instead of hard-linked (see the [`--hard-link-count`](backup.md#--hard-link-count) and [`--copy-probability`](backup.md#--copy-probability) parameters).
 
 The most recent backup will never be deleted, even if the remaining free disk space is less than the parameter.
 
