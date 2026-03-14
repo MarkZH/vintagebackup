@@ -950,19 +950,29 @@ def run_recovery(
         choices: int | str,
         search: bool) -> int:
     """Test file recovery through a direct function call or a CLI invocation."""
-    if method == Invocation.function:
-        recovery.recover_path(file_path, backup_location, search=search, choice=choices)
-        return 0
-    elif method == Invocation.cli:
-        argv = [
-            "--recover", str(file_path),
-            "--backup-folder", str(backup_location),
-            "--choice", str(choices)]
-        if search:
-            argv.append("--search")
-        return main_no_log(argv)
-    else:
-        raise NotImplementedError(f"Backup test with {method} not implemented.")
+    index = -1
+
+    def input_patch(_: str) -> str:
+        if isinstance(choices, int):
+            return str(choices)
+        else:
+            nonlocal index
+            index += 1
+            return choices[index]
+
+    with patch("lib.recovery.input", input_patch), patch("lib.recovery.print", lambda _: None):
+        if method == Invocation.function:
+            recovery.recover_path(file_path, backup_location, search=search)
+            return 0
+        elif method == Invocation.cli:
+            argv = [
+                "--recover", str(file_path),
+                "--backup-folder", str(backup_location)]
+            if search:
+                argv.append("--search")
+            return main_no_log(argv)
+        else:
+            raise NotImplementedError(f"Backup test with {method} not implemented.")
 
 
 class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
@@ -976,7 +986,9 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
             file = self.user_path/"sub_directory_0"/"sub_sub_directory_0"/"file_0.txt"
             moved_file_path = file.parent/(file.name + "_moved")
             file.rename(moved_file_path)
-            with self.assertNoLogs(level=logging.ERROR):
+            with (self.assertNoLogs(level=logging.ERROR),
+                  patch("lib.console.input", lambda _: "1"),
+                  patch("lib.console.print", lambda _: None)):
                 exit_code = run_recovery(method, self.backup_path, file, choices=0, search=False)
             self.assertEqual(exit_code, 0, method)
             self.assertTrue(filecmp.cmp(file, moved_file_path, shallow=False), method)
@@ -989,7 +1001,8 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
         file_path = self.user_path/"sub_directory_0"/"sub_sub_directory_0"/"file_0.txt"
-        recovery.recover_path(file_path, self.backup_path, search=False, choice=0)
+        with patch("lib.console.input", lambda _: "1"), patch("lib.console.print", lambda _: None):
+            recovery.recover_path(file_path, self.backup_path, search=False)
         recovered_file_path = file_path.parent/f"{file_path.stem}.1{file_path.suffix}"
         self.assertTrue(filecmp.cmp(file_path, recovered_file_path, shallow=False))
 
@@ -998,7 +1011,8 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
         folder_path = self.user_path/"sub_directory_1"
-        recovery.recover_path(folder_path, self.backup_path, search=False, choice=0)
+        with patch("lib.console.input", lambda _: "1"), patch("lib.console.print", lambda _: None):
+            recovery.recover_path(folder_path, self.backup_path, search=False)
         recovered_folder_path = folder_path.parent/f"{folder_path.name}.1"
         self.assertTrue(directories_are_completely_copied(folder_path, recovered_folder_path))
 
@@ -1007,16 +1021,17 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
         folder_path = self.user_path/"sub_directory_1"/"sub_sub_directory_1"
-        chosen_file = recovery.search_backups(
-            folder_path,
-            self.backup_path,
-            missing_only=False,
-            operation="recovery",
-            choice=1)
+        with patch("lib.console.input", lambda _: "2"), patch("lib.console.print", lambda _: None):
+            chosen_file = recovery.search_backups(
+                folder_path,
+                self.backup_path,
+                missing_only=False,
+                operation="recovery")
         self.assertIsNotNone(chosen_file)
         chosen_file = cast(Path, chosen_file)
         self.assertEqual(chosen_file, folder_path/"file_1.txt")
-        recovery.recover_path(chosen_file, self.backup_path, search=False, choice=0)
+        with patch("lib.console.input", lambda _: "1"), patch("lib.console.print", lambda _: None):
+            recovery.recover_path(chosen_file, self.backup_path, search=False)
         recovered_file_path = chosen_file.parent/f"{chosen_file.stem}.1{chosen_file.suffix}"
         self.assertTrue(filecmp.cmp(chosen_file, recovered_file_path, shallow=False))
 
@@ -1044,25 +1059,25 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         missing_path.unlink()
         folder_path = missing_path.parent
 
+        menu_text = io.StringIO()
+
+        def print_patch(s: str) -> None:
+            menu_text.write(f"{s}\n")
+
         # No other choices beside the missing file
-        with self.assertRaises(IndexError):
+        with patch("lib.console.input", lambda _: "1"), patch("lib.console.print", print_patch):
             chosen_file = recovery.search_backups(
                 folder_path,
                 self.backup_path,
                 missing_only=True,
-                operation="recovery",
-                choice=1)
+                operation="recovery")
 
-        chosen_file = recovery.search_backups(
-            folder_path,
-            self.backup_path,
-            missing_only=True,
-            operation="recovery",
-            choice=0)
         self.assertIsNotNone(chosen_file)
         chosen_file = cast(Path, chosen_file)
+        self.assertEqual(f"1: {missing_path.name} (File)\n", menu_text.getvalue())
         self.assertEqual(chosen_file, missing_path)
-        recovery.recover_path(chosen_file, self.backup_path, search=False, choice=0)
+        with patch("lib.console.input", lambda _: "1"), patch("lib.console.print", print_patch):
+            recovery.recover_path(chosen_file, self.backup_path, search=False)
         self.assertTrue(missing_path.is_file())
         recovered_data = missing_path.read_text()
         self.assertEqual(missing_data, recovered_data)
@@ -1117,8 +1132,8 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         default_backup(self.user_path, self.backup_path)
         new_file = self.user_path/"new_file.txt"
         new_file.touch()
-        with self.assertLogs(level=logging.INFO) as logs:
-            recovery.recover_path(new_file, self.backup_path, search=False, choice=0)
+        with self.assertLogs(level=logging.INFO) as logs, patch("lib.console.input", lambda _: "1"):
+            recovery.recover_path(new_file, self.backup_path, search=False)
         self.assertEqual(logs.output, [f"INFO:root:No backups found for {new_file}"])
 
     def test_choose_target_from_backups_finds_all_user_files_in_backup(self) -> None:
@@ -1127,13 +1142,14 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         default_backup(self.user_path, self.backup_path)
         for current_directory, directories, files in self.user_path.walk():
             all_paths = sorted(itertools.chain(files, directories))
-            for choice, path in enumerate(all_paths, 0):
+            for choice, path in enumerate(all_paths, 1):
                 arguments = [
                     "--backup-folder", str(self.backup_path),
-                    "--list", str(current_directory),
-                    "--choice", str(choice)]
+                    "--list", str(current_directory)]
                 args = argparse.parse_command_line(arguments)
-                found_path = recovery.choose_target_path_from_backups(args)
+                with (patch("lib.console.input", lambda _, c=choice: str(c)),
+                      patch("lib.console.print", lambda _: None)):
+                    found_path = recovery.choose_target_path_from_backups(args)
                 self.assertEqual(current_directory/path, found_path)
 
     def test_choose_target_from_backups_finds_added_user_files(self) -> None:
@@ -1144,13 +1160,14 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         default_backup(self.user_path, self.backup_path)
         for current_directory, directories, files in self.user_path.walk():
             all_paths = sorted(itertools.chain(files, directories))
-            for choice, path in enumerate(all_paths, 0):
+            for choice, path in enumerate(all_paths, 1):
                 arguments = [
                     "--backup-folder", str(self.backup_path),
-                    "--list", str(current_directory),
-                    "--choice", str(choice)]
+                    "--list", str(current_directory)]
                 args = argparse.parse_command_line(arguments)
-                found_path = recovery.choose_target_path_from_backups(args)
+                with (patch("lib.console.input", lambda _, c=choice: str(c)),
+                      patch("lib.console.print", lambda _: None)):
+                    found_path = recovery.choose_target_path_from_backups(args)
                 self.assertEqual(current_directory/path, found_path)
 
     def test_choose_target_from_backups_raises_error_for_non_existant_folder(self) -> None:
@@ -1207,13 +1224,17 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         default_backup(self.user_path, self.backup_path)
         for current_directory, directories, files in self.user_path.walk():
             all_paths = sorted(itertools.chain(files, directories))
-            for choice, path in enumerate(all_paths, 0):
-                found_path = recovery.search_backups(
-                    current_directory,
-                    self.backup_path,
-                    missing_only=False,
-                    operation="",
-                    choice=choice)
+            for choice, path in enumerate(all_paths, 1):
+                def input_patch(_: str, choice: int = choice) -> str:
+                    return str(choice)
+
+                with (patch("lib.console.input", input_patch),
+                      patch("lib.console.print", lambda _: None)):
+                    found_path = recovery.search_backups(
+                        current_directory,
+                        self.backup_path,
+                        missing_only=False,
+                        operation="")
                 self.assertEqual(current_directory/path, found_path)
 
     def test_search_backups_finds_added_user_files(self) -> None:
@@ -1224,13 +1245,17 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         default_backup(self.user_path, self.backup_path)
         for current_directory, directories, files in self.user_path.walk():
             all_paths = sorted(itertools.chain(files, directories))
-            for choice, path in enumerate(all_paths, 0):
-                found_path = recovery.search_backups(
-                    current_directory,
-                    self.backup_path,
-                    missing_only=False,
-                    operation="",
-                    choice=choice)
+            for choice, path in enumerate(all_paths, 1):
+                def input_patch(_: str, choice: int = choice) -> str:
+                    return str(choice)
+
+                with (patch("lib.console.input", input_patch),
+                      patch("lib.console.print", lambda _: None)):
+                    found_path = recovery.search_backups(
+                        current_directory,
+                        self.backup_path,
+                        missing_only=False,
+                        operation="")
                 self.assertEqual(current_directory/path, found_path)
 
     def test_search_backups_raises_error_for_non_existant_folder(self) -> None:
@@ -1287,14 +1312,24 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         default_backup(self.user_path, self.backup_path)
         for current_directory, directories, files in self.user_path.walk():
             all_paths = sorted(itertools.chain(files, directories))
-            for choice, path in enumerate(all_paths, 0):
+            for choice, path in enumerate(all_paths, 1):
                 arguments = [
                     "--backup-folder", str(self.backup_path),
-                    "--list", str(current_directory),
-                    "--choice", f"0{choice}"]
+                    "--list", str(current_directory)]
                 args = argparse.parse_command_line(arguments)
                 expected_path = fs.unique_path_name(current_directory/path)
-                recovery.choose_recovery_target_from_backups(args)
+
+                index = -1
+
+                def user_choice(_: str, choice: int = choice) -> str:
+                    nonlocal index
+                    index += 1
+                    choice_sequence = [str(choice), "1"]
+                    return choice_sequence[index]
+
+                with (patch("lib.console.input", user_choice),
+                      patch("lib.console.print", lambda _: None)):
+                    recovery.choose_recovery_target_from_backups(args)
                 self.assertTrue(expected_path.exists())
 
     def test_choose_recovery_target_from_backups_finds_added_user_files(self) -> None:
@@ -1305,14 +1340,24 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         default_backup(self.user_path, self.backup_path)
         for current_directory, directories, files in self.user_path.walk():
             all_paths = sorted(itertools.chain(files, directories))
-            for choice, path in enumerate(all_paths, 0):
+            for choice, path in enumerate(all_paths, 1):
                 arguments = [
                     "--backup-folder", str(self.backup_path),
-                    "--list", str(current_directory),
-                    "--choice", f"0{choice}"]
+                    "--list", str(current_directory)]
                 args = argparse.parse_command_line(arguments)
                 expected_path = fs.unique_path_name(current_directory/path)
-                recovery.choose_recovery_target_from_backups(args)
+
+                index = -1
+
+                def user_choice(_: str, choice: int = choice) -> str:
+                    nonlocal index
+                    index += 1
+                    choice_sequence = [str(choice), "1"]
+                    return choice_sequence[index]
+
+                with (patch("lib.console.input", user_choice),
+                      patch("lib.console.print", lambda _: None)):
+                    recovery.choose_recovery_target_from_backups(args)
                 self.assertTrue(expected_path.exists())
 
     def test_choose_recovery_target_from_backups_raises_error_for_non_existant_folder(self) -> None:
@@ -2733,13 +2778,13 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
         second_extra_folder_file = second_extra_folder/"file_in_folder_2.txt"
         second_extra_folder_file.write_text("extra file in folder 2\n", encoding="utf8")
 
-        exit_code = main_assert_no_error_log([
-            "--restore",
-            "--destination", str(self.user_path),
-            "--backup-folder", str(self.backup_path),
-            "--last-backup", "--delete-extra",
-            "--skip-prompt"],
-            self)
+        with patch("lib.restoration.input", lambda _: "yes"):
+            exit_code = main_assert_no_error_log([
+                "--restore",
+                "--destination", str(self.user_path),
+                "--backup-folder", str(self.backup_path),
+                "--last-backup", "--delete-extra"],
+                self)
 
         self.assertEqual(exit_code, 0)
         last_backup = util.find_previous_backup(self.backup_path)
@@ -2776,13 +2821,13 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
         second_extra_folder_file = second_extra_folder/"file_in_folder_2.txt"
         second_extra_folder_file.write_text("extra file in folder 2\n", encoding="utf8")
 
-        exit_code = main_assert_no_error_log([
-            "--restore",
-            "--destination", str(self.user_path),
-            "--backup-folder", str(self.backup_path),
-            "--last-backup", "--keep-extra",
-            "--skip-prompt"],
-            self)
+        with patch("lib.restoration.input", lambda _: "yes"):
+            exit_code = main_assert_no_error_log([
+                "--restore",
+                "--destination", str(self.user_path),
+                "--backup-folder", str(self.backup_path),
+                "--last-backup", "--keep-extra"],
+                self)
 
         self.assertEqual(exit_code, 0)
         last_backup = util.find_previous_backup(self.backup_path)
@@ -2814,14 +2859,15 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
         second_extra_file.write_text("extra 2\n", encoding="utf8")
 
         choice = 0
-        exit_code = main_assert_no_error_log([
-            "--restore",
-            "--destination", str(self.user_path),
-            "--backup-folder", str(self.backup_path),
-            "--choose-backup", "--delete-extra",
-            "--choice", str(choice),
-            "--skip-prompt"],
-            self)
+        with (patch("lib.console.input", lambda _: str(choice + 1)),
+              patch("lib.restoration.input", lambda _: "yes"),
+              patch("lib.console.print", lambda _: None)):
+            exit_code = main_assert_no_error_log([
+                "--restore",
+                "--destination", str(self.user_path),
+                "--backup-folder", str(self.backup_path),
+                "--choose-backup", "--delete-extra"],
+                self)
 
         self.assertEqual(exit_code, 0)
         restored_backup = util.all_backups(self.backup_path)[choice]
@@ -2845,13 +2891,14 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
         second_extra_file.write_text("extra 2\n", encoding="utf8")
 
         choice = 0
-        exit_code = main_assert_no_error_log([
+        with (patch("lib.console.input", lambda _: str(choice + 1)),
+              patch("lib.restoration.input", lambda _: "yes"),
+              patch("lib.console.print", lambda _: None)):
+            exit_code = main_assert_no_error_log([
             "--restore",
             "--destination", str(self.user_path),
             "--backup-folder", str(self.backup_path),
-            "--choose-backup", "--keep-extra",
-            "--choice", str(choice),
-            "--skip-prompt"],
+            "--choose-backup", "--keep-extra"],
             self)
 
         self.assertEqual(exit_code, 0)
@@ -2867,13 +2914,14 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
         with tempfile.TemporaryDirectory() as destination_folder:
             create_user_data(self.user_path)
             default_backup(self.user_path, self.backup_path)
-            exit_code = main_assert_no_error_log([
-                "--restore",
-                "--backup-folder", str(self.backup_path),
-                "--last-backup", "--delete-extra",
-                "--destination", destination_folder,
-                "--skip-prompt"],
-                self)
+            with (patch("lib.restoration.input", lambda _: "yes"),
+                  patch("lib.console.print", lambda _: None)):
+                exit_code = main_assert_no_error_log([
+                    "--restore",
+                    "--backup-folder", str(self.backup_path),
+                    "--last-backup", "--delete-extra",
+                    "--destination", destination_folder],
+                    self)
 
             self.assertEqual(exit_code, 0)
             destination_path = Path(destination_folder)
@@ -2893,13 +2941,14 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
             extra_file = destination_path/"extra_file1.txt"
             extra_file.write_text("extra 1\n", encoding="utf8")
 
-            exit_code = main_assert_no_error_log([
-                "--restore",
-                "--backup-folder", str(self.backup_path),
-                "--last-backup", "--keep-extra",
-                "--destination", destination_folder,
-                "--skip-prompt"],
-                self)
+            with (patch("lib.restoration.input", lambda _: "yes"),
+                  patch("lib.console.print", lambda _: None)):
+                exit_code = main_assert_no_error_log([
+                    "--restore",
+                    "--backup-folder", str(self.backup_path),
+                    "--last-backup", "--keep-extra",
+                    "--destination", destination_folder],
+                    self)
 
             self.assertEqual(exit_code, 0)
             self.assertTrue(extra_file.is_file(follow_symlinks=False))
@@ -2944,16 +2993,16 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that wrong response to overwrite confirmation ends program with error code."""
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
-        with self.assertLogs(level=logging.INFO) as bad_prompt_log:
+        with (self.assertLogs(level=logging.INFO) as bad_prompt_log,
+              patch("lib.console.input", lambda _: "1"),
+              patch("lib.restoration.input", lambda _: "no"),
+              patch("lib.console.print", lambda _: None)):
             exit_code = main_no_log([
                 "--restore",
                 "--destination", str(self.user_path),
                 "--backup-folder", str(self.backup_path),
                 "--choose-backup",
-                "--delete-extra",
-                "--skip-prompt",
-                "--bad-input",
-                "--choice", "0"])
+                "--delete-extra"])
         self.assertEqual(exit_code, 0)
         rejection_line = (
             'INFO:root:The response was "no" and not "yes", so the '
@@ -3227,7 +3276,8 @@ class PurgeTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertTrue(purged_file.is_file())
         purge_command_line = argparse.parse_command_line(
             ["--purge", str(purged_file), "--backup-folder", str(self.backup_path)])
-        purge.start_backup_purge(purge_command_line, "y")
+        with patch("lib.purge.input", lambda _: "y"):
+            purge.start_backup_purge(purge_command_line)
         expected_contents = directory_contents(self.user_path)
         expected_contents.remove(purged_file.relative_to(self.user_path))
         for backup in util.all_backups(self.backup_path):
@@ -3244,7 +3294,8 @@ class PurgeTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertTrue(purged_folder.is_dir())
         purge_command_line = argparse.parse_command_line(
             ["--purge", str(purged_folder), "--backup-folder", str(self.backup_path)])
-        purge.start_backup_purge(purge_command_line, "y")
+        with patch("lib.purge.input", lambda _: "y"):
+            purge.start_backup_purge(purge_command_line)
         expected_contents = directory_contents(self.user_path)
         purged_contents = set(filter(
             lambda p: (self.user_path/p).is_relative_to(purged_folder), expected_contents))
@@ -3258,7 +3309,7 @@ class PurgeTests(TestCaseWithTemporaryFilesAndFolders):
         default_backup(self.user_path, self.backup_path)
         non_existent_file = self.user_path/"does_not_exist.txt"
         with self.assertLogs(level=logging.INFO) as logs:
-            purge.purge_path(non_existent_file, self.backup_path, None, None)
+            purge.purge_path(non_existent_file, self.backup_path)
         self.assertEqual(len(logs.output), 1)
         self.assertEqual(
             logs.output[0],
@@ -3282,9 +3333,11 @@ class PurgeTests(TestCaseWithTemporaryFilesAndFolders):
         purged_path.unlink()
         purge_command_line = argparse.parse_command_line([
             "--purge", str(purged_path),
-            "--backup-folder", str(self.backup_path),
-            "--choice", "0"])
-        purge.start_backup_purge(purge_command_line, "y")
+            "--backup-folder", str(self.backup_path)])
+        with (patch("lib.console.input", lambda _: "1"),
+              patch("lib.purge.input", lambda _: "y"),
+              patch("lib.console.print", lambda _: None)):
+            purge.start_backup_purge(purge_command_line)
         relative_purge_file = purged_path.relative_to(self.user_path)
         for backup in util.all_backups(self.backup_path):
             backup_file_path = backup/relative_purge_file
@@ -3310,9 +3363,11 @@ class PurgeTests(TestCaseWithTemporaryFilesAndFolders):
         purged_path.unlink()
         purge_command_line = argparse.parse_command_line([
             "--purge", str(purged_path),
-            "--backup-folder", str(self.backup_path),
-            "--choice", "1"])
-        purge.start_backup_purge(purge_command_line, "y")
+            "--backup-folder", str(self.backup_path)])
+        with (patch("lib.console.input", lambda _: "2"),
+              patch("lib.purge.input", lambda _: "y"),
+              patch("lib.console.print", lambda _: None)):
+            purge.start_backup_purge(purge_command_line)
         relative_purge_file = purged_path.relative_to(self.user_path)
         for backup in util.all_backups(self.backup_path):
             backup_file_path = backup/relative_purge_file
@@ -3330,7 +3385,8 @@ class PurgeTests(TestCaseWithTemporaryFilesAndFolders):
         purge_command_line = argparse.parse_command_line([
             "--purge", str(purged_path),
             "--backup-folder", str(self.backup_path)])
-        purge.start_backup_purge(purge_command_line, "thing")
+        with patch("lib.purge.input", lambda _: "thing"):
+            purge.start_backup_purge(purge_command_line)
 
         for backup in util.all_backups(self.backup_path):
             self.assertTrue(directories_have_identical_content(backup, self.user_path))
@@ -3354,14 +3410,17 @@ class PurgeTests(TestCaseWithTemporaryFilesAndFolders):
         search_directory = purged_path.parent
         purge_command_line = argparse.parse_command_line([
             "--purge-list", str(search_directory),
-            "--backup-folder", str(self.backup_path),
-            "--choice", "2"])
-        purge.choose_purge_target_from_backups(purge_command_line, "y")
+            "--backup-folder", str(self.backup_path)])
+
+        with (patch("lib.console.input", lambda _: "2"),
+              patch("lib.purge.input", lambda _: "y"),
+              patch("lib.console.print", lambda _: None)):
+            purge.choose_purge_target_from_backups(purge_command_line)
         relative_purge_file = purged_path.relative_to(self.user_path)
         for backup in util.all_backups(self.backup_path):
             backup_file_path = backup/relative_purge_file
             self.assertTrue(
-                fs.is_real_directory(backup_file_path) or not backup_file_path.exists())
+                not fs.is_real_directory(backup_file_path) or not backup_file_path.exists())
 
     def test_purge_file_suggests_filter_line(self) -> None:
         """Test that purging a file logs a filter line for the purged file."""
@@ -3375,8 +3434,8 @@ class PurgeTests(TestCaseWithTemporaryFilesAndFolders):
         purge_command_line = argparse.parse_command_line([
             "--purge", str(purged_file),
             "--backup-folder", str(self.backup_path)])
-        with self.assertLogs() as log_lines:
-            purge.start_backup_purge(purge_command_line, "y")
+        with self.assertLogs() as log_lines, patch("lib.purge.input", lambda _: "y"):
+            purge.start_backup_purge(purge_command_line)
         relative_purge_file = purged_file.relative_to(self.user_path)
         self.assertEqual(log_lines.output[-1], f"INFO:root:- {relative_purge_file}")
 
@@ -3392,8 +3451,8 @@ class PurgeTests(TestCaseWithTemporaryFilesAndFolders):
         purge_command_line = argparse.parse_command_line([
             "--purge", str(purged_file),
             "--backup-folder", str(self.backup_path)])
-        with self.assertLogs() as log_lines:
-            purge.start_backup_purge(purge_command_line, "y")
+        with self.assertLogs() as log_lines, patch("lib.purge.input", lambda _: "y"):
+            purge.start_backup_purge(purge_command_line)
         relative_purge_file = purged_file.relative_to(self.user_path)/"**"
         self.assertEqual(log_lines.output[-1], f"INFO:root:- {relative_purge_file}")
 

@@ -112,12 +112,10 @@ def start_backup_restore(args: argparse.Namespace) -> None:
         logger.info(
             "Any files that were not backed up, including newly created files and "
             "files not backed up because of --filter, will be deleted.")
-    automatic_response = "no" if args.bad_input else required_response
-    response = (
-        automatic_response if args.skip_prompt
-        else input(
+
+    response = input(
             f'Do you want to continue? Type "{required_response}" to proceed '
-            f'or press {cancel_key()} to cancel: '))
+            f'or press {cancel_key()} to cancel: ')
 
     if response.strip().lower() == required_response:
         restore_backup(restore_source, destination, delete_extra_files=delete_extra_files)
