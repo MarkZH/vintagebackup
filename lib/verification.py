@@ -203,8 +203,7 @@ def start_verify_checksum(args: argparse.Namespace) -> None:
     else:
         choice = console.choose_from_menu(
             [p.name for p in checksummed_backups],
-            "Choose a backup to verify its checksum",
-            test_choice=int(args.choice) if args.choice else None)
+            "Choose a backup to verify its checksum")
         target = checksummed_backups[choice]
 
     verify_backup_checksum(target, result_folder)
