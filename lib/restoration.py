@@ -110,8 +110,8 @@ def start_backup_restore(args: argparse.Namespace) -> None:
             "files not backed up because of --filter, will be deleted.")
 
     response = input(
-            f'Do you want to continue? Type "{required_response}" to proceed '
-            f'or press {cancel_key()} to cancel: ')
+        f'Do you want to continue? Type "{required_response}" to proceed '
+        f'or press {cancel_key()} to cancel: ')
 
     if response.strip().lower() == required_response:
         restore_backup(restore_source, destination, delete_extra_files=delete_extra_files)
