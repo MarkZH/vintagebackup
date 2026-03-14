@@ -942,6 +942,25 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(previewed_paths, backed_up_paths)
 
 
+class UserInputSequence:
+    """Create a sequence of inputs to feed calls to the built-in input() function."""
+
+    def __init__(self, inputs: list[str]) -> None:
+        """
+        Create a new sequence of mocked user inputs.
+
+        Arguments:
+            inputs: A list of strings that will be returned one at a time for each call to input().
+        """
+        self.inputs = inputs
+        self.index = -1
+
+    def __call__(self, _: str) -> str:
+        """Replaces call to input()."""
+        self.index += 1
+        return self.inputs[self.index]
+
+
 def run_recovery(
         method: Invocation,
         backup_location: Path,
@@ -950,16 +969,7 @@ def run_recovery(
         choices: int | str,
         search: bool) -> int:
     """Test file recovery through a direct function call or a CLI invocation."""
-    index = -1
-
-    def input_patch(_: str) -> str:
-        if isinstance(choices, int):
-            return str(choices)
-        else:
-            nonlocal index
-            index += 1
-            return choices[index]
-
+    input_patch = UserInputSequence([str(choices)] if isinstance(choices, int) else list(choices))
     with patch("lib.recovery.input", input_patch), patch("lib.recovery.print", lambda _: None):
         if method == Invocation.function:
             recovery.recover_path(file_path, backup_location, search=search)
@@ -1319,14 +1329,7 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
                 args = argparse.parse_command_line(arguments)
                 expected_path = fs.unique_path_name(current_directory/path)
 
-                index = -1
-
-                def user_choice(_: str, choice: int = choice) -> str:
-                    nonlocal index
-                    index += 1
-                    choice_sequence = [str(choice), "1"]
-                    return choice_sequence[index]
-
+                user_choice = UserInputSequence([str(choice), "1"])
                 with (patch("lib.console.input", user_choice),
                       patch("lib.console.print", lambda _: None)):
                     recovery.choose_recovery_target_from_backups(args)
@@ -1347,14 +1350,7 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
                 args = argparse.parse_command_line(arguments)
                 expected_path = fs.unique_path_name(current_directory/path)
 
-                index = -1
-
-                def user_choice(_: str, choice: int = choice) -> str:
-                    nonlocal index
-                    index += 1
-                    choice_sequence = [str(choice), "1"]
-                    return choice_sequence[index]
-
+                user_choice = UserInputSequence([str(choice), "1"])
                 with (patch("lib.console.input", user_choice),
                       patch("lib.console.print", lambda _: None)):
                     recovery.choose_recovery_target_from_backups(args)
@@ -4837,13 +4833,7 @@ class ConsoleMenuTests(unittest.TestCase):
         """Ensure entries are aligned even with multi-digit numbering."""
         choices = list(map(str, range(1, 4)))
         user_choices = [0, 4, 2]
-        index = -1
-
-        def choice_input(_: str) -> str:
-            nonlocal index
-            index += 1
-            return str(user_choices[index])
-
+        choice_input = UserInputSequence(list(map(str, user_choices)))
         menu_text = io.StringIO()
 
         def print_patch(s: str) -> None:
