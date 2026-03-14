@@ -16,7 +16,16 @@ logger = logging.getLogger()
 
 
 def choose_backup(backup_folder: Path, choice: int | None) -> Path | None:
-    """Choose a backup from a numbered list shown in a terminal."""
+    """
+    Choose a backup from a numbered list shown in a terminal.
+
+    Arguments:
+        backup_folder: Base path of all dated backups folders.
+        choice: Used for testing. A preselected menu choice.
+
+    Returns:
+        A path to a dated backup folder, if there are any to choose from.
+    """
     backup_choices = all_backups(backup_folder)
     if not backup_choices:
         return None
