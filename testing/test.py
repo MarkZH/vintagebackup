@@ -1374,7 +1374,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
     """Test deleting backups."""
 
     def test_deleting_single_backup(self) -> None:
-        """Test deleting only the most recent backup."""
+        """Test deleting only the oldest backup."""
         create_old_monthly_backups(self.backup_path, 10)
         backups = util.all_backups(self.backup_path)
         fs.delete_directory_tree(backups[0])
