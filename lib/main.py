@@ -2,6 +2,7 @@
 
 import argparse
 import logging
+import shutil
 
 from lib.argument_parser import parse_command_line, print_help, print_usage, toggle_is_set
 from lib.automation import generate_windows_scripts
@@ -10,8 +11,8 @@ from lib.backup_deletion import delete_old_backups
 from lib.backup_set import preview_filter
 from lib.configuration import generate_config
 from lib.console import print_run_title
-from lib.exceptions import CommandLineError, ConcurrencyError
-from lib.filesystem import absolute_path
+from lib.exceptions import CommandLineError, ConcurrencyError, OutOfSpaceError
+from lib.filesystem import absolute_path, parse_storage_space
 from lib.logs import setup_initial_null_logger, setup_log_file
 from lib.move_backups import start_move_backups
 from lib.purge import choose_purge_target_from_backups, start_backup_purge
@@ -22,6 +23,35 @@ from lib.verification import start_verify_backup, start_checksum, start_verify_c
 
 logger = logging.getLogger()
 setup_initial_null_logger()
+
+
+def default_action(args: argparse.Namespace) -> None:
+    """If no other action arguments are present, run a backup by default."""
+    print_run_title(args, "Starting new backup")
+    backup_cycle(args)
+    delete_old_backups(args)
+    start_checksum(args)
+    print_backup_storage_stats(absolute_path(args.backup_folder))
+
+
+def backup_cycle(args: argparse.Namespace) -> None:
+    """Retry backup creation until success, deleting old backups as needed."""
+    while True:
+        try:
+            delete_old_backups(args)
+            start_backup(args)
+            break
+        except OutOfSpaceError as error:
+            if args.free_up:
+                logger.warning("Could not complete backup. %s", error)
+                free_up_space = parse_storage_space(args.free_up)
+                free_space = shutil.disk_usage(args.backup_folder).free
+                if free_up_space < free_space:
+                    raise CommandLineError(
+                        "Cannot free up enough space to complete backup. "
+                        "Increase value of --free-up. Currently: %s", args.free_up) from None
+            else:
+                raise
 
 
 def main(argv: list[str], *, testing: bool) -> int:
@@ -42,14 +72,6 @@ def main(argv: list[str], *, testing: bool) -> int:
         debug_output = toggle_is_set(args, "debug")
         setup_log_file(args.log, args.error_log, args.backup_folder, debug=debug_output)
         logger.debug(args)
-
-        def default_action(args: argparse.Namespace) -> None:
-            print_run_title(args, "Starting new backup")
-            delete_old_backups(args)
-            start_backup(args)
-            start_checksum(args)
-            delete_old_backups(args)
-            print_backup_storage_stats(absolute_path(args.backup_folder))
 
         action = (
             generate_config if args.generate_config
@@ -72,7 +94,7 @@ def main(argv: list[str], *, testing: bool) -> int:
         if not testing:
             print_usage()
         logger.error(error)
-    except ConcurrencyError as error:
+    except (ConcurrencyError, OutOfSpaceError) as error:
         logger.error(error)
     except Exception:
         logger.exception("The program ended unexpectedly with an error:")
