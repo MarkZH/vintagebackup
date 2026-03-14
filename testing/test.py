@@ -21,6 +21,7 @@ import re
 import io
 from inspect import getsourcefile
 import hashlib
+from collections.abc import Iterable
 
 from lib import backup_set
 from lib import main
@@ -945,20 +946,18 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
 class UserInputSequence:
     """Create a sequence of inputs to feed calls to the built-in input() function."""
 
-    def __init__(self, inputs: list[str]) -> None:
+    def __init__(self, inputs: Iterable[str]) -> None:
         """
         Create a new sequence of mocked user inputs.
 
         Arguments:
             inputs: A list of strings that will be returned one at a time for each call to input().
         """
-        self.inputs = inputs
-        self.index = -1
+        self.inputs = iter(inputs)
 
     def __call__(self, _: str) -> str:
         """Replaces call to input()."""
-        self.index += 1
-        return self.inputs[self.index]
+        return next(self.inputs)
 
 
 def run_recovery(
