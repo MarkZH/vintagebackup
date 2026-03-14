@@ -3022,7 +3022,7 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_choose_backup_with_no_previous_backups_returns_none(self) -> None:
         """Ensure that the choose_backup() function returns None when there are no backups."""
-        self.assertIsNone(restoration.choose_backup(self.backup_path, choice=None))
+        self.assertIsNone(restoration.choose_backup(self.backup_path))
 
     def test_start_backup_restore_with_no_backups_logs_and_returns_normally(self) -> None:
         """If there are no backups, then a log message is printed and no errors occur."""

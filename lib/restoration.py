@@ -15,14 +15,11 @@ from lib.filesystem import absolute_path, delete_path, get_existing_path
 logger = logging.getLogger()
 
 
-def choose_backup(backup_folder: Path, choice: int | None) -> Path | None:
+def choose_backup(backup_folder: Path) -> Path | None:
     """Choose a backup from a numbered list shown in a terminal."""
     backup_choices = all_backups(backup_folder)
     if not backup_choices:
         return None
-
-    if choice is not None:
-        return backup_choices[choice]
 
     menu_choices = [str(backup.relative_to(backup_folder)) for backup in backup_choices]
     return backup_choices[choose_from_menu(menu_choices, "Backup to restore")]
@@ -93,10 +90,9 @@ def start_backup_restore(args: argparse.Namespace) -> None:
     delete_extra_files = bool(args.delete_extra)
 
     confirm_choice_made(args, "last_backup", "choose_backup")
-    choice = None if args.choice is None else int(args.choice)
     restore_source = (
         find_previous_backup(backup_folder) if args.last_backup
-        else choose_backup(backup_folder, choice))
+        else choose_backup(backup_folder))
 
     if not restore_source:
         raise CommandLineError(f"No backups found in {backup_folder}")
