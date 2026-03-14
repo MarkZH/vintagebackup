@@ -1,6 +1,7 @@
 """Testing code for Vintage Backup."""
 import sys
 import unittest
+from unittest.mock import patch
 import doctest
 import tempfile
 import os
@@ -2454,12 +2455,12 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertTrue(changed_file.is_file())
         changed_file.write_text("Corrupted data", encoding="utf8")
 
-        exit_code = main.main([
-            "-b", str(self.backup_path),
-            "-l", str(self.log_path),
-            "--verify-checksum", str(self.user_path),
-            "--choice", "1"],
-            testing=True)
+        with (patch("lib.console.input", lambda _: 1), patch("lib.console.print", lambda _: None)):
+            exit_code = main.main([
+                "-b", str(self.backup_path),
+                "-l", str(self.log_path),
+                "--verify-checksum", str(self.user_path)],
+                testing=True)
         self.assertEqual(exit_code, 0)
 
         checksum_verify_path = self.user_path/verify.verify_checksum_file_name
@@ -4561,8 +4562,10 @@ class MenuTests(unittest.TestCase):
         """Check that user selections correspond to choices."""
         choices = list("abc")
         for selection, letter in enumerate(choices, 1):
-            index = console.choose_from_menu(choices, "", selection)
-            self.assertEqual(choices[index], letter)
+            with (patch("lib.console.input", lambda _, s=selection: str(s)),
+                  patch("lib.console.print", lambda _: None)):
+                index = console.choose_from_menu(choices, "")
+                self.assertEqual(choices[index], letter)
 
 
 class RunTitleTests(TestCaseWithTemporaryFilesAndFolders):
@@ -4734,15 +4737,17 @@ class ConsoleMenuTests(unittest.TestCase):
     def test_menu_is_printed_correctly(self) -> None:
         """Test that the menu entries display items in correct order and spaced correctly."""
         menu_output = io.StringIO()
+
+        def print_patch(s: str) -> None:
+            menu_output.write(f"{s}\n")
+
         choices = ["a", "b", "c"]
         choice = "b"
         index = choices.index(choice)
         menu_choice = index + 1
-        result = console.choose_from_menu(
-            choices,
-            "Choose",
-            test_choice=menu_choice,
-            output=menu_output)
+        with (patch("lib.console.print", print_patch),
+              patch("lib.console.input", lambda _: menu_choice)):
+            result = console.choose_from_menu(choices, "Choose")
         self.assertEqual(result, index)
         self.assertEqual(choices[index], choice)
 
@@ -4759,7 +4764,12 @@ class ConsoleMenuTests(unittest.TestCase):
         choices = list(map(str, range(1, length + 1)))
         choice = 1
         menu_text = io.StringIO()
-        result = console.choose_from_menu(choices, "Choose", test_choice=choice, output=menu_text)
+
+        def print_patch(s: str) -> None:
+            menu_text.write(f"{s}\n")
+
+        with patch("lib.console.print", print_patch), patch("lib.console.input", lambda _: choice):
+            result = console.choose_from_menu(choices, "Choose")
         self.assertEqual(choice - 1, result)
         expected_text = "".join(f"{i:>3}: {i}\n" for i in range(1, length + 1))
         self.assertEqual(expected_text, menu_text.getvalue())
@@ -4768,12 +4778,20 @@ class ConsoleMenuTests(unittest.TestCase):
         """Ensure entries are aligned even with multi-digit numbering."""
         choices = list(map(str, range(1, 4)))
         user_choices = [0, 4, 2]
+        index = -1
+
+        def choice_input(_: str) -> str:
+            nonlocal index
+            index += 1
+            return str(user_choices[index])
+
         menu_text = io.StringIO()
-        result = console.choose_from_menu(
-            choices,
-            "Choose",
-            test_choice=user_choices,
-            output=menu_text)
+
+        def print_patch(s: str) -> None:
+            menu_text.write(f"{s}\n")
+
+        with patch("lib.console.print", print_patch), patch("lib.console.input", choice_input):
+            result = console.choose_from_menu(choices, "Choose")
         self.assertEqual(user_choices[-1] - 1, result)
         expected_text = """
 1: 1
