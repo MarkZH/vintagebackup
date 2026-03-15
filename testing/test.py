@@ -956,7 +956,7 @@ class UserInputSequence:
         """
         self.inputs = iter(inputs)
 
-    def __call__(self, _: str) -> str:
+    def __call__(self, _: object) -> str:
         """Replaces call to input()."""
         return next(self.inputs)
 
