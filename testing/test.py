@@ -16,12 +16,13 @@ import enum
 import random
 import string
 import platform
-from typing import cast, TextIO
+from typing import cast, TextIO, NamedTuple
 import re
 import io
 from inspect import getsourcefile
 import hashlib
 from collections.abc import Iterable
+import copy
 
 from lib import backup_set
 from lib import main
@@ -1411,6 +1412,29 @@ def create_large_files(base_folder: Path, file_size: int) -> None:
             (directory_name/"file.txt").write_text(data, encoding="utf8")
 
 
+original_disk_usage = copy.copy(shutil.disk_usage)
+
+
+class DiskUsageMock:
+    """A class to mock a hard drive to control the shutil.disk_usage() function."""
+
+    class Mock_Usage_Result(NamedTuple):
+        """Mocked version of the return value of shutil.disk_usage()."""
+        total: int
+        used: int
+        free: int
+
+    def __init__(self, path: Path | str, initial_free_space: int) -> None:
+        """Create a mock hard drive with the given amount of free space."""
+        initial_used = original_disk_usage(path).used
+        self.total = initial_used + initial_free_space
+
+    def __call__(self, path: Path | str) -> Mock_Usage_Result:
+        """Create a result as from shutil.disk_usage()."""
+        used = original_disk_usage(path).used
+        return self.Mock_Usage_Result(self.total, used, self.total - used)
+
+
 class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
     """Test deleting backups."""
 
@@ -1461,29 +1485,30 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             file_size = 10_000_000
             create_large_files(self.backup_path, file_size)
             backups_after_deletion = 10
-            size_of_deleted_backups = (backups_created - backups_after_deletion)*file_size
-            after_backup_space = shutil.disk_usage(self.backup_path).free
-            goal_space = after_backup_space + size_of_deleted_backups - file_size/2
+            backups_deleted = backups_created - backups_after_deletion
+            goal_space = backups_deleted*file_size
             goal_space_str = f"{goal_space}B"
-            if method == Invocation.function:
-                deletion.delete_oldest_backups_for_space(self.backup_path, goal_space_str, None)
-            elif method == Invocation.cli:
-                create_large_files(self.user_path, file_size)
-                exit_code = main_assert_no_error_log([
-                    "--user-folder", str(self.user_path),
-                    "--backup-folder", str(self.backup_path),
-                    "--free-up", goal_space_str,
-                    "--timestamp", unique_timestamp_string()],
-                    self)
-                self.assertEqual(exit_code, 0, method)
 
-                # While backups are being deleted, the fake user data still exists, so one more
-                # backup needs to be deleted to free up the required space.
-                backups_after_deletion -= 1
+            if method == Invocation.function:
+                mock_storage = DiskUsageMock(self.backup_path, file_size//2)
+                with patch("lib.backup_deletion.shutil.disk_usage", mock_storage):
+                    deletion.delete_oldest_backups_for_space(self.backup_path, goal_space_str, None)
+            elif method == Invocation.cli:
+                # Leave room for user data and newly created backup plus half of backup size
+                mock_storage = DiskUsageMock(self.backup_path, int((3/2)*file_size))
+                with patch("lib.backup_deletion.shutil.disk_usage", mock_storage):
+                    create_large_files(self.user_path, file_size)
+                    exit_code = main_assert_no_error_log([
+                        "--user-folder", str(self.user_path),
+                        "--backup-folder", str(self.backup_path),
+                        "--free-up", goal_space_str,
+                        "--timestamp", unique_timestamp_string()],
+                        self)
+                self.assertEqual(exit_code, 0, method)
             else:
                 raise NotImplementedError(f"Delete backup test not implemented for {method}")
             backups_left = len(util.all_backups(self.backup_path))
-            self.assertIn(backups_left - backups_after_deletion, [0, 1], method)
+            self.assertEqual(backups_left, backups_after_deletion, method)
 
             self.reset_backup_folder()
 
