@@ -1,6 +1,5 @@
 """Functions for recovering individual files and folders from backups."""
 
-import copy
 import logging
 import shutil
 import argparse
@@ -27,8 +26,7 @@ def search_backups(
         backup_folder: Path,
         *,
         missing_only: bool,
-        operation: str,
-        choice: int | None = None) -> Path | None:
+        operation: str) -> Path | None:
     """
     Choose a path from among all backups for all items in the given directory.
 
@@ -41,7 +39,6 @@ def search_backups(
         missing_only: Whether to limit menu items to paths that don't exist in the user's folder.
         operation: The name of the operation that called for this search. This will be put into
             the user choice prompt "Which path for {operation}:".
-        choice: Pre-selected choice of which file to recover (used for testing).
 
     Returns:
         path: The path to a file or folder that will then be searched for among backups,
@@ -72,9 +69,8 @@ def search_backups(
         return None
 
     menu_list = sorted(all_paths)
-    if choice is None:
-        menu_choices = [f"{name} ({path_type})" for (name, path_type) in menu_list]
-        choice = choose_from_menu(menu_choices, f"Which path for {operation}")
+    menu_choices = [f"{name} ({path_type})" for (name, path_type) in menu_list]
+    choice = choose_from_menu(menu_choices, f"Which path for {operation}")
 
     return search_directory/menu_list[choice][0]
 
@@ -87,12 +83,7 @@ def directory_relative_to_backup(search_directory: Path, backup_folder: Path) ->
     return path_relative_to_backups(search_directory, backup_folder)
 
 
-def recover_path(
-        recovery_path: Path,
-        backup_location: Path,
-        *,
-        search: bool,
-        choice: int | str | None = None) -> None:
+def recover_path(recovery_path: Path, backup_location: Path, *, search: bool) -> None:
     """
     Decide which version of a file to restore to its previous location.
 
@@ -106,7 +97,6 @@ def recover_path(
         recovery_path: The file or folder that is to be restored.
         backup_location: The folder containing all backups.
         search: Whether the user chooses the version from a menu or by binary serach.
-        choice: Pre-selected choice of which file to recover (used for testing).
     """
     recovery_relative_path = path_relative_to_backups(recovery_path, backup_location)
     unique_backups: dict[int, Path] = {}
@@ -122,26 +112,22 @@ def recover_path(
 
     backup_choices = sorted(unique_backups.values())
     if search:
-        choice = cast(str, choice)
-        binary_search_recovery(recovery_path, backup_choices, choice)
+        binary_search_recovery(recovery_path, backup_choices)
     else:
-        choice = cast(int, choice)
-        recover_from_menu(recovery_path, backup_location, backup_choices, choice)
+        recover_from_menu(recovery_path, backup_location, backup_choices)
 
 
 def recover_from_menu(
         recovery_path: Path,
         backup_location: Path,
-        backup_choices: list[Path],
-        choice: int | None) -> None:
+        backup_choices: list[Path]) -> None:
     """Choose which version of a path to recover from a list of backup dates."""
-    if choice is None:
-        menu_choices: list[str] = []
-        for backup_copy in backup_choices:
-            backup_date = backup_copy.relative_to(backup_location).parts[1]
-            path_type = classify_path(backup_copy)
-            menu_choices.append(f"{backup_date} ({path_type})")
-        choice = choose_from_menu(menu_choices, "Version to recover")
+    menu_choices: list[str] = []
+    for backup_copy in backup_choices:
+        backup_date = backup_copy.relative_to(backup_location).parts[1]
+        path_type = classify_path(backup_copy)
+        menu_choices.append(f"{backup_date} ({path_type})")
+    choice = choose_from_menu(menu_choices, "Version to recover")
     chosen_path = backup_choices[choice]
     recover_path_to_original_location(chosen_path, recovery_path)
 
@@ -168,23 +154,14 @@ def recover_path_to_original_location(backed_up_source: Path, destination: Path)
         shutil.copy2(backed_up_source, recovered_path, follow_symlinks=False)
 
 
-def binary_search_recovery(
-        recovery_path: Path,
-        backup_choices: list[Path],
-        binary_choices: str | None = None) -> None:
+def binary_search_recovery(recovery_path: Path, backup_choices: list[Path]) -> None:
     """Choose a version of a path to recover by searching with the user deciding older or newer."""
-    binary_choices = binary_choices or ""
-    in_testing = bool(binary_choices)
     while True:
         index = len(backup_choices)//2
         path_to_backup = backup_choices[index]
         recover_path_to_original_location(path_to_backup, recovery_path)
 
-        if in_testing and not binary_choices and len(backup_choices) > 1:
-            raise RuntimeError("Binary choices for testing exhausted.")
-
-        response = binary_choices[0] if binary_choices else prompt_for_binary_choice(backup_choices)
-        binary_choices = binary_choices[1:]
+        response = prompt_for_binary_choice(backup_choices)
 
         match response:
             case Binary_Response.CORRECT:
@@ -248,12 +225,8 @@ def path_relative_to_backups(user_path: Path, backup_location: Path) -> Path:
 def start_recovery_from_backup(args: argparse.Namespace) -> None:
     """Recover a file or folder from a backup according to the command line."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
-    try:
-        choice: int | str | None = None if args.choice is None else int(args.choice)
-    except ValueError:
-        choice = str(args.choice)
     print_run_title(args, "Recovering from backups")
-    recover_path(absolute_path(args.recover), backup_folder, search=args.search, choice=choice)
+    recover_path(absolute_path(args.recover), backup_folder, search=args.search)
 
 
 def choose_target_path_from_backups(args: argparse.Namespace) -> Path | None:
@@ -263,22 +236,16 @@ def choose_target_path_from_backups(args: argparse.Namespace) -> Path | None:
     search_directory = absolute_path(args.list or args.purge_list)
     print_run_title(args, f"Listing files and directories for {operation}")
     logger.info("Searching for everything backed up from %s ...", search_directory)
-    test_choice = None if args.choice is None else int(args.choice)
     return search_backups(
         search_directory,
         backup_folder,
         missing_only=args.missing_only,
-        operation=operation,
-        choice=test_choice)
+        operation=operation)
 
 
 def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
     """Choose what to recover from a list of everything backed up from a folder."""
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
-    target_choice = None if args.choice is None else int(args.choice[1:])
-    target_args = copy.copy(args)
-    target_args.choice = target_choice
-    chosen_recovery_path = choose_target_path_from_backups(target_args)
+    chosen_recovery_path = choose_target_path_from_backups(args)
     if chosen_recovery_path:
-        recover_choice = None if args.choice is None else int(args.choice[0])
-        recover_path(chosen_recovery_path, backup_folder, search=args.search, choice=recover_choice)
+        recover_path(chosen_recovery_path, backup_folder, search=args.search)
