@@ -1412,9 +1412,6 @@ def create_large_files(base_folder: Path, file_size: int) -> None:
             (directory_name/"file.txt").write_text(data, encoding="utf8")
 
 
-original_disk_usage = copy.copy(shutil.disk_usage)
-
-
 class DiskUsageMock:
     """A class to mock a hard drive to control the shutil.disk_usage() function."""
 
@@ -1426,12 +1423,13 @@ class DiskUsageMock:
 
     def __init__(self, path: Path | str, initial_free_space: int) -> None:
         """Create a mock hard drive with the given amount of free space."""
-        initial_used = original_disk_usage(path).used
+        self.original_disk_usage = copy.copy(shutil.disk_usage)
+        initial_used = self.original_disk_usage(path).used
         self.total = initial_used + initial_free_space
 
     def __call__(self, path: Path | str) -> Mock_Usage_Result:
         """Create a result as from shutil.disk_usage()."""
-        used = original_disk_usage(path).used
+        used = self.original_disk_usage(path).used
         return self.Mock_Usage_Result(self.total, used, self.total - used)
 
 
