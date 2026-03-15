@@ -32,7 +32,7 @@ If the backup storage media runs out of space during a backup and this parameter
 2. Old backups will be deleted according to `--free-up`, and
 3. The backup will be retried.
 
-If `--free-up` is not used, the backup will be aborted and Vintage Backup will exit with an error.
+If `--free-up` is not used or has too small a value to free up space, the backup will be aborted and Vintage Backup will exit with an error.
 
 The most recent backup will never be deleted, even if the remaining free disk space is less than the parameter.
 
