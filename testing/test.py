@@ -1819,6 +1819,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             self.assertEqual(starting_backup_count - retained_backup_count, 50)
             self.reset_backup_folder()
 
+    @unittest.skipUnless(platform.system() == "Windows", "OSError.winerror only valid on Windows.")
     def test_out_of_space_errors_are_system_independent(self) -> None:
         """Make sure out-of-space errors are consistent across platforms."""
         windows_enospc = 112
