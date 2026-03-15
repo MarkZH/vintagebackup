@@ -49,7 +49,7 @@ def backup_cycle(args: argparse.Namespace) -> None:
                 if free_up_space < free_space:
                     raise CommandLineError(
                         "Cannot free up enough space to complete backup. "
-                        "Increase value of --free-up. Currently: %s", args.free_up) from None
+                        f"Increase value of --free-up. Currently: {args.free_up}") from None
             else:
                 raise
 
