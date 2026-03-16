@@ -23,6 +23,7 @@ from inspect import getsourcefile
 import hashlib
 from collections.abc import Iterable
 import copy
+import errno
 
 from lib import backup_set
 from lib import main
@@ -42,7 +43,7 @@ import lib.verification as verify
 import lib.configuration as config
 import lib.backup_lock as lock
 from lib import console
-from lib.exceptions import CommandLineError, ConcurrencyError
+from lib.exceptions import CommandLineError, ConcurrencyError, OutOfSpaceError
 from lib import find_missing
 
 
@@ -1412,9 +1413,6 @@ def create_large_files(base_folder: Path, file_size: int) -> None:
             (directory_name/"file.txt").write_text(data, encoding="utf8")
 
 
-original_disk_usage = copy.copy(shutil.disk_usage)
-
-
 class DiskUsageMock:
     """A class to mock a hard drive to control the shutil.disk_usage() function."""
 
@@ -1426,13 +1424,29 @@ class DiskUsageMock:
 
     def __init__(self, path: Path | str, initial_free_space: int) -> None:
         """Create a mock hard drive with the given amount of free space."""
-        initial_used = original_disk_usage(path).used
+        self.original_disk_usage = copy.copy(shutil.disk_usage)
+        initial_used = self.original_disk_usage(path).used
         self.total = initial_used + initial_free_space
 
     def __call__(self, path: Path | str) -> Mock_Usage_Result:
         """Create a result as from shutil.disk_usage()."""
-        used = original_disk_usage(path).used
+        used = self.original_disk_usage(path).used
         return self.Mock_Usage_Result(self.total, used, self.total - used)
+
+
+class MockCopy2:
+    """A mocked version of shutil.copy2() that fails when mocked storage has too little space."""
+
+    def __init__(self) -> None:
+        """Save original shutil.copy2() function for later use."""
+        self.original_copy2 = copy.copy(shutil.copy2)
+
+    def __call__(self, user_file: Path, new_backup_file: Path, *, follow_symlinks: bool) -> None:
+        """A version of copy2 that fails if there isn't enough space to make a copy."""
+        free_space = shutil.disk_usage(new_backup_file.parent).free
+        if free_space < user_file.stat().st_size:
+            raise OSError(errno.ENOSPC, "Out of space")
+        self.original_copy2(user_file, new_backup_file, follow_symlinks=follow_symlinks)
 
 
 class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
@@ -1804,6 +1818,119 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             retained_backup_count = len(util.all_backups(self.backup_path))
             self.assertEqual(starting_backup_count - retained_backup_count, 50)
             self.reset_backup_folder()
+
+    @unittest.skipUnless(platform.system() == "Windows", "OSError.winerror only valid on Windows.")
+    def test_out_of_space_errors_are_system_independent(self) -> None:
+        """Make sure out-of-space errors are consistent across platforms."""
+        windows_enospc = 112
+        self.assertEqual(
+            OSError(errno.ENOSPC, "Out of space", "a", None, "b").errno,
+            OSError(None, "Out of space", "a", windows_enospc, "b").errno)
+
+    def test_backups_are_deleted_with_free_up_when_storage_space_is_too_low(self) -> None:
+        """If space runs out during a backup, old backups are deleted until backup succeeds."""
+        initial_backups = 30
+        create_old_daily_backups(self.backup_path, initial_backups)
+        old_backups = util.all_backups(self.backup_path)
+        file_size = 10_000_000
+        create_large_files(self.backup_path, file_size)
+        new_large_files = 10
+        for n in range(new_large_files):
+            (self.user_path/f"sub{n}").mkdir()
+        create_large_files(self.user_path, file_size)
+        backups_to_delete = new_large_files
+        expected_remaining_backups = old_backups[backups_to_delete:]
+        mock_storage = DiskUsageMock(self.backup_path, int(1.5*file_size))
+        args = argparse.parse_command_line([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "--free-up", str(file_size),
+            "--timestamp", unique_timestamp_string()])
+        with (patch("lib.backup.shutil.disk_usage", mock_storage),
+              patch("lib.backup.shutil.copy2", MockCopy2())):
+            main.default_action(args)
+
+        all_backups = util.all_backups(self.backup_path)
+        expected_backups = initial_backups - backups_to_delete + 1
+        self.assertEqual(len(all_backups), expected_backups)
+        self.assertEqual(all_backups[:-1], expected_remaining_backups)
+
+    def test_error_raised_when_free_up_not_large_enough_when_storage_space_is_too_low(self) -> None:
+        """If space runs out during a backup and --free-up does not delete backups, raise error."""
+        initial_backups = 30
+        create_old_daily_backups(self.backup_path, initial_backups)
+        file_size = 10_000_000
+        create_large_files(self.backup_path, file_size)
+        new_large_files = 10
+        for n in range(new_large_files):
+            (self.user_path/f"sub{n}").mkdir()
+        create_large_files(self.user_path, file_size)
+        mock_storage = DiskUsageMock(self.backup_path, int(1.5*file_size))
+        args = argparse.parse_command_line([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "--free-up", str(file_size//10),
+            "--timestamp", unique_timestamp_string()])
+        with (patch("lib.backup.shutil.disk_usage", mock_storage),
+              patch("lib.backup.shutil.copy2", MockCopy2()),
+              self.assertRaises(CommandLineError) as error):
+            main.default_action(args)
+
+        error_message = (
+            "Cannot free up enough space to complete backup. "
+            f"Increase value of --free-up. Currently: {args.free_up}")
+        self.assertEqual(error.exception.args, (error_message,))
+
+    def test_error_raised_when_no_backups_to_delete_and_no_space(self) -> None:
+        """If space runs out during a backup and there are no backups to delete, raise error."""
+        create_user_data(self.user_path)
+        mock_storage = DiskUsageMock(self.backup_path, 10_000)
+        args = argparse.parse_command_line([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "--free-up", "1000000",
+            "--timestamp", unique_timestamp_string()])
+        with (patch("lib.backup.shutil.disk_usage", mock_storage),
+              patch("lib.backup.shutil.copy2", MockCopy2()),
+              self.assertRaises(CommandLineError) as error):
+            main.default_action(args)
+
+        error_message = f"There is not enough space at {self.backup_path} to create a backup."
+        self.assertEqual(error.exception.args, (error_message,))
+
+    def test_error_raised_when_one_backup_left_and_no_space(self) -> None:
+        """If space runs out during a backup and there is only one backup, raise error."""
+        create_user_data(self.user_path)
+        create_old_monthly_backups(self.backup_path, 1)
+        mock_storage = DiskUsageMock(self.backup_path, 10_000)
+        args = argparse.parse_command_line([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "--free-up", "1000000",
+            "--timestamp", unique_timestamp_string()])
+        with (patch("lib.backup.shutil.disk_usage", mock_storage),
+              patch("lib.backup.shutil.copy2", MockCopy2()),
+              self.assertRaises(CommandLineError) as error):
+            main.default_action(args)
+
+        error_message = (
+            f"Cannot free up enough space at {self.backup_path} to complete backup "
+            "without deleting the only remaining backup.")
+        self.assertEqual(error.exception.args, (error_message,))
+
+    def test_error_raised_when_no_free_up_and_and_no_space(self) -> None:
+        """If space runs out during a backup and --free-up is not used, raise error."""
+        create_user_data(self.user_path)
+        create_old_monthly_backups(self.backup_path, 1)
+        mock_storage = DiskUsageMock(self.backup_path, 1)
+        args = argparse.parse_command_line([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "--timestamp", unique_timestamp_string()])
+        with (patch("lib.backup.shutil.disk_usage", mock_storage),
+              patch("lib.backup.shutil.copy2", MockCopy2()),
+              self.assertRaises(OutOfSpaceError)):
+            main.default_action(args)
 
 
 class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
