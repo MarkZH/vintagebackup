@@ -11,12 +11,7 @@ from lib.backup_utilities import all_backups
 from lib.backup_info import backup_source
 from lib.console import cancel_key, choose_from_menu, print_run_title
 from lib.exceptions import CommandLineError
-from lib.filesystem import (
-    absolute_path,
-    get_existing_path,
-    is_real_directory,
-    unique_path_name,
-    classify_path)
+import lib.filesystem as fs
 
 logger = logging.getLogger()
 
@@ -59,7 +54,7 @@ def search_backups(
         backup_search_directory = backup/target_relative_path
         try:
             all_paths.update(
-                (item.name, classify_path(item))
+                (item.name, fs.classify_path(item))
                 for item in backup_search_directory.iterdir() if include(item.relative_to(backup)))
         except FileNotFoundError:
             continue
@@ -77,7 +72,7 @@ def search_backups(
 
 def directory_relative_to_backup(search_directory: Path, backup_folder: Path) -> Path:
     """Return a path to a user's folder relative to the backups folder."""
-    if not is_real_directory(search_directory):
+    if not fs.is_real_directory(search_directory):
         raise CommandLineError(f"The given search path is not a directory: {search_directory}")
 
     return path_relative_to_backups(search_directory, backup_folder)
@@ -125,7 +120,7 @@ def recover_from_menu(
     menu_choices: list[str] = []
     for backup_copy in backup_choices:
         backup_date = backup_copy.relative_to(backup_location).parts[1]
-        path_type = classify_path(backup_copy)
+        path_type = fs.classify_path(backup_copy)
         menu_choices.append(f"{backup_date} ({path_type})")
     choice = choose_from_menu(menu_choices, "Version to recover")
     chosen_path = backup_choices[choice]
@@ -146,9 +141,9 @@ def recover_path_to_original_location(backed_up_source: Path, destination: Path)
             "The path to the backup and the path to the original location must have the same name:"
             f"\n{backed_up_source}\n{destination}")
 
-    recovered_path = unique_path_name(destination)
+    recovered_path = fs.unique_path_name(destination)
     logger.info("Copying %s to %s", backed_up_source, recovered_path)
-    if is_real_directory(backed_up_source):
+    if fs.is_real_directory(backed_up_source):
         shutil.copytree(backed_up_source, recovered_path, symlinks=True)
     else:
         shutil.copy2(backed_up_source, recovered_path, follow_symlinks=False)
@@ -224,16 +219,16 @@ def path_relative_to_backups(user_path: Path, backup_location: Path) -> Path:
 
 def start_recovery_from_backup(args: argparse.Namespace) -> None:
     """Recover a file or folder from a backup according to the command line."""
-    backup_folder = get_existing_path(args.backup_folder, "backup folder")
+    backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
     print_run_title(args, "Recovering from backups")
-    recover_path(absolute_path(args.recover), backup_folder, search=args.search)
+    recover_path(fs.absolute_path(args.recover), backup_folder, search=args.search)
 
 
 def choose_target_path_from_backups(args: argparse.Namespace) -> Path | None:
     """Choose a path from a list of backed up files and folders from a given directory."""
     operation = "recovery" if args.list else "purging"
-    backup_folder = get_existing_path(args.backup_folder, "backup folder")
-    search_directory = absolute_path(args.list or args.purge_list)
+    backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
+    search_directory = fs.absolute_path(args.list or args.purge_list)
     print_run_title(args, f"Listing files and directories for {operation}")
     logger.info("Searching for everything backed up from %s ...", search_directory)
     return search_backups(
@@ -245,7 +240,7 @@ def choose_target_path_from_backups(args: argparse.Namespace) -> Path | None:
 
 def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
     """Choose what to recover from a list of everything backed up from a folder."""
-    backup_folder = get_existing_path(args.backup_folder, "backup folder")
+    backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
     chosen_recovery_path = choose_target_path_from_backups(args)
     if chosen_recovery_path:
         recover_path(chosen_recovery_path, backup_folder, search=args.search)
