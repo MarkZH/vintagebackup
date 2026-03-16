@@ -223,7 +223,7 @@ def backup_directory(
         files_to_copy,
         action_counter)
 
-    return copy_file_to_backup(
+    return copy_files_to_backup(
         current_user_path,
         new_backup_directory,
         files_to_copy,
@@ -252,7 +252,7 @@ def hardlink_files_to_backup(
             files_to_copy.append(file_name)
 
 
-def copy_file_to_backup(
+def copy_files_to_backup(
         current_user_path: Path,
         new_backup_directory: Path,
         files_to_copy: list[str],
