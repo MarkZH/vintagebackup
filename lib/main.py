@@ -9,6 +9,7 @@ from lib.automation import generate_windows_scripts
 from lib.backup import start_backup, print_backup_storage_stats
 from lib.backup_deletion import delete_old_backups
 from lib.backup_set import preview_filter
+from lib.backup_utilities import all_backups
 from lib.configuration import generate_config
 from lib.console import print_run_title
 from lib.exceptions import CommandLineError, ConcurrencyError, OutOfSpaceError
@@ -45,11 +46,22 @@ def backup_cycle(args: argparse.Namespace) -> None:
             if args.free_up:
                 logger.warning("Could not complete backup. %s", error)
                 free_up_space = parse_storage_space(args.free_up)
-                free_space = shutil.disk_usage(args.backup_folder).free
+                backup_location = absolute_path(args.backup_folder)
+                free_space = shutil.disk_usage(backup_location).free
                 if free_up_space < free_space:
                     raise CommandLineError(
                         "Cannot free up enough space to complete backup. "
                         f"Increase value of --free-up. Currently: {args.free_up}") from None
+
+                backup_count = len(all_backups(backup_location))
+                if backup_count == 1:
+                    raise CommandLineError(
+                        f"Cannot free up enough space at {backup_location} to complete backup "
+                        "without deleting the only remaining backup.") from None
+                elif backup_count == 0:
+                    raise CommandLineError(
+                        f"There is not enough space at {backup_location} to "
+                        "create a backup.") from None
             else:
                 raise
 
