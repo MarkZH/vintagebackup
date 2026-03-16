@@ -43,27 +43,27 @@ def backup_cycle(args: argparse.Namespace) -> None:
             start_backup(args)
             break
         except OutOfSpaceError as error:
-            if args.free_up:
-                logger.warning("Could not complete backup. %s", error)
-                free_up_space = parse_storage_space(args.free_up)
-                backup_location = absolute_path(args.backup_folder)
-                free_space = shutil.disk_usage(backup_location).free
-                if free_up_space < free_space:
-                    raise CommandLineError(
-                        "Cannot free up enough space to complete backup. "
-                        f"Increase value of --free-up. Currently: {args.free_up}") from None
-
-                backup_count = len(all_backups(backup_location))
-                if backup_count == 1:
-                    raise CommandLineError(
-                        f"Cannot free up enough space at {backup_location} to complete backup "
-                        "without deleting the only remaining backup.") from None
-                elif backup_count == 0:
-                    raise CommandLineError(
-                        f"There is not enough space at {backup_location} to "
-                        "create a backup.") from None
-            else:
+            if not args.free_up:
                 raise
+
+            logger.warning("Could not complete backup. %s", error)
+            free_up_space = parse_storage_space(args.free_up)
+            backup_location = absolute_path(args.backup_folder)
+            free_space = shutil.disk_usage(backup_location).free
+            if free_up_space < free_space:
+                raise CommandLineError(
+                    "Cannot free up enough space to complete backup. "
+                    f"Increase value of --free-up. Currently: {args.free_up}") from None
+
+            backup_count = len(all_backups(backup_location))
+            if backup_count == 1:
+                raise CommandLineError(
+                    f"Cannot free up enough space at {backup_location} to complete backup "
+                    "without deleting the only remaining backup.") from None
+            elif backup_count == 0:
+                raise CommandLineError(
+                    f"There is not enough space at {backup_location} to "
+                    "create a backup.") from None
 
 
 def main(argv: list[str], *, testing: bool) -> int:
