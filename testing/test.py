@@ -1884,7 +1884,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
     def test_error_raised_when_no_backups_to_delete_and_no_space(self) -> None:
         """If space runs out during a backup and there are no backups to delete, raise error."""
         create_user_data(self.user_path)
-        mock_storage = DiskUsageMock(self.backup_path, 1)
+        mock_storage = DiskUsageMock(self.backup_path, 10_000)
         args = argparse.parse_command_line([
             "-u", str(self.user_path),
             "-b", str(self.backup_path),
@@ -1902,7 +1902,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         """If space runs out during a backup and there is only one backup, raise error."""
         create_user_data(self.user_path)
         create_old_monthly_backups(self.backup_path, 1)
-        mock_storage = DiskUsageMock(self.backup_path, 1)
+        mock_storage = DiskUsageMock(self.backup_path, 10_000)
         args = argparse.parse_command_line([
             "-u", str(self.user_path),
             "-b", str(self.backup_path),
