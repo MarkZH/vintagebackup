@@ -1856,7 +1856,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(all_backups[:-1], expected_remaining_backups)
 
     def test_error_raised_when_free_up_not_large_enough_when_storage_space_is_too_low(self) -> None:
-        """If space runs out during a backup, old backups are deleted until backup succeeds."""
+        """If space runs out during a backup and --free-up does not delete backups, raise error."""
         initial_backups = 30
         create_old_daily_backups(self.backup_path, initial_backups)
         file_size = 10_000_000
