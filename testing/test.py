@@ -977,6 +977,35 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
 
         self.assertEqual(previewed_paths, backed_up_paths)
 
+    def test_filter_exclusion_preview_lists_correct_files(self) -> None:
+        """Test that previewing the exclusions of a filter matches the files that are backed up."""
+        create_user_data(self.user_path)
+        self.filter_path.write_text("- **/*2.txt\n", encoding="utf8")
+        preview_path = self.user_path/"preview.txt"
+        main_assert_no_error_log([
+            "--user-folder", str(self.user_path),
+            "--filter", str(self.filter_path),
+            "--preview-filter-exclusions", str(preview_path)],
+            self)
+
+        with preview_path.open(encoding="utf8") as preview:
+            previewed_paths = read_paths_file(preview)
+        previewed_paths = {path.relative_to(self.user_path) for path in previewed_paths}
+
+        main_assert_no_error_log([
+            "--user-folder", str(self.user_path),
+            "--backup-folder", str(self.backup_path),
+            "--filter", str(self.filter_path)],
+            self)
+
+        backed_up_paths: set[Path] = set()
+        last_backup = cast(Path, util.find_previous_backup(self.backup_path))
+        for directory, _, files in last_backup.walk():
+            backed_up_paths.update(directory.relative_to(last_backup)/file for file in files)
+
+        self.assertNotEqual(len(previewed_paths), 0)
+        self.assertTrue(previewed_paths.isdisjoint(backed_up_paths))
+
 
 class UserInputSequence:
     """Create a sequence of inputs to feed calls to the built-in input() function."""

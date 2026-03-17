@@ -23,6 +23,10 @@ Check that a [filter file](filter_files.md) is correct by printing a list of eve
 The list will be printed to a file name in the parameter of this option, or the console if the parameter is blank.
 The `--user-folder` option is required. This procedure can be run without a `--filter` option, which will result in everything in the user folder being printed.
 
+### `--preview-filter-exclusions`
+
+This option is just like `--preview-filter`, but instead prints every file that is excluded by the [filter file](filter_files.md).
+
 ### `--debug`
 
 Write extra information about more actions to the log file.

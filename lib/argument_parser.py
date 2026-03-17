@@ -203,6 +203,16 @@ neither option is used then a menu with every backup with a checksum file."""))
 --filter file argument. The argument is a file name where the list will be written. If there is no
 argument, the list will be written to the console. The --user-folder argument is required."""))
 
+    only_one_action_group.add_argument(
+        "--preview-filter-exclusions",
+        metavar="FILE_NAME",
+        nargs="?",
+        const=False,
+        help=format_help(
+"""Create a list of the files and folders that will be excluded from the backup by the --filter
+file argument. The argument is a file name where the list will be written. If there is no argument,
+the list will be written to the console. The --user-folder argument is required."""))
+
     only_one_action_group.add_argument("--restore", action="store_true", help=format_help(
 """This action restores the user's folder to a previous, backed up state. Any existing user files
 that have the same name as one in the backup will be overwritten. The --backup-folder is required to

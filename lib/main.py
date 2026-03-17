@@ -99,6 +99,7 @@ def main(argv: list[str], *, testing: bool) -> int:
             else choose_purge_target_from_backups if args.purge_list
             else delete_old_backups if args.delete_only
             else preview_filter if args.preview_filter is not None
+            else preview_filter if args.preview_filter_exclusions is not None
             else default_action)
         action(args)
         return 0
