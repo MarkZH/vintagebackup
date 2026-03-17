@@ -970,15 +970,10 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
             "--filter", str(self.filter_path)],
             self)
 
-        backup_list_path = self.user_path/"backed_up.txt"
+        backed_up_paths: set[Path] = set()
         last_backup = cast(Path, util.find_previous_backup(self.backup_path))
-        with backup_list_path.open("w", encoding="utf8") as backup_list:
-            for directory, _, files in last_backup.walk():
-                fs.write_directory(backup_list, directory, files)
-
-        with backup_list_path.open(encoding="utf8") as backup_list:
-            backed_up_paths = read_paths_file(backup_list)
-        backed_up_paths = {path.relative_to(last_backup) for path in backed_up_paths}
+        for directory, _, files in last_backup.walk():
+            backed_up_paths.update(directory.relative_to(last_backup)/file for file in files)
 
         self.assertEqual(previewed_paths, backed_up_paths)
 
