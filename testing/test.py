@@ -762,6 +762,44 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
             linked_backup_file.stat().st_ino,
             other_linked_backup_file.stat().st_ino)
 
+    def test_failure_to_hardlink_results_in_copy(self) -> None:
+        """Test that if a hard link fails, a copy is made."""
+        create_user_data(self.user_path)
+
+        def non_functional_hardlink(*_: object) -> None:
+            raise RuntimeError("testing failure")
+
+        default_backup(self.user_path, self.backup_path)
+        backups = util.all_backups(self.backup_path)
+        self.assertEqual(len(backups), 1)
+        with patch("lib.backup.Path.hardlink_to", non_functional_hardlink):
+            default_backup(self.user_path, self.backup_path)
+
+        backups = util.all_backups(self.backup_path)
+        self.assertEqual(len(backups), 2)
+        self.assertTrue(directories_are_completely_copied(*backups))
+
+    def test_failure_to_hardlink_and_copy_is_logged(self) -> None:
+        """Test that a file that fails to be backed up is logged."""
+        create_user_data(self.user_path)
+        fail_path = self.user_path/"root_file.txt"
+
+        original_copy = copy.copy(shutil.copy2)
+
+        def fail_copy(source: Path, destination: Path, *, follow_symlinks: bool) -> None:
+            if source == fail_path:
+                raise RuntimeError("testing failure")
+            else:
+                original_copy(source, destination, follow_symlinks=follow_symlinks)
+
+        with (patch("lib.backup.shutil.copy2", fail_copy),
+              self.assertLogs(level=logging.WARNING) as logs):
+            default_backup(self.user_path, self.backup_path)
+
+        self.assertEqual(
+            logs.output,
+            [f"WARNING:root:Could not copy {fail_path} (testing failure)"])
+
 
 class FilterTests(TestCaseWithTemporaryFilesAndFolders):
     """Test that filter files work properly."""
