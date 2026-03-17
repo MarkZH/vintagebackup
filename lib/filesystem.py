@@ -31,7 +31,7 @@ def byte_units(size: float) -> str:
     '12.00 B'
     """
     if size < 0.0:
-        raise RuntimeError(f"Got invalid value for byte_units(): {size}")
+        return f"-{byte_units(-size)}"
 
     if size < 1.0:
         return "0.000 B"

@@ -3892,10 +3892,9 @@ class ParseStorageTests(unittest.TestCase):
         """Make sure byte_units can handle inputs of 0."""
         self.assertEqual("0.000 B", fs.byte_units(0))
 
-    def test_negative_bytes_is_an_error(self) -> None:
-        """Assert negative storages sizes are invalid."""
-        with self.assertRaises(RuntimeError):
-            fs.byte_units(-1)
+    def test_negative_bytes_returns_negative_string(self) -> None:
+        """Negative storages sizes are correctly formatted."""
+        self.assertEqual(fs.byte_units(-1), "-1.000 B")
 
     def test_one_byte_results_in_one_byte(self) -> None:
         """Assert input of 1 results in 1.000."""
