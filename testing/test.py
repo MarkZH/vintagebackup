@@ -1618,7 +1618,10 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         for method in Invocation:
             create_old_monthly_backups(self.backup_path, 30)
             max_age = "1y"
-            now = datetime.datetime.now()
+            last_backup = util.find_previous_backup(self.backup_path)
+            self.assertIsNotNone(last_backup)
+            last_backup = cast(Path, last_backup)
+            now = util.backup_datetime(last_backup)
             earliest_backup = datetime.datetime.combine(
                 dates.fix_end_of_month(now.year - 1, now.month, now.day),
                 datetime.time(now.hour, now.minute, now.second, now.microsecond))
@@ -1636,7 +1639,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             else:
                 raise NotImplementedError(f"Delete backup test not implemented for {method}")
             backups = util.all_backups(self.backup_path)
-            self.assertEqual(len(backups), 12, method)
+            self.assertEqual(len(backups), 13, method)
             self.assertLessEqual(earliest_backup, util.backup_datetime(backups[0]), method)
 
             self.reset_backup_folder()
@@ -1676,9 +1679,11 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         now = datetime.datetime.now()
         earliest_backup = datetime.datetime(
             now.year - 1, now.month, now.day,
-            now.hour, now.minute, now.second, now.microsecond)
+            now.hour, now.minute, now.second)
         create_user_data(self.user_path)
-        most_recent_backup = moving.last_n_backups(1, self.backup_path)[0]
+        most_recent_backup = util.find_previous_backup(self.backup_path)
+        self.assertIsNotNone(most_recent_backup)
+        most_recent_backup = cast(Path, most_recent_backup)
         fs.delete_directory_tree(most_recent_backup)
         with self.assertLogs(level=logging.INFO) as logs:
             exit_code = main.main([
@@ -1689,22 +1694,26 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
                 testing=True)
         self.assertEqual(exit_code, 0)
         backups = util.all_backups(self.backup_path)
-        self.assertEqual(len(backups), 12)
-        self.assertLessEqual(earliest_backup, util.backup_datetime(backups[0]))
+        self.assertEqual(len(backups), 13)
+        self.assertEqual(earliest_backup, util.backup_datetime(backups[0]))
 
-        backups_deleted = False
+        backups_deleted_before_backup = 0
+        backups_deleted_after_backup = 0
         created_backup = False
         for line in logs.output:
             self.assertTrue(line.startswith("INFO:root:"))
             if line.startswith("INFO:root:Deleting oldest backup"):
-                self.assertFalse(created_backup)
-                backups_deleted = True
+                if created_backup:
+                    backups_deleted_after_backup += 1
+                else:
+                    backups_deleted_before_backup += 1
 
             if line == "INFO:root:Running backup ...":
-                self.assertTrue(backups_deleted)
+                self.assertEqual(backups_deleted_after_backup, 0)
                 created_backup = True
 
-        self.assertTrue(backups_deleted)
+        self.assertEqual(backups_deleted_before_backup, 16)
+        self.assertEqual(backups_deleted_after_backup, 1)
         self.assertTrue(created_backup)
 
     def test_free_up_never_deletes_most_recent_backup(self) -> None:
@@ -1745,10 +1754,10 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
         backups = util.all_backups(self.backup_path)
-        self.assertEqual(len(backups), 4)  # 120 days = 4 months
-        now = datetime.datetime.now()
+        self.assertEqual(len(backups), 5)  # 120 days = 4 months
+        last_backup_date = util.backup_datetime(backups[-1])
         earliest_backup_timestamp = util.backup_datetime(backups[0])
-        self.assertLessEqual(now - earliest_backup_timestamp, oldest_backup_age)
+        self.assertEqual(last_backup_date - earliest_backup_timestamp, oldest_backup_age)
 
     def test_keep_weekly_after_only_retains_weekly_backups_after_time_span(self) -> None:
         """After the given time span, every backup is at least a week apart."""
@@ -1756,7 +1765,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         time_span_keep_all_backups = "2w"
         backups = util.all_backups(self.backup_path)
         expected_indexes_remaining = [
-            0, 7, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
+            0, 7, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
         expected_backups_remaining = [backups[i] for i in expected_indexes_remaining]
         main_assert_no_error_log([
             "--keep-weekly-after", time_span_keep_all_backups,
@@ -1790,7 +1799,11 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
 
             first_retained_index -= 1
 
-        expected_backups_remaining = [backups[0], backups[first_retained_index], backups[-1]]
+        expected_backups_remaining = [
+            backups[0],
+            backups[first_retained_index],
+            backups[-2],
+            backups[-1]]
 
         main_assert_no_error_log([
             "--keep-monthly-after", time_span_to_keep_all_backups,
