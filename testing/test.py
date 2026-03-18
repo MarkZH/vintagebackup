@@ -1733,7 +1733,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         deletion.delete_single_backup(oldest_backup, None)
         self.assertFalse(oldest_backup_year_folder.is_dir())
         this_year_backup_folder = self.backup_path/f"{today.year}"
-        self.assertIsNotNone(this_year_backup_folder)
+        self.assertTrue(this_year_backup_folder.is_dir())
 
     def test_delete_only_command_line_option(self) -> None:
         """Test that --delete-only deletes backups without running a backup."""
