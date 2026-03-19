@@ -86,7 +86,11 @@ def delete_backups_older_than(
     if not time_span:
         return
 
-    timestamp_to_keep = parse_time_span_to_timepoint(time_span)
+    last_backup = util.find_previous_backup(backup_folder)
+    if not last_backup:
+        return
+    now = util.backup_datetime(last_backup)
+    timestamp_to_keep = parse_time_span_to_timepoint(time_span, now)
     first_deletion_message = (
         f"Deleting backups prior to {timestamp_to_keep.strftime('%Y-%m-%d %H:%M:%S')}.")
 
@@ -178,7 +182,10 @@ def delete_too_frequent_backups(
     min_backups_remaining = max(1, min_backups_remaining)
     max_deletions = len(util.all_backups(backup_folder)) - min_backups_remaining
     deletion_count = 0
-    now = datetime.datetime.now()
+    last_backup = util.find_previous_backup(backup_folder)
+    if not last_backup:
+        return
+    now = util.backup_datetime(last_backup)
 
     def old_enough(date_cutoff: datetime.datetime) -> Callable[[Path], bool]:
         return lambda backup: util.backup_datetime(backup) < date_cutoff
