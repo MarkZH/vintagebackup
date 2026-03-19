@@ -1676,7 +1676,10 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that old backups can be deleted with --delete-after before a new backup."""
         create_old_monthly_backups(self.backup_path, 30)
         max_age = "1y"
-        now = datetime.datetime.now()
+        last_backup = util.find_previous_backup(self.backup_path)
+        self.assertIsNotNone(last_backup)
+        last_backup = cast(Path, last_backup)
+        now = util.backup_datetime(last_backup)
         earliest_backup = datetime.datetime(
             now.year - 1, now.month, now.day,
             now.hour, now.minute, now.second)
