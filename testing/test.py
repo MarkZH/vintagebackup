@@ -1684,7 +1684,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             now.year - 1, now.month, now.day,
             now.hour, now.minute, now.second)
         create_user_data(self.user_path)
-        fs.delete_directory_tree(last_backup)
+        deletion.delete_single_backup(last_backup, None)
         with self.assertLogs(level=logging.INFO) as logs:
             exit_code = main.main([
                 "-u", str(self.user_path),
