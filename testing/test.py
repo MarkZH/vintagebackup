@@ -1684,10 +1684,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             now.year - 1, now.month, now.day,
             now.hour, now.minute, now.second)
         create_user_data(self.user_path)
-        most_recent_backup = util.find_previous_backup(self.backup_path)
-        self.assertIsNotNone(most_recent_backup)
-        most_recent_backup = cast(Path, most_recent_backup)
-        fs.delete_directory_tree(most_recent_backup)
+        fs.delete_directory_tree(last_backup)
         with self.assertLogs(level=logging.INFO) as logs:
             exit_code = main.main([
                 "-u", str(self.user_path),
