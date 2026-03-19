@@ -1690,7 +1690,8 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
                 "-u", str(self.user_path),
                 "-b", str(self.backup_path),
                 "--delete-after", max_age,
-                "--log", os.devnull],
+                "--log", os.devnull,
+                "--timestamp", now.strftime(util.backup_date_format)],
                 testing=True)
         self.assertEqual(exit_code, 0)
         backups = util.all_backups(self.backup_path)
