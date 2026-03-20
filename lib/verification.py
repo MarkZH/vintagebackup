@@ -55,17 +55,20 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
         error_file_name.open("w", encoding="utf8") as error_file):
 
         for file in (matching_file, mismatching_file, error_file):
-            file.write(f"Comparison: {user_folder} <---> {backup_folder}\n")
+            file.write(f"Comparison: {user_folder} <---> {last_backup_folder}\n")
 
         for directory, file_names in Backup_Set(user_folder, filter_file):
             relative_directory = directory.relative_to(user_folder)
+            logger.debug(relative_directory)
             backup_directory = last_backup_folder/relative_directory
+            logger.debug("Comparing files ...")
             matches, mismatches, errors = filecmp.cmpfiles(
                 directory,
                 backup_directory,
                 file_names,
                 shallow=False)
 
+            logger.debug("Writing results ...")
             fs.write_directory(matching_file, directory, matches)
             fs.write_directory(mismatching_file, directory, mismatches)
             fs.write_directory(error_file, directory, errors)
@@ -230,8 +233,7 @@ def start_verify_checksum(args: argparse.Namespace) -> None:
     else:
         choice = console.choose_from_menu(
             [p.name for p in checksummed_backups],
-            "Choose a backup to verify its checksum",
-            test_choice=int(args.choice) if args.choice else None)
+            "Choose a backup to verify its checksum")
         target = checksummed_backups[choice]
 
     verify_backup_checksum(target, result_folder)

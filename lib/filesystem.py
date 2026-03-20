@@ -31,7 +31,7 @@ def byte_units(size: float) -> str:
     '12.00 B'
     """
     if size < 0.0:
-        raise RuntimeError(f"Got invalid value for byte_units(): {size}")
+        return f"-{byte_units(-size)}"
 
     if size < 1.0:
         return "0.000 B"
@@ -157,9 +157,15 @@ def parse_storage_space(space_requirement: str) -> float:
 
     Arguments:
         space_requirement: A string indicating an amount of space as an absolute number of
-            bytes. Byte units and prefixes are allowed.
+            bytes. Byte units are allowed.
+
+    Returns:
+        bytes: The numeric value of the number of bytes.
 
     >>> parse_storage_space("100")
+    100.0
+
+    >>> parse_storage_space("100 B")
     100.0
 
     >>> parse_storage_space("152 kB")
@@ -196,13 +202,14 @@ def get_existing_path(path: str | None, folder_type: str) -> Path:
     if not path:
         raise CommandLineError(f"{folder_type.capitalize()} not specified.")
 
-    try:
-        return absolute_path(path, strict=True)
-    except FileNotFoundError:
+    abs_path = absolute_path(path)
+    if not abs_path.exists(follow_symlinks=False):
         raise CommandLineError(f"Could not find {folder_type.lower()}: {path}") from None
 
+    return abs_path
 
-def absolute_path(path: Path | str, *, strict: bool = False) -> Path:
+
+def absolute_path(path: Path | str) -> Path:
     """
     Return an absolute version of the given path.
 
@@ -210,14 +217,8 @@ def absolute_path(path: Path | str, *, strict: bool = False) -> Path:
 
     Arguments:
         path: The path to be made absolute.
-        strict: If True, raise a FileNotFoundError if the path does not exist. Symlinks are
-            not followed, so an existing symlink to a non-existent file or folder does not raise an
-            error.
     """
-    abs_path = Path(os.path.abspath(path))  # noqa: PTH100
-    if strict and not abs_path.exists(follow_symlinks=False):
-        raise FileNotFoundError(f"The path {abs_path}, resolved from {path} does not exist.")
-    return abs_path
+    return Path(os.path.abspath(path))  # noqa: PTH100
 
 
 def path_listing(listing: Iterable[tuple[Path, list[str]]], output: TextIO) -> None:

@@ -203,6 +203,16 @@ neither option is used then a menu with every backup with a checksum file."""))
 --filter file argument. The argument is a file name where the list will be written. If there is no
 argument, the list will be written to the console. The --user-folder argument is required."""))
 
+    only_one_action_group.add_argument(
+        "--preview-filter-exclusions",
+        metavar="FILE_NAME",
+        nargs="?",
+        const=False,
+        help=format_help(
+"""Create a list of the files and folders that will be excluded from the backup by the --filter
+file argument. The argument is a file name where the list will be written. If there is no argument,
+the list will be written to the console. The --user-folder argument is required."""))
+
     only_one_action_group.add_argument("--restore", action="store_true", help=format_help(
 """This action restores the user's folder to a previous, backed up state. Any existing user files
 that have the same name as one in the backup will be overwritten. The --backup-folder is required to
@@ -500,20 +510,11 @@ are some examples of such patterns:
     # This line will exclude dir1 and all of its contents.
     - dir1/**"""))
 
-    # The following arguments are only used for testing.
-
-    # Bypass keyboard input when testing functions that ask for a choice from a menu.
-    user_input.add_argument("--choice", help=argparse.SUPPRESS)
+    # The following argument is only used for testing.
 
     # Allow for backups to be created more quickly by providing a timestamp instead of using
     # datetime.datetime.now().
     user_input.add_argument("--timestamp", help=argparse.SUPPRESS)
-
-    # Skip confirmation prompt for backup restorations.
-    user_input.add_argument("--skip-prompt", action="store_true", help=argparse.SUPPRESS)
-
-    # Give user input that causes errors.
-    user_input.add_argument("--bad-input", action="store_true", help=argparse.SUPPRESS)
 
     return user_input
 

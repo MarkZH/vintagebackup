@@ -8,7 +8,7 @@ import datetime
 from collections.abc import Callable
 from pathlib import Path
 
-from lib.backup_utilities import all_backups, backup_datetime
+import lib.backup_utilities as util
 from lib.datetime_calculations import parse_time_span_to_timepoint
 from lib.exceptions import CommandLineError
 import lib.filesystem as fs
@@ -86,12 +86,16 @@ def delete_backups_older_than(
     if not time_span:
         return
 
-    timestamp_to_keep = parse_time_span_to_timepoint(time_span)
+    last_backup = util.find_previous_backup(backup_folder)
+    if not last_backup:
+        return
+    now = util.backup_datetime(last_backup)
+    timestamp_to_keep = parse_time_span_to_timepoint(time_span, now)
     first_deletion_message = (
         f"Deleting backups prior to {timestamp_to_keep.strftime('%Y-%m-%d %H:%M:%S')}.")
 
     def stop(backup: Path) -> bool:
-        return backup_datetime(backup) >= timestamp_to_keep
+        return util.backup_datetime(backup) >= timestamp_to_keep
 
     delete_backups(
         backup_folder,
@@ -139,7 +143,7 @@ def delete_backups(
     """
     min_backups_remaining = max(1, min_backups_remaining)
 
-    backups_to_delete = all_backups(backup_folder)[:-min_backups_remaining]
+    backups_to_delete = util.all_backups(backup_folder)[:-min_backups_remaining]
     if not backups_to_delete:
         return
 
@@ -154,7 +158,7 @@ def delete_backups(
         logger.info("Deleting oldest backup: %s", backup)
         delete_single_backup(backup, verify_checksum_result_folder)
 
-    remaining_backups = all_backups(backup_folder)
+    remaining_backups = util.all_backups(backup_folder)
     oldest_backup = remaining_backups[0]
     if not stop_deletion_condition(oldest_backup):
         if len(remaining_backups) == 1:
@@ -176,12 +180,15 @@ def delete_too_frequent_backups(
     check_time_span_parameters(args)
 
     min_backups_remaining = max(1, min_backups_remaining)
-    max_deletions = len(all_backups(backup_folder)) - min_backups_remaining
+    max_deletions = len(util.all_backups(backup_folder)) - min_backups_remaining
     deletion_count = 0
-    now = datetime.datetime.now()
+    last_backup = util.find_previous_backup(backup_folder)
+    if not last_backup:
+        return
+    now = util.backup_datetime(last_backup)
 
     def old_enough(date_cutoff: datetime.datetime) -> Callable[[Path], bool]:
-        return lambda backup: backup_datetime(backup) < date_cutoff
+        return lambda backup: util.backup_datetime(backup) < date_cutoff
 
     for period, period_word, time_span_str in (
             ("7d", "weekly", args.keep_weekly_after),
@@ -192,15 +199,15 @@ def delete_too_frequent_backups(
             continue
 
         date_cutoff = parse_time_span_to_timepoint(time_span_str, now)
-        backups = list(filter(old_enough(date_cutoff), all_backups(backup_folder)))
+        backups = list(filter(old_enough(date_cutoff), util.all_backups(backup_folder)))
         while len(backups) > 1:
             if deletion_count >= max_deletions:
                 return
             standard = backups[0]
             next_backup = backups[1]
-            next_timestamp = backup_datetime(next_backup)
+            next_timestamp = util.backup_datetime(next_backup)
             earliest_standard_timestamp = parse_time_span_to_timepoint(period, next_timestamp)
-            if backup_datetime(standard).date() > earliest_standard_timestamp.date():
+            if util.backup_datetime(standard).date() > earliest_standard_timestamp.date():
                 logger.info("Deleting backup (%s) %s", period_word, next_backup)
                 deletion_count += 1
                 delete_single_backup(next_backup, verify_checksum_result_folder)
@@ -245,7 +252,7 @@ def delete_old_backups(args: argparse.Namespace) -> None:
             return
 
     with Backup_Lock(backup_folder, "backup deletion"):
-        backup_count = len(all_backups(backup_folder))
+        backup_count = len(util.all_backups(backup_folder))
         verify_checksum_result_folder = fs.path_or_none(args.verify_checksum_before_deletion)
         max_deletions = int(args.max_deletions or backup_count)
         min_backups_remaining = max(backup_count - max_deletions, 1)

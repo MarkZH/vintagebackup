@@ -3,52 +3,39 @@
 import logging
 import platform
 import argparse
-from typing import TextIO
 
 from lib.filesystem import absolute_path
 
 logger = logging.getLogger()
 
 
-def choose_from_menu(
-        menu_choices: list[str],
-        prompt: str,
-        test_choice: int | list[int] | None = None,
-        output: TextIO | None = None) -> int:
+def choose_from_menu(menu_choices: list[str], prompt: str) -> int:
     """
     Let user choose from options presented a numbered list in a terminal.
 
     Arguments:
         menu_choices: List of choices
         prompt: Message to show user prior to the prompt for a choice.
-        test_choice: A present menu choice to be used during testing.
-        output: An alternate destination for console output during testing.
 
     Returns:
         int: The returned number is an index into the input list. The interface has the user
             choose a number from 1 to len(menu_list), but returns a number from 0 to
             len(menu_list) - 1.
     """
-    if test_choice is None or output is not None:
-        number_column_size = len(str(len(menu_choices)))
-        for number, choice in enumerate(menu_choices, 1):
-            print(f"{number:>{number_column_size}}: {choice}", file=output)
-
-    if isinstance(test_choice, int):
-        test_choice = [test_choice]
+    number_column_size = len(str(len(menu_choices)))
+    for number, choice in enumerate(menu_choices, 1):
+        print(f"{number:>{number_column_size}}: {choice}")
 
     console_prompt = f"{prompt} ({cancel_key()} to quit): "
     while True:
         try:
-            user_choice = test_choice[0] if test_choice is not None else int(input(console_prompt))
+            user_choice = int(input(console_prompt))
             if 1 <= user_choice <= len(menu_choices):
                 return user_choice - 1
         except ValueError:
             pass
 
-        print(f"Enter a number from 1 to {len(menu_choices)}", file=output)
-        if test_choice is not None:
-            test_choice.pop(0)
+        print(f"Enter a number from 1 to {len(menu_choices)}")
 
 
 def cancel_key() -> str:

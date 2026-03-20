@@ -9,6 +9,7 @@ import filecmp
 import stat
 import math
 import random
+import errno
 from collections import Counter
 from collections.abc import Callable, Iterable
 from pathlib import Path
@@ -19,7 +20,7 @@ import lib.backup_utilities as util
 from lib import backup_info
 from lib.backup_lock import Backup_Lock
 from lib.backup_set import Backup_Set
-from lib.exceptions import CommandLineError
+from lib.exceptions import CommandLineError, OutOfSpaceError
 import lib.filesystem as fs
 
 logger = logging.getLogger()
@@ -205,8 +206,9 @@ def backup_directory(
     """
     relative_path = current_user_path.relative_to(user_data_location)
     new_backup_directory = new_backup_path/relative_path
-    new_backup_directory.mkdir(parents=True)
+    create_backup_directory(new_backup_directory)
     previous_backup_directory = last_backup_path/relative_path if last_backup_path else None
+
     files_to_link, files_to_copy = compare_to_backup(
         current_user_path,
         previous_backup_directory,
@@ -214,6 +216,31 @@ def backup_directory(
         examine_whole_file=examine_whole_file,
         copy_probability=copy_probability)
 
+    hardlink_files_to_backup(
+        new_backup_directory,
+        previous_backup_directory,
+        files_to_link,
+        files_to_copy,
+        action_counter)
+
+    return copy_files_to_backup(
+        current_user_path,
+        new_backup_directory,
+        files_to_copy,
+        action_counter)
+
+
+def hardlink_files_to_backup(
+        new_backup_directory: Path,
+        previous_backup_directory: Path | None,
+        files_to_link: list[str],
+        files_to_copy: list[str],
+        action_counter: Counter[str]) -> None:
+    """
+    Hard link files to previous backup.
+
+    If an error occurs while hardlinking a file, move that file to the copy list.
+    """
     for file_name in files_to_link:
         previous_backup = cast(Path, previous_backup_directory)/file_name
         new_backup = new_backup_directory/file_name
@@ -224,6 +251,13 @@ def backup_directory(
         else:
             files_to_copy.append(file_name)
 
+
+def copy_files_to_backup(
+        current_user_path: Path,
+        new_backup_directory: Path,
+        files_to_copy: list[str],
+        action_counter: Counter[str]) -> int:
+    """Copy files to the backup location."""
     size_of_copied_files = 0
     for file_name in files_to_copy:
         new_backup_file = new_backup_directory/file_name
@@ -234,10 +268,26 @@ def backup_directory(
             size_of_copied_files += user_file.stat().st_size
             logger.debug("Copied %s to %s", user_file, new_backup_file)
         except Exception as error:
+            if isinstance(error, OSError) and error.errno == errno.ENOSPC:
+                raise OutOfSpaceError(
+                    f"No space to copy {user_file} to {new_backup_directory}.") from error
+
             logger.warning("Could not copy %s (%s)", user_file, error)
             action_counter["failed copies"] += 1
 
     return size_of_copied_files
+
+
+def create_backup_directory(new_backup_directory: Path) -> None:
+    """Create directory in backup location."""
+    try:
+        new_backup_directory.mkdir(parents=True)
+    except OSError as error:
+        if error.errno == errno.ENOSPC:
+            raise OutOfSpaceError(
+                f"Could not create {new_backup_directory} due to lack of space.") from error
+        else:
+            raise
 
 
 def backup_name(backup_datetime: datetime.datetime | str | None) -> Path:

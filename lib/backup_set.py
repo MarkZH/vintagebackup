@@ -5,6 +5,7 @@ import logging
 import sys
 from collections.abc import Iterator
 from pathlib import Path
+from itertools import filterfalse
 
 from lib.filesystem import get_existing_path, path_listing, path_or_none
 
@@ -14,18 +15,25 @@ logger = logging.getLogger()
 class Backup_Set:
     """Generate the list of all paths to be backed up after filtering."""
 
-    def __init__(self, user_folder: Path, filter_file: Path | None) -> None:
+    def __init__(
+            self,
+            user_folder: Path,
+            filter_file: Path | None,
+            *,
+            get_excluded: bool = False) -> None:
         """
         Prepare the path generator by parsing the filter file.
 
         Arguments:
             user_folder: The folder to be backed up.
             filter_file: The path of the filter file that edits the paths to backup.
+            get_excluded: Whether to yield files that are excluded by the filter file.
         """
         self.entries: list[tuple[int, str, Path]] = []
         self.lines_used: set[int] = set()
         self.user_folder = user_folder
         self.filter_file = filter_file
+        self.get_excluded = get_excluded
 
         if not filter_file:
             return
@@ -61,8 +69,9 @@ class Backup_Set:
             Sequence: Yields a sequence of tuples, each is a directory path and the file names
                 within that have not been filtered out.
         """
+        this_filter = filterfalse if self.get_excluded else filter
         for current_directory, _, files in self.user_folder.walk():
-            good_files = list(filter(self.passes, (current_directory/file for file in files)))
+            good_files = list(this_filter(self.passes, (current_directory/file for file in files)))
             if good_files:
                 yield (current_directory, [file.name for file in good_files])
 
@@ -104,8 +113,9 @@ def preview_filter(args: argparse.Namespace) -> None:
     """Print a list of files that will make it through the --filter file."""
     user_folder = get_existing_path(args.user_folder, "user folder")
     filter_file = path_or_none(args.filter)
-    output_file = path_or_none(args.preview_filter)
-    backup_set = Backup_Set(user_folder, filter_file)
+    output_file = path_or_none(args.preview_filter or args.preview_filter_exclusions)
+    get_exclusions = args.preview_filter_exclusions is not None
+    backup_set = Backup_Set(user_folder, filter_file, get_excluded=get_exclusions)
     if output_file:
         with output_file.open("w", encoding="utf8") as output:
             path_listing(backup_set, output)

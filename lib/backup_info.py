@@ -26,7 +26,7 @@ def get_backup_info_file(backup_location: Path) -> Path:
 def record_user_location(user_location: Path, backup_location: Path) -> None:
     """Write the user directory being backed up to a file in the base backup directory."""
     backup_info = read_backup_information(backup_location)
-    backup_info["Source"] = absolute_path(user_location, strict=True)
+    backup_info["Source"] = absolute_path(user_location)
     write_backup_information(backup_location, backup_info)
 
 

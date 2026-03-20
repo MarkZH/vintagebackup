@@ -8,12 +8,7 @@ import math
 
 from lib.argument_parser import confirm_choice_made
 from lib.backup import create_new_backup
-from lib.backup_info import (
-    backup_log_file,
-    backup_source,
-    get_backup_info_file,
-    record_backup_log_file,
-    record_user_location)
+import lib.backup_info as info
 from lib.backup_lock import Backup_Lock
 from lib.backup_utilities import all_backups, backup_datetime
 from lib.console import plural_noun, print_run_title
@@ -44,19 +39,19 @@ def move_backups(
             is_backup_move=True,
             timestamp=backup_datetime(backup))
 
-        backup_source_file = get_backup_info_file(new_backup_location)
+        backup_source_file = info.get_backup_info_file(new_backup_location)
         backup_source_file.unlink()
         logger.info("---------------------")
 
-    original_backup_source = backup_source(old_backup_location)
+    original_backup_source = info.backup_source(old_backup_location)
     if original_backup_source:
-        record_user_location(original_backup_source, new_backup_location)
+        info.record_user_location(original_backup_source, new_backup_location)
     else:
         logger.warning("Could not find source of user data in %s", old_backup_location)
 
-    old_log_file = backup_log_file(old_backup_location)
+    old_log_file = info.backup_log_file(old_backup_location)
     if old_log_file:
-        record_backup_log_file(old_log_file, new_backup_location)
+        info.record_backup_log_file(old_log_file, new_backup_location)
 
 
 def last_n_backups(n: str | int, backup_location: Path) -> list[Path]:

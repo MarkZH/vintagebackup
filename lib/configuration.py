@@ -28,7 +28,7 @@ def generate_config(args: argparse.Namespace) -> Path:
         arguments.append((option, value))
 
     arguments = [(arg, val) for arg, val in arguments if arg not in no_arguments]
-    config_path = unique_path_name(Path(args.generate_config))
+    config_path = unique_path_name(absolute_path(args.generate_config))
     with config_path.open("w", encoding="utf8") as config_file:
         for option, value in arguments:
             parameter = option.replace("_", " ").capitalize()
@@ -59,7 +59,7 @@ def read_configuation_file(config_file: Path) -> list[str]:
                 parameter = "-".join(parameter_raw.lower().split())
                 if parameter == "config":
                     raise CommandLineError(
-                        "The parameter `config` within a configuration file has no effect.")
+                        "The parameter `config` is not allowed within a configuration file.")
                 arguments.append(f"--{parameter}")
 
                 value = remove_quotes(value_raw)

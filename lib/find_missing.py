@@ -3,14 +3,13 @@
 import argparse
 from pathlib import Path
 import logging
-from functools import cmp_to_key
 
 from lib.backup_info import backup_source
 from lib.backup_set import Backup_Set
 from lib.exceptions import CommandLineError
 from lib.backup_utilities import all_backups
 from lib.console import print_run_title
-from lib.filesystem import unique_path_name, path_or_none
+from lib.filesystem import unique_path_name, path_or_none, absolute_path
 
 logger = logging.getLogger()
 
@@ -57,16 +56,9 @@ def find_missing_files(
     logger.warning("Copying list to %s", result_file)
     current_directory: Path | None = None
 
-    def path_compare(at: tuple[Path, Path], bt: tuple[Path, Path]) -> int:
-        a = at[0]
-        b = bt[0]
-        part_a, part_b = (
-            (Path(a.name), Path(b.name)) if a.parent == b.parent else (a.parent, b.parent))
-        return -1 if part_a < part_b else 0 if part_a == part_b else 1
-
     with result_file.open("w", encoding="utf8") as result:
         result.write(f"Missing user files found in {backup_directory}:\n")
-        for user_file, backup in sorted(last_seen.items(), key=cmp_to_key(path_compare)):
+        for user_file, backup in sorted(last_seen.items(), key=lambda x: (x[0].parent, x[0].name)):
             if user_file.parent != current_directory:
                 logger.debug(user_file.parent)
                 result.write(f"{user_file.parent}\n")
@@ -80,4 +72,7 @@ def find_missing_files(
 def start_finding_missing_files(args: argparse.Namespace) -> None:
     """Start finding missing files after parsing command line."""
     print_run_title(args, "Finding missing files")
-    find_missing_files(Path(args.backup_folder), path_or_none(args.filter), Path(args.find_missing))
+    find_missing_files(
+        absolute_path(args.backup_folder),
+        path_or_none(args.filter),
+        absolute_path(args.find_missing))
