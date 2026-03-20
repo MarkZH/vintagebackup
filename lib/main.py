@@ -74,6 +74,9 @@ def main(argv: list[str], *, testing: bool) -> int:
         argv: A list of command line arguments as from sys.argv
         testing: Whether this function is being run during testing. If True, some console output
             will be disabled.
+
+    Returns:
+        int: Exit code: 0 for success, 1 for failure.
     """
     try:
         args = parse_command_line(argv)

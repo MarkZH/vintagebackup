@@ -61,6 +61,10 @@ def last_n_backups(n: str | int, backup_location: Path) -> list[Path]:
     Arguments:
         backup_location: The location of the backup set.
         n: A positive integer to get the last n backups, or "all" to get all backups.
+
+    Returns:
+        list: A list of the n most recent backups, or all backups if n is "all" or greater than
+            the number of backups.
     """
     backups = all_backups(backup_location)
     if str(n).lower() == "all":
@@ -94,7 +98,16 @@ def start_move_backups(args: argparse.Namespace) -> None:
 
 
 def choose_backups_to_move(args: argparse.Namespace, old_backup_location: Path) -> list[Path]:
-    """Choose which backups to move based on the command line arguments."""
+    """
+    Choose which backups to move based on the command line arguments.
+
+    Arguments:
+        args: Parsed command line arguments.
+        old_backup_location: The current location of all backups.
+
+    Returns:
+        A selection of backups to move to a new location.
+    """
     confirm_choice_made(args, "move_count", "move_age", "move_since")
     if args.move_count:
         backups_to_move = last_n_backups(args.move_count, old_backup_location)

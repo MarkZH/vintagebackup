@@ -24,6 +24,12 @@ def byte_units(size: float) -> str:
     """
     Display a number of bytes with four significant figures with byte units.
 
+    Arguments:
+        size: A number representing a number of bytes of storage.
+
+    Returns:
+        str: A string representation of the size using prefixed units.
+
     >>> byte_units(12345)
     '12.35 kB'
 
@@ -60,6 +66,10 @@ def unique_path_name(destination_path: Path) -> Path:
 
     Arguments:
         destination_path: The path that will be modified if something already exists there.
+
+    Returns:
+        renamed_path: The original Path argument if it doesn't already exist, otherwise a numbered
+            version of the path that doesn't currently exist.
     """
     unique_path = destination_path
     unique_id = 0
@@ -71,7 +81,15 @@ def unique_path_name(destination_path: Path) -> Path:
 
 
 def find_unique_path(path: Path) -> Path | None:
-    """Determine whether a path or one created by unique_path_name() exists."""
+    """
+    Determine whether a path or one created by unique_path_name() exists.
+
+    Arguments:
+        path: The original path that unique_path_name() would be called on.
+
+    Returns:
+        path: The original path or a renamed version. Higher numbered versions are preferred.
+    """
     result: Path | None = None
     if path.exists():
         result = path
@@ -92,7 +110,15 @@ def find_unique_path(path: Path) -> Path | None:
 
 
 def path_or_none(arg: str | None) -> Path | None:
-    """Create a Path instance if the input string is valid."""
+    """
+    Create a Path instance if the input string is valid.
+
+    Arguments:
+        arg: An optional string representing a path.
+
+    Returns:
+        absolute_path: An absolute Path instance or None if arg is None.
+    """
     return absolute_path(arg) if arg else None
 
 
@@ -197,7 +223,15 @@ def get_existing_path(path: str | None, folder_type: str) -> Path:
     """
     Return the absolute version of the given existing path.
 
-    Raise an exception if the path does not exist.
+    Arguments:
+        path: A string version of the path to convert to a Path instance.
+        folder_type: A description of the folder to put in the error message.
+
+    Returns:
+        absolute_path: An absolute path to a folder that exists when the function is called.
+
+    Raises:
+        CommandLineError: If the path is None or does does not exist.
     """
     if not path:
         raise CommandLineError(f"{folder_type.capitalize()} not specified.")
@@ -217,6 +251,9 @@ def absolute_path(path: Path | str) -> Path:
 
     Arguments:
         path: The path to be made absolute.
+
+    Returns:
+        path: An absolute version of the path.
     """
     return Path(os.path.abspath(path))  # noqa: PTH100
 

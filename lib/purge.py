@@ -74,7 +74,16 @@ def purge_path(purge_target: Path, backup_folder: Path) -> None:
 def choose_types_to_delete(
         paths_to_delete: list[Path],
         path_type_counts: Counter[str]) -> list[str]:
-    """If a purge target has more than one type in backups, choose which type to delete."""
+    """
+    If a purge target has more than one type in backups, choose which type to delete.
+
+    Arguments:
+        paths_to_delete: A list of paths from backups that are being considered for deletion.
+        path_type_counts: A list of path types and their counts from paths_to_delete.
+
+    Returns:
+        type_choices: One or all types of paths to purge.
+    """
     if len(path_type_counts) == 1:
         return [fs.classify_path(paths_to_delete[0])]
     else:

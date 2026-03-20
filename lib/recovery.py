@@ -176,7 +176,16 @@ class Binary_Response(enum.StrEnum):
 
 
 def prompt_for_binary_choice(backup_choices: list[Path]) -> Binary_Response:
-    """Prompt user for which set of backups to search next during binary search."""
+    """
+    Prompt user for which set of backups to search next during binary search.
+
+    Arguments:
+        backup_choices: The backups that have not been eliminated by previous user choices.
+
+    Returns:
+        response: An enum indicating whether the current midpoint backup is too old, too new, or
+            correct.
+    """
     if len(backup_choices) == 1:
         logger.info("Only one choice for recovery.")
         return Binary_Response.CORRECT  # Since there's only one choice, it has to be correct.
@@ -225,7 +234,15 @@ def start_recovery_from_backup(args: argparse.Namespace) -> None:
 
 
 def choose_target_path_from_backups(args: argparse.Namespace) -> Path | None:
-    """Choose a path from a list of backed up files and folders from a given directory."""
+    """
+    Choose a path from a list of backed up files and folders from a given directory.
+
+    Arguments:
+        args: Parsed command line arguments.
+
+    Returns:
+        path: A path chosen by the user for recovering or purging.
+    """
     operation = "recovery" if args.list else "purging"
     backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
     search_directory = fs.absolute_path(args.list or args.purge_list)

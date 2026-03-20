@@ -1130,7 +1130,15 @@ class UserInputSequence:
         self.inputs = iter(inputs)
 
     def __call__(self, _: object) -> str:
-        """Replaces call to input()."""
+        """
+        Replaces call to input().
+
+        Arguments:
+            _: Ignored.
+
+        Returns:
+            str: The next string from the iterable in the __init__() method.
+        """
         return next(self.inputs)
 
 
@@ -1616,7 +1624,15 @@ class DiskUsageMock:
         self.total = initial_used + initial_free_space
 
     def __call__(self, path: Path | str) -> Mock_Usage_Result:
-        """Create a result as from shutil.disk_usage()."""
+        """
+        Create a result as from shutil.disk_usage().
+
+        Arguments:
+            path: The existing path for which the storage media that contains it will be queried.
+
+        Returns:
+            storage_stats: Storage amounts (total, used, free).
+        """
         used = self.original_disk_usage(path).used
         return self.Mock_Usage_Result(self.total, used, self.total - used)
 
