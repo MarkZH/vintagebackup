@@ -48,6 +48,13 @@ def plural_noun(count: int, word: str) -> str:
     """
     Convert a noun to a simple plural phrase if the count is not one.
 
+    Arguments:
+        count: A whole number.
+        word: A noun to be pluralized.
+
+    Returns:
+        str: A string with the number and pluralized word.
+
     >>> plural_noun(5, "cow")
     '5 cows'
 

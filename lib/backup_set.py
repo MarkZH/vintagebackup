@@ -78,7 +78,15 @@ class Backup_Set:
         self.log_unused_lines()
 
     def passes(self, path: Path) -> bool:
-        """Determine if a path should be included in the backup according to the filter file."""
+        """
+        Determine if a path should be included in the backup according to the filter file.
+
+        Arguments:
+            path: A path to a user's file to run through the filter
+
+        Returns:
+            bool: Whether the file should be backed up
+        """
         is_included = not path.is_junction()
         for line_number, sign, pattern in self.entries:
             should_include = (sign == "+")
