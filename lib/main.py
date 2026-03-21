@@ -36,7 +36,17 @@ def default_action(args: argparse.Namespace) -> None:
 
 
 def backup_cycle(args: argparse.Namespace) -> None:
-    """Retry backup creation until success, deleting old backups as needed."""
+    """
+    Retry backup creation until success, deleting old backups as needed.
+
+    Arguments:
+        args: Parsed command line
+
+    Raises:
+        OutOfSpaceError: If the backup storage media runs out of space and --free-up is not used
+        CommandLineError: If the backup storage media runs out of space and --free-up cannot delete
+            enough old backups to make room
+    """
     while True:
         try:
             delete_old_backups(args)

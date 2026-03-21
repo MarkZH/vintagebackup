@@ -1645,7 +1645,17 @@ class MockCopy2:
         self.original_copy2 = copy.copy(shutil.copy2)
 
     def __call__(self, user_file: Path, new_backup_file: Path, *, follow_symlinks: bool) -> None:
-        """A version of copy2 that fails if there isn't enough space to make a copy."""
+        """
+        A version of copy2 that fails if there isn't enough space to make a copy.
+
+        Arguments:
+            user_file: The file to be backed up in a test
+            new_backup_file: The copy destination
+            follow_symlinks: Whether symlinks should be followed to the actual file
+
+        Raises:
+            OSError: If there is not enough space to complete the copy
+        """
         free_space = shutil.disk_usage(new_backup_file.parent).free
         if free_space < user_file.stat().st_size:
             raise OSError(errno.ENOSPC, "Out of space")
@@ -2309,6 +2319,9 @@ def read_paths_file(verify_file: TextIO) -> set[Path]:
 
     Returns:
         path_set: A set of paths read from the file
+
+    Raises:
+        ValueError: If file is mis-formatted
     """
     files_from_verify: set[Path] = set()
     current_directory: Path | None = None

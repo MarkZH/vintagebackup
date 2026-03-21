@@ -13,6 +13,7 @@ from lib.backup_lock import Backup_Lock
 from lib.backup_utilities import all_backups, backup_datetime
 from lib.console import plural_noun, print_run_title
 from lib.datetime_calculations import parse_time_span_to_timepoint
+from lib.exceptions import CommandLineError
 from lib.filesystem import absolute_path, get_existing_path
 
 logger = logging.getLogger()
@@ -65,6 +66,9 @@ def last_n_backups(n: str | int, backup_location: Path) -> list[Path]:
     Returns:
         list: A list of the n most recent backups, or all backups if n is "all" or greater than
             the number of backups.
+
+    Raises:
+        CommandLineError: If n is not a positive whole number or "all"
     """
     backups = all_backups(backup_location)
     if str(n).lower() == "all":
@@ -72,7 +76,7 @@ def last_n_backups(n: str | int, backup_location: Path) -> list[Path]:
 
     count = int(n)
     if count < 1 or count != math.ceil(float(n)):
-        raise ValueError(f"Value must be a positive whole number: {n}")
+        raise CommandLineError(f"Value must be a positive whole number: {n}")
 
     return backups[-count:]
 
@@ -106,7 +110,11 @@ def choose_backups_to_move(args: argparse.Namespace, old_backup_location: Path) 
         old_backup_location: The current location of all backups.
 
     Returns:
-        A selection of backups to move to a new location.
+        list: A selection of backups to move to a new location.
+
+    Raises:
+        AssertionError: Debugging assertion that ensures all ways of choosing backups to move are
+            handled
     """
     confirm_choice_made(args, "move_count", "move_age", "move_since")
     if args.move_count:

@@ -29,6 +29,9 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
         backup_folder: The location of the backed up data.
         filter_file: The file that filters which files are backed up.
         result_folder: Where the resulting files will be saved.
+
+    Raises:
+        CommandLineError: If the backup folder contains no backups
     """
     user_folder = backup_source(backup_folder)
     if not user_folder:
@@ -89,7 +92,15 @@ verify_checksum_file_name = "checksum_verification.txt"
 
 
 def create_checksum_for_last_backup(backup_folder: Path) -> None:
-    """Create a file containing checksums of all files in the latest backup."""
+    """
+    Create a file containing checksums of all files in the latest backup.
+
+    Arguments:
+        backup_folder: Folder containing all dated backups
+
+    Raises:
+        CommandLineError: If there are no backups
+    """
     last_backup = util.find_previous_backup(backup_folder)
     if not last_backup:
         raise CommandLineError(f"Could not find backup in {backup_folder}")
@@ -169,11 +180,14 @@ def verify_backup_checksum(backup_folder: Path, result_directory: Path) -> Path 
     Verify the checksums of backed up files and write changed files to a new file.
 
     Arguments:
-        backup_folder: Base folder of all dated backups.
+        backup_folder: Folder containing a single backup.
         result_directory: Folder where the results of the checksum verification should be written.
 
     Returns:
         result_file: Path to file containing checksum verification results, if any.
+
+    Raises:
+        FileNotFoundError: If the backup does not contain a checksum file.
     """
     checksum_path = fs.find_unique_path(backup_folder/checksum_file_name)
     if not checksum_path:
@@ -215,7 +229,15 @@ def verify_backup_checksum(backup_folder: Path, result_directory: Path) -> Path 
 
 
 def start_verify_checksum(args: argparse.Namespace) -> None:
-    """Parse command line for verifying backup checksums."""
+    """
+    Parse command line for verifying backup checksums.
+
+    Arguments:
+        args: Parsed command line
+
+    Raises:
+        CommandLineError: If there are no backups with checksum files
+    """
     result_folder = fs.absolute_path(args.verify_checksum)
     print_run_title(args, "Verify backup checksum")
     backup_folder = fs.absolute_path(args.backup_folder)

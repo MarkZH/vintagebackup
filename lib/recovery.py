@@ -70,12 +70,24 @@ def search_backups(
     return search_directory/menu_list[choice][0]
 
 
-def directory_relative_to_backup(search_directory: Path, backup_folder: Path) -> Path:
-    """Return a path to a user's folder relative to the backups folder."""
-    if not fs.is_real_directory(search_directory):
-        raise CommandLineError(f"The given search path is not a directory: {search_directory}")
+def directory_relative_to_backup(user_directory: Path, backup_folder: Path) -> Path:
+    """
+    Find a path to a user's folder relative to the backups folder.
 
-    return path_relative_to_backups(search_directory, backup_folder)
+    Arguments:
+        user_directory: A directory from the user's data
+        backup_folder: Folder containing all dated backups
+
+    Returns:
+        path: Path to a user's folder relative to the base user folder.
+
+    Raises:
+        CommandLineError: If the search_directory is not a directory
+    """
+    if not fs.is_real_directory(user_directory):
+        raise CommandLineError(f"The given search path is not a directory: {user_directory}")
+
+    return path_relative_to_backups(user_directory, backup_folder)
 
 
 def recover_path(recovery_path: Path, backup_location: Path, *, search: bool) -> None:
@@ -135,6 +147,9 @@ def recover_path_to_original_location(backed_up_source: Path, destination: Path)
         backed_up_source: The file or folder to be copied to its original location.
         destination: The full path to the original location. This should include the name of
             the recovered file or folder, not just the destination folder.
+
+    Raises:
+        RuntimeError: If the name of the backed up file and the destination don't match
     """
     if destination.exists(follow_symlinks=False) and destination.name != backed_up_source.name:
         raise RuntimeError(
@@ -213,7 +228,20 @@ def prompt_for_binary_choice(backup_choices: list[Path]) -> Binary_Response:
 
 
 def path_relative_to_backups(user_path: Path, backup_location: Path) -> Path:
-    """Return a path to a user's file or folder relative to the backups folder."""
+    """
+    Return a path to a user's file or folder relative to the backups folder.
+
+    Arguments:
+        user_path: The full path to a file in the user's data
+        backup_location: The folder containing all dated backups
+
+    Returns:
+        path: A relative path to be concatenated to the new dated backup folder that will be the
+            destination of the copied or hardlinked file
+
+    Raises:
+        CommandLineError: If there are no backups or the user_path is not in the user's data
+    """
     user_data_location = backup_source(backup_location)
     if not user_data_location:
         raise CommandLineError(f"No backups found at {backup_location}") from None
