@@ -37,6 +37,9 @@ def delete_oldest_backups_for_space(
             deletion, put the verification result files in this folder.
         min_backups_remaining: The minimum number of backups remaining after deletions. The most
             recent backup will never be deleted, so the minimum meaningful value is one.
+
+    Raises:
+        CommandLineError: If the --free-up parameter is larger than the entire backup storage media.
     """
     if not space_requirement:
         return
@@ -217,7 +220,17 @@ def delete_too_frequent_backups(
 
 
 def check_time_span_parameters(args: argparse.Namespace) -> None:
-    """Make sure less frequent backup retention time spans are longer than more frequent ones."""
+    """
+    Make sure less frequent backup retention time spans are longer than more frequent ones.
+
+    Arguments:
+        args: Parsed command line
+
+    Raises:
+        CommandLineError: If a more frequent backup retention option has a longer time span than a
+            less frequent retention option. For example, the options --keep-weekly-after 6m and
+            --keep-monthly-after 14d cannot be used together.
+    """
     last_date_cutoff: datetime.datetime | None = None
     last_period_word = ""
     last_time_span_str = ""
@@ -242,7 +255,15 @@ def check_time_span_parameters(args: argparse.Namespace) -> None:
 
 
 def delete_old_backups(args: argparse.Namespace) -> None:
-    """Delete the oldest backups by various criteria in the command line options."""
+    """
+    Delete the oldest backups by various criteria in the command line options.
+
+    Arguments:
+        args: Parsed command line
+
+    Raises:
+        CommandLineError: If --delete-only is used and there are no backups at --backup-folder.
+    """
     try:
         backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
     except CommandLineError:

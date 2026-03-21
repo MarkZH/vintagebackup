@@ -62,6 +62,10 @@ def read_configuation_file(config_file: Path) -> list[str]:
 
     Returns:
         A list of strings representing a command line argument as if from sys.argv.
+
+    Raises:
+        CommandLineError: If the configuration file cannot be found or if "config" appears as a
+            parameter in the file
     """
     try:
         with config_file.open(encoding="utf8") as file:

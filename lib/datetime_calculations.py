@@ -21,6 +21,9 @@ def parse_time_span_to_timepoint(
 
     Returns:
         datetime: A datetime in the past.
+
+    Raises:
+        CommandLineError: If time_span cannot be parsed.
     """
     time_span = "".join(time_span.lower().split())
     try:
@@ -82,6 +85,9 @@ def fix_end_of_month(year: int, month: int, day: int) -> datetime.date:
 
     Returns:
         date: The closest date to the input that is in the same month.
+
+    Raises:
+        ValueError: If a valid date cannot be formed (e.g., month = 13)
 
     >>> fix_end_of_month(2023, 2, 31)
     datetime.date(2023, 2, 28)

@@ -27,7 +27,8 @@ class Backup_Lock:
         """
         Attempt to take possession of the file lock.
 
-        If unsuccessful, a ConcurrencyError is raised.
+        Raises:
+            ConcurrencyError: If acquiring the lock is unsuccessful.
         """
         while not self.acquire_lock():
             try:

@@ -118,7 +118,17 @@ def toggle_is_set(args: argparse.Namespace, name: str) -> bool:
 
 
 def confirm_choice_made(args: argparse.Namespace, *options: str) -> None:
-    """Make sure that exactly one of the argument parameters is present."""
+    """
+    Make sure that exactly one of the argument parameters is present.
+
+    Arguments:
+        args: Parsed command line
+        options: A set of command line options to check
+
+    Raises:
+        CommandLineError: If zero or more than one of the specified options appears in the command
+            line arguments
+    """
     args_dict = vars(args)
     if len(list(filter(None, map(args_dict.get, options)))) != 1:
         option_list = [f"--{option.replace("_", "-")}" for option in options]

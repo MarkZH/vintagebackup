@@ -313,6 +313,11 @@ def copy_files_to_backup(
 
     Returns:
         size: The total size in bytes of the copied files
+
+    Raises:
+        OutOfSpaceError: If a file cannot be copied due to insufficient space in the backup media
+
+    All other errors are logged while the backup continues.
     """
     size_of_copied_files = 0
     for file_name in files_to_copy:
@@ -335,7 +340,17 @@ def copy_files_to_backup(
 
 
 def create_backup_directory(new_backup_directory: Path) -> None:
-    """Create directory in backup location."""
+    """
+    Create directory in backup location.
+
+    Arguments:
+        new_backup_directory: The latest directory to be created in a backup
+
+    Raises:
+        OutOfSpaceError: If the directory cannot be created due to the backup media not having
+            enough space
+        OSError: For any other error that Path.mkdir() raises
+    """
     try:
         new_backup_directory.mkdir(parents=True)
     except OSError as error:
@@ -483,7 +498,21 @@ def check_paths_for_validity(
         user_data_location: Path,
         backup_location: Path,
         filter_file: Path | None) -> None:
-    """Check the given paths for validity and raise an exception for improper inputs."""
+    """
+    Check the given paths for validity and raise an exception for improper inputs.
+
+    Arguments:
+        user_data_location: Folder containing the user's data that will be backed up
+        backup_location: Folder containing all dated backups
+        filter_file: An optional path to a file for filtering which user's files get backed up
+
+    Raises:
+        CommandLineError: If any of the following are true:
+        - user_data_location is not a folder,
+        - backup_location exists and is not a folder
+        - backup_location is inside the user_data_location directory tree
+        - filter_file is specified and it's not a file
+    """
     if not user_data_location.is_dir():
         raise CommandLineError(f"The user folder path is not a folder: {user_data_location}")
 
@@ -531,6 +560,9 @@ def copy_probability_from_hard_link_count(hard_link_count: str) -> float:
         number: The probability that an unchanged file should be copied. The result is a number
             between 0 and 1.
 
+    Raises:
+        CommandLineError: If hard_link_count is not a whole number greater than zero
+
     Randomly copying files serves two purposes. First, it increases the safety of the backed up
     files. If no files were ever copied, then there would only be one copy of each file in the
     backup location. If that backup were corrupted, then all backups of the file would be corrupted.
@@ -576,7 +608,16 @@ def last_compare_contents(backup_folder: Path) -> datetime.datetime | None:
 
 
 def start_backup(args: argparse.Namespace) -> None:
-    """Parse command line arguments to start a backup."""
+    """
+    Parse command line arguments to start a backup.
+
+    Arguments:
+        args: Parsed command line
+
+    Raises:
+        CommandLineError: If the --backup-folder parmeter is missing or if the --user-folder does
+            not exist.
+    """
     user_folder = fs.get_existing_path(args.user_folder, "user's folder")
 
     if not args.backup_folder:
@@ -633,6 +674,9 @@ def parse_probability(probability_str: str) -> float:
 
     Returns:
         number: A probability value between 0 and 1.
+
+    Raises:
+        CommandLineError: If the resulting probability is not between 0 and 1.
     """
     divisor = 100 if probability_str.endswith("%") else 1
     number = float(probability_str.rstrip("%"))

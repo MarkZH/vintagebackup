@@ -188,6 +188,9 @@ def parse_storage_space(space_requirement: str) -> float:
     Returns:
         bytes: The numeric value of the number of bytes.
 
+    Raises:
+        CommandLineError: If the input is malformed.
+
     >>> parse_storage_space("100")
     100.0
 
