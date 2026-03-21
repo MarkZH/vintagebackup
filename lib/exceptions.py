@@ -11,3 +11,7 @@ class ConcurrencyError(RuntimeError):
 
 class OutOfSpaceError(RuntimeError):
     """An exception thrown when the backup media does not have enough space for the operation."""
+
+
+class FilterFileError(ValueError):
+    """An exception raised when an error occurs when reading a filter file."""

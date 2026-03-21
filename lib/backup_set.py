@@ -8,6 +8,7 @@ from pathlib import Path
 from itertools import filterfalse
 
 from lib.filesystem import get_existing_path, path_listing, path_or_none
+from lib.exceptions import FilterFileError
 
 logger = logging.getLogger()
 
@@ -28,6 +29,10 @@ class Backup_Set:
             user_folder: The folder to be backed up.
             filter_file: The path of the filter file that edits the paths to backup.
             get_excluded: Whether to yield files that are excluded by the filter file.
+
+        Raises:
+            FilterFileError: If an invalid symbols starts a line or a pattern does not match files
+                inside the user's data.
         """
         self.entries: list[tuple[int, str, Path]] = []
         self.lines_used: set[int] = set()
@@ -46,7 +51,7 @@ class Backup_Set:
                 sign = line[0]
 
                 if sign not in "-+#":
-                    raise ValueError(
+                    raise FilterFileError(
                         f"Line #{line_number} ({line}): The first symbol "
                         "of each line in the filter file must be -, +, or #.")
 
@@ -55,7 +60,7 @@ class Backup_Set:
 
                 pattern = user_folder/line[1:].strip()
                 if not pattern.is_relative_to(user_folder):
-                    raise ValueError(
+                    raise FilterFileError(
                         f"Line #{line_number} ({line}): Filter looks at paths outside user folder.")
 
                 logger.debug("Filter added: %s --> %s %s", line, sign, pattern)
