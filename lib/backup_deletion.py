@@ -109,7 +109,14 @@ def delete_backups_older_than(
 
 
 def delete_single_backup(backup: Path, verify_checksum_result_folder: Path | None) -> None:
-    """Delete a backup and, if it is the last in a year, the year folder that contains it."""
+    """
+    Delete a backup and, if it is the last in a year, the year folder that contains it.
+
+    Arguments:
+        backup: Path to single backup that will be deleted
+        verify_checksum_result_folder: Whether to verify the backups checksum--if any--before
+            deleting it
+    """
     if verify_checksum_result_folder:
         with contextlib.suppress(FileNotFoundError):
             verify_backup_checksum(backup, verify_checksum_result_folder)
@@ -179,6 +186,13 @@ def delete_too_frequent_backups(
     Delete backups according to retention arguments.
 
     This function deletes backups so that only weekly, monthly, and yearly backups are left.
+
+    Arguments:
+        backup_folder: Folder containing all dated backups
+        args: Parsed command line options
+        min_backups_remaining: The minimum number of backups remaining after deletions are complete
+        verify_checksum_result_folder: Whether to verify a backups checksum file--if any--before
+            deletion
     """
     check_time_span_parameters(args)
 

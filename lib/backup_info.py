@@ -150,7 +150,13 @@ def backup_info_key(key: str) -> Literal["Source", "Log", "Compare_Timestamp"]:
 
 
 def write_backup_information(backup_folder: Path, backup_info: Backup_Info) -> None:
-    """Record backup information to a file in the backup folder."""
+    """
+    Record backup information to a file in the backup folder.
+
+    Arguments:
+        backup_folder: Folder containing all dated backups
+        backup_info: Information about the most recent backup
+    """
     info_file = get_backup_info_file(backup_folder)
     info_file.parent.mkdir(parents=True, exist_ok=True)
     with info_file.open("w", encoding="utf8") as info:
