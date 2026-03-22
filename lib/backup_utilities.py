@@ -13,7 +13,15 @@ backup_date_format = "%Y-%m-%d %H-%M-%S"
 
 
 def backup_datetime(backup: Path) -> datetime.datetime:
-    """Get the timestamp of a backup from the backup folder name."""
+    """
+    Get the timestamp of a backup from the backup folder name.
+
+    Arguments:
+        backup: A path to a folder containing a single backup
+
+    Returns:
+        datetime: The timestamp of the backup.
+    """
     return datetime.datetime.strptime(backup.name, backup_date_format)
 
 
@@ -44,10 +52,24 @@ def find_previous_backup(backup_location: Path) -> Path | None:
 
 
 def should_do_periodic_action(
-        args: argparse.Namespace, action: str,
+        args: argparse.Namespace,
+        action: str,
         backup_folder: Path,
         previous_action_lookup: Callable[[Path], datetime.datetime | None]) -> bool:
-    """Check whether the action has taken place recently according to --{action}-every argument."""
+    """
+    Check whether the action has taken place recently according to --{action}-every argument.
+
+    Arguments:
+        args: A parsed command line
+        action: The name of the action from the command line parameter, e.g., "verify" from
+            "--verify" or "--verify-every"
+        backup_folder: The folder containing all dated backups
+        previous_action_lookup: A function that takes a path to the backup folder and returns the
+            last time the action was performed.
+
+    Returns:
+        bool: Whether the action should be performed again because enough time has passed.
+    """
     options = vars(args)
     if options[f"no_{action}"]:
         return False

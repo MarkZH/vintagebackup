@@ -8,6 +8,7 @@ from pathlib import Path
 from itertools import filterfalse
 
 from lib.filesystem import get_existing_path, path_listing, path_or_none
+from lib.exceptions import FilterFileError
 
 logger = logging.getLogger()
 
@@ -28,6 +29,10 @@ class Backup_Set:
             user_folder: The folder to be backed up.
             filter_file: The path of the filter file that edits the paths to backup.
             get_excluded: Whether to yield files that are excluded by the filter file.
+
+        Raises:
+            FilterFileError: If an invalid symbols starts a line or a pattern does not match files
+                inside the user's data.
         """
         self.entries: list[tuple[int, str, Path]] = []
         self.lines_used: set[int] = set()
@@ -46,7 +51,7 @@ class Backup_Set:
                 sign = line[0]
 
                 if sign not in "-+#":
-                    raise ValueError(
+                    raise FilterFileError(
                         f"Line #{line_number} ({line}): The first symbol "
                         "of each line in the filter file must be -, +, or #.")
 
@@ -55,14 +60,20 @@ class Backup_Set:
 
                 pattern = user_folder/line[1:].strip()
                 if not pattern.is_relative_to(user_folder):
-                    raise ValueError(
+                    raise FilterFileError(
                         f"Line #{line_number} ({line}): Filter looks at paths outside user folder.")
 
                 logger.debug("Filter added: %s --> %s %s", line, sign, pattern)
                 self.entries.append((line_number, sign, pattern))
 
     def __iter__(self) -> Iterator[tuple[Path, list[str]]]:
-        """Create the iterator that yields the paths to backup."""
+        """
+        Create the iterator that yields the paths to backup.
+
+        Yields:
+            Sequence: Yields a sequence of tuples, each is a directory path and the file names
+                within that have not been filtered out.
+        """
         this_filter = filterfalse if self.get_excluded else filter
         for current_directory, _, files in self.user_folder.walk():
             good_files = list(this_filter(self.passes, (current_directory/file for file in files)))
@@ -72,7 +83,15 @@ class Backup_Set:
         self.log_unused_lines()
 
     def passes(self, path: Path) -> bool:
-        """Determine if a path should be included in the backup according to the filter file."""
+        """
+        Determine if a path should be included in the backup according to the filter file.
+
+        Arguments:
+            path: A path to a user's file to run through the filter
+
+        Returns:
+            bool: Whether the file should be backed up
+        """
         is_included = not path.is_junction()
         for line_number, sign, pattern in self.entries:
             should_include = (sign == "+")
@@ -104,7 +123,12 @@ class Backup_Set:
 
 
 def preview_filter(args: argparse.Namespace) -> None:
-    """Print a list of files that will make it through the --filter file."""
+    """
+    Print a list of files that will make it through the --filter file.
+
+    Arguments:
+        args: Parsed command line
+    """
     user_folder = get_existing_path(args.user_folder, "user folder")
     filter_file = path_or_none(args.filter)
     output_file = path_or_none(args.preview_filter or args.preview_filter_exclusions)

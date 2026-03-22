@@ -18,6 +18,12 @@ def parse_time_span_to_timepoint(
             for days, "w" for weeks, "m" for calendar months, and "y" for calendar years.
         now: The point from which to calculate the past point. If None, use
             datetime.datetime.now().
+
+    Returns:
+        datetime: A datetime in the past.
+
+    Raises:
+        CommandLineError: If time_span cannot be parsed.
     """
     time_span = "".join(time_span.lower().split())
     try:
@@ -52,6 +58,13 @@ def months_ago(now: datetime.datetime | datetime.date, month_count: int) -> date
 
     The day of the month is not changed unless necessary to produce a valid date
     (see fix_end_of_month()).
+
+    Arguments:
+        now: The date or datetime from which to calculate.
+        month_count: How many months to go back.
+
+    Returns:
+        date: A valid date that is the same day of the month a given number of months back.
     """
     new_month = now.month - (month_count % 12)
     new_year = now.year - (month_count // 12)
@@ -64,6 +77,17 @@ def months_ago(now: datetime.datetime | datetime.date, month_count: int) -> date
 def fix_end_of_month(year: int, month: int, day: int) -> datetime.date:
     """
     Replace a day past the end of the month (e.g., Feb. 31) with the last day of the same month.
+
+    Arguments:
+        year: Year
+        month: Month
+        day: Day, which is possible after the actual last day of the month
+
+    Returns:
+        date: The closest date to the input that is in the same month.
+
+    Raises:
+        ValueError: If a valid date cannot be formed (e.g., month = 13)
 
     >>> fix_end_of_month(2023, 2, 31)
     datetime.date(2023, 2, 28)

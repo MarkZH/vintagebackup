@@ -15,7 +15,12 @@ logger = logging.getLogger()
 
 
 def choose_purge_target_from_backups(args: argparse.Namespace) -> None:
-    """Choose which path to purge from a list of everything backed up from a folder."""
+    """
+    Choose which path to purge from a list of everything backed up from a folder.
+
+    Arguments:
+        args: Parsed command line options
+    """
     backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
     chosen_purge_path = recovery.choose_target_path_from_backups(args)
     if chosen_purge_path:
@@ -23,7 +28,12 @@ def choose_purge_target_from_backups(args: argparse.Namespace) -> None:
 
 
 def start_backup_purge(args: argparse.Namespace) -> None:
-    """Parse command line options to purge file or folder from all backups."""
+    """
+    Purge a file or folder from all backups.
+
+    Arguments:
+        args: Parsed command line options
+    """
     backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
     purge_target = fs.absolute_path(args.purge)
     print_run_title(args, "Purging from backups")
@@ -31,7 +41,13 @@ def start_backup_purge(args: argparse.Namespace) -> None:
 
 
 def purge_path(purge_target: Path, backup_folder: Path) -> None:
-    """Purge a file/folder by deleting it from all backups."""
+    """
+    Purge a file/folder by deleting it from all backups.
+
+    Arguments:
+        purge_target: The file or folder in the user's data that should be deleted from all backups
+        backup_folder: The folder containing all dated backups
+    """
     relative_purge_target = recovery.path_relative_to_backups(purge_target, backup_folder)
 
     backup_list = all_backups(backup_folder)
@@ -74,7 +90,16 @@ def purge_path(purge_target: Path, backup_folder: Path) -> None:
 def choose_types_to_delete(
         paths_to_delete: list[Path],
         path_type_counts: Counter[str]) -> list[str]:
-    """If a purge target has more than one type in backups, choose which type to delete."""
+    """
+    If a purge target has more than one type in backups, choose which type to delete.
+
+    Arguments:
+        paths_to_delete: A list of paths from backups that are being considered for deletion.
+        path_type_counts: A list of path types and their counts from paths_to_delete.
+
+    Returns:
+        type_choices: One or all types of paths to purge.
+    """
     if len(path_type_counts) == 1:
         return [fs.classify_path(paths_to_delete[0])]
     else:

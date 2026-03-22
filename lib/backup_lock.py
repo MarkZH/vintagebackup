@@ -18,7 +18,13 @@ class Backup_Lock:
     """
 
     def __init__(self, backup_location: Path, operation: str) -> None:
-        """Set up the lock."""
+        """
+        Set up the lock.
+
+        Arguments:
+            backup_location: Folder containing all dated backups
+            operation: Action that Vintage Bakup is performing while the backup location is locked
+        """
         self.lock_file_path = backup_location/"vintagebackup.lock"
         self.pid = str(os.getpid())
         self.operation = operation
@@ -27,7 +33,8 @@ class Backup_Lock:
         """
         Attempt to take possession of the file lock.
 
-        If unsuccessful, a ConcurrencyError is raised.
+        Raises:
+            ConcurrencyError: If acquiring the lock is unsuccessful.
         """
         while not self.acquire_lock():
             try:
@@ -47,7 +54,8 @@ class Backup_Lock:
         """
         Attempt to create the lock file.
 
-        Returns whether locking was successful.
+        Returns:
+            bool: Whether locking was successful.
         """
         try:
             self.create_lock()
@@ -62,7 +70,12 @@ class Backup_Lock:
             lock_file.write(f"{self.operation}\n")
 
     def read_lock_data(self) -> tuple[str, str]:
-        """Get all data from lock file."""
+        """
+        Get all data from lock file.
+
+        Returns:
+            tuple: The PID of the previous process and the operation it was performing.
+        """
         with self.lock_file_path.open(encoding="utf8") as lock_file:
             pid = lock_file.readline().strip()
             operation = lock_file.readline().strip()

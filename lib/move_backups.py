@@ -13,6 +13,7 @@ from lib.backup_lock import Backup_Lock
 from lib.backup_utilities import all_backups, backup_datetime
 from lib.console import plural_noun, print_run_title
 from lib.datetime_calculations import parse_time_span_to_timepoint
+from lib.exceptions import CommandLineError
 from lib.filesystem import absolute_path, get_existing_path
 
 logger = logging.getLogger()
@@ -22,7 +23,14 @@ def move_backups(
         old_backup_location: Path,
         new_backup_location: Path,
         backups_to_move: list[Path]) -> None:
-    """Move a set of backups to a new location."""
+    """
+    Move a set of backups to a new location.
+
+    Arguments:
+        old_backup_location: Where backups are currently stored
+        new_backup_location: Where backups are being moved to
+        backups_to_move: A list of dated backups to move
+    """
     move_count = len(backups_to_move)
     logger.info("Moving %s", plural_noun(move_count, "backup"))
     logger.info("from %s", old_backup_location)
@@ -61,6 +69,13 @@ def last_n_backups(n: str | int, backup_location: Path) -> list[Path]:
     Arguments:
         backup_location: The location of the backup set.
         n: A positive integer to get the last n backups, or "all" to get all backups.
+
+    Returns:
+        list: A list of the n most recent backups, or all backups if n is "all" or greater than
+            the number of backups.
+
+    Raises:
+        CommandLineError: If n is not a positive whole number or "all"
     """
     backups = all_backups(backup_location)
     if str(n).lower() == "all":
@@ -68,7 +83,7 @@ def last_n_backups(n: str | int, backup_location: Path) -> list[Path]:
 
     count = int(n)
     if count < 1 or count != math.ceil(float(n)):
-        raise ValueError(f"Value must be a positive whole number: {n}")
+        raise CommandLineError(f"Value must be a positive whole number: {n}")
 
     return backups[-count:]
 
@@ -83,7 +98,12 @@ def backups_since(oldest_backup_date: datetime.datetime, backup_location: Path) 
 
 
 def start_move_backups(args: argparse.Namespace) -> None:
-    """Parse command line options to move backups to another location."""
+    """
+    Parse command line options to move backups to another location.
+
+    Arguments:
+        args: Parsed command line options
+    """
     old_backup_location = get_existing_path(args.backup_folder, "current backup location")
     new_backup_location = absolute_path(args.move_backup)
     backups_to_move = choose_backups_to_move(args, old_backup_location)
@@ -94,7 +114,20 @@ def start_move_backups(args: argparse.Namespace) -> None:
 
 
 def choose_backups_to_move(args: argparse.Namespace, old_backup_location: Path) -> list[Path]:
-    """Choose which backups to move based on the command line arguments."""
+    """
+    Choose which backups to move based on the command line arguments.
+
+    Arguments:
+        args: Parsed command line arguments.
+        old_backup_location: The current location of all backups.
+
+    Returns:
+        list: A selection of backups to move to a new location.
+
+    Raises:
+        AssertionError: Debugging assertion that ensures all ways of choosing backups to move are
+            handled
+    """
     confirm_choice_made(args, "move_count", "move_age", "move_since")
     if args.move_count:
         backups_to_move = last_n_backups(args.move_count, old_backup_location)

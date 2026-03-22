@@ -40,19 +40,43 @@ def format_paragraphs(lines: str, line_length: int) -> str:
 
 
 def format_text(lines: str) -> str:
-    """Format unindented paragraphs (program description and epilogue) in --help."""
+    """
+    Format unindented paragraphs (program description, epilogue, and group descriptions).
+
+    Arguments:
+        lines: A string of text where paragraphs are separated by at least two newlines. Indented
+            lines will be preserved as-is.
+
+    Returns:
+        text: Paragraphs of text word-wrapped to the with of the terminal
+    """
     width, _ = shutil.get_terminal_size()
     return format_paragraphs(lines, width)
 
 
 def format_help(lines: str) -> str:
-    """Format indented command line argument descriptions in --help."""
+    """
+    Format indented command line argument descriptions in --help.
+
+    Arguments:
+        lines: A string of text where paragraphs are separated by at least two newlines. Indented
+            lines will be preserved as-is.
+
+    Returns:
+        text: Indented paragraphs of text word-wrapped to the with of the terminal
+    """
     width, _ = shutil.get_terminal_size()
     return format_paragraphs(lines, width - 24)
 
 
 def add_no_option(user_input: argparse.ArgumentParser | argparse._ArgumentGroup, name: str) -> None:
-    """Add negating option for boolean command line arguments."""
+    """
+    Add negating option for boolean command line arguments.
+
+    Arguments:
+        user_input: Parse command line
+        name: The name of the option to be negated: e.g., "debug" add "--no-debug"
+    """
     user_input.add_argument(f"--no-{name}", action="store_true", help=format_help(
 f"""Disable the --{name} option. This is primarily used if "{name}" appears in a
 configuration file. This option has priority even if --{name} is listed later."""))
@@ -62,20 +86,49 @@ def add_periodic_option(
         user_input: argparse.ArgumentParser | argparse._ArgumentGroup,
         name: str,
         extra_info: str = "") -> None:
-    """Add an option for performing actions periodically."""
+    """
+    Add an option for performing actions periodically.
+
+    Arguments:
+        user_input: Parsed command line
+        name: The name of a command line option
+        extra_info: Extra text to add to the end of the help section
+    """
     user_input.add_argument(f"--{name}-every", help=format_help(
 f"""Perform the --{name} action if it has not been done within the time span of the argument.
 See the Time Span Format section below for how to specify a time span. {extra_info}""".strip()))
 
 
 def toggle_is_set(args: argparse.Namespace, name: str) -> bool:
-    """Check that a boolean command line option --X has been selected and not negated by --no-X."""
+    """
+    Check that a boolean command line option --X has been selected and not negated by --no-X.
+
+    Arguments:
+        args: The parsed command line
+        name: The name of a command line option, e.g., "debug" for "--debug"
+
+    Returns:
+        bool: Whether the option appears in the command line and the "--no" option does not.
+
+    For example, "--debug" without "--no-debug" will return True; "--debug" with "--no-debug"
+    will return False
+    """
     options = vars(args)
     return options[name] and not options[f"no_{name}"]
 
 
 def confirm_choice_made(args: argparse.Namespace, *options: str) -> None:
-    """Make sure that exactly one of the argument parameters is present."""
+    """
+    Make sure that exactly one of the argument parameters is present.
+
+    Arguments:
+        args: Parsed command line
+        options: A set of command line options to check
+
+    Raises:
+        CommandLineError: If zero or more than one of the specified options appears in the command
+            line arguments
+    """
     args_dict = vars(args)
     if len(list(filter(None, map(args_dict.get, options)))) != 1:
         option_list = [f"--{option.replace("_", "-")}" for option in options]
@@ -89,7 +142,12 @@ def confirm_choice_made(args: argparse.Namespace, *options: str) -> None:
 
 
 def argument_parser() -> argparse.ArgumentParser:
-    """Create the parser for command line arguments."""
+    """
+    Create the parser for command line arguments.
+
+    Returns:
+        argparser: An argument parser instance
+    """
     user_input = argparse.ArgumentParser(
         add_help=False,
         formatter_class=argparse.RawTextHelpFormatter,
@@ -520,7 +578,15 @@ are some examples of such patterns:
 
 
 def parse_command_line(argv: list[str]) -> argparse.Namespace:
-    """Parse the command line options and incorporate configuration file options if needed."""
+    """
+    Parse the command line options and incorporate configuration file options if needed.
+
+    Arguments:
+        argv: The command line as from sys.argv
+
+    Returns:
+        namespace: The parsed command line after reading configuration files, if any
+    """
     if argv and argv[0] == sys.argv[0]:
         argv = argv[1:]
 
@@ -535,10 +601,20 @@ def parse_command_line(argv: list[str]) -> argparse.Namespace:
 
 
 def print_usage(destination: TextIO | None = None) -> None:
-    """Print short instructions for the command line options."""
+    """
+    Print short instructions for the command line options.
+
+    Arguments:
+        destination: Where to print command line usage information. If None, print to stdout.
+    """
     argument_parser().print_usage(destination)
 
 
 def print_help(destination: TextIO | None = None) -> None:
-    """Print full manual for Vintage Backup."""
+    """
+    Print full manual for Vintage Backup.
+
+    Arguments:
+        destination: Where to print command line usage information. If None, print to stdout.
+    """
     argument_parser().print_help(destination)

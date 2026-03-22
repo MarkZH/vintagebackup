@@ -35,12 +35,23 @@ def shallow_stats(stats: os.stat_result) -> tuple[int, int, int]:
 
     Arguments:
         stats: File information retrieved from a DirEntry.stat() call.
+
+    Returns:
+        tuple: A tuple of integers: file size, file type, and file modification time
     """
     return (stats.st_size, stat.S_IFMT(stats.st_mode), stats.st_mtime_ns)
 
 
 def random_filter(probability: float) -> Callable[[object], bool]:
-    """Create a filter that chooses items with the given probability."""
+    """
+    Create a filter that chooses items with the given probability.
+
+    Arguments:
+        probability: The probability (a number from 0 to 1) that the filter should return True
+
+    Returns:
+        A function that returns True with the given probability
+    """
 
     def actual_random_filter(_: object) -> bool:
         return random.random() < probability
@@ -67,9 +78,11 @@ def compare_to_backup(
         copy_probability: Instead of hard-linking a file that hasn't changed since the last
             backup, copy it anyway with a given probability.
 
-    The file names will be sorted into two lists and returned in this order: (1) matching files
-    that will be hard-linked, (2) files that will be copied due to being new, changed, unreadable,
-    or randomly chosen for copying. Symbolic links will be put in the second list for copying.
+    Returns:
+        tuple: The file names will be sorted into two lists and returned in this order: (1) matching
+        files that will be hard-linked, (2) files that will be copied due to being new, changed,
+        unreadable, or randomly chosen for copying. Symbolic links will be put in the second list
+        for copying.
     """
     if not backup_directory:
         return [], file_names
@@ -85,7 +98,18 @@ def deep_comparison(
         user_directory: Path,
         backup_directory: Path,
         file_names: list[str]) -> tuple[list[str], list[str], list[str]]:
-    """Inspect file contents to determine if files match the most recent backup."""
+    """
+    Inspect file contents to determine if files match the most recent backup.
+
+    Arguments:
+        user_directory: The current user folder being backed up
+        backup_directory: The correponding directory in the previous backup
+        file_names: A list of file names to be compared
+
+    Returns:
+        tuple: A tuple of three lists of files (as from filecmp.cmpfiles): matches, mismatches, and
+            those that caused an error during the comparison
+    """
     return filecmp.cmpfiles(user_directory, backup_directory, file_names, shallow=False)
 
 
@@ -93,7 +117,18 @@ def shallow_comparison(
         user_directory: Path,
         backup_directory: Path,
         file_names: list[str]) -> tuple[list[str], list[str], list[str]]:
-    """Decide which files match the previous backup based on quick stat information."""
+    """
+    Decide which files match the previous backup based on quick stat information.
+
+    Arguments:
+        user_directory: The current user folder being backed up
+        backup_directory: The correponding directory in the previous backup
+        file_names: A list of file names to be compared
+
+    Returns:
+        tuple: A tuple of three lists of files (as from filecmp.cmpfiles): matches, mismatches, and
+            those that caused an error during the comparison
+    """
 
     def scan_directory(directory: Path) -> dict[str, os.stat_result]:
         with os.scandir(directory) as scan:
@@ -124,7 +159,8 @@ def create_hard_link(previous_backup: Path, new_backup: Path) -> bool:
     """
     Create a hard link between unchanged backup files.
 
-    Return True if successful, False if linking failed.
+    Returns:
+        bool: True if linking succeeded, False otherwise.
     """
     try:
         new_backup.hardlink_to(previous_backup)
@@ -237,9 +273,18 @@ def hardlink_files_to_backup(
         files_to_copy: list[str],
         action_counter: Counter[str]) -> None:
     """
-    Hard link files to previous backup.
+    Hard link files to the previous backup.
 
     If an error occurs while hardlinking a file, move that file to the copy list.
+
+    Arguments:
+        new_backup_directory: The latest subfolder in the new backup
+        previous_backup_directory: The corresponding subfolder in the previous backup where the new
+            hard links will be sourced
+        files_to_link: A list of file names which will be hardlinked to the previous backup
+        files_to_copy: If a hard link fails for a file, the file name will be added to the list for
+            copying
+        action_counter: The Counter keeping track of the number of backup actions
     """
     for file_name in files_to_link:
         previous_backup = cast(Path, previous_backup_directory)/file_name
@@ -257,7 +302,23 @@ def copy_files_to_backup(
         new_backup_directory: Path,
         files_to_copy: list[str],
         action_counter: Counter[str]) -> int:
-    """Copy files to the backup location."""
+    """
+    Copy files to the backup location.
+
+    Arguments:
+        current_user_path: The folder in the user's data currently being backed up
+        new_backup_directory: The corresponding folder in the new backup
+        files_to_copy: A list of file names that will be copied into the new backup directory
+        action_counter: The Counter keeping track of the number of backup actions
+
+    Returns:
+        size: The total size in bytes of the copied files
+
+    Raises:
+        OutOfSpaceError: If a file cannot be copied due to insufficient space in the backup media
+
+    All other errors are logged while the backup continues.
+    """
     size_of_copied_files = 0
     for file_name in files_to_copy:
         new_backup_file = new_backup_directory/file_name
@@ -279,7 +340,17 @@ def copy_files_to_backup(
 
 
 def create_backup_directory(new_backup_directory: Path) -> None:
-    """Create directory in backup location."""
+    """
+    Create directory in backup location.
+
+    Arguments:
+        new_backup_directory: The latest directory to be created in a backup
+
+    Raises:
+        OutOfSpaceError: If the directory cannot be created due to the backup media not having
+            enough space
+        OSError: For any other error that Path.mkdir() raises
+    """
     try:
         new_backup_directory.mkdir(parents=True)
     except OSError as error:
@@ -291,7 +362,16 @@ def create_backup_directory(new_backup_directory: Path) -> None:
 
 
 def backup_name(backup_datetime: datetime.datetime | str | None) -> Path:
-    """Create the name and relative path for the new dated backup."""
+    """
+    Create the name and relative path for the new dated backup.
+
+    Arguments:
+        backup_datetime: The timestamp of the new backup. datetime.datetime.now() is used if None is
+            given.
+
+    Returns:
+        path: A relative path to the new backup that should be appended to the backup location
+    """
     now = (
         datetime.datetime.strptime(backup_datetime, util.backup_date_format)
         if isinstance(backup_datetime, str)
@@ -387,12 +467,26 @@ def create_new_backup(
 
 
 def backup_staging_folder(backup_location: Path) -> Path:
-    """Get the name of the staging folder for new backups."""
+    """
+    Get the name of the staging folder for new backups.
+
+    Arguments:
+        backup_location: The folder with all dated backups
+
+    Returns:
+        path: The name of the folder to use for staging an incomplete backup
+    """
     return backup_location/"Staging"
 
 
 def report_backup_file_counts(action_counter: Counter[str]) -> None:
-    """Log the number of files that were backed up, hardlinked, copied, and failed to copy."""
+    """
+    Log the number of files that were backed up, hardlinked, copied, and failed to copy.
+
+    Arguments:
+        action_counter: A counter to track how many files have been linked, copied, or failed for
+            both
+    """
     logger.info("")
     total_files = sum(
         count for action, count in action_counter.items() if not action.startswith("failed"))
@@ -410,7 +504,21 @@ def check_paths_for_validity(
         user_data_location: Path,
         backup_location: Path,
         filter_file: Path | None) -> None:
-    """Check the given paths for validity and raise an exception for improper inputs."""
+    """
+    Check the given paths for validity and raise an exception for improper inputs.
+
+    Arguments:
+        user_data_location: Folder containing the user's data that will be backed up
+        backup_location: Folder containing all dated backups
+        filter_file: An optional path to a file for filtering which user's files get backed up
+
+    Raises:
+        CommandLineError: If any of the following are true:
+        - user_data_location is not a folder,
+        - backup_location exists and is not a folder
+        - backup_location is inside the user_data_location directory tree
+        - filter_file is specified and it's not a file
+    """
     if not user_data_location.is_dir():
         raise CommandLineError(f"The user folder path is not a folder: {user_data_location}")
 
@@ -428,7 +536,12 @@ def check_paths_for_validity(
 
 
 def print_backup_storage_stats(backup_location: Path) -> None:
-    """Log information about the storage space of the backup medium."""
+    """
+    Log information about the storage space of the backup medium.
+
+    Arguments:
+        backup_location: Folder containing all dated backups.
+    """
     backup_storage = shutil.disk_usage(backup_location)
     percent_used = round(100*backup_storage.used/backup_storage.total)
     percent_free = round(100*backup_storage.free/backup_storage.total)
@@ -450,9 +563,20 @@ def copy_probability_from_hard_link_count(hard_link_count: str) -> float:
     """
     Convert an expected average hard link count into a copy probability.
 
+    Arguments:
+        hard_link_count: The average number of times a file should be hard linked in backups before
+            being copied again
+
+    Returns:
+        number: The probability that an unchanged file should be copied. The result is a number
+            between 0 and 1.
+
+    Raises:
+        CommandLineError: If hard_link_count is not a whole number greater than zero
+
     Randomly copying files serves two purposes. First, it increases the safety of the backed up
     files. If no files were ever copied, then there would only be one copy of each file in the
-    backup location. If that backup become corrupted, then all backups of the file would be lost.
+    backup location. If that backup were corrupted, then all backups of the file would be corrupted.
     Randomly copying files ensures that there are multiple independent copies available, even when
     they don't change.
 
@@ -481,12 +605,30 @@ def copy_probability_from_hard_link_count(hard_link_count: str) -> float:
 
 
 def last_compare_contents(backup_folder: Path) -> datetime.datetime | None:
-    """Read previous time backup compared file contents from backup info."""
+    """
+    Read previous time backup compared file contents from backup info.
+
+    Arguments:
+        backup_folder: The folder containing all dated backups
+
+    Returns:
+        datetime: The last time the contents of files were compared to determine if they should be
+            hardlinked or copied
+    """
     return backup_info.read_backup_information(backup_folder)["Compare_Timestamp"]
 
 
 def start_backup(args: argparse.Namespace) -> None:
-    """Parse command line arguments to start a backup."""
+    """
+    Parse command line arguments to start a backup.
+
+    Arguments:
+        args: Parsed command line
+
+    Raises:
+        CommandLineError: If the --backup-folder parmeter is missing or if the --user-folder does
+            not exist.
+    """
     user_folder = fs.get_existing_path(args.user_folder, "user's folder")
 
     if not args.backup_folder:
@@ -522,6 +664,10 @@ def log_backup_size(free_up_parameter: str | None, backup_space_taken: int) -> N
 
     This should warn the user that a future backup may not have enough storage space to complete
     sucessfully.
+
+    Arguments:
+        free_up_parameter: The value given to the --free-up command line option
+        backup_space_taken: The space taken by the most recent backup
     """
     free_up = fs.parse_storage_space(free_up_parameter or "0")
     free_up_percent = math.ceil(100*backup_space_taken/free_up) if free_up else 0
@@ -535,7 +681,18 @@ def log_backup_size(free_up_parameter: str | None, backup_space_taken: int) -> N
 
 
 def parse_probability(probability_str: str) -> float:
-    """Parse probability from --copy-probability argument."""
+    """
+    Parse probability from --copy-probability argument.
+
+    Arguments:
+        probability_str: A string representing a number from 0 to 1 or a percentage ending in %.
+
+    Returns:
+        number: A probability value between 0 and 1.
+
+    Raises:
+        CommandLineError: If the resulting probability is not between 0 and 1.
+    """
     divisor = 100 if probability_str.endswith("%") else 1
     number = float(probability_str.rstrip("%"))
     probability = number/divisor
@@ -547,7 +704,16 @@ def parse_probability(probability_str: str) -> float:
 
 
 def copy_probability(args: argparse.Namespace) -> float:
-    """Calculate the probability of copying unchanged files from command line arguments."""
+    """
+    Calculate the probability of copying unchanged files from command line arguments.
+
+    Arguments:
+        args: Parsed command line
+
+    Returns:
+        The probability that an unchanged file will be copied during backup. The result will be in
+            the range [0.0, 1.0]
+    """
     if args.hard_link_count:
         return copy_probability_from_hard_link_count(args.hard_link_count)
     elif args.copy_probability:
