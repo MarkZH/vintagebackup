@@ -332,9 +332,6 @@ def directories_are_completely_copied(base_directory_1: Path, base_directory_2: 
     Returns:
         compare_result: Whether both folders have the same directory tree, both file sets contain
             the same data, and no files are hardlinked between them
-
-
-
     """
     return (no_files_are_hardlinks(base_directory_1, base_directory_2)
             and no_files_are_hardlinks(base_directory_2, base_directory_1)
