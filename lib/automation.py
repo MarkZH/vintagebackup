@@ -11,7 +11,13 @@ logger = logging.getLogger()
 
 
 def generate_windows_scripts(args: argparse.Namespace) -> None:
-    """Generate files for use with Windows Task Scheduler."""
+    """
+    Generate files for use with Windows Task Scheduler.
+
+    Arguments:
+        args: Parsed command line that will be written to the config file. The value of
+            --generate-windows-script is a directory where the script files will be written.
+    """
     destination = absolute_path(args.generate_windows_scripts)
     args.generate_config = str(destination/"config.txt")
     config_path = generate_config(args)

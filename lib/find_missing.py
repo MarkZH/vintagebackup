@@ -18,7 +18,18 @@ def find_missing_files(
         backup_directory: Path,
         filter_file: Path | None,
         result_directory: Path) -> None:
-    """Find files that are missing in the user's folder and exist only in backups."""
+    """
+    Find files that are missing in the user's folder and exist only in backups.
+
+    Arguments:
+        backup_directory: Folder containing all dated backups
+        filter_file: Filter file used during backups
+        result_directory: Where the result file should be stored after writing
+
+    Raises:
+        CommandLineError: If there are not backups or the original location of the user's data
+            cannot be found
+    """
     backups = all_backups(backup_directory)
     if not backups:
         raise CommandLineError(f"No backups found in {backup_directory}")
@@ -70,7 +81,12 @@ def find_missing_files(
 
 
 def start_finding_missing_files(args: argparse.Namespace) -> None:
-    """Start finding missing files after parsing command line."""
+    """
+    Start finding missing files after parsing command line.
+
+    Arguments:
+        args: Parsed command line
+    """
     print_run_title(args, "Finding missing files")
     find_missing_files(
         absolute_path(args.backup_folder),

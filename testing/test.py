@@ -48,19 +48,36 @@ from lib import find_missing
 
 
 def load_tests(loader, tests, ignore):  # type: ignore[no-untyped-def] # noqa: ANN001 ANN201 ARG001
-    """Load doctests for running with unittest."""
+    """Load doctests for running with unittest."""  # noqa: DOC201
     for module in (fs, dates, config, console):
         tests.addTests(doctest.DocTestSuite(module))
     return tests
 
 
 def main_no_log(args: list[str]) -> int:
-    """Run the main() function without logging to a file."""
+    """
+    Run the main() function without logging to a file.
+
+    Arguments:
+        args: A list of arguments similar to sys.argv
+
+    Returns:
+        exit_code: The exit code of the call to main.main()
+    """
     return main.main([*args, "--log", os.devnull], testing=True)
 
 
 def main_assert_no_error_log(args: list[str], testcase: unittest.TestCase) -> int:
-    """Run the main() function to assert there are no errors logged without logging to a file."""
+    """
+    Run the main() function to assert there are no errors logged without logging to a file.
+
+    Arguments:
+        args: A list of arguments similar to sys.argv
+        testcase: The test case that is calling this function
+
+    Returns:
+        exit_code: The exit code of the call to main.main()
+    """
     with testcase.assertNoLogs(level=logging.ERROR):
         return main_no_log(args)
 
@@ -69,7 +86,12 @@ testing_timestamp = datetime.datetime.now()
 
 
 def unique_timestamp() -> datetime.datetime:
-    """Create a unique timestamp backups in testing so that backups can be made more rapidly."""
+    """
+    Create a unique timestamp backups in testing so that backups can be made more rapidly.
+
+    Returns:
+        timestamp: A datetime value 10 seconds after the previous call to unique_timestamp().
+    """
     global testing_timestamp  # noqa:PLW0603
     testing_timestamp += datetime.timedelta(seconds=10)
     return testing_timestamp
@@ -124,11 +146,15 @@ def default_backup(user_path: Path, backup_path: Path) -> None:
     """
     Run a backup with all default options.
 
-    filter_file=None,
-    examine_whole_file=False,
-    force_copy=False,
-    copy_probability=0.0,
-    timestamp=unique_timestamp()
+    - filter_file=None
+    - examine_whole_file=False
+    - force_copy=False
+    - copy_probability=0.0
+    - timestamp=unique_timestamp()
+
+    Arguments:
+        user_path: Folder containing a test user's data
+        backup_path: Folder containing all dated test backups
     """
     bak.create_new_backup(
         user_path,
@@ -156,7 +182,13 @@ def create_old_monthly_backups(backup_base_directory: Path, count: int) -> None:
 
 
 def create_old_backup(backup_base_directory: Path, backup_timestamp: datetime.datetime) -> None:
-    """Create a single empty backup with the given timestamp."""
+    """
+    Create a single empty backup with the given timestamp.
+
+    Arguments:
+        backup_base_directory: Folder containing all dated backups
+        backup_timestamp: The timestamp of the new backup
+    """
     backup_name = backup_timestamp.strftime(util.backup_date_format)
     backup_path = backup_base_directory/str(backup_timestamp.year)/backup_name
     backup_path.mkdir(parents=True)
@@ -196,6 +228,10 @@ def all_files_have_same_content(standard_directory: Path, test_directory: Path) 
         test_directory: This directory must possess every file in the standard directory in the
             same location and with the same contents. Extra files in this directory will not result
             in failure.
+
+    Returns:
+        compare_result: Whether test_directory contains all of the files and folders in
+            standard_directory.
     """
     for directory_1, _, file_names in standard_directory.walk():
         directory_2 = test_directory/directory_1.relative_to(standard_directory)
@@ -210,13 +246,33 @@ def all_files_have_same_content(standard_directory: Path, test_directory: Path) 
 
 
 def directories_have_identical_content(base_directory_1: Path, base_directory_2: Path) -> bool:
-    """Check that both directories have same directory tree and file contents."""
+    """
+    Check that both directories have same directory tree and file contents.
+
+    Arguments:
+        base_directory_1: Path to folder
+        base_directory_2: Path to folder
+
+    Returns:
+        compare_result: whether both directories have the same files in the same folders with the
+            same content.
+    """
     return (all_files_have_same_content(base_directory_1, base_directory_2)
             and all_files_have_same_content(base_directory_2, base_directory_1))
 
 
 def all_files_are_hardlinked(standard_directory: Path, test_directory: Path) -> bool:
-    """Test that every file in the standard directory is hardlinked in the test_directory."""
+    """
+    Test that every file in the standard directory is hardlinked in the test_directory.
+
+    Arguments:
+        standard_directory: A directory whose files should all have links in the test_directory
+        test_directory: A directory that should contain hard links to all file in standard_directory
+
+    Returns:
+        hard_link_result: Whether all files in standard_directory are hard linked to files in
+            test_directory.
+    """
     for directory_1, _, file_names in standard_directory.walk():
         directory_2 = test_directory/(directory_1.relative_to(standard_directory))
         for file_name in file_names:
@@ -228,13 +284,33 @@ def all_files_are_hardlinked(standard_directory: Path, test_directory: Path) -> 
 
 
 def directories_are_completely_hardlinked(base_directory_1: Path, base_directory_2: Path) -> bool:
-    """Check that both directories have same tree and all files are hardlinked together."""
+    """
+    Check that both directories have same tree and all files are hardlinked together.
+
+    Arguments:
+        base_directory_1: Path to folders for comparison
+        base_directory_2: Path to folders for comparison
+
+    Returns:
+        link_result: True if all files in both directories are hardlinked to their counterparts in
+            the other folder.
+    """
     return (all_files_are_hardlinked(base_directory_1, base_directory_2)
             and all_files_are_hardlinked(base_directory_2, base_directory_1))
 
 
 def no_files_are_hardlinks(standard_directory: Path, test_directory: Path) -> bool:
-    """Test files in standard directory are not hard linked to counterparts in test directory."""
+    """
+    Test files in standard directory are not hard linked to counterparts in test directory.
+
+    Arguments:
+        standard_directory: Path to folders to check for links
+        test_directory: Path to folders to check for links
+
+    Returns:
+        no_links: True if there is no file in standard_directory that is hardlinked to its
+            counterpart in test_directory
+    """
     for directory_1, _, file_names in standard_directory.walk():
         directory_2 = test_directory/(directory_1.relative_to(standard_directory))
         for file_name in file_names:
@@ -246,7 +322,20 @@ def no_files_are_hardlinks(standard_directory: Path, test_directory: Path) -> bo
 
 
 def directories_are_completely_copied(base_directory_1: Path, base_directory_2: Path) -> bool:
-    """Check that both directories have same tree and all files are copies."""
+    """
+    Check that both directories have same tree and all files are copies.
+
+    Arguments:
+        base_directory_1: Path to folders to compare
+        base_directory_2: Path to folders to compare
+
+    Returns:
+        compare_result: Whether both folders have the same directory tree, both file sets contain
+            the same data, and no files are hardlinked between them
+
+
+
+    """
     return (no_files_are_hardlinks(base_directory_1, base_directory_2)
             and no_files_are_hardlinks(base_directory_2, base_directory_1)
             and directories_have_identical_content(base_directory_1, base_directory_2))
@@ -268,7 +357,22 @@ def run_backup(
         examine_whole_file: bool,
         force_copy: bool,
         timestamp: datetime.datetime) -> int:
-    """Create a new backup while choosing a direct function call or a CLI invocation."""
+    """
+    Create a new backup while choosing a direct function call or a CLI invocation.
+
+    Arguments:
+        run_method: How to run the function under test: direct call or command line arguments
+        user_data: Path to test user data
+        backup_location: Path to test backup directory
+        filter_file: Path to a file with a backup set filter
+        examine_whole_file: Whether to compare file contents when making a new backup
+        force_copy: If True, do not hard link any files, even if unchanged
+        timestamp: The timestamp to use for the backup to make sure backups created successively do
+            not have the same timestamp
+
+    Returns:
+        exit_code: The exit code of the program run: zero for success and non-zero for failure.
+    """
     if run_method == Invocation.function:
         bak.create_new_backup(
             user_data,
@@ -305,7 +409,23 @@ def run_backup_assert_no_error_logs(
         examine_whole_file: bool,
         force_copy: bool,
         timestamp: datetime.datetime) -> int:
-    """Run backup while asserting that no errors are logged."""
+    """
+    Run backup while asserting that no errors are logged.
+
+    Arguments:
+        testcase: The current TestCase being run
+        run_method: How to run the function under test: direct call or command line arguments
+        user_data: Path to test user data
+        backup_location: Path to test backup directory
+        filter_file: Path to a file with a backup set filter
+        examine_whole_file: Whether to compare file contents when making a new backup
+        force_copy: If True, do not hard link any files, even if unchanged
+        timestamp: The timestamp to use for the backup to make sure backups created successively do
+            not have the same timestamp
+
+    Returns:
+        exit_code: The exit code of the program run: zero for success and non-zero for failure.
+    """
     with testcase.assertNoLogs(level=logging.ERROR):
         return run_backup(
             run_method,
@@ -1020,7 +1140,15 @@ class UserInputSequence:
         self.inputs = iter(inputs)
 
     def __call__(self, _: object) -> str:
-        """Replaces call to input()."""
+        """
+        Replaces call to input().
+
+        Arguments:
+            _: Ignored.
+
+        Returns:
+            str: The next string from the iterable in the __init__() method.
+        """
         return next(self.inputs)
 
 
@@ -1031,7 +1159,22 @@ def run_recovery(
         *,
         choices: int | str,
         search: bool) -> int:
-    """Test file recovery through a direct function call or a CLI invocation."""
+    """
+    Test file recovery through a direct function call or a CLI invocation.
+
+    Arguments:
+        method: How to run the function under test: direct call or command line arguments
+        backup_location: Folder containing all dated backups
+        file_path: The original path to the file being recovered
+        choices: Which backup to recover. If a single integer, then that choice will be made from
+            the console menu. If a string, then it should be a sequence of the letters "o", "n",
+            and "c" to choose a recovery target using binary choice.
+        search: If True, use binary choice to pick the backup version. If False, choose the
+            recovery target from a menu.
+
+    Returns:
+        exit_code: The exit code of the program run: zero for success and non-zero for failure.
+    """
     input_patch = UserInputSequence([str(choices)] if isinstance(choices, int) else list(choices))
     with patch("lib.recovery.input", input_patch), patch("lib.recovery.print", lambda _: None):
         if method == Invocation.function:
@@ -1468,7 +1611,13 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
 
 
 def create_large_files(base_folder: Path, file_size: int) -> None:
-    """Create a file of a give size in every leaf subdirectory."""
+    """
+    Create a file of a give size in every leaf subdirectory.
+
+    Arguments:
+        base_folder: The top-level directory whose every subfolder will get a new large file
+        file_size: The size of the large file to create in bytes
+    """
     data = "A"*file_size
     for directory_name, sub_directory_names, _ in base_folder.walk():
         if not sub_directory_names:
@@ -1485,13 +1634,30 @@ class DiskUsageMock:
         free: int
 
     def __init__(self, path: Path | str, initial_free_space: int) -> None:
-        """Create a mock hard drive with the given amount of free space."""
+        """
+        Create a mock hard drive with the given amount of free space.
+
+        Arguments:
+            path: A path in the test storage media from which the initial used space will be read
+            initial_free_space: An initial amount of free space in bytes for the test storage
+
+        The total storage space of the mock disk will be the used space of the path plus the initial
+        free space
+        """
         self.original_disk_usage = copy.copy(shutil.disk_usage)
         initial_used = self.original_disk_usage(path).used
         self.total = initial_used + initial_free_space
 
     def __call__(self, path: Path | str) -> Mock_Usage_Result:
-        """Create a result as from shutil.disk_usage()."""
+        """
+        Create a result as from shutil.disk_usage().
+
+        Arguments:
+            path: The existing path for which the storage media that contains it will be queried.
+
+        Returns:
+            storage_stats: Storage amounts (total, used, free).
+        """
         used = self.original_disk_usage(path).used
         return self.Mock_Usage_Result(self.total, used, self.total - used)
 
@@ -1504,7 +1670,17 @@ class MockCopy2:
         self.original_copy2 = copy.copy(shutil.copy2)
 
     def __call__(self, user_file: Path, new_backup_file: Path, *, follow_symlinks: bool) -> None:
-        """A version of copy2 that fails if there isn't enough space to make a copy."""
+        """
+        A version of copy2 that fails if there isn't enough space to make a copy.
+
+        Arguments:
+            user_file: The file to be backed up in a test
+            new_backup_file: The copy destination
+            follow_symlinks: Whether symlinks should be followed to the actual file
+
+        Raises:
+            OSError: If there is not enough space to complete the copy
+        """
         free_space = shutil.disk_usage(new_backup_file.parent).free
         if free_space < user_file.stat().st_size:
             raise OSError(errno.ENOSPC, "Out of space")
@@ -2160,7 +2336,18 @@ class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
 
 
 def read_paths_file(verify_file: TextIO) -> set[Path]:
-    """Read an opened verification file and return the path contents."""
+    """
+    Read an opened verification file and return the path contents.
+
+    Arguments:
+        verify_file: A stream from opening a file in text mode
+
+    Returns:
+        path_set: A set of paths read from the file
+
+    Raises:
+        ValueError: If file is mis-formatted
+    """
     files_from_verify: set[Path] = set()
     current_directory: Path | None = None
     for line in verify_file:
@@ -3712,6 +3899,7 @@ class EndOfMonthFixTests(unittest.TestCase):
     def test_fix_end_of_month_rejects_inherently_bad_dates(self) -> None:
         """Test that fix_end_of_month() rejects bad values: zero, negatives, etc."""
         def assert_is_bad_date(year: int, month: int, day: int) -> None:
+            """Assert date cannot be fixed via fix_end_of_month()."""
             with self.assertRaises(ValueError):
                 dates.fix_end_of_month(year, month, day)
 
@@ -3823,7 +4011,15 @@ class BackupNameTests(unittest.TestCase):
 
 
 def is_even(n: int) -> bool:
-    """Return whether an integer is even."""
+    """
+    Return whether an integer is even.
+
+    Arguments:
+        n: The whole number to test
+
+    Returns:
+        bool: Whether n is even
+    """
     return n % 2 == 0
 
 
@@ -4291,7 +4487,12 @@ class GenerateConfigTests(TestCaseWithTemporaryFilesAndFolders):
     """Test the generation of configuration files."""
 
     def assert_config_file_creation(self, command_line: list[str]) -> None:
-        """Assert that the config file was created with no errors and with the correct path."""
+        """
+        Assert that the config file was created with no errors and with the correct path.
+
+        Arguments:
+            command_line: The tested command line as if from sys.argv
+        """
         with self.assertLogs(level=logging.INFO) as logs:
             main_no_log(command_line)
 
@@ -5212,7 +5413,18 @@ def run_find_missing_files(
         result_directory: Path,
         *,
         debug: bool) -> int:
-    """Run the missing files function either from a function call or from command line arguments."""
+    """
+    Run the missing files function either from a function call or from command line arguments.
+
+    Arguments:
+        method: How to run the function under test: direct call or command line arguments
+        backup_path: The path to the base backup directory that holds all backups
+        result_directory: The directory where the missing_files.txt file will be written
+        debug: Whether to turn on debug logging
+
+    Returns:
+        exit_code: The exit code of the program run: zero for success and non-zero for failure
+    """
     if method == Invocation.function:
         find_missing.find_missing_files(backup_path, None, result_directory)
         return 0

@@ -15,23 +15,40 @@ logger = logging.getLogger()
 
 def get_backup_info_file(backup_location: Path) -> Path:
     """
-    Return the file that contains information about the backup process at the given location.
+    Find the file that contains information about the backup process at the given location.
 
-    The file will containe the user directory that is backed up at the given location and the log
-    file for activity at the backup location.
+    Arguments:
+        backup_location: The folder containing all dated backups
+
+    Returns:
+        path: The file containing information about previous backups. See the Backup_Info enum.
     """
     return backup_location/"vintagebackup.source.txt"
 
 
 def record_user_location(user_location: Path, backup_location: Path) -> None:
-    """Write the user directory being backed up to a file in the base backup directory."""
+    """
+    Write the user directory being backed up to a file in the base backup directory.
+
+    Arguments:
+        user_location: The folder containing the user's data that will be backed up
+        backup_location: The folder containing all dated backups
+    """
     backup_info = read_backup_information(backup_location)
     backup_info["Source"] = absolute_path(user_location)
     write_backup_information(backup_location, backup_info)
 
 
 def backup_source(backup_location: Path) -> Path | None:
-    """Read the user directory that was backed up to the given backup location."""
+    """
+    Read the user directory that was backed up to the given backup location.
+
+    Arguments:
+        backup_location: The folder containing all dated backups
+
+    Returns:
+        path: The source of the backed up data, i.e., the user's data
+    """
     return read_backup_information(backup_location)["Source"]
 
 
@@ -39,9 +56,14 @@ def confirm_user_location_is_unchanged(user_data_location: Path, backup_location
     """
     Make sure the user directory being backed up is the same as the previous backup run.
 
-    An exception will be thrown when attempting to back up a different user directory to the one
-    that was backed up previously. Backing up multiple different directories to the same backup
-    location negates the hard linking functionality.
+    Arguments:
+        user_data_location: The folder that will be backed up
+        backup_location: The folder containing all dated backups
+
+    Raises:
+        CommandLineError: An exception will be thrown when attempting to back up a different user
+            directory to the one that was backed up previously. Backing up multiple different
+            directories to the same backup location negates the hard linking functionality.
     """
     recorded_user_folder = backup_source(backup_location)
     if not recorded_user_folder:
@@ -58,13 +80,27 @@ def confirm_user_location_is_unchanged(user_data_location: Path, backup_location
 class Backup_Info(TypedDict):
     """Information about a backup folder."""
 
+    # The source of backed up data, i.e., the user's files
     Source: Path | None
+
+    # The log file used in the last backup
     Log: Path | None
+
+    # The last time file contents were compared instead of file type, size, and modification time.
     Compare_Timestamp: datetime.datetime | None
 
 
 def read_backup_information(backup_folder: Path) -> Backup_Info:
-    """Get information about a backup folder."""
+    """
+    Get information about a backup folder.
+
+    Arguments:
+        backup_folder: The folder containing all dated backups
+
+    Returns:
+        backup_info: Information about the last backup include the user's folder, log file, and
+            the last time file contents were compared.
+    """
     info_file = get_backup_info_file(backup_folder)
     try:
         extracted_info = Backup_Info(Source=None, Log=None, Compare_Timestamp=None)
@@ -88,7 +124,18 @@ def read_backup_information(backup_folder: Path) -> Backup_Info:
 
 
 def backup_info_key(key: str) -> Literal["Source", "Log", "Compare_Timestamp"]:
-    """Verify that backup info keys read from a file are valid keys."""
+    """
+    Verify that backup info keys read from a file are valid keys.
+
+    Arguments:
+        key: A string to lookup information about the last backup operation
+
+    Returns:
+        literal_str: A literal version of the key that is confirmed valid
+
+    Raises:
+        KeyError: If the input string is not used in Backup_Info
+    """
     key = key.strip()
     if key == "Source":
         return "Source"
@@ -103,7 +150,13 @@ def backup_info_key(key: str) -> Literal["Source", "Log", "Compare_Timestamp"]:
 
 
 def write_backup_information(backup_folder: Path, backup_info: Backup_Info) -> None:
-    """Record backup information to a file in the backup folder."""
+    """
+    Record backup information to a file in the backup folder.
+
+    Arguments:
+        backup_folder: Folder containing all dated backups
+        backup_info: Information about the most recent backup
+    """
     info_file = get_backup_info_file(backup_folder)
     info_file.parent.mkdir(parents=True, exist_ok=True)
     with info_file.open("w", encoding="utf8") as info:
@@ -121,12 +174,29 @@ def write_backup_information(backup_folder: Path, backup_info: Backup_Info) -> N
 
 
 def backup_log_file(backup_folder: Path) -> Path | None:
-    """Retreive the log file used in the last backup."""
+    """
+    Retreive the log file used in the last backup.
+
+    Arguments:
+        backup_folder: The folder containing all dated backups
+
+    Returns:
+        path: The path to the last used log file, if any
+    """
     return read_backup_information(backup_folder)["Log"]
 
 
 def primary_log_path(log_file_name: str | None, backup_folder: str | None) -> Path | None:
-    """Determine which file to use for logging."""
+    """
+    Determine which file to use for logging.
+
+    Arguments:
+        log_file_name: The name of the log file as read from --log
+        backup_folder: Path to the folder containing all dated backups
+
+    Returns:
+        path: The path to the log file to use for this run of Vintage Backup, if any.
+    """
     if log_file_name:
         return absolute_path(log_file_name) if log_file_name != os.devnull else None
     elif backup_folder:
@@ -138,14 +208,26 @@ def primary_log_path(log_file_name: str | None, backup_folder: str | None) -> Pa
 
 
 def record_backup_log_file(log_file_path: Path, backup_path: Path) -> None:
-    """Record location of log file used with a backup folder."""
+    """
+    Record location of log file used with a backup folder.
+
+    Arguments:
+        log_file_path: Path to file where log messages are written
+        backup_path: Folder containing all dated backups
+    """
     backup_info = read_backup_information(backup_path)
     backup_info["Log"] = absolute_path(log_file_path)
     write_backup_information(backup_path, backup_info)
 
 
 def record_compare_contents_timestamp(backup_location: Path, timestamp: datetime.datetime) -> None:
-    """Record timestamp of last time file contents were compared during backup."""
+    """
+    Record timestamp of last time file contents were compared during backup.
+
+    Arguments:
+        backup_location: Folder containing all dated backups
+        timestamp: Date and time of last time file contents were compared during backups
+    """
     info = read_backup_information(backup_location)
     info["Compare_Timestamp"] = timestamp
     write_backup_information(backup_location, info)

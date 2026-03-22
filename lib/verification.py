@@ -29,6 +29,9 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
         backup_folder: The location of the backed up data.
         filter_file: The file that filters which files are backed up.
         result_folder: Where the resulting files will be saved.
+
+    Raises:
+        CommandLineError: If the backup folder contains no backups
     """
     user_folder = backup_source(backup_folder)
     if not user_folder:
@@ -75,7 +78,12 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
 
 
 def start_verify_backup(args: argparse.Namespace) -> None:
-    """Parse command line options for verifying backups."""
+    """
+    Parse command line options for verifying backups.
+
+    Arguments:
+        args: Parsed command line options
+    """
     backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
     filter_file = fs.path_or_none(args.filter)
     result_folder = fs.absolute_path(args.verify)
@@ -89,7 +97,15 @@ verify_checksum_file_name = "checksum_verification.txt"
 
 
 def create_checksum_for_last_backup(backup_folder: Path) -> None:
-    """Create a file containing checksums of all files in the latest backup."""
+    """
+    Create a file containing checksums of all files in the latest backup.
+
+    Arguments:
+        backup_folder: Folder containing all dated backups
+
+    Raises:
+        CommandLineError: If there are no backups
+    """
     last_backup = util.find_previous_backup(backup_folder)
     if not last_backup:
         raise CommandLineError(f"Could not find backup in {backup_folder}")
@@ -98,7 +114,16 @@ def create_checksum_for_last_backup(backup_folder: Path) -> None:
 
 
 def create_checksum_for_folder(folder: Path) -> Path:
-    """Create a file containing checksums of all files in the given folder."""
+    """
+    Create a file containing checksums of all files in the given folder.
+
+    Arguments:
+        folder: Path to a folder.
+
+    Returns:
+        checksum_file: A path to a file with a list of all files in the folder and subfolders and
+            their corresponding checksum results.
+    """
     checksum_path = fs.unique_path_name(folder/checksum_file_name)
     logger.info("")
     logger.info("Creating checksum file: %s ...", checksum_path)
@@ -121,21 +146,38 @@ def get_file_checksum(path: Path) -> str:
     """
     Read a file and calculate its checksum.
 
-    Returns a hexadecimal string.
+    Arguments:
+        path: Path to a file.
+
+    Returns:
+        hex_string: A hexadecimal string calculated from the hash of the file data.
     """
     with path.open("rb") as file:
         return hashlib.file_digest(file, hash_function).hexdigest()
 
 
 def start_checksum(args: argparse.Namespace) -> None:
-    """Create checksum file for latest backup if specified by arguments."""
+    """
+    Create checksum file for latest backup if specified by arguments.
+
+    Arguments:
+        args: Parsed command line options
+    """
     backup_folder = fs.absolute_path(args.backup_folder)
     if should_do_periodic_action(args, "checksum", backup_folder, last_checksum):
         create_checksum_for_last_backup(backup_folder)
 
 
 def last_checksum(backup_folder: Path) -> datetime.datetime | None:
-    """Find the date of the last backup with a checksum file."""
+    """
+    Find the date of the last backup with a checksum file.
+
+    Arguments:
+        backup_folder: Base folder of all dated backups.
+
+    Returns:
+        datetime: The timestamp of the last backup with a checksum file, if any.
+    """
     backup_found = None
     for backup in util.all_backups(backup_folder):
         if fs.find_unique_path(backup/checksum_file_name):
@@ -144,7 +186,19 @@ def last_checksum(backup_folder: Path) -> datetime.datetime | None:
 
 
 def verify_backup_checksum(backup_folder: Path, result_directory: Path) -> Path | None:
-    """Verify the checksums of backed up files and write changed files to a new file."""
+    """
+    Verify the checksums of backed up files and write changed files to a new file.
+
+    Arguments:
+        backup_folder: Folder containing a single backup.
+        result_directory: Folder where the results of the checksum verification should be written.
+
+    Returns:
+        result_file: Path to file containing checksum verification results, if any.
+
+    Raises:
+        FileNotFoundError: If the backup does not contain a checksum file.
+    """
     checksum_path = fs.find_unique_path(backup_folder/checksum_file_name)
     if not checksum_path:
         raise FileNotFoundError(f"Could not find checksum file in {backup_folder}")
@@ -185,7 +239,15 @@ def verify_backup_checksum(backup_folder: Path, result_directory: Path) -> Path 
 
 
 def start_verify_checksum(args: argparse.Namespace) -> None:
-    """Parse command line for verifying backup checksums."""
+    """
+    Verifying a single backup's checksum file.
+
+    Arguments:
+        args: Parsed command line
+
+    Raises:
+        CommandLineError: If there are no backups with checksum files
+    """
     result_folder = fs.absolute_path(args.verify_checksum)
     print_run_title(args, "Verify backup checksum")
     backup_folder = fs.absolute_path(args.backup_folder)

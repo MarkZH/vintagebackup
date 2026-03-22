@@ -16,7 +16,15 @@ logger = logging.getLogger()
 
 
 def choose_backup(backup_folder: Path) -> Path | None:
-    """Choose a backup from a numbered list shown in a terminal."""
+    """
+    Choose a backup from a numbered list shown in a terminal.
+
+    Arguments:
+        backup_folder: Base path of all dated backups folders.
+
+    Returns:
+        A path to a dated backup folder, if there are any to choose from.
+    """
     backup_choices = all_backups(backup_folder)
     if not backup_choices:
         return None
@@ -81,7 +89,15 @@ def restore_backup(
 
 
 def start_backup_restore(args: argparse.Namespace) -> None:
-    """Parse command line arguments for a restoration from a backup."""
+    """
+    Parse command line arguments for a restoration from a backup.
+
+    Arguments:
+        args: Parsed command line
+
+    Raises:
+        CommandLineError: If no --destination argument is provided or no backups were found
+    """
     backup_folder = get_existing_path(args.backup_folder, "backup folder")
     if not args.destination:
         raise CommandLineError("The --destination argument is required for restoring backups.")
