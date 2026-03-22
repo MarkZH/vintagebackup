@@ -27,7 +27,12 @@ setup_initial_null_logger()
 
 
 def default_action(args: argparse.Namespace) -> None:
-    """If no other action arguments are present, run a backup by default."""
+    """
+    If no other action arguments are present, run a backup by default.
+
+    Arguments:
+        args: Parsed command line options
+    """
     print_run_title(args, "Starting new backup")
     backup_cycle(args)
     delete_old_backups(args)

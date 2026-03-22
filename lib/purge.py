@@ -15,7 +15,12 @@ logger = logging.getLogger()
 
 
 def choose_purge_target_from_backups(args: argparse.Namespace) -> None:
-    """Choose which path to purge from a list of everything backed up from a folder."""
+    """
+    Choose which path to purge from a list of everything backed up from a folder.
+
+    Arguments:
+        args: Parsed command line options
+    """
     backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
     chosen_purge_path = recovery.choose_target_path_from_backups(args)
     if chosen_purge_path:
@@ -23,7 +28,12 @@ def choose_purge_target_from_backups(args: argparse.Namespace) -> None:
 
 
 def start_backup_purge(args: argparse.Namespace) -> None:
-    """Parse command line options to purge file or folder from all backups."""
+    """
+    Purge a file or folder from all backups.
+
+    Arguments:
+        args: Parsed command line options
+    """
     backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
     purge_target = fs.absolute_path(args.purge)
     print_run_title(args, "Purging from backups")
@@ -31,7 +41,13 @@ def start_backup_purge(args: argparse.Namespace) -> None:
 
 
 def purge_path(purge_target: Path, backup_folder: Path) -> None:
-    """Purge a file/folder by deleting it from all backups."""
+    """
+    Purge a file/folder by deleting it from all backups.
+
+    Arguments:
+        purge_target: The file or folder in the user's data that should be deleted from all backups
+        backup_folder: The folder containing all dated backups
+    """
     relative_purge_target = recovery.path_relative_to_backups(purge_target, backup_folder)
 
     backup_list = all_backups(backup_folder)

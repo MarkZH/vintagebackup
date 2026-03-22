@@ -81,7 +81,12 @@ def find_missing_files(
 
 
 def start_finding_missing_files(args: argparse.Namespace) -> None:
-    """Start finding missing files after parsing command line."""
+    """
+    Start finding missing files after parsing command line.
+
+    Arguments:
+        args: Parsed command line
+    """
     print_run_title(args, "Finding missing files")
     find_missing_files(
         absolute_path(args.backup_folder),

@@ -208,14 +208,26 @@ def primary_log_path(log_file_name: str | None, backup_folder: str | None) -> Pa
 
 
 def record_backup_log_file(log_file_path: Path, backup_path: Path) -> None:
-    """Record location of log file used with a backup folder."""
+    """
+    Record location of log file used with a backup folder.
+
+    Arguments:
+        log_file_path: Path to file where log messages are written
+        backup_path: Folder containing all dated backups
+    """
     backup_info = read_backup_information(backup_path)
     backup_info["Log"] = absolute_path(log_file_path)
     write_backup_information(backup_path, backup_info)
 
 
 def record_compare_contents_timestamp(backup_location: Path, timestamp: datetime.datetime) -> None:
-    """Record timestamp of last time file contents were compared during backup."""
+    """
+    Record timestamp of last time file contents were compared during backup.
+
+    Arguments:
+        backup_location: Folder containing all dated backups
+        timestamp: Date and time of last time file contents were compared during backups
+    """
     info = read_backup_information(backup_location)
     info["Compare_Timestamp"] = timestamp
     write_backup_information(backup_location, info)

@@ -601,10 +601,20 @@ def parse_command_line(argv: list[str]) -> argparse.Namespace:
 
 
 def print_usage(destination: TextIO | None = None) -> None:
-    """Print short instructions for the command line options."""
+    """
+    Print short instructions for the command line options.
+
+    Arguments:
+        destination: Where to print command line usage information. If None, print to stdout.
+    """
     argument_parser().print_usage(destination)
 
 
 def print_help(destination: TextIO | None = None) -> None:
-    """Print full manual for Vintage Backup."""
+    """
+    Print full manual for Vintage Backup.
+
+    Arguments:
+        destination: Where to print command line usage information. If None, print to stdout.
+    """
     argument_parser().print_help(destination)

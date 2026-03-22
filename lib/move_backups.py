@@ -23,7 +23,14 @@ def move_backups(
         old_backup_location: Path,
         new_backup_location: Path,
         backups_to_move: list[Path]) -> None:
-    """Move a set of backups to a new location."""
+    """
+    Move a set of backups to a new location.
+
+    Arguments:
+        old_backup_location: Where backups are currently stored
+        new_backup_location: Where backups are being moved to
+        backups_to_move: A list of dated backups to move
+    """
     move_count = len(backups_to_move)
     logger.info("Moving %s", plural_noun(move_count, "backup"))
     logger.info("from %s", old_backup_location)
@@ -91,7 +98,12 @@ def backups_since(oldest_backup_date: datetime.datetime, backup_location: Path) 
 
 
 def start_move_backups(args: argparse.Namespace) -> None:
-    """Parse command line options to move backups to another location."""
+    """
+    Parse command line options to move backups to another location.
+
+    Arguments:
+        args: Parsed command line options
+    """
     old_backup_location = get_existing_path(args.backup_folder, "current backup location")
     new_backup_location = absolute_path(args.move_backup)
     backups_to_move = choose_backups_to_move(args, old_backup_location)

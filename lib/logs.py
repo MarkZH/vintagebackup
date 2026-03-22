@@ -25,7 +25,15 @@ def setup_log_file(
         backup_folder: str | None,
         *,
         debug: bool) -> None:
-    """Set up logging to write to a file."""
+    """
+    Set up logging to write to a file.
+
+    Arguments:
+        log_file_name: The name of the file where log messages will be written
+        error_log_file_path: The name of the file where only error messages will be written
+        backup_folder: Folder containing all dated backups
+        debug: Whether debugging messages should be logged
+    """
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG if debug else logging.INFO)
     log_file_path = primary_log_path(log_file_name, backup_folder)

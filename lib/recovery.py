@@ -128,7 +128,15 @@ def recover_from_menu(
         recovery_path: Path,
         backup_location: Path,
         backup_choices: list[Path]) -> None:
-    """Choose which version of a path to recover from a list of backup dates."""
+    """
+    Choose which version of a path to recover from a list of backup dates.
+
+    Arguments:
+        recovery_path: File or folder in the user's data to recover
+        backup_location: Folder containing all dated backups
+        backup_choices: A list of backed up versions of the recovery target that are not hard links
+            of each other
+    """
     menu_choices: list[str] = []
     for backup_copy in backup_choices:
         backup_date = backup_copy.relative_to(backup_location).parts[1]
@@ -165,7 +173,18 @@ def recover_path_to_original_location(backed_up_source: Path, destination: Path)
 
 
 def binary_search_recovery(recovery_path: Path, backup_choices: list[Path]) -> None:
-    """Choose a version of a path to recover by searching with the user deciding older or newer."""
+    """
+    Use a binary search algorithm to have the user choose which version of a path to recover.
+
+    At each step, a backed up version is copied to the current directory so the user can inspect it.
+    They will then be asked if this is the correct version, or if they want a newer or older
+    version.
+
+    Arguments:
+        recovery_path: The path to a user's file or folder that will be recovered
+        backup_choices: All backups containing unique copies (not hard links) of the path being
+            recovered
+    """
     while True:
         index = len(backup_choices)//2
         path_to_backup = backup_choices[index]
@@ -255,7 +274,12 @@ def path_relative_to_backups(user_path: Path, backup_location: Path) -> Path:
 
 
 def start_recovery_from_backup(args: argparse.Namespace) -> None:
-    """Recover a file or folder from a backup according to the command line."""
+    """
+    Recover a file or folder from a backup according to the command line.
+
+    Arguments:
+        args: Parsed command line options
+    """
     backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
     print_run_title(args, "Recovering from backups")
     recover_path(fs.absolute_path(args.recover), backup_folder, search=args.search)
@@ -284,7 +308,12 @@ def choose_target_path_from_backups(args: argparse.Namespace) -> Path | None:
 
 
 def choose_recovery_target_from_backups(args: argparse.Namespace) -> None:
-    """Choose what to recover from a list of everything backed up from a folder."""
+    """
+    Choose what to recover from a list of everything backed up from a folder.
+
+    Arguments:
+        args: Parsed command line options
+    """
     backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
     chosen_recovery_path = choose_target_path_from_backups(args)
     if chosen_recovery_path:

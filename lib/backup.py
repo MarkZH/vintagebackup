@@ -480,7 +480,13 @@ def backup_staging_folder(backup_location: Path) -> Path:
 
 
 def report_backup_file_counts(action_counter: Counter[str]) -> None:
-    """Log the number of files that were backed up, hardlinked, copied, and failed to copy."""
+    """
+    Log the number of files that were backed up, hardlinked, copied, and failed to copy.
+
+    Arguments:
+        action_counter: A counter to track how many files have been linked, copied, or failed for
+            both
+    """
     logger.info("")
     total_files = sum(
         count for action, count in action_counter.items() if not action.startswith("failed"))
@@ -530,7 +536,12 @@ def check_paths_for_validity(
 
 
 def print_backup_storage_stats(backup_location: Path) -> None:
-    """Log information about the storage space of the backup medium."""
+    """
+    Log information about the storage space of the backup medium.
+
+    Arguments:
+        backup_location: Folder containing all dated backups.
+    """
     backup_storage = shutil.disk_usage(backup_location)
     percent_used = round(100*backup_storage.used/backup_storage.total)
     percent_free = round(100*backup_storage.free/backup_storage.total)
@@ -653,6 +664,10 @@ def log_backup_size(free_up_parameter: str | None, backup_space_taken: int) -> N
 
     This should warn the user that a future backup may not have enough storage space to complete
     sucessfully.
+
+    Arguments:
+        free_up_parameter: The value given to the --free-up command line option
+        backup_space_taken: The space taken by the most recent backup
     """
     free_up = fs.parse_storage_space(free_up_parameter or "0")
     free_up_percent = math.ceil(100*backup_space_taken/free_up) if free_up else 0

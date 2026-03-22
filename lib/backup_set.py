@@ -123,7 +123,12 @@ class Backup_Set:
 
 
 def preview_filter(args: argparse.Namespace) -> None:
-    """Print a list of files that will make it through the --filter file."""
+    """
+    Print a list of files that will make it through the --filter file.
+
+    Arguments:
+        args: Parsed command line
+    """
     user_folder = get_existing_path(args.user_folder, "user folder")
     filter_file = path_or_none(args.filter)
     output_file = path_or_none(args.preview_filter or args.preview_filter_exclusions)

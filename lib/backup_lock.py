@@ -18,7 +18,13 @@ class Backup_Lock:
     """
 
     def __init__(self, backup_location: Path, operation: str) -> None:
-        """Set up the lock."""
+        """
+        Set up the lock.
+
+        Arguments:
+            backup_location: Folder containing all dated backups
+            operation: Action that Vintage Bakup is performing while the backup location is locked
+        """
         self.lock_file_path = backup_location/"vintagebackup.lock"
         self.pid = str(os.getpid())
         self.operation = operation

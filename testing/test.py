@@ -146,11 +146,15 @@ def default_backup(user_path: Path, backup_path: Path) -> None:
     """
     Run a backup with all default options.
 
-    filter_file=None,
-    examine_whole_file=False,
-    force_copy=False,
-    copy_probability=0.0,
-    timestamp=unique_timestamp()
+    - filter_file=None
+    - examine_whole_file=False
+    - force_copy=False
+    - copy_probability=0.0
+    - timestamp=unique_timestamp()
+
+    Arguments:
+        user_path: Folder containing a test user's data
+        backup_path: Folder containing all dated test backups
     """
     bak.create_new_backup(
         user_path,
@@ -178,7 +182,13 @@ def create_old_monthly_backups(backup_base_directory: Path, count: int) -> None:
 
 
 def create_old_backup(backup_base_directory: Path, backup_timestamp: datetime.datetime) -> None:
-    """Create a single empty backup with the given timestamp."""
+    """
+    Create a single empty backup with the given timestamp.
+
+    Arguments:
+        backup_base_directory: Folder containing all dated backups
+        backup_timestamp: The timestamp of the new backup
+    """
     backup_name = backup_timestamp.strftime(util.backup_date_format)
     backup_path = backup_base_directory/str(backup_timestamp.year)/backup_name
     backup_path.mkdir(parents=True)
@@ -1601,7 +1611,13 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
 
 
 def create_large_files(base_folder: Path, file_size: int) -> None:
-    """Create a file of a give size in every leaf subdirectory."""
+    """
+    Create a file of a give size in every leaf subdirectory.
+
+    Arguments:
+        base_folder: The top-level directory whose every subfolder will get a new large file
+        file_size: The size of the large file to create in bytes
+    """
     data = "A"*file_size
     for directory_name, sub_directory_names, _ in base_folder.walk():
         if not sub_directory_names:
@@ -1618,7 +1634,16 @@ class DiskUsageMock:
         free: int
 
     def __init__(self, path: Path | str, initial_free_space: int) -> None:
-        """Create a mock hard drive with the given amount of free space."""
+        """
+        Create a mock hard drive with the given amount of free space.
+
+        Arguments:
+            path: A path in the test storage media from which the initial used space will be read
+            initial_free_space: An initial amount of free space in bytes for the test storage
+
+        The total storage space of the mock disk will be the used space of the path plus the initial
+        free space
+        """
         self.original_disk_usage = copy.copy(shutil.disk_usage)
         initial_used = self.original_disk_usage(path).used
         self.total = initial_used + initial_free_space
@@ -3874,6 +3899,7 @@ class EndOfMonthFixTests(unittest.TestCase):
     def test_fix_end_of_month_rejects_inherently_bad_dates(self) -> None:
         """Test that fix_end_of_month() rejects bad values: zero, negatives, etc."""
         def assert_is_bad_date(year: int, month: int, day: int) -> None:
+            """Assert date cannot be fixed via fix_end_of_month()."""
             with self.assertRaises(ValueError):
                 dates.fix_end_of_month(year, month, day)
 
@@ -3985,7 +4011,15 @@ class BackupNameTests(unittest.TestCase):
 
 
 def is_even(n: int) -> bool:
-    """Return whether an integer is even."""
+    """
+    Return whether an integer is even.
+
+    Arguments:
+        n: The whole number to test
+
+    Returns:
+        bool: Whether n is even
+    """
     return n % 2 == 0
 
 
@@ -4453,7 +4487,12 @@ class GenerateConfigTests(TestCaseWithTemporaryFilesAndFolders):
     """Test the generation of configuration files."""
 
     def assert_config_file_creation(self, command_line: list[str]) -> None:
-        """Assert that the config file was created with no errors and with the correct path."""
+        """
+        Assert that the config file was created with no errors and with the correct path.
+
+        Arguments:
+            command_line: The tested command line as if from sys.argv
+        """
         with self.assertLogs(level=logging.INFO) as logs:
             main_no_log(command_line)
 

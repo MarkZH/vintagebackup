@@ -69,7 +69,13 @@ def plural_noun(count: int, word: str) -> str:
 
 
 def print_run_title(command_line_args: argparse.Namespace, action_title: str) -> None:
-    """Print the action taking place."""
+    """
+    Print the action taking place.
+
+    Arguments:
+        command_line_args: Parsed command line arguments
+        action_title: The name of the action currently being performed by Vintage Backup
+    """
     logger.info("")
     divider = "="*(len(action_title) + 2)
     logger.info(divider)

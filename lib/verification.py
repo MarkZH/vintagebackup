@@ -78,7 +78,12 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
 
 
 def start_verify_backup(args: argparse.Namespace) -> None:
-    """Parse command line options for verifying backups."""
+    """
+    Parse command line options for verifying backups.
+
+    Arguments:
+        args: Parsed command line options
+    """
     backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
     filter_file = fs.path_or_none(args.filter)
     result_folder = fs.absolute_path(args.verify)
@@ -152,7 +157,12 @@ def get_file_checksum(path: Path) -> str:
 
 
 def start_checksum(args: argparse.Namespace) -> None:
-    """Create checksum file for latest backup if specified by arguments."""
+    """
+    Create checksum file for latest backup if specified by arguments.
+
+    Arguments:
+        args: Parsed command line options
+    """
     backup_folder = fs.absolute_path(args.backup_folder)
     if should_do_periodic_action(args, "checksum", backup_folder, last_checksum):
         create_checksum_for_last_backup(backup_folder)
@@ -230,7 +240,7 @@ def verify_backup_checksum(backup_folder: Path, result_directory: Path) -> Path 
 
 def start_verify_checksum(args: argparse.Namespace) -> None:
     """
-    Parse command line for verifying backup checksums.
+    Verifying a single backup's checksum file.
 
     Arguments:
         args: Parsed command line

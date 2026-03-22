@@ -126,8 +126,10 @@ def delete_directory_tree(directory: Path, *, ignore_errors: bool = False) -> No
     """
     Delete a single directory.
 
-    If ignore_errors is True, skip files and folders that cannot be deleted and continue deleting
-    the rest of the directory's contents. Otherwise, the function will raise an exception.
+    Arguments:
+        directory: The directory to be deleted
+        ignore_errors: If True, skip files and folders that cannot be deleted and continue deleting
+            the rest of the directory's contents. Otherwise, the function will raise an exception.
     """
 
     def remove_readonly(func: Callable[..., object], path: str, _: object) -> None:
@@ -152,8 +154,10 @@ def delete_file(file_path: Path, *, ignore_errors: bool = False) -> None:
     """
     Delete file with option to ignore errors.
 
-    If ignore_errors is True, then an error message is printed. Otherwise, the exception from
-    Path.unlink() is raised.
+    Arguments:
+        file_path: The file to be deleted
+        ignore_errors: If True, then an error message is printed. Otherwise, the exception from
+            Path.unlink() is raised.
     """
     try:
         file_path.unlink()
@@ -168,8 +172,10 @@ def delete_path(path: Path, *, ignore_errors: bool = False) -> None:
     """
     Delete a path whether it is a file, folder, or something else.
 
-    If ignore_errors is True, then an error message is printed if an exception occurs. Otherwise,
-    the exception from the deletion call is raised.
+    Arguments:
+        path: The path to be deleted
+        ignore_errors: If True, then an error message is printed if an exception occurs. Otherwise,
+            the exception from the deletion call is raised.
     """
     if is_real_directory(path):
         delete_directory_tree(path, ignore_errors=ignore_errors)
@@ -216,7 +222,14 @@ def parse_storage_space(space_requirement: str) -> float:
 
 
 def write_directory(output: TextIO, directory: Path, file_names: list[str]) -> None:
-    """Write the full path of a directory followed by a list of files it contains."""
+    """
+    Write the full path of a directory followed by a list of files it contains.
+
+    Arguments:
+        output: Where the directory information should be written
+        directory: The current directory being scanned
+        file_names: The names of files contained in the directory (not in subfolders)
+    """
     if file_names:
         output.write(f"{absolute_path(directory)}{os.sep}\n")
         output.writelines(f"    {name}\n" for name in file_names)
