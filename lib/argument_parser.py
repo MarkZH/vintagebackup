@@ -238,7 +238,7 @@ the hard links to previous backups will be recreated to preserve the space savin
 is needed when deciding how many backups should be moved."""))
 
     only_one_action_group.add_argument("--verify", metavar="RESULT_DIR", help=format_help(
-"""Verify the latest backup by comparing them against the original files. The result of the
+"""Verify the latest backup by comparing it against the original files. The result of the
 comparison will be placed in the folder RESULT_DIR. The result is three files: a list of files that
 match, a list of files that do not match, and a list of files that caused errors during the
 comparison. The --backup-folder argument is required. If a filter file was used
