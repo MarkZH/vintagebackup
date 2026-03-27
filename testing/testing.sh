@@ -1,6 +1,6 @@
-echo upgrade
-python3.13 -m pip install --upgrade pip
-python3.13 -m pip install --upgrade mypy ruff
+echo install testing dependencies
+python3.13 -m pip install pip
+python3.13 -m pip install mypy ruff
 
 echo ruff
 python3.13 -m ruff check --config=testing/ruff.toml || exit 1
