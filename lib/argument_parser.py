@@ -98,6 +98,10 @@ def add_periodic_option(
 f"""Perform the --{name} action if it has not been done within the time span of the argument.
 See the Time Span Format section below for how to specify a time span. {extra_info}""".strip()))
 
+    user_input.add_argument(f"--{name}-start", help=format_help(
+f"""Perform the --{name}-every action starting on the given date. The parameter is a date in
+YYYY-MM-DD format."""))
+
 
 def toggle_is_set(args: argparse.Namespace, name: str) -> bool:
     """

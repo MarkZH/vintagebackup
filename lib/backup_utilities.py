@@ -81,12 +81,19 @@ def should_do_periodic_action(
     if not time_span:
         return False
 
+    now = (
+        datetime.datetime.strptime(args.timestamp, backup_date_format) if args.timestamp
+        else datetime.datetime.now())
+
+    start_date_str = options[f"{action}_start"]
+    if start_date_str:
+        start_date = datetime.datetime.strptime(start_date_str, "%Y-%m-%d").date()
+        if now.date() < start_date:
+            return False
+
     previous_action_date = previous_action_lookup(backup_folder)
     if not previous_action_date:
         return True
 
-    now = (
-        datetime.datetime.strptime(args.timestamp, backup_date_format) if args.timestamp
-        else datetime.datetime.now())
     required_action_date = parse_time_span_to_timepoint(time_span, now)
     return previous_action_date <= required_action_date
