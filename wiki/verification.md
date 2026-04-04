@@ -79,6 +79,12 @@ python vintagebackup.py --user-folder C:\Users\Alice --backup-folder E:\backups 
 will create a checksum file for the latest backup if one has not been created in six months.
 The date of the last checksum will be found by searching through all previous backups for the `checksums.sha3` or a number-renamed version.
 
+#### `--checksum-start`
+
+Specify a date (YYYY-MM-DD) on which to start periodically creating checksums for backups.
+Before the date, no checksum file is created after a backup.
+After the date, whether a checksum file is created is controlled by [`--checksum-every`](#--checksum-every).
+
 #### `--no-checksum`
 
 Do not create a checksum file, even if `--checksum` or `--checksum-every` arguments are also present.
