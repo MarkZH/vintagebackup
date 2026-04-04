@@ -203,9 +203,8 @@ def create_old_daily_backups(backup_base_directory: Path, count: int) -> None:
         backup_base_directory: The directory that will contain the backup folders.
         count: The number of backups to create. The oldest will be (count - 1) days old.
     """
-    now = datetime.datetime.now()
-    for days_back in range(count):
-        backup_timestamp = now - datetime.timedelta(days=days_back)
+    first_backup = datetime.datetime.now() - datetime.timedelta(days=count)
+    for backup_timestamp in datetime_range(first_backup, datetime.timedelta(days=1), count):
         create_old_backup(backup_base_directory, backup_timestamp)
 
 
@@ -471,6 +470,24 @@ class TestCaseWithTemporaryFilesAndFolders(unittest.TestCase):
         self.user_path = Path(tempfile.mkdtemp())
 
 
+def datetime_range(
+        start: datetime.datetime,
+        period: datetime.timedelta,
+        count: int) -> Iterator[datetime.datetime]:
+    """
+    Generate a sequence of datetimes.
+
+    Arguments:
+        start: The first datetime to yield
+        period: The time intervale between yielded datetimes
+        count: The number of datetimes to yield
+
+    Yields:
+        datetime: A sequence of datetimes at equally spaced intervals
+    """
+    yield from (start + i*period for i in range(count))
+
+
 class BackupTests(TestCaseWithTemporaryFilesAndFolders):
     """Test the main backup procedure."""
 
@@ -607,9 +624,10 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that --compare-contents-every does not compare contents before time elapsed."""
         create_user_data(self.user_path)
         interval = datetime.timedelta(days=1)
-        timestamp = datetime.datetime.now()
+        start = datetime.datetime.now()
+        backup_count = 2
         with self.assertLogs(level=logging.INFO) as logs:
-            for _ in range(2):
+            for timestamp in datetime_range(start, interval, backup_count):
                 exit_code = main.main([
                     "-u", str(self.user_path),
                     "-b", str(self.backup_path),
@@ -618,7 +636,8 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
                     "-l", os.devnull],
                     testing=True)
                 self.assertEqual(exit_code, 0)
-                timestamp += interval
+
+        self.assertEqual(len(util.all_backups(self.backup_path)), backup_count)
 
         compare_contents_line = "INFO:root:Reading file contents = True"
         self.assertEqual(logs.output.count(compare_contents_line), 1)
@@ -634,11 +653,11 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that --compare-contents-every compare contents at correct interval."""
         create_user_data(self.user_path)
         backup_interval = datetime.timedelta(days=1)
-        timestamp = datetime.datetime.now()
+        start = datetime.datetime.now()
         backups = 11
         compare_interval = 5
         with self.assertLogs(level=logging.INFO) as logs:
-            for _ in range(backups):
+            for timestamp in datetime_range(start, backup_interval, backups):
                 exit_code = main.main([
                     "-u", str(self.user_path),
                     "-b", str(self.backup_path),
@@ -647,7 +666,6 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
                     "-l", os.devnull],
                     testing=True)
                 self.assertEqual(exit_code, 0)
-                timestamp += backup_interval
 
         compare_line_start = "INFO:root:Reading file contents = "
         compare_lines = filter(lambda s: s.startswith(compare_line_start), logs.output)
@@ -3881,10 +3899,9 @@ class EndOfMonthFixTests(unittest.TestCase):
         """Test that valid dates are returned unchanged."""
         start_date = datetime.date(2024, 1, 1)
         end_date = datetime.date(2025, 12, 31)
-        date = start_date
-        while date <= end_date:
+        total_days = (end_date - start_date).days + 1  # +1 to include end_date
+        for date in (start_date + datetime.timedelta(days=d) for d in range(total_days)):
             self.assertEqual(date, dates.fix_end_of_month(date.year, date.month, date.day))
-            date += datetime.timedelta(days=1)
 
     def test_fix_end_of_month_always_returns_last_day_of_month_for_invalid_dates(self) -> None:
         """Test that an invalid date is fixed to be the end of the month."""
