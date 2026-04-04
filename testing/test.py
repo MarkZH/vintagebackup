@@ -673,8 +673,8 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
         expected_compares = [i % compare_interval == 0 for i in range(backups)]
         self.assertEqual(actually_compared, expected_compares)
 
-    def test_compare_contents_every_starts_file_comparisons_on_correct_date(self) -> None:
-        """Test that --compare-contents-every starts file comparisons on correct date."""
+    def test_compare_contents_start_starts_file_comparisons_on_correct_date(self) -> None:
+        """Test that --compare-contents-start starts file comparisons on correct date."""
         backup_start = datetime.datetime(2026, 4, 3, 19, 26, 0)
         backup_interval = datetime.timedelta(days=1)
         compare_start = backup_start + datetime.timedelta(days=3)
@@ -702,8 +702,8 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
             for t in backup_timestamps]
         self.assertEqual(actually_compared, expected_compares)
 
-    def test_compare_contents_with_early_date_has_no_effect(self) -> None:
-        """Test that --compare-contents-every with date before backup does not affect timing."""
+    def test_compare_contents_start_with_early_date_has_no_effect(self) -> None:
+        """Test that --compare-contents-start with date before backup does not affect timing."""
         backup_start = datetime.datetime(2026, 4, 3, 19, 26, 0)
         backup_interval = datetime.timedelta(days=1)
         compare_start = backup_start + datetime.timedelta(days=-3)
