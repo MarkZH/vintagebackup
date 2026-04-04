@@ -21,7 +21,8 @@ import re
 import io
 from inspect import getsourcefile
 import hashlib
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
+from operator import itemgetter
 import copy
 import errno
 
@@ -1979,11 +1980,14 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
 
             first_retained_index -= 1
 
-        expected_backups_remaining = [
+        def unique(it: Iterable[Path]) -> Iterator[Path]:
+            return map(itemgetter(0), itertools.groupby(it))
+
+        expected_backups_remaining = list(unique([
             backups[0],
             backups[first_retained_index],
             backups[-2],
-            backups[-1]]
+            backups[-1]]))
 
         main_assert_no_error_log([
             "--keep-monthly-after", time_span_to_keep_all_backups,
