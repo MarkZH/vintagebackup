@@ -4504,6 +4504,7 @@ class GenerateConfigTests(TestCaseWithTemporaryFilesAndFolders):
 
         gen_config_index = command_line.index("--generate-config")
         config_file_name = command_line[gen_config_index + 1]
+        self.assertTrue(Path(config_file_name).is_file())
         self.assertEqual(
             logs.output,
             [f"INFO:root:Generated configuration file: {config_file_name}"])
