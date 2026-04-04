@@ -1922,18 +1922,23 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
     def test_delete_only_command_line_option(self) -> None:
         """Test that --delete-only deletes backups without running a backup."""
         create_old_monthly_backups(self.backup_path, 30)
-        oldest_backup_age = datetime.timedelta(days=120)
+        months_count = 4
         arguments = [
             "--backup-folder", str(self.backup_path),
-            "--delete-after", f"{oldest_backup_age.days}d",
+            "--delete-after", f"{months_count}m",
             "--delete-only"]
         exit_code = main_assert_no_error_log(arguments, self)
         self.assertEqual(exit_code, 0)
         backups = util.all_backups(self.backup_path)
-        self.assertEqual(len(backups), 5)  # 120 days = 4 months
-        last_backup_date = util.backup_datetime(backups[-1])
-        earliest_backup_timestamp = util.backup_datetime(backups[0])
-        self.assertEqual(last_backup_date - earliest_backup_timestamp, oldest_backup_age)
+        self.assertEqual(len(backups), 5, "".join(f"\n{b}" for b in backups))
+
+        timestamp = util.backup_datetime(backups[-1])
+        expected_oldest_backup_date = dates.months_ago(timestamp, months_count)
+        expected_oldest_backup_timestamp = datetime.datetime.combine(
+            expected_oldest_backup_date,
+            timestamp.time())
+        oldest_backup_timestamp = util.backup_datetime(backups[0])
+        self.assertEqual(oldest_backup_timestamp, expected_oldest_backup_timestamp)
 
     def test_keep_weekly_after_only_retains_weekly_backups_after_time_span(self) -> None:
         """After the given time span, every backup is at least a week apart."""
