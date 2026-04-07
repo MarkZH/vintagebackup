@@ -2686,8 +2686,8 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             checksum_exists,
             [True, False, False, True, False, False, True, False, False])
 
-    def test_checksum_start_starts_file_comparisons_on_correct_date(self) -> None:
-        """Test that --checksum-every starts file comparisons on correct date."""
+    def test_checksum_start_starts_checksum_on_correct_date(self) -> None:
+        """Test that --checksum-every starts checksum creation on correct date."""
         backup_start = datetime.datetime(2026, 4, 3, 19, 26, 0)
         backup_interval = datetime.timedelta(days=1)
         checksum_start = backup_start + datetime.timedelta(days=3)
