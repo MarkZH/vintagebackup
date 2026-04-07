@@ -88,8 +88,12 @@ def should_do_periodic_action(
     start_date_str = options[f"{action}_start"]
     if start_date_str:
         start_date = datetime.datetime.strptime(start_date_str, "%Y-%m-%d").date()
+
         if now.date() < start_date:
             return False
+
+        if now.date() == start_date:
+            return True
 
     previous_action_date = previous_action_lookup(backup_folder)
     if not previous_action_date:
