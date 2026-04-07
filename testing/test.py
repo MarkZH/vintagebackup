@@ -706,7 +706,7 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that --compare-contents-start with date before backup does not affect timing."""
         backup_start = datetime.datetime(2026, 4, 3, 19, 26, 0)
         backup_interval = datetime.timedelta(days=1)
-        compare_start = backup_start + datetime.timedelta(days=-3)
+        compare_start = backup_start - datetime.timedelta(days=3)
         compare_interval = datetime.timedelta(days=7)
         backup_count = 30
         backup_timestamps = list(datetime_range(backup_start, backup_interval, backup_count))
@@ -2729,7 +2729,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that --checksum-every with date before backup does not affect timing."""
         backup_start = datetime.datetime(2026, 4, 3, 19, 26, 0)
         backup_interval = datetime.timedelta(days=1)
-        checksum_start = backup_start + datetime.timedelta(days=-3)
+        checksum_start = backup_start - datetime.timedelta(days=3)
         checksum_interval = datetime.timedelta(days=7)
         backup_count = 30
         backup_timestamps = list(datetime_range(backup_start, backup_interval, backup_count))
