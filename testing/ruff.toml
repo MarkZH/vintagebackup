@@ -17,6 +17,7 @@ ignore = [
     "INP001", # File is part of an implicit namespace package. Add an `__init__.py`.
     "N801", # Class name should be CapWords
     "PLR0904", # Too many public methods
+    "PLR0911", # Too many return statements
     "PLR0913", # Too many arguments in function definition
     "PLR0914", # Too many local variables
     "PLR0915", # Too many statements
