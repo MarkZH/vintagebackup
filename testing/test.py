@@ -3248,8 +3248,11 @@ FiLteR    :    {filter_file}
 force-copy:
 
 compare    contents :
+compare CONTENTS eVeRy: 2m
+compare   contents        start          : 2027-01-01
 checkSUM       :
 Checksum Every: 1m
+CHECKSUM START  :  2028-02-02
 """, encoding="utf8")
         command_line = config.read_configuation_file(fs.absolute_path(self.config_path))
         expected_command_line = [
@@ -3258,8 +3261,11 @@ Checksum Every: 1m
             "--filter", filter_file,
             "--force-copy",
             "--compare-contents",
+            "--compare-contents-every", "2m",
+            "--compare-contents-start", "2027-01-01",
             "--checksum",
-            "--checksum-every", "1m"]
+            "--checksum-every", "1m",
+            "--checksum-start", "2028-02-02"]
 
         self.assertEqual(command_line, expected_command_line)
         arg_parser = argparse.argument_parser()
@@ -3268,8 +3274,12 @@ Checksum Every: 1m
         self.assertEqual(args.backup_folder, backup_folder)
         self.assertEqual(args.filter, filter_file)
         self.assertTrue(args.force_copy)
+        self.assertTrue(args.compare_contents)
+        self.assertEqual(args.compare_contents_every, "2m")
+        self.assertEqual(args.compare_contents_start, "2027-01-01")
         self.assertTrue(args.checksum)
         self.assertEqual(args.checksum_every, "1m")
+        self.assertEqual(args.checksum_start, "2028-02-02")
 
     def test_command_line_options_override_config_file_options(self) -> None:
         """Test that command line options override file configurations and leave others alone."""
