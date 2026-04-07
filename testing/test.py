@@ -609,12 +609,10 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that --compare-contents-every causes contents to be compared on first backup."""
         create_user_data(self.user_path)
         with self.assertLogs(level=logging.INFO) as logs:
-            exit_code = main.main([
+            exit_code = main_no_log([
                 "-u", str(self.user_path),
                 "-b", str(self.backup_path),
-                "--compare-contents-every", "30d",
-                "-l", os.devnull],
-                testing=True)
+                "--compare-contents-every", "30d"])
             self.assertEqual(exit_code, 0)
 
         compare_contents_line = "INFO:root:Reading file contents = True"
@@ -628,13 +626,11 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
         backup_count = 2
         with self.assertLogs(level=logging.INFO) as logs:
             for timestamp in datetime_range(start, interval, backup_count):
-                exit_code = main.main([
+                exit_code = main_no_log([
                     "-u", str(self.user_path),
                     "-b", str(self.backup_path),
                     "--compare-contents-every", "30d",
-                    "--timestamp", timestamp.strftime(util.backup_date_format),
-                    "-l", os.devnull],
-                    testing=True)
+                    "--timestamp", timestamp.strftime(util.backup_date_format)])
                 self.assertEqual(exit_code, 0)
 
         self.assertEqual(len(util.all_backups(self.backup_path)), backup_count)
@@ -658,13 +654,11 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
         compare_interval = 5
         with self.assertLogs(level=logging.INFO) as logs:
             for timestamp in datetime_range(start, backup_interval, backups):
-                exit_code = main.main([
+                exit_code = main_no_log([
                     "-u", str(self.user_path),
                     "-b", str(self.backup_path),
                     "--compare-contents-every", f"{compare_interval} d",
-                    "--timestamp", timestamp.strftime(util.backup_date_format),
-                    "-l", os.devnull],
-                    testing=True)
+                    "--timestamp", timestamp.strftime(util.backup_date_format)])
                 self.assertEqual(exit_code, 0)
 
         compare_line_start = "INFO:root:Reading file contents = "
@@ -684,14 +678,12 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         with self.assertLogs(level=logging.INFO) as logs:
             for timestamp in backup_timestamps:
-                exit_code = main.main([
+                exit_code = main_no_log([
                     "-u", str(self.user_path),
                     "-b", str(self.backup_path),
                     "--compare-contents-every", f"{compare_interval.days}d",
                     "--compare-contents-start", compare_start.strftime("%Y-%m-%d"),
-                    "--timestamp", timestamp.strftime(util.backup_date_format),
-                    "-l", os.devnull],
-                    testing=True)
+                    "--timestamp", timestamp.strftime(util.backup_date_format)])
                 self.assertEqual(exit_code, 0)
 
         compare_line_start = "INFO:root:Reading file contents = "
@@ -713,14 +705,12 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         with self.assertLogs(level=logging.INFO) as logs:
             for timestamp in backup_timestamps:
-                exit_code = main.main([
+                exit_code = main_no_log([
                     "-u", str(self.user_path),
                     "-b", str(self.backup_path),
                     "--compare-contents-every", f"{compare_interval.days}d",
                     "--compare-contents-start", compare_start.strftime("%Y-%m-%d"),
-                    "--timestamp", timestamp.strftime(util.backup_date_format),
-                    "-l", os.devnull],
-                    testing=True)
+                    "--timestamp", timestamp.strftime(util.backup_date_format)])
                 self.assertEqual(exit_code, 0)
 
         compare_line_start = "INFO:root:Reading file contents = "
@@ -1934,13 +1924,11 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         deletion.delete_single_backup(last_backup, None)
         with self.assertLogs(level=logging.INFO) as logs:
-            exit_code = main.main([
+            exit_code = main_no_log([
                 "-u", str(self.user_path),
                 "-b", str(self.backup_path),
                 "--delete-after", max_age,
-                "--log", os.devnull,
-                "--timestamp", now.strftime(util.backup_date_format)],
-                testing=True)
+                "--timestamp", now.strftime(util.backup_date_format)])
         self.assertEqual(exit_code, 0)
         backups = util.all_backups(self.backup_path)
         self.assertEqual(len(backups), 13)
@@ -2708,14 +2696,12 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         backup_timestamps = list(datetime_range(backup_start, backup_interval, backup_count))
         create_user_data(self.user_path)
         for timestamp in backup_timestamps:
-            exit_code = main.main([
+            exit_code = main_no_log([
                 "-u", str(self.user_path),
                 "-b", str(self.backup_path),
                 "--checksum-every", f"{checksum_interval.days}d",
                 "--checksum-start", checksum_start.strftime("%Y-%m-%d"),
-                "--timestamp", timestamp.strftime(util.backup_date_format),
-                "-l", os.devnull],
-                testing=True)
+                "--timestamp", timestamp.strftime(util.backup_date_format)])
             self.assertEqual(exit_code, 0)
 
         backups = util.all_backups(self.backup_path)
@@ -2735,14 +2721,12 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         backup_timestamps = list(datetime_range(backup_start, backup_interval, backup_count))
         create_user_data(self.user_path)
         for timestamp in backup_timestamps:
-            exit_code = main.main([
+            exit_code = main_no_log([
                 "-u", str(self.user_path),
                 "-b", str(self.backup_path),
                 "--checksum-every", f"{checksum_interval.days}d",
                 "--checksum-start", checksum_start.strftime("%Y-%m-%d"),
-                "--timestamp", timestamp.strftime(util.backup_date_format),
-                "-l", os.devnull],
-                testing=True)
+                "--timestamp", timestamp.strftime(util.backup_date_format)])
             self.assertEqual(exit_code, 0)
 
         backups = util.all_backups(self.backup_path)
@@ -3075,13 +3059,11 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
         with self.assertLogs(level=logging.ERROR) as logs:
-            exit_code = main.main([
+            exit_code = main_no_log([
                 "-u", str(self.user_path),
                 "-b", str(self.backup_path),
-                "-l", os.devnull,
                 "--verify-checksum", str(self.user_path),
-                "--oldest"],
-            testing=True)
+                "--oldest"])
 
         self.assertEqual(exit_code, 1)
         self.assertEqual(
@@ -3092,13 +3074,11 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that a checksummed backup is verified before automatic deletion."""
         create_user_data(self.user_path)
         timestamp = datetime.datetime.now() - datetime.timedelta(days=2)
-        main.main([
+        main_no_log([
             "-u", str(self.user_path),
             "-b", str(self.backup_path),
-            "-l", os.devnull,
             "--checksum",
-            "--timestamp", timestamp.strftime(util.backup_date_format)],
-            testing=True)
+            "--timestamp", timestamp.strftime(util.backup_date_format)])
 
         backups = util.all_backups(self.backup_path)
         self.assertEqual(len(backups), 1)
@@ -3110,13 +3090,11 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertTrue(changed_file.is_file())
         changed_file.write_text("Corrupted data", encoding="utf8")
 
-        main.main([
+        main_no_log([
             "-u", str(self.user_path),
             "-b", str(self.backup_path),
-            "-l", os.devnull,
             "--delete-after", "1d",
-            "--verify-checksum-before-deletion", str(self.user_path)],
-        testing=False)
+            "--verify-checksum-before-deletion", str(self.user_path)])
 
         result_path = self.user_path/verify.verify_checksum_file_name
         self.assertTrue(result_path.is_file())
@@ -3131,20 +3109,16 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that a checksummed backup is verified before automatic deletion."""
         create_user_data(self.user_path)
         timestamp = datetime.datetime.now() - datetime.timedelta(days=2)
-        main.main([
+        main_no_log([
             "-u", str(self.user_path),
             "-b", str(self.backup_path),
-            "-l", os.devnull,
-            "--timestamp", timestamp.strftime(util.backup_date_format)],
-            testing=True)
+            "--timestamp", timestamp.strftime(util.backup_date_format)])
 
-        main.main([
+        main_no_log([
             "-u", str(self.user_path),
             "-b", str(self.backup_path),
-            "-l", os.devnull,
             "--delete-after", "1d",
-            "--verify-checksum-before-deletion", str(self.user_path)],
-        testing=False)
+            "--verify-checksum-before-deletion", str(self.user_path)])
 
         result_path = self.user_path/verify.verify_checksum_file_name
         self.assertFalse(result_path.exists())
@@ -3152,12 +3126,10 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
     def test_that_verifying_checksum_files_ignore_blank_lines(self) -> None:
         """Test that lines with just whitespace do not affect checksum verification."""
         create_user_data(self.user_path)
-        exit_code = main.main([
+        exit_code = main_no_log([
             "-u", str(self.user_path),
             "-b", str(self.backup_path),
-            "-l", os.devnull,
-            "--checksum"],
-            testing=True)
+            "--checksum"])
         self.assertEqual(exit_code, 0)
         backup = util.find_previous_backup(self.backup_path)
         self.assertIsNotNone(backup)
@@ -3175,12 +3147,10 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         checksum_file_name.unlink()
 
         with self.assertNoLogs(level=logging.WARNING):
-            exit_code = main.main([
+            exit_code = main_no_log([
                 "--verify-checksum", str(self.user_path),
                 "--oldest",
-                "-b", str(self.backup_path),
-                "-l", os.devnull],
-                testing=True)
+                "-b", str(self.backup_path)])
 
         self.assertEqual(exit_code, 0)
 
@@ -5563,13 +5533,12 @@ def run_find_missing_files(
     else:
         args = [
             "--find-missing", str(result_directory),
-            "-b", str(backup_path),
-            "-l", os.devnull]
+            "-b", str(backup_path)]
 
         if debug:
             args.append("--debug")
 
-        return main.main(args, testing=True)
+        return main_no_log(args)
 
 
 class FindMissingFilesTests(TestCaseWithTemporaryFilesAndFolders):
