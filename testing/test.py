@@ -673,6 +673,62 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
         expected_compares = [i % compare_interval == 0 for i in range(backups)]
         self.assertEqual(actually_compared, expected_compares)
 
+    def test_compare_contents_start_starts_file_comparisons_on_correct_date(self) -> None:
+        """Test that --compare-contents-start starts file comparisons on correct date."""
+        backup_start = datetime.datetime(2026, 4, 3, 19, 26, 0)
+        backup_interval = datetime.timedelta(days=1)
+        compare_start = backup_start + datetime.timedelta(days=3)
+        compare_interval = datetime.timedelta(days=7)
+        backup_count = 30
+        backup_timestamps = list(datetime_range(backup_start, backup_interval, backup_count))
+        create_user_data(self.user_path)
+        with self.assertLogs(level=logging.INFO) as logs:
+            for timestamp in backup_timestamps:
+                exit_code = main.main([
+                    "-u", str(self.user_path),
+                    "-b", str(self.backup_path),
+                    "--compare-contents-every", f"{compare_interval.days}d",
+                    "--compare-contents-start", compare_start.strftime("%Y-%m-%d"),
+                    "--timestamp", timestamp.strftime(util.backup_date_format),
+                    "-l", os.devnull],
+                    testing=True)
+                self.assertEqual(exit_code, 0)
+
+        compare_line_start = "INFO:root:Reading file contents = "
+        compare_lines = filter(lambda s: s.startswith(compare_line_start), logs.output)
+        actually_compared = [s.removeprefix(compare_line_start) == "True" for s in compare_lines]
+        expected_compares = [
+            (t - compare_start).days % compare_interval.days == 0
+            for t in backup_timestamps]
+        self.assertEqual(actually_compared, expected_compares)
+
+    def test_compare_contents_start_with_early_date_has_no_effect(self) -> None:
+        """Test that --compare-contents-start with date before backup does not affect timing."""
+        backup_start = datetime.datetime(2026, 4, 3, 19, 26, 0)
+        backup_interval = datetime.timedelta(days=1)
+        compare_start = backup_start - datetime.timedelta(days=3)
+        compare_interval = datetime.timedelta(days=7)
+        backup_count = 30
+        backup_timestamps = list(datetime_range(backup_start, backup_interval, backup_count))
+        create_user_data(self.user_path)
+        with self.assertLogs(level=logging.INFO) as logs:
+            for timestamp in backup_timestamps:
+                exit_code = main.main([
+                    "-u", str(self.user_path),
+                    "-b", str(self.backup_path),
+                    "--compare-contents-every", f"{compare_interval.days}d",
+                    "--compare-contents-start", compare_start.strftime("%Y-%m-%d"),
+                    "--timestamp", timestamp.strftime(util.backup_date_format),
+                    "-l", os.devnull],
+                    testing=True)
+                self.assertEqual(exit_code, 0)
+
+        compare_line_start = "INFO:root:Reading file contents = "
+        compare_lines = filter(lambda s: s.startswith(compare_line_start), logs.output)
+        actually_compared = [s.removeprefix(compare_line_start) == "True" for s in compare_lines]
+        expected_compares = [day % compare_interval.days == 0 for day in range(backup_count)]
+        self.assertEqual(actually_compared, expected_compares)
+
     def test_file_that_changed_between_backups_is_copied(self) -> None:
         """Check that a file changed between backups is copied with others are hardlinked."""
         create_user_data(self.user_path)
@@ -2641,6 +2697,58 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(
             checksum_exists,
             [True, False, False, True, False, False, True, False, False])
+
+    def test_checksum_start_starts_file_comparisons_on_correct_date(self) -> None:
+        """Test that --checksum-every starts file comparisons on correct date."""
+        backup_start = datetime.datetime(2026, 4, 3, 19, 26, 0)
+        backup_interval = datetime.timedelta(days=1)
+        checksum_start = backup_start + datetime.timedelta(days=3)
+        checksum_interval = datetime.timedelta(days=14)
+        backup_count = 30
+        backup_timestamps = list(datetime_range(backup_start, backup_interval, backup_count))
+        create_user_data(self.user_path)
+        for timestamp in backup_timestamps:
+            exit_code = main.main([
+                "-u", str(self.user_path),
+                "-b", str(self.backup_path),
+                "--checksum-every", f"{checksum_interval.days}d",
+                "--checksum-start", checksum_start.strftime("%Y-%m-%d"),
+                "--timestamp", timestamp.strftime(util.backup_date_format),
+                "-l", os.devnull],
+                testing=True)
+            self.assertEqual(exit_code, 0)
+
+        backups = util.all_backups(self.backup_path)
+        actually_checksummed = [(bak/verify.checksum_file_name).exists() for bak in backups]
+        expected_checksums = [
+            (t - checksum_start).days % checksum_interval.days == 0
+            for t in backup_timestamps]
+        self.assertEqual(actually_checksummed, expected_checksums)
+
+    def test_checksum_start_with_early_date_has_no_effect(self) -> None:
+        """Test that --checksum-every with date before backup does not affect timing."""
+        backup_start = datetime.datetime(2026, 4, 3, 19, 26, 0)
+        backup_interval = datetime.timedelta(days=1)
+        checksum_start = backup_start - datetime.timedelta(days=3)
+        checksum_interval = datetime.timedelta(days=7)
+        backup_count = 30
+        backup_timestamps = list(datetime_range(backup_start, backup_interval, backup_count))
+        create_user_data(self.user_path)
+        for timestamp in backup_timestamps:
+            exit_code = main.main([
+                "-u", str(self.user_path),
+                "-b", str(self.backup_path),
+                "--checksum-every", f"{checksum_interval.days}d",
+                "--checksum-start", checksum_start.strftime("%Y-%m-%d"),
+                "--timestamp", timestamp.strftime(util.backup_date_format),
+                "-l", os.devnull],
+                testing=True)
+            self.assertEqual(exit_code, 0)
+
+        backups = util.all_backups(self.backup_path)
+        actually_checksummed = [(bak/verify.checksum_file_name).exists() for bak in backups]
+        expected_checksums = [day % checksum_interval.days == 0 for day in range(backup_count)]
+        self.assertEqual(actually_checksummed, expected_checksums)
 
     def test_no_checksum_overrides_checksum_every_on_command_line(self) -> None:
         """Test that --no-checksum cancels --checksum-every in argument_parser."""

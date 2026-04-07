@@ -80,6 +80,19 @@ This option can also be used as an occasional check on the integrity of backups.
 
 This option is overridden by `--no-compare-contents`.
 
+### `--compare-contents-every`
+
+This activates [`--compare-contents`](#--compare-contents) periodically.
+The period between backups where file contents are compared is specified in the same manner as [`--delete-after`](delete.md#--delete-after).
+
+This option is overridden by `--no-compare-contents`.
+
+### `--compare-contents-start`
+
+If the [`--compare-contents-every`](#--compare-contents-every) option is used, the `--compare-contents-start` option specifies a date (YYYY-MM-DD) to start periodically comparing contents.
+Before the date specified, file contents are not compared.
+After the date specified, whether file contents are compared is controlled by [`--compare-contents-every`](#--compare-contents-every).
+
 ### `--force-copy`
 
 Copy every file regardless of whether the file has changed since the last backup.
