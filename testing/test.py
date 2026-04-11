@@ -16,7 +16,7 @@ import enum
 import random
 import string
 import platform
-from typing import cast, TextIO, NamedTuple
+from typing import Any, cast, TextIO, NamedTuple
 import re
 import io
 from inspect import getsourcefile
@@ -98,11 +98,6 @@ def unique_timestamp() -> datetime.datetime:
     return testing_timestamp
 
 
-def unique_timestamp_string() -> str:
-    """Return the stringified version of the unique_timestamp() result."""
-    return unique_timestamp().strftime(util.backup_date_format)
-
-
 def random_string(length: int) -> str:
     """Return a string with random ASCII letters of a given length."""
     return "".join(random.choices(string.ascii_letters, k=length))
@@ -143,6 +138,32 @@ def create_user_data(base_directory: Path) -> None:
         movement_file.write_text(movement, encoding="utf8")
 
 
+class Now_Mock:
+    """A class to mock datetime.datetime.now() and nothing else."""
+
+    class datetime_local:
+        """The mocked version of datetime."""
+
+        def __init__(self, now: datetime.datetime) -> None:
+            """Set the time to return for the mocked now()."""
+            self.timestamp = now
+
+        def now(self) -> datetime.datetime:
+            """Return the mocked value of now."""
+            return self.timestamp
+
+        def __getattr__(self, name: str) -> Any:  # noqa: ANN401
+            """Return the usual datetime functions and methods when now() is not called."""
+            if name == "strptime":
+                return datetime.datetime.strptime
+
+            raise NotImplementedError(f"datetime.datetime.{name} missing in mock class.")
+
+    def __init__(self, now: datetime.datetime) -> None:
+        """Set the time to be returned by datetime.datetime.now()."""
+        self.datetime = self.datetime_local(now)
+
+
 def default_backup(user_path: Path, backup_path: Path) -> None:
     """
     Run a backup with all default options.
@@ -157,14 +178,15 @@ def default_backup(user_path: Path, backup_path: Path) -> None:
         user_path: Folder containing a test user's data
         backup_path: Folder containing all dated test backups
     """
-    bak.create_new_backup(
-        user_path,
-        backup_path,
-        filter_file=None,
-        examine_whole_file=False,
-        force_copy=False,
-        copy_probability=0.0,
-        timestamp=unique_timestamp())
+    with patch("lib.backup.datetime", Now_Mock(unique_timestamp())):
+        bak.create_new_backup(
+            user_path,
+            backup_path,
+            filter_file=None,
+            examine_whole_file=False,
+            force_copy=False,
+            copy_probability=0.0,
+            timestamp=None)
 
 
 def create_old_monthly_backups(backup_base_directory: Path, count: int) -> None:
@@ -352,8 +374,7 @@ def run_backup(
         filter_file: Path | None,
         *,
         examine_whole_file: bool,
-        force_copy: bool,
-        timestamp: datetime.datetime) -> int:
+        force_copy: bool) -> int:
     """
     Create a new backup while choosing a direct function call or a CLI invocation.
 
@@ -364,36 +385,34 @@ def run_backup(
         filter_file: Path to a file with a backup set filter
         examine_whole_file: Whether to compare file contents when making a new backup
         force_copy: If True, do not hard link any files, even if unchanged
-        timestamp: The timestamp to use for the backup to make sure backups created successively do
-            not have the same timestamp
 
     Returns:
         exit_code: The exit code of the program run: zero for success and non-zero for failure.
     """
-    if run_method == Invocation.function:
-        bak.create_new_backup(
-            user_data,
-            backup_location,
-            filter_file=filter_file,
-            examine_whole_file=examine_whole_file,
-            force_copy=force_copy,
-            copy_probability=0.0,
-            timestamp=timestamp)
-        return 0
-    elif run_method == Invocation.cli:
-        argv = [
-            "--user-folder", str(user_data),
-            "--backup-folder", str(backup_location),
-            "--timestamp", timestamp.strftime(util.backup_date_format)]
-        if filter_file:
-            argv.extend(["--filter", str(filter_file)])
-        if examine_whole_file:
-            argv.append("--compare-contents")
-        if force_copy:
-            argv.append("--force-copy")
-        return main_no_log(argv)
-    else:
-        raise NotImplementedError(f"Backup test with {run_method} not implemented.")
+    with patch("lib.backup.datetime", Now_Mock(unique_timestamp())):
+        if run_method == Invocation.function:
+            bak.create_new_backup(
+                user_data,
+                backup_location,
+                filter_file=filter_file,
+                examine_whole_file=examine_whole_file,
+                force_copy=force_copy,
+                copy_probability=0.0,
+                timestamp=None)
+            return 0
+        elif run_method == Invocation.cli:
+            argv = [
+                "--user-folder", str(user_data),
+                "--backup-folder", str(backup_location)]
+            if filter_file:
+                argv.extend(["--filter", str(filter_file)])
+            if examine_whole_file:
+                argv.append("--compare-contents")
+            if force_copy:
+                argv.append("--force-copy")
+            return main_no_log(argv)
+        else:
+            raise NotImplementedError(f"Backup test with {run_method} not implemented.")
 
 
 def run_backup_assert_no_error_logs(
@@ -404,8 +423,7 @@ def run_backup_assert_no_error_logs(
         filter_file: Path | None,
         *,
         examine_whole_file: bool,
-        force_copy: bool,
-        timestamp: datetime.datetime) -> int:
+        force_copy: bool) -> int:
     """
     Run backup while asserting that no errors are logged.
 
@@ -417,8 +435,6 @@ def run_backup_assert_no_error_logs(
         filter_file: Path to a file with a backup set filter
         examine_whole_file: Whether to compare file contents when making a new backup
         force_copy: If True, do not hard link any files, even if unchanged
-        timestamp: The timestamp to use for the backup to make sure backups created successively do
-            not have the same timestamp
 
     Returns:
         exit_code: The exit code of the program run: zero for success and non-zero for failure.
@@ -430,8 +446,7 @@ def run_backup_assert_no_error_logs(
             backup_location,
             filter_file,
             examine_whole_file=examine_whole_file,
-            force_copy=force_copy,
-            timestamp=timestamp)
+            force_copy=force_copy)
 
 
 class TestCaseWithTemporaryFilesAndFolders(unittest.TestCase):
@@ -502,8 +517,7 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
                 self.backup_path,
                 filter_file=None,
                 examine_whole_file=False,
-                force_copy=False,
-                timestamp=unique_timestamp())
+                force_copy=False)
             self.assertEqual(exit_code, 0, method)
             backups = util.all_backups(self.backup_path)
             self.assertEqual(len(backups), 1, method)
@@ -523,8 +537,7 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
                     self.backup_path,
                     filter_file=None,
                     examine_whole_file=False,
-                    force_copy=False,
-                    timestamp=unique_timestamp())
+                    force_copy=False)
                 self.assertEqual(exit_code, 0)
             backups = util.all_backups(self.backup_path)
             self.assertEqual(len(backups), 2, method)
@@ -544,8 +557,7 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
                     self.backup_path,
                     filter_file=None,
                     examine_whole_file=False,
-                    force_copy=True,
-                    timestamp=unique_timestamp())
+                    force_copy=True)
                 self.assertEqual(exit_code, 0)
             backups = util.all_backups(self.backup_path)
             self.assertEqual(len(backups), 2, method)
@@ -571,8 +583,7 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
                     self.backup_path,
                     filter_file=None,
                     examine_whole_file=True,
-                    force_copy=False,
-                    timestamp=unique_timestamp())
+                    force_copy=False)
                 self.assertEqual(exit_code, 0, method)
                 for current_directory, _, files in self.user_path.walk():
                     for file in files:
@@ -588,7 +599,8 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that --force-copy results in a copy backup even if --compare-contents is present."""
         create_user_data(self.user_path)
         for method in Invocation:
-            for _ in range(2):
+            backup_count = 2
+            for _ in range(backup_count):
                 exit_code = run_backup_assert_no_error_logs(
                     self,
                     method,
@@ -596,11 +608,10 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
                     self.backup_path,
                     filter_file=None,
                     examine_whole_file=True,
-                    force_copy=True,
-                    timestamp=unique_timestamp())
+                    force_copy=True)
                 self.assertEqual(exit_code, 0, method)
             backups = util.all_backups(self.backup_path)
-            self.assertEqual(len(backups), 2, method)
+            self.assertEqual(len(backups), backup_count, method)
             self.assertEqual(backups[-1], util.find_previous_backup(self.backup_path), method)
             self.assertTrue(directories_are_completely_copied(*backups), method)
             self.reset_backup_folder()
@@ -626,11 +637,12 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
         backup_count = 2
         with self.assertLogs(level=logging.INFO) as logs:
             for timestamp in datetime_range(start, interval, backup_count):
-                exit_code = main_no_log([
-                    "-u", str(self.user_path),
-                    "-b", str(self.backup_path),
-                    "--compare-contents-every", "30d",
-                    "--timestamp", timestamp.strftime(util.backup_date_format)])
+                with (patch("lib.backup.datetime", Now_Mock(timestamp)),
+                      patch("lib.backup_utilities.datetime", Now_Mock(timestamp))):
+                    exit_code = main_no_log([
+                        "-u", str(self.user_path),
+                        "-b", str(self.backup_path),
+                        "--compare-contents-every", "30d"])
                 self.assertEqual(exit_code, 0)
 
         self.assertEqual(len(util.all_backups(self.backup_path)), backup_count)
@@ -654,11 +666,12 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
         compare_interval = 5
         with self.assertLogs(level=logging.INFO) as logs:
             for timestamp in datetime_range(start, backup_interval, backups):
-                exit_code = main_no_log([
-                    "-u", str(self.user_path),
-                    "-b", str(self.backup_path),
-                    "--compare-contents-every", f"{compare_interval} d",
-                    "--timestamp", timestamp.strftime(util.backup_date_format)])
+                with (patch("lib.backup.datetime", Now_Mock(timestamp)),
+                      patch("lib.backup_utilities.datetime", Now_Mock(timestamp))):
+                    exit_code = main_no_log([
+                        "-u", str(self.user_path),
+                        "-b", str(self.backup_path),
+                        "--compare-contents-every", f"{compare_interval} d"])
                 self.assertEqual(exit_code, 0)
 
         compare_line_start = "INFO:root:Reading file contents = "
@@ -678,12 +691,13 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         with self.assertLogs(level=logging.INFO) as logs:
             for timestamp in backup_timestamps:
-                exit_code = main_no_log([
-                    "-u", str(self.user_path),
-                    "-b", str(self.backup_path),
-                    "--compare-contents-every", f"{compare_interval.days}d",
-                    "--compare-contents-start", compare_start.strftime("%Y-%m-%d"),
-                    "--timestamp", timestamp.strftime(util.backup_date_format)])
+                with (patch("lib.backup.datetime", Now_Mock(timestamp)),
+                      patch("lib.backup_utilities.datetime", Now_Mock(timestamp))):
+                    exit_code = main_no_log([
+                        "-u", str(self.user_path),
+                        "-b", str(self.backup_path),
+                        "--compare-contents-every", f"{compare_interval.days}d",
+                        "--compare-contents-start", compare_start.strftime("%Y-%m-%d")])
                 self.assertEqual(exit_code, 0)
 
         compare_line_start = "INFO:root:Reading file contents = "
@@ -705,21 +719,22 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         first_backup_timestamp = backup_start - datetime.timedelta(hours=1)
 
-        with self.assertLogs(level=logging.INFO) as logs:
+        with (self.assertLogs(level=logging.INFO) as logs,
+              patch("lib.backup.datetime", Now_Mock(first_backup_timestamp))):
             exit_code = main_no_log([
                 "-u", str(self.user_path),
                 "-b", str(self.backup_path),
-                "--compare-contents",
-                "--timestamp", first_backup_timestamp.strftime(util.backup_date_format)])
+                "--compare-contents"])
             self.assertEqual(exit_code, 0)
 
             for timestamp in backup_timestamps:
-                exit_code = main_no_log([
-                    "-u", str(self.user_path),
-                    "-b", str(self.backup_path),
-                    "--compare-contents-every", f"{compare_interval.days}d",
-                    "--compare-contents-start", compare_start.strftime("%Y-%m-%d"),
-                    "--timestamp", timestamp.strftime(util.backup_date_format)])
+                with (patch("lib.backup.datetime", Now_Mock(timestamp)),
+                      patch("lib.backup_utilities.datetime", Now_Mock(timestamp))):
+                    exit_code = main_no_log([
+                        "-u", str(self.user_path),
+                        "-b", str(self.backup_path),
+                        "--compare-contents-every", f"{compare_interval.days}d",
+                        "--compare-contents-start", compare_start.strftime("%Y-%m-%d")])
                 self.assertEqual(exit_code, 0)
 
         compare_line_start = "INFO:root:Reading file contents = "
@@ -741,12 +756,13 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         with self.assertLogs(level=logging.INFO) as logs:
             for timestamp in backup_timestamps:
-                exit_code = main_no_log([
-                    "-u", str(self.user_path),
-                    "-b", str(self.backup_path),
-                    "--compare-contents-every", f"{compare_interval.days}d",
-                    "--compare-contents-start", compare_start.strftime("%Y-%m-%d"),
-                    "--timestamp", timestamp.strftime(util.backup_date_format)])
+                with (patch("lib.backup.datetime", Now_Mock(timestamp)),
+                      patch("lib.backup_utilities.datetime", Now_Mock(timestamp))):
+                    exit_code = main_no_log([
+                        "-u", str(self.user_path),
+                        "-b", str(self.backup_path),
+                        "--compare-contents-every", f"{compare_interval.days}d",
+                        "--compare-contents-start", compare_start.strftime("%Y-%m-%d")])
                 self.assertEqual(exit_code, 0)
 
         compare_line_start = "INFO:root:Reading file contents = "
@@ -947,7 +963,7 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
                 examine_whole_file=False,
                 force_copy=False,
                 copy_probability=0.0,
-                timestamp=unique_timestamp())
+                timestamp=None)
         self.assertIn("WARNING:root:No files were backed up!", assert_log.output)
         self.assertEqual(
             list(self.backup_path.iterdir()),
@@ -1044,8 +1060,7 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
                 self.backup_path,
                 filter_file=self.filter_path,
                 examine_whole_file=False,
-                force_copy=False,
-                timestamp=unique_timestamp())
+                force_copy=False)
             self.assertEqual(exit_code, 0)
 
             last_backup = util.find_previous_backup(self.backup_path)
@@ -1074,8 +1089,7 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
                 self.backup_path,
                 filter_file=self.filter_path,
                 examine_whole_file=False,
-                force_copy=False,
-                timestamp=unique_timestamp())
+                force_copy=False)
             self.assertEqual(exit_code, 0, method)
 
             last_backup = util.find_previous_backup(self.backup_path)
@@ -1110,7 +1124,7 @@ class FilterTests(TestCaseWithTemporaryFilesAndFolders):
             examine_whole_file=False,
             force_copy=False,
             copy_probability=0.0,
-            timestamp=unique_timestamp())
+            timestamp=None)
 
         self.assertEqual(len(util.all_backups(self.backup_path)), 1)
         last_backup = util.find_previous_backup(self.backup_path)
@@ -1401,15 +1415,19 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         for method in Invocation:
             self.reset_backup_folder()
-            for _ in range(9):
-                bak.create_new_backup(
-                    self.user_path,
-                    self.backup_path,
-                    filter_file=None,
-                    examine_whole_file=False,
-                    force_copy=True,
-                    copy_probability=0.0,
-                    timestamp=unique_timestamp())
+            for timestamp in datetime_range(
+                    datetime.datetime.now(),
+                    datetime.timedelta(seconds=10),
+                    9):
+                with patch("lib.backup.datetime", Now_Mock(timestamp)):
+                    bak.create_new_backup(
+                        self.user_path,
+                        self.backup_path,
+                        filter_file=None,
+                        examine_whole_file=False,
+                        force_copy=True,
+                        copy_probability=0.0,
+                        timestamp=None)
 
             sought_file = self.user_path/"root_file.txt"
             with self.assertLogs(level=logging.INFO) as logs:
@@ -1846,13 +1864,13 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             elif method == Invocation.cli:
                 # Leave room for user data and newly created backup plus half of backup size
                 mock_storage = DiskUsageMock(self.backup_path, int((3/2)*file_size))
-                with patch("lib.backup_deletion.shutil.disk_usage", mock_storage):
+                with (patch("lib.backup_deletion.shutil.disk_usage", mock_storage),
+                      patch("lib.backup.datetime", Now_Mock(unique_timestamp()))):
                     create_large_files(self.user_path, file_size)
                     exit_code = main_assert_no_error_log([
                         "--user-folder", str(self.user_path),
                         "--backup-folder", str(self.backup_path),
-                        "--free-up", goal_space_str,
-                        "--timestamp", unique_timestamp_string()],
+                        "--free-up", goal_space_str],
                         self)
                 self.assertEqual(exit_code, 0, method)
             else:
@@ -1906,8 +1924,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
                     "--user-folder", str(self.user_path),
                     "--backup-folder", str(self.backup_path),
                     "--delete-after", max_age,
-                    "--delete-only",
-                    "--timestamp", unique_timestamp_string()],
+                    "--delete-only"],
                     self)
                 self.assertEqual(exit_code, 0, method)
             else:
@@ -1959,12 +1976,12 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             now.hour, now.minute, now.second)
         create_user_data(self.user_path)
         deletion.delete_single_backup(last_backup, None)
-        with self.assertLogs(level=logging.INFO) as logs:
+        with (patch("lib.backup.datetime", Now_Mock(now)),
+              self.assertLogs(level=logging.INFO) as logs):
             exit_code = main_no_log([
                 "-u", str(self.user_path),
                 "-b", str(self.backup_path),
-                "--delete-after", max_age,
-                "--timestamp", now.strftime(util.backup_date_format)])
+                "--delete-after", max_age])
         self.assertEqual(exit_code, 0)
         backups = util.all_backups(self.backup_path)
         self.assertEqual(len(backups), 13)
@@ -2201,8 +2218,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         args = argparse.parse_command_line([
             "-u", str(self.user_path),
             "-b", str(self.backup_path),
-            "--free-up", str(file_size),
-            "--timestamp", unique_timestamp_string()])
+            "--free-up", str(file_size)])
         with (patch("lib.backup.shutil.disk_usage", mock_storage),
               patch("lib.backup.shutil.copy2", MockCopy2())):
             main.default_action(args)
@@ -2226,8 +2242,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         args = argparse.parse_command_line([
             "-u", str(self.user_path),
             "-b", str(self.backup_path),
-            "--free-up", str(file_size//10),
-            "--timestamp", unique_timestamp_string()])
+            "--free-up", str(file_size//10)])
         with (patch("lib.backup.shutil.disk_usage", mock_storage),
               patch("lib.backup.shutil.copy2", MockCopy2()),
               self.assertRaises(CommandLineError) as error):
@@ -2245,8 +2260,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         args = argparse.parse_command_line([
             "-u", str(self.user_path),
             "-b", str(self.backup_path),
-            "--free-up", "1000000",
-            "--timestamp", unique_timestamp_string()])
+            "--free-up", "1000000"])
         with (patch("lib.backup.shutil.disk_usage", mock_storage),
               patch("lib.backup.shutil.copy2", MockCopy2()),
               self.assertRaises(CommandLineError) as error):
@@ -2263,8 +2277,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         args = argparse.parse_command_line([
             "-u", str(self.user_path),
             "-b", str(self.backup_path),
-            "--free-up", "1000000",
-            "--timestamp", unique_timestamp_string()])
+            "--free-up", "1000000"])
         with (patch("lib.backup.shutil.disk_usage", mock_storage),
               patch("lib.backup.shutil.copy2", MockCopy2()),
               self.assertRaises(CommandLineError) as error):
@@ -2282,8 +2295,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         mock_storage = DiskUsageMock(self.backup_path, 1)
         args = argparse.parse_command_line([
             "-u", str(self.user_path),
-            "-b", str(self.backup_path),
-            "--timestamp", unique_timestamp_string()])
+            "-b", str(self.backup_path)])
         with (patch("lib.backup.shutil.disk_usage", mock_storage),
               patch("lib.backup.shutil.copy2", MockCopy2()),
               self.assertRaises(OutOfSpaceError)):
@@ -2423,14 +2435,15 @@ class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         for day in range(1, 32):
             backup_date = datetime.datetime(2025, 8, day, 2, 0, 0)
-            bak.create_new_backup(
-                self.user_path,
-                self.backup_path,
-                filter_file=None,
-                examine_whole_file=False,
-                force_copy=False,
-                copy_probability=0.0,
-                timestamp=backup_date)
+            with patch("lib.backup.datetime", Now_Mock(backup_date)):
+                bak.create_new_backup(
+                    self.user_path,
+                    self.backup_path,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    copy_probability=0.0,
+                    timestamp=None)
         args = argparse.parse_command_line(["--move-since", "2025-08-15"])
         backups = moving.choose_backups_to_move(args, self.backup_path)
         expected_backup_count = 17  # Aug. 15 to Aug. 31
@@ -2675,13 +2688,13 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that last_checksum() finds most recent backup with checksum."""
         create_user_data(self.user_path)
         for _ in range(2):
-            exit_code = main.main([
-                "-u", str(self.user_path),
-                "-b", str(self.backup_path),
-                "--checksum",
-                "--log", str(self.log_path),
-                "--timestamp", unique_timestamp_string()],
-                testing=True)
+            with patch("lib.backup.datetime", Now_Mock(unique_timestamp())):
+                exit_code = main.main([
+                    "-u", str(self.user_path),
+                    "-b", str(self.backup_path),
+                    "--checksum",
+                    "--log", str(self.log_path)],
+                    testing=True)
             self.assertEqual(exit_code, 0)
 
         last_checksum_date = verify.last_checksum(self.backup_path)
@@ -2697,24 +2710,23 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             "-u", str(self.user_path),
             "-b", str(self.backup_path),
             "--checksum-every", "1d",
-            "-l", str(self.log_path),
-            "--timestamp", unique_timestamp_string()],
+            "-l", str(self.log_path)],
             testing=True)
         self.assertTrue((util.all_backups(self.backup_path)[0]/verify.checksum_file_name).is_file())
 
     def test_checksum_created_after_enough_time_passes_without_a_checksum(self) -> None:
         """Test that checksum is created using --checksum-every option after enough time passed."""
         create_user_data(self.user_path)
-        now = datetime.datetime.now()
-        for n in range(9):
-            timestamp = now + datetime.timedelta(days=n)
-            main.main([
-                "-u", str(self.user_path),
-                "-b", str(self.backup_path),
-                "--checksum-every", "3d",
-                "-l", str(self.log_path),
-                "--timestamp", timestamp.strftime(util.backup_date_format)],
-                testing=True)
+        for timestamp in datetime_range(datetime.datetime.now(), datetime.timedelta(days=1), 9):
+            with (patch("lib.backup.datetime", Now_Mock(timestamp)),
+                  patch("lib.backup_utilities.datetime", Now_Mock(timestamp))):
+                exit_code = main.main([
+                    "-u", str(self.user_path),
+                    "-b", str(self.backup_path),
+                    "--checksum-every", "3d",
+                    "-l", str(self.log_path)],
+                    testing=True)
+            self.assertEqual(exit_code, 0)
 
         backups = util.all_backups(self.backup_path)
         checksum_exists = [(backup/verify.checksum_file_name).is_file() for backup in backups]
@@ -2732,12 +2744,13 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         backup_timestamps = list(datetime_range(backup_start, backup_interval, backup_count))
         create_user_data(self.user_path)
         for timestamp in backup_timestamps:
-            exit_code = main_no_log([
-                "-u", str(self.user_path),
-                "-b", str(self.backup_path),
-                "--checksum-every", f"{checksum_interval.days}d",
-                "--checksum-start", checksum_start.strftime("%Y-%m-%d"),
-                "--timestamp", timestamp.strftime(util.backup_date_format)])
+            with (patch("lib.backup.datetime", Now_Mock(timestamp)),
+                  patch("lib.backup_utilities.datetime", Now_Mock(timestamp))):
+                exit_code = main_no_log([
+                    "-u", str(self.user_path),
+                    "-b", str(self.backup_path),
+                    "--checksum-every", f"{checksum_interval.days}d",
+                    "--checksum-start", checksum_start.strftime("%Y-%m-%d")])
             self.assertEqual(exit_code, 0)
 
         backups = util.all_backups(self.backup_path)
@@ -2757,12 +2770,13 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         backup_timestamps = list(datetime_range(backup_start, backup_interval, backup_count))
         create_user_data(self.user_path)
         for timestamp in backup_timestamps:
-            exit_code = main_no_log([
-                "-u", str(self.user_path),
-                "-b", str(self.backup_path),
-                "--checksum-every", f"{checksum_interval.days}d",
-                "--checksum-start", checksum_start.strftime("%Y-%m-%d"),
-                "--timestamp", timestamp.strftime(util.backup_date_format)])
+            with (patch("lib.backup.datetime", Now_Mock(timestamp)),
+                  patch("lib.backup_utilities.datetime", Now_Mock(timestamp))):
+                exit_code = main_no_log([
+                    "-u", str(self.user_path),
+                    "-b", str(self.backup_path),
+                    "--checksum-every", f"{checksum_interval.days}d",
+                    "--checksum-start", checksum_start.strftime("%Y-%m-%d")])
             self.assertEqual(exit_code, 0)
 
         backups = util.all_backups(self.backup_path)
@@ -2780,20 +2794,21 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         backup_timestamps = list(datetime_range(backup_start, backup_interval, backup_count))
         first_checksum_timestamp = backup_start - datetime.timedelta(hours=1)
         create_user_data(self.user_path)
-        exit_code = main_no_log([
-            "-u", str(self.user_path),
-            "-b", str(self.backup_path),
-            "--checksum",
-            "--timestamp", first_checksum_timestamp.strftime(util.backup_date_format)])
-        self.assertEqual(exit_code, 0)
-
-        for timestamp in backup_timestamps:
+        with patch("lib.backup.datetime", Now_Mock(first_checksum_timestamp)):
             exit_code = main_no_log([
                 "-u", str(self.user_path),
                 "-b", str(self.backup_path),
-                "--checksum-every", f"{checksum_interval.days}d",
-                "--checksum-start", checksum_start.strftime("%Y-%m-%d"),
-                "--timestamp", timestamp.strftime(util.backup_date_format)])
+                "--checksum"])
+        self.assertEqual(exit_code, 0)
+
+        for timestamp in backup_timestamps:
+            with (patch("lib.backup.datetime", Now_Mock(timestamp)),
+                  patch("lib.backup_utilities.datetime", Now_Mock(timestamp))):
+                exit_code = main_no_log([
+                    "-u", str(self.user_path),
+                    "-b", str(self.backup_path),
+                    "--checksum-every", f"{checksum_interval.days}d",
+                    "--checksum-start", checksum_start.strftime("%Y-%m-%d")])
             self.assertEqual(exit_code, 0)
 
         backups = util.all_backups(self.backup_path)
@@ -2967,22 +2982,22 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that --oldest option causes oldest backup with checksum to be verified."""
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
-        exit_code = main.main([
-            "-u", str(self.user_path),
-            "-b", str(self.backup_path),
-            "-l", str(self.log_path),
-            "--timestamp", unique_timestamp_string(),
-            "--checksum"],
-            testing=True)
+        with patch("lib.backup.datetime", Now_Mock(unique_timestamp())):
+            exit_code = main.main([
+                "-u", str(self.user_path),
+                "-b", str(self.backup_path),
+                "-l", str(self.log_path),
+                "--checksum"],
+                testing=True)
         self.assertEqual(exit_code, 0)
         default_backup(self.user_path, self.backup_path)
-        exit_code = main.main([
-            "-u", str(self.user_path),
-            "-b", str(self.backup_path),
-            "-l", str(self.log_path),
-            "--timestamp", unique_timestamp_string(),
-            "--checksum"],
-            testing=True)
+        with patch("lib.backup.datetime", Now_Mock(unique_timestamp())):
+            exit_code = main.main([
+                "-u", str(self.user_path),
+                "-b", str(self.backup_path),
+                "-l", str(self.log_path),
+                "--checksum"],
+                testing=True)
         self.assertEqual(exit_code, 0)
         default_backup(self.user_path, self.backup_path)
 
@@ -3017,22 +3032,22 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that --newest option causes newest backup with checksum to be verified."""
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
-        exit_code = main.main([
-            "-u", str(self.user_path),
-            "-b", str(self.backup_path),
-            "-l", str(self.log_path),
-            "--timestamp", unique_timestamp_string(),
-            "--checksum"],
-            testing=True)
+        with patch("lib.backup.datetime", Now_Mock(unique_timestamp())):
+            exit_code = main.main([
+                "-u", str(self.user_path),
+                "-b", str(self.backup_path),
+                "-l", str(self.log_path),
+                "--checksum"],
+                testing=True)
         self.assertEqual(exit_code, 0)
         default_backup(self.user_path, self.backup_path)
-        exit_code = main.main([
-            "-u", str(self.user_path),
-            "-b", str(self.backup_path),
-            "-l", str(self.log_path),
-            "--timestamp", unique_timestamp_string(),
-            "--checksum"],
-            testing=True)
+        with patch("lib.backup.datetime", Now_Mock(unique_timestamp())):
+            exit_code = main.main([
+                "-u", str(self.user_path),
+                "-b", str(self.backup_path),
+                "-l", str(self.log_path),
+                "--checksum"],
+                testing=True)
         self.assertEqual(exit_code, 0)
         default_backup(self.user_path, self.backup_path)
 
@@ -3067,22 +3082,22 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that choosing backup from menuvcauses chosen backup with checksum to be verified."""
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
-        exit_code = main.main([
-            "-u", str(self.user_path),
-            "-b", str(self.backup_path),
-            "-l", str(self.log_path),
-            "--timestamp", unique_timestamp_string(),
-            "--checksum"],
-            testing=True)
+        with patch("lib.backup.datetime", Now_Mock(unique_timestamp())):
+            exit_code = main.main([
+                "-u", str(self.user_path),
+                "-b", str(self.backup_path),
+                "-l", str(self.log_path),
+                "--checksum"],
+                testing=True)
         self.assertEqual(exit_code, 0)
         default_backup(self.user_path, self.backup_path)
-        exit_code = main.main([
-            "-u", str(self.user_path),
-            "-b", str(self.backup_path),
-            "-l", str(self.log_path),
-            "--timestamp", unique_timestamp_string(),
-            "--checksum"],
-            testing=True)
+        with patch("lib.backup.datetime", Now_Mock(unique_timestamp())):
+            exit_code = main.main([
+                "-u", str(self.user_path),
+                "-b", str(self.backup_path),
+                "-l", str(self.log_path),
+                "--checksum"],
+                testing=True)
         self.assertEqual(exit_code, 0)
         default_backup(self.user_path, self.backup_path)
 
@@ -3143,11 +3158,8 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that a checksummed backup is verified before automatic deletion."""
         create_user_data(self.user_path)
         timestamp = datetime.datetime.now() - datetime.timedelta(days=2)
-        main_no_log([
-            "-u", str(self.user_path),
-            "-b", str(self.backup_path),
-            "--checksum",
-            "--timestamp", timestamp.strftime(util.backup_date_format)])
+        with patch("lib.backup.datetime", Now_Mock(timestamp)):
+            main_no_log(["-u", str(self.user_path), "-b", str(self.backup_path), "--checksum"])
 
         backups = util.all_backups(self.backup_path)
         self.assertEqual(len(backups), 1)
@@ -3178,10 +3190,8 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that a checksummed backup is verified before automatic deletion."""
         create_user_data(self.user_path)
         timestamp = datetime.datetime.now() - datetime.timedelta(days=2)
-        main_no_log([
-            "-u", str(self.user_path),
-            "-b", str(self.backup_path),
-            "--timestamp", timestamp.strftime(util.backup_date_format)])
+        with patch("lib.backup.datetime", Now_Mock(timestamp)):
+            main_no_log(["-u", str(self.user_path), "-b", str(self.backup_path)])
 
         main_no_log([
             "-u", str(self.user_path),
@@ -3638,8 +3648,7 @@ class BackupLockTests(TestCaseWithTemporaryFilesAndFolders):
                 self.backup_path,
                 filter_file=None,
                 examine_whole_file=False,
-                force_copy=False,
-                timestamp=unique_timestamp())
+                force_copy=False)
             self.assertNotEqual(exit_code, 0)
 
             with self.assertRaises(ConcurrencyError):
@@ -3671,13 +3680,11 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
         arguments = [
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
-            "--hard-link-count", "1",
-            "--timestamp", unique_timestamp_string()]
-        exit_code = main_assert_no_error_log(arguments, self)
-        self.assertEqual(exit_code, 0)
-        arguments[-1] = unique_timestamp_string()
-        exit_code = main_assert_no_error_log(arguments, self)
-        self.assertEqual(exit_code, 0)
+            "--hard-link-count", "1"]
+        for _ in range(2):
+            with patch("lib.backup.datetime", Now_Mock(unique_timestamp())):
+                exit_code = main_assert_no_error_log(arguments, self)
+                self.assertEqual(exit_code, 0)
 
         backups = util.all_backups(self.backup_path)
         self.assertEqual(len(backups), 2)
@@ -3691,14 +3698,16 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
             "--hard-link-count", "Z"]
-        with self.assertLogs(level=logging.ERROR) as error_log:
+        with (self.assertLogs(level=logging.ERROR) as error_log,
+              patch("lib.backup.datetime", Now_Mock(unique_timestamp()))):
             exit_code = main_no_log(arguments)
         self.assertEqual(exit_code, 1)
         self.assertEqual(
             error_log.output, ["ERROR:root:Invalid value for hard link count: Z"])
 
         arguments[-1] = "0"
-        with self.assertLogs(level=logging.ERROR) as error_log:
+        with (self.assertLogs(level=logging.ERROR) as error_log,
+              patch("lib.backup.datetime", Now_Mock(unique_timestamp()))):
             exit_code = main_no_log(arguments)
         self.assertEqual(exit_code, 1)
         self.assertEqual(
@@ -3726,70 +3735,66 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_copy_probability_zero_hard_links_all_files(self) -> None:
         """Test that a copy probability of zero links all unchanged files."""
+        backup_count = 2
         create_user_data(self.user_path)
         arguments = [
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
-            "--copy-probability", "0",
-            "--timestamp", unique_timestamp_string()]
-        exit_code = main_assert_no_error_log(arguments, self)
-        self.assertEqual(exit_code, 0)
-        arguments[-1] = unique_timestamp_string()
-        exit_code = main_assert_no_error_log(arguments, self)
-        self.assertEqual(exit_code, 0)
+            "--copy-probability", "0"]
+        for _ in range(backup_count):
+            with patch("lib.backup.datetime", Now_Mock(unique_timestamp())):
+                exit_code = main_assert_no_error_log(arguments, self)
+            self.assertEqual(exit_code, 0)
 
         backups = util.all_backups(self.backup_path)
-        self.assertEqual(len(backups), 2)
+        self.assertEqual(len(backups), backup_count)
         self.assertTrue(directories_are_completely_hardlinked(*backups))
 
     def test_no_copy_probability_argument_hard_links_all_files(self) -> None:
         """Test that a copy probability of zero links all unchanged files."""
+        backup_count = 2
         create_user_data(self.user_path)
         arguments = [
             "--user-folder", str(self.user_path),
-            "--backup-folder", str(self.backup_path),
-            "--timestamp", unique_timestamp_string()]
-        exit_code = main_assert_no_error_log(arguments, self)
-        self.assertEqual(exit_code, 0)
-        arguments[-1] = unique_timestamp_string()
-        exit_code = main_assert_no_error_log(arguments, self)
-        self.assertEqual(exit_code, 0)
+            "--backup-folder", str(self.backup_path)]
+        for _ in range(backup_count):
+            with patch("lib.backup.datetime", Now_Mock(unique_timestamp())):
+                exit_code = main_assert_no_error_log(arguments, self)
+            self.assertEqual(exit_code, 0)
 
         backups = util.all_backups(self.backup_path)
-        self.assertEqual(len(backups), 2)
+        self.assertEqual(len(backups), backup_count)
         self.assertTrue(directories_are_completely_hardlinked(*backups))
 
     def test_copy_probability_one_copies_all_files(self) -> None:
         """Test that a copy probability of one causes all files to be copied."""
+        backup_count = 2
         create_user_data(self.user_path)
         arguments = [
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
-            "--copy-probability", "1",
-            "--timestamp", unique_timestamp_string()]
-        exit_code = main_assert_no_error_log(arguments, self)
-        self.assertEqual(exit_code, 0)
-        arguments[-1] = unique_timestamp_string()
-        exit_code = main_assert_no_error_log(arguments, self)
-        self.assertEqual(exit_code, 0)
+            "--copy-probability", "1"]
+        for _ in range(backup_count):
+            with patch("lib.backup.datetime", Now_Mock(unique_timestamp())):
+                exit_code = main_assert_no_error_log(arguments, self)
+            self.assertEqual(exit_code, 0)
 
         backups = util.all_backups(self.backup_path)
-        self.assertEqual(len(backups), 2)
+        self.assertEqual(len(backups), backup_count)
         self.assertTrue(directories_are_completely_copied(*backups))
 
     def test_copy_probability_half_hard_links_some_files(self) -> None:
         """Test that a middle range copy probability copies some files and hard links others."""
+        backup_count = 2
         create_user_data(self.user_path)
         arguments = [
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path),
-            "--copy-probability", "50%",
-            "--timestamp", unique_timestamp_string()]
-        exit_code = main_assert_no_error_log(arguments, self)
-        self.assertEqual(exit_code, 0)
-        arguments[-1] = unique_timestamp_string()
-        exit_code = main_assert_no_error_log(arguments, self)
-        self.assertEqual(exit_code, 0)
+            "--copy-probability", "50%"]
+        for _ in range(backup_count):
+            with patch("lib.backup.datetime", Now_Mock(unique_timestamp())):
+                exit_code = main_assert_no_error_log(arguments, self)
+            self.assertEqual(exit_code, 0)
 
         backups = util.all_backups(self.backup_path)
         self.assertEqual(len(backups), 2)
@@ -4109,18 +4114,21 @@ class AllBackupsTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that util.all_backups() returns all expected backups."""
         create_user_data(self.user_path)
         backups_to_create = 7
-        timestamps: list[datetime.datetime] = []
-        for _ in range(backups_to_create):
-            timestamp = unique_timestamp()
-            timestamps.append(timestamp)
-            bak.create_new_backup(
-                self.user_path,
-                self.backup_path,
-                filter_file=None,
-                examine_whole_file=False,
-                force_copy=False,
-                copy_probability=0.0,
-                timestamp=timestamp)
+        timestamps = list(
+            datetime_range(
+                datetime.datetime.now(),
+                datetime.timedelta(seconds=10),
+                backups_to_create))
+        for timestamp in timestamps:
+            with patch("lib.backup.datetime", Now_Mock(timestamp)):
+                bak.create_new_backup(
+                    self.user_path,
+                    self.backup_path,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    copy_probability=0.0,
+                    timestamp=None)
         backups = util.all_backups(self.backup_path)
         for timestamp, backup in zip(timestamps, backups, strict=True):
             year_path = str(timestamp.year)
@@ -4132,18 +4140,21 @@ class AllBackupsTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that util.all_backups() returns all expected backups."""
         create_user_data(self.user_path)
         backups_to_create = 7
-        timestamps: list[datetime.datetime] = []
-        for _ in range(backups_to_create):
-            timestamp = unique_timestamp()
-            timestamps.append(timestamp)
-            bak.create_new_backup(
-                self.user_path,
-                self.backup_path,
-                filter_file=None,
-                examine_whole_file=False,
-                force_copy=False,
-                copy_probability=0.0,
-                timestamp=timestamp)
+        timestamps: list[datetime.datetime] = list(
+            datetime_range(
+                datetime.datetime.now(),
+                datetime.timedelta(seconds=10),
+                backups_to_create))
+        for timestamp in timestamps:
+            with patch("lib.backup.datetime", Now_Mock(timestamp)):
+                bak.create_new_backup(
+                    self.user_path,
+                    self.backup_path,
+                    filter_file=None,
+                    examine_whole_file=False,
+                    force_copy=False,
+                    copy_probability=0.0,
+                    timestamp=None)
 
         # Create entries that should be left out of util.all_backups() list
         timestamp = timestamps[-1]
@@ -5029,12 +5040,12 @@ class LogTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertFalse(self.log_path.is_file())
 
         create_user_data(self.user_path)
-        exit_code = main.main([
-            "-u", str(self.user_path),
-            "-b", str(self.backup_path),
-            "-l", str(self.log_path),
-            "--timestamp", unique_timestamp_string()],
-            testing=True)
+        with patch("lib.backup.datetime", Now_Mock(unique_timestamp())):
+            exit_code = main.main([
+                "-u", str(self.user_path),
+                "-b", str(self.backup_path),
+                "-l", str(self.log_path)],
+                testing=True)
         self.assertEqual(exit_code, 0)
 
         if fs.default_log_file_name.is_file():
@@ -5046,11 +5057,11 @@ class LogTests(TestCaseWithTemporaryFilesAndFolders):
         log_size = self.log_path.stat().st_size
         self.assertGreater(log_size, 0)
 
-        exit_code = main.main([
-            "-u", str(self.user_path),
-            "-b", str(self.backup_path),
-            "--timestamp", unique_timestamp_string()],
-            testing=True)
+        with patch("lib.backup.datetime", Now_Mock(unique_timestamp())):
+            exit_code = main.main([
+                "-u", str(self.user_path),
+                "-b", str(self.backup_path)],
+                testing=True)
         self.assertEqual(exit_code, 0)
 
         self.assertTrue(self.log_path.is_file())
