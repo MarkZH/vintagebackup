@@ -572,12 +572,6 @@ are some examples of such patterns:
     # This line will exclude dir1 and all of its contents.
     - dir1/**"""))
 
-    # The following argument is only used for testing.
-
-    # Allow for backups to be created more quickly by providing a timestamp instead of using
-    # datetime.datetime.now().
-    user_input.add_argument("--timestamp", help=argparse.SUPPRESS)
-
     return user_input
 
 

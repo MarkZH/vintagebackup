@@ -81,9 +81,7 @@ def should_do_periodic_action(
     if not time_span:
         return False
 
-    now = (
-        datetime.datetime.strptime(args.timestamp, backup_date_format) if args.timestamp
-        else datetime.datetime.now())
+    now = datetime.datetime.now()
 
     start_date_str = options[f"{action}_start"]
     if start_date_str:

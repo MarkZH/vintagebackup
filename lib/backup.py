@@ -361,7 +361,7 @@ def create_backup_directory(new_backup_directory: Path) -> None:
             raise
 
 
-def backup_name(backup_datetime: datetime.datetime | str | None) -> Path:
+def backup_name(backup_datetime: datetime.datetime | None) -> Path:
     """
     Create the name and relative path for the new dated backup.
 
@@ -372,10 +372,7 @@ def backup_name(backup_datetime: datetime.datetime | str | None) -> Path:
     Returns:
         path: A relative path to the new backup that should be appended to the backup location
     """
-    now = (
-        datetime.datetime.strptime(backup_datetime, util.backup_date_format)
-        if isinstance(backup_datetime, str)
-        else (backup_datetime or datetime.datetime.now()))
+    now = backup_datetime or datetime.datetime.now()
     return Path(str(now.year))/now.strftime(util.backup_date_format)
 
 
@@ -387,7 +384,7 @@ def create_new_backup(
         examine_whole_file: bool,
         force_copy: bool,
         copy_probability: float,
-        timestamp: datetime.datetime | str | None,
+        timestamp: datetime.datetime | None,
         is_backup_move: bool = False) -> int:
     """
     Create a new dated backup.
@@ -402,7 +399,7 @@ def create_new_backup(
             backup
         force_copy: Whether to always copy files, regardless of whether a previous backup exists.
         copy_probability: Probability that an unchanged file will be copied instead of hardlinked.
-        timestamp: Manually set timestamp of new backup. Used for debugging.
+        timestamp: Manually set timestamp of new backup.
         is_backup_move: Used to customize log messages when moving a backup to a new location.
 
     Returns:
@@ -652,7 +649,7 @@ def start_backup(args: argparse.Namespace) -> None:
             examine_whole_file=should_compare_contents,
             force_copy=toggle_is_set(args, "force_copy"),
             copy_probability=copy_probability(args),
-            timestamp=args.timestamp)
+            timestamp=None)
 
         logger.info("")
         log_backup_size(args.free_up, backup_space_taken)
