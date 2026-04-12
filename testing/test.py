@@ -1413,11 +1413,9 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         for method in Invocation:
             self.reset_backup_folder()
-            for timestamp in datetime_range(
-                    datetime.datetime.now(),
-                    datetime.timedelta(seconds=10),
-                    9):
-                with patch("lib.backup.datetime", Now_Mock(timestamp)):
+            backup_count = 9
+            for _ in range(backup_count):
+                with patch("lib.backup.datetime", Now_Mock()):
                     bak.create_new_backup(
                         self.user_path,
                         self.backup_path,
@@ -1438,6 +1436,7 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
                 self.assertEqual(exit_code, 0, method)
 
             backups = util.all_backups(self.backup_path)
+            self.assertEqual(len(backups), backup_count)
             expected_backup_sequence = [backups[i] for i in [4, 2, 3]]
             current_recovery_index = 0
             log_prefix = "INFO:root:"
