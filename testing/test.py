@@ -4482,6 +4482,24 @@ class ParseTimeSpanTests(unittest.TestCase):
         then_2 = dates.parse_time_span_to_timepoint("2y", now_2)
         self.assertEqual(then_2, expected_then_2)
 
+    def test_parse_timespan_is_case_insensitive(self) -> None:
+        """Test that upper and lowercase units are both valid in parse_time_span_to_time_point."""
+        now = datetime.datetime.now()
+        for unit in "dwmy":
+            lower_result = dates.parse_time_span_to_timepoint(f"1{unit}", now)
+            upper_result = dates.parse_time_span_to_timepoint(f"1{unit.upper()}", now)
+            self.assertEqual(lower_result, upper_result)
+
+    def test_parse_timespan_is_space_insensitive(self) -> None:
+        """Test that whitespace does not affect results in parse_time_span_to_time_point."""
+        now = datetime.datetime.now()
+        for unit in "dwmy":
+            result = dates.parse_time_span_to_timepoint(f"1{unit}", now)
+            space_result = dates.parse_time_span_to_timepoint(f"1 {unit}", now)
+            tab_result = dates.parse_time_span_to_timepoint(f"1\t{unit}", now)
+            self.assertEqual(result, space_result)
+            self.assertEqual(result, tab_result)
+
 
 class RemoveQuotesTests(unittest.TestCase):
     """Tests for remove_quotes() function."""
