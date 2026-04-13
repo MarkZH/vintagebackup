@@ -89,6 +89,9 @@ class Backup_Info(TypedDict):
     # The last time file contents were compared instead of file type, size, and modification time.
     Compare_Timestamp: datetime.datetime | None
 
+    # The last time file were forced to be copied.
+    Force_Copy_Timestamp: datetime.datetime | None
+
 
 def read_backup_information(backup_folder: Path) -> Backup_Info:
     """
@@ -103,7 +106,11 @@ def read_backup_information(backup_folder: Path) -> Backup_Info:
     """
     info_file = get_backup_info_file(backup_folder)
     try:
-        extracted_info = Backup_Info(Source=None, Log=None, Compare_Timestamp=None)
+        extracted_info = Backup_Info(
+            Source=None,
+            Log=None,
+            Compare_Timestamp=None,
+            Force_Copy_Timestamp=None)
         with info_file.open(encoding="utf8") as info:
             for line_raw in info:
                 line = line_raw.lstrip().removesuffix("\n")
@@ -112,7 +119,7 @@ def read_backup_information(backup_folder: Path) -> Backup_Info:
 
                 key, value_string = line.split(": ", maxsplit=1)
                 key = backup_info_key(key)
-                if key == "Compare_Timestamp":
+                if key in ("Compare_Timestamp", "Force_Copy_Timestamp"):
                     timestamp = datetime.datetime.strptime(value_string, backup_date_format)
                     extracted_info[key] = timestamp
                 else:
@@ -120,10 +127,15 @@ def read_backup_information(backup_folder: Path) -> Backup_Info:
                     extracted_info[key] = path
         return extracted_info
     except FileNotFoundError:
-        return Backup_Info(Source=None, Log=None, Compare_Timestamp=None)
+        return Backup_Info(
+            Source=None,
+            Log=None,
+            Compare_Timestamp=None,
+            Force_Copy_Timestamp=None)
 
 
-def backup_info_key(key: str) -> Literal["Source", "Log", "Compare_Timestamp"]:
+def backup_info_key(key: str) -> Literal[
+    "Source", "Log", "Compare_Timestamp", "Force_Copy_Timestamp"]:
     """
     Verify that backup info keys read from a file are valid keys.
 
@@ -146,6 +158,9 @@ def backup_info_key(key: str) -> Literal["Source", "Log", "Compare_Timestamp"]:
     if key == "Compare_Timestamp":
         return "Compare_Timestamp"
 
+    if key == "Force_Copy_Timestamp":
+        return "Force_Copy_Timestamp"
+
     raise KeyError(f"Unknown key for Backup_Info: {key}")
 
 
@@ -161,11 +176,11 @@ def write_backup_information(backup_folder: Path, backup_info: Backup_Info) -> N
     info_file.parent.mkdir(parents=True, exist_ok=True)
     with info_file.open("w", encoding="utf8") as info:
         for key in map(backup_info_key, backup_info):
-            if key == "Compare_Timestamp":
+            if key in ("Compare_Timestamp", "Force_Copy_Timestamp"):
                 timestamp = backup_info[key]
                 if timestamp:
                     logger.debug("Writing %s : %s to %s", key, timestamp, info_file)
-                    info.write(f"{key}: {timestamp.strftime(backup_date_format)}")
+                    info.write(f"{key}: {timestamp.strftime(backup_date_format)}\n")
             else:
                 path = backup_info[key]
                 if path:
@@ -230,4 +245,17 @@ def record_compare_contents_timestamp(backup_location: Path, timestamp: datetime
     """
     info = read_backup_information(backup_location)
     info["Compare_Timestamp"] = timestamp
+    write_backup_information(backup_location, info)
+
+
+def record_force_copy_timestamp(backup_location: Path, timestamp: datetime.datetime) -> None:
+    """
+    Record timestamp of last time files were forced to be copied during backup.
+
+    Arguments:
+        backup_location: Folder containing all dated backups
+        timestamp: Date and time of last time file were forced to be copied during backups
+    """
+    info = read_backup_information(backup_location)
+    info["Force_Copy_Timestamp"] = timestamp
     write_backup_information(backup_location, info)

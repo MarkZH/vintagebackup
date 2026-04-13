@@ -388,6 +388,7 @@ so the backup location will require much more space than a normal
 backup."""))
 
     add_no_option(backup_group, "force-copy")
+    add_periodic_option(backup_group, "force-copy")
 
     link_copy_probability_group = backup_group.add_mutually_exclusive_group()
 

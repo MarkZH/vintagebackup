@@ -22,6 +22,7 @@ ignore = [
     "PLR0914", # Too many local variables
     "PLR0915", # Too many statements
     "PLR0917", # Too many positional arguments
+    "PLR6201", # Use a set literal when testing for membership
     "PT009", # Use assert instead of unittest.assertIn
     "PT027", # Use pytest.raises instead of assertRaises
     "RET505", # Unnecessary else after return statement
