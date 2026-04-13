@@ -5481,6 +5481,50 @@ class ArgumentParserTests(unittest.TestCase):
             argparse.parse_command_line(args),
             argparse.parse_command_line(program_args))
 
+    def test_toggle_is_set_returns_false_when_option_not_present(self) -> None:
+        """Test that boolean command line parameter is false when not present."""
+        args = argparse.parse_command_line([])
+        self.assertFalse(argparse.toggle_is_set(args, "compare_contents"))
+        self.assertFalse(argparse.toggle_is_set(args, "checksum"))
+        self.assertFalse(argparse.toggle_is_set(args, "force_copy"))
+        self.assertFalse(argparse.toggle_is_set(args, "debug"))
+
+    def test_toggle_is_set_returns_true_when_option_present(self) -> None:
+        """Test that boolean command line parameter is true when present."""
+        args = argparse.parse_command_line([
+            "--compare-contents",
+            "--checksum",
+            "--force-copy",
+            "--debug"])
+        self.assertTrue(argparse.toggle_is_set(args, "compare_contents"))
+        self.assertTrue(argparse.toggle_is_set(args, "checksum"))
+        self.assertTrue(argparse.toggle_is_set(args, "force_copy"))
+        self.assertTrue(argparse.toggle_is_set(args, "debug"))
+
+    def test_toggle_is_set_returns_false_when_no_option_present(self) -> None:
+        """Test that boolean command line parameter is false when --no-X is present."""
+        args = argparse.parse_command_line([
+            "--no-compare-contents",
+            "--no-checksum",
+            "--no-force-copy",
+            "--no-debug"])
+        self.assertFalse(argparse.toggle_is_set(args, "compare_contents"))
+        self.assertFalse(argparse.toggle_is_set(args, "checksum"))
+        self.assertFalse(argparse.toggle_is_set(args, "force_copy"))
+        self.assertFalse(argparse.toggle_is_set(args, "debug"))
+
+    def test_toggle_is_set_returns_false_when_option_and_no_option_present(self) -> None:
+        """Test that boolean command line parameter is false when --X and --no-X is present."""
+        args = argparse.parse_command_line([
+            "--compare-contents", "--no-compare-contents",
+            "--checksum", "--no-checksum",
+            "--force-copy", "--no-force-copy",
+            "--debug", "--no-debug"])
+        self.assertFalse(argparse.toggle_is_set(args, "compare_contents"))
+        self.assertFalse(argparse.toggle_is_set(args, "checksum"))
+        self.assertFalse(argparse.toggle_is_set(args, "force_copy"))
+        self.assertFalse(argparse.toggle_is_set(args, "debug"))
+
 
 class FolderNavigationTests(TestCaseWithTemporaryFilesAndFolders):
     """Tests of functions for navigating within backups."""
