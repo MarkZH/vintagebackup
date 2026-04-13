@@ -3253,6 +3253,8 @@ backup folder:   {backup_folder}
 
 FiLteR    :    {filter_file}
 force-copy:
+FORCE COPY EVERY   : 11M
+force copy start:2027-02-02
 
 compare    contents :
 compare CONTENTS eVeRy: 2m
@@ -3267,6 +3269,8 @@ CHECKSUM START  :  2028-02-02
             "--backup-folder", backup_folder,
             "--filter", filter_file,
             "--force-copy",
+            "--force-copy-every", "11M",
+            "--force-copy-start", "2027-02-02",
             "--compare-contents",
             "--compare-contents-every", "2m",
             "--compare-contents-start", "2027-01-01",
@@ -3281,6 +3285,8 @@ CHECKSUM START  :  2028-02-02
         self.assertEqual(args.backup_folder, backup_folder)
         self.assertEqual(args.filter, filter_file)
         self.assertTrue(args.force_copy)
+        self.assertEqual(args.force_copy_every, "11M")
+        self.assertEqual(args.force_copy_start, "2027-02-02")
         self.assertTrue(args.compare_contents)
         self.assertEqual(args.compare_contents_every, "2m")
         self.assertEqual(args.compare_contents_start, "2027-01-01")
