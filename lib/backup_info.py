@@ -165,7 +165,7 @@ def write_backup_information(backup_folder: Path, backup_info: Backup_Info) -> N
                 timestamp = backup_info[key]
                 if timestamp:
                     logger.debug("Writing %s : %s to %s", key, timestamp, info_file)
-                    info.write(f"{key}: {timestamp.strftime(backup_date_format)}")
+                    info.write(f"{key}: {timestamp.strftime(backup_date_format)}\n")
             else:
                 path = backup_info[key]
                 if path:
