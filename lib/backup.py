@@ -15,7 +15,6 @@ from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import cast
 
-from lib.argument_parser import toggle_is_set
 import lib.backup_utilities as util
 from lib import backup_info
 from lib.backup_lock import Backup_Lock
@@ -456,11 +455,38 @@ def create_new_backup(
         staging_backup_path.rename(new_backup_path)
 
     report_backup_file_counts(action_counter)
-    if examine_whole_file:
-        backup_info.record_compare_contents_timestamp(
-            backup_location,
-            util.backup_datetime(new_backup_path))
+    record_backup_info(
+        backup_location,
+        new_backup_path,
+        examine_whole_file=examine_whole_file,
+        force_copy=force_copy)
+
     return size_of_backup
+
+
+def record_backup_info(
+        backup_location: Path,
+        new_backup_path: Path,
+        *,
+        examine_whole_file: bool,
+        force_copy: bool) -> None:
+    """
+    Record information about the just completed backup.
+
+    Arguments:
+        backup_location: The folder containing all dated backups
+        new_backup_path: The folder containing the just completed backup
+        examine_whole_file: Whether the backup process looked at the file contents to determine if
+            a file should be hardlinked or copied
+        force_copy: Whether the backup process was forced to copy all files
+    """
+    timestamp = util.backup_datetime(new_backup_path)
+
+    if examine_whole_file:
+        backup_info.record_compare_contents_timestamp(backup_location, timestamp)
+
+    if force_copy:
+        backup_info.record_force_copy_timestamp(backup_location, timestamp)
 
 
 def backup_staging_folder(backup_location: Path) -> Path:
@@ -615,6 +641,19 @@ def last_compare_contents(backup_folder: Path) -> datetime.datetime | None:
     return backup_info.read_backup_information(backup_folder)["Compare_Timestamp"]
 
 
+def last_force_copy(backup_folder: Path) -> datetime.datetime | None:
+    """
+    Read previous time files were forced to be copied during a backup from backup info.
+
+    Arguments:
+        backup_folder: The folder containing all dated backups
+
+    Returns:
+        datetime: The last time files were forced to be copied during a backup process
+    """
+    return backup_info.read_backup_information(backup_folder)["Force_Copy_Timestamp"]
+
+
 def start_backup(args: argparse.Namespace) -> None:
     """
     Parse command line arguments to start a backup.
@@ -640,6 +679,12 @@ def start_backup(args: argparse.Namespace) -> None:
         backup_folder,
         last_compare_contents)
 
+    should_force_copy = util.should_do_periodic_action(
+        args,
+        "force_copy",
+        backup_folder,
+        last_force_copy)
+
     with Backup_Lock(backup_folder, "backup"):
         filter_file = fs.path_or_none(args.filter)
         backup_space_taken = create_new_backup(
@@ -647,7 +692,7 @@ def start_backup(args: argparse.Namespace) -> None:
             backup_folder,
             filter_file=filter_file,
             examine_whole_file=should_compare_contents,
-            force_copy=toggle_is_set(args, "force_copy"),
+            force_copy=should_force_copy,
             copy_probability=copy_probability(args),
             timestamp=None)
 
