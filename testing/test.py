@@ -1032,6 +1032,175 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
             logs.output,
             [f"WARNING:root:Could not copy {fail_path} (testing failure)"])
 
+    def test_force_copy_every_copies_on_first_backup(self) -> None:
+        """Test that --force-copy-every causes files to be copied on first backup."""
+        create_user_data(self.user_path)
+        with self.assertLogs(level=logging.INFO) as logs:
+            exit_code = main_no_log([
+                "-u", str(self.user_path),
+                "-b", str(self.backup_path),
+                "--force-copy-every", "30d"])
+            self.assertEqual(exit_code, 0)
+
+        force_copy_log_ending = "INFO:root:Copying everything."
+        self.assertIn(force_copy_log_ending, logs.output)
+
+    def test_force_copy_every_does_not_force_copy_on_second_backup(self) -> None:
+        """Test that --force-copy-every does not copy files before time elapsed."""
+        create_user_data(self.user_path)
+        interval = datetime.timedelta(days=1)
+        start = datetime.datetime.now()
+        backup_count = 2
+        with self.assertLogs(level=logging.INFO) as logs:
+            for timestamp in datetime_range(start, interval, backup_count):
+                with (patch("lib.backup.datetime", Now_Mock(timestamp)),
+                      patch("lib.backup_utilities.datetime", Now_Mock(timestamp))):
+                    exit_code = main_no_log([
+                        "-u", str(self.user_path),
+                        "-b", str(self.backup_path),
+                        "--force-copy-every", "30d"])
+                self.assertEqual(exit_code, 0)
+
+        backups = util.all_backups(self.backup_path)
+        self.assertEqual(len(backups), backup_count)
+
+        no_backup_line = "INFO:root:Copying everything."
+        self.assertEqual(logs.output.count(no_backup_line), 1)
+        no_backup_index = logs.output.index(no_backup_line)
+
+        no_copy_line = f"INFO:root:Previous backup  : {backups[0]}"
+        self.assertEqual(logs.output.count(no_copy_line), 1)
+        no_copy_index = logs.output.index(no_copy_line)
+
+        self.assertGreater(no_copy_index, no_backup_index)
+
+    def test_force_copy_every_copies_on_correct_backups(self) -> None:
+        """Test that --force-copy-every copies files at correct interval."""
+        create_user_data(self.user_path)
+        backup_interval = datetime.timedelta(days=1)
+        start = datetime.datetime.now()
+        backups = 11
+        copy_interval = 5
+        with self.assertLogs(level=logging.INFO) as logs:
+            for timestamp in datetime_range(start, backup_interval, backups):
+                with (patch("lib.backup.datetime", Now_Mock(timestamp)),
+                      patch("lib.backup_utilities.datetime", Now_Mock(timestamp))):
+                    exit_code = main_no_log([
+                        "-u", str(self.user_path),
+                        "-b", str(self.backup_path),
+                        "--force-copy-every", f"{copy_interval} d"])
+                self.assertEqual(exit_code, 0)
+
+        force_copy_line = "INFO:root:Copying everything."
+        linking_line_start = "INFO:root:Previous backup  : "
+        copy_or_link_lines = filter(
+            lambda s: s == force_copy_line or s.startswith(linking_line_start),
+            logs.output)
+        actually_copied = [s == force_copy_line for s in copy_or_link_lines]
+        expected_copies = [i % copy_interval == 0 for i in range(backups)]
+        self.assertEqual(actually_copied, expected_copies)
+
+    def test_force_copy_start_starts_file_copying_on_correct_date(self) -> None:
+        """Test that --force-copy-start starts file copying on correct date."""
+        backup_start = datetime.datetime(2026, 4, 3, 19, 26, 0)
+        backup_interval = datetime.timedelta(days=1)
+        copy_start = backup_start + datetime.timedelta(days=3)
+        copy_interval = datetime.timedelta(days=7)
+        backup_count = 30
+        backup_timestamps = list(datetime_range(backup_start, backup_interval, backup_count))
+        create_user_data(self.user_path)
+        with self.assertLogs(level=logging.INFO) as logs:
+            for timestamp in backup_timestamps:
+                with (patch("lib.backup.datetime", Now_Mock(timestamp)),
+                      patch("lib.backup_utilities.datetime", Now_Mock(timestamp))):
+                    exit_code = main_no_log([
+                        "-u", str(self.user_path),
+                        "-b", str(self.backup_path),
+                        "--force-copy-every", f"{copy_interval.days}d",
+                        "--force-copy-start", copy_start.strftime("%Y-%m-%d")])
+                self.assertEqual(exit_code, 0)
+
+        force_copy_line = "INFO:root:Copying everything."
+        first_copy_line = "INFO:root:No previous backups. Copying everything."
+        linking_line_start = "INFO:root:Previous backup  : "
+        copy_or_link_lines = filter(
+            lambda s: s in (first_copy_line, force_copy_line) or s.startswith(linking_line_start),
+            logs.output)
+        actually_copied = [s == force_copy_line for s in copy_or_link_lines]
+        expected_copies = [
+            (t - copy_start).days % copy_interval.days == 0
+            for t in backup_timestamps]
+        self.assertEqual(actually_copied, expected_copies)
+
+    def test_force_copy_start_starts_on_correct_date_with_earlier_copies(self) -> None:
+        """Test --force-copy-start starts on correct date even with earlier copies."""
+        backup_start = datetime.datetime(2026, 4, 3, 19, 26, 0)
+        backup_interval = datetime.timedelta(days=1)
+        copy_start = backup_start + datetime.timedelta(days=3)
+        copy_interval = datetime.timedelta(days=7)
+        backup_count = 30
+        backup_timestamps = list(datetime_range(backup_start, backup_interval, backup_count))
+        create_user_data(self.user_path)
+        first_backup_timestamp = backup_start - datetime.timedelta(hours=1)
+
+        with (self.assertLogs(level=logging.INFO) as logs,
+              patch("lib.backup.datetime", Now_Mock(first_backup_timestamp))):
+            exit_code = main_no_log([
+                "-u", str(self.user_path),
+                "-b", str(self.backup_path),
+                "--force-copy"])
+            self.assertEqual(exit_code, 0)
+
+            for timestamp in backup_timestamps:
+                with (patch("lib.backup.datetime", Now_Mock(timestamp)),
+                      patch("lib.backup_utilities.datetime", Now_Mock(timestamp))):
+                    exit_code = main_no_log([
+                        "-u", str(self.user_path),
+                        "-b", str(self.backup_path),
+                        "--force-copy-every", f"{copy_interval.days}d",
+                        "--force-copy-start", copy_start.strftime("%Y-%m-%d")])
+                self.assertEqual(exit_code, 0)
+
+        force_copy_line = "INFO:root:Copying everything."
+        linking_line_start = "INFO:root:Previous backup  : "
+        copy_or_link_lines = filter(
+            lambda s: s == force_copy_line or s.startswith(linking_line_start),
+            logs.output)
+        actually_copied = [s == force_copy_line for s in copy_or_link_lines]
+        expected_copies = [True] + [
+            (t - copy_start).days % copy_interval.days == 0
+            for t in backup_timestamps]
+        self.assertEqual(actually_copied, expected_copies)
+
+    def test_force_copy_start_with_early_date_has_no_effect(self) -> None:
+        """Test that --force-copy-start with date before backup does not affect timing."""
+        backup_start = datetime.datetime(2026, 4, 3, 19, 26, 0)
+        backup_interval = datetime.timedelta(days=1)
+        copy_start = backup_start - datetime.timedelta(days=3)
+        copy_interval = datetime.timedelta(days=7)
+        backup_count = 30
+        backup_timestamps = list(datetime_range(backup_start, backup_interval, backup_count))
+        create_user_data(self.user_path)
+        with self.assertLogs(level=logging.INFO) as logs:
+            for timestamp in backup_timestamps:
+                with (patch("lib.backup.datetime", Now_Mock(timestamp)),
+                      patch("lib.backup_utilities.datetime", Now_Mock(timestamp))):
+                    exit_code = main_no_log([
+                        "-u", str(self.user_path),
+                        "-b", str(self.backup_path),
+                        "--force-copy-every", f"{copy_interval.days}d",
+                        "--force-copy-start", copy_start.strftime("%Y-%m-%d")])
+                self.assertEqual(exit_code, 0)
+
+        force_copy_line = "INFO:root:Copying everything."
+        linking_line_start = "INFO:root:Previous backup  : "
+        copy_or_link_lines = filter(
+            lambda s: s == force_copy_line or s.startswith(linking_line_start),
+            logs.output)
+        actually_copied = [s == force_copy_line for s in copy_or_link_lines]
+        expected_copies = [n % copy_interval.days == 0 for n in range(backup_count)]
+        self.assertEqual(actually_copied, expected_copies)
+
 
 class FilterTests(TestCaseWithTemporaryFilesAndFolders):
     """Test that filter files work properly."""
