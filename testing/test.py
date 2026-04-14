@@ -5832,6 +5832,20 @@ class BackupInfoTests(TestCaseWithTemporaryFilesAndFolders):
 
         self.assertEqual(original_backup_info, new_backup_info)
 
+    def test_backup_info_key_only_works_with_valid_keys(self) -> None:
+        """Test that backup_info_key() only works with valid keys."""
+        empty_info = backup_info.Backup_Info(
+            Source=None,
+            Log=None,
+            Compare_Timestamp=None,
+            Force_Copy_Timestamp=None)
+
+        for key in empty_info:
+            self.assertEqual(key, backup_info.backup_info_key(key))
+
+        with self.assertRaises(KeyError):
+            backup_info.backup_info_key("Non_Existent")
+
 
 def run_find_missing_files(
         method: Invocation,
