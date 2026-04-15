@@ -16,7 +16,7 @@ import enum
 import random
 import string
 import platform
-from typing import Any, cast, TextIO, NamedTuple
+from typing import Any, Never, cast, TextIO, NamedTuple
 import re
 import io
 from inspect import getsourcefile
@@ -6068,3 +6068,81 @@ f"""Missing user files found in {self.backup_path}:
             missing_file = self.user_path/"missing_files.txt"
             missing_file_data = missing_file.read_text(encoding="utf8")
             self.assertEqual(expected_missing_file_contents, missing_file_data)
+
+
+class FileSystemTests(TestCaseWithTemporaryFilesAndFolders):
+    """Tests for filesystem functions not tested elsewhere."""
+
+    def test_delete_file_error_with_ignore_errors_true_logs_error(self) -> None:
+        """Test that delete_file(ignore_errors=True) generates a log message."""
+        file_path = self.backup_path/"error_on_deletion.txt"
+        file_path.touch()
+        error_message = "test error"
+
+        def error(_: Any) -> Never:  # noqa: ANN401
+            raise RuntimeError(error_message)
+
+        with (patch("lib.filesystem.Path.unlink", error),
+              self.assertLogs(level=logging.ERROR) as logs):
+            fs.delete_file(file_path, ignore_errors=True)
+
+        self.assertTrue(file_path.is_file())
+        self.assertEqual(
+            logs.output,
+            [f"ERROR:root:Could not delete {file_path}: {error_message}"])
+
+    def test_delete_file_error_with_ignore_errors_false_raises_error(self) -> None:
+        """Test that delete_file(ignore_errors=False) generates a log message."""
+        file_path = self.backup_path/"error_on_deletion.txt"
+        file_path.touch()
+        error_message = "test error"
+
+        def error(_: Any) -> Never:  # noqa: ANN401
+            raise RuntimeError(error_message)
+
+        with (patch("lib.filesystem.Path.unlink", error),
+              self.assertRaises(RuntimeError) as delete_error):
+            fs.delete_file(file_path, ignore_errors=False)
+
+        self.assertTrue(file_path.is_file())
+        self.assertEqual(delete_error.exception.args, (error_message,))
+
+    def test_delete_directory_tree_error_with_ignore_errors_true_logs_error(self) -> None:
+        """Test that delete_directory_tree(ignore_errors=True) generates a log message."""
+        folder_path = self.backup_path/"error_on_deletion"
+        folder_path.mkdir()
+        read_only = stat.S_IRUSR | stat.S_IXUSR
+        os.chmod(folder_path, read_only, follow_symlinks=False)  # noqa: PTH101
+        error_message = "test error"
+
+        def error_chmod(*_: Any, **__: Any) -> Never:  # noqa: ANN401
+            raise RuntimeError(error_message)
+
+        with (patch("lib.filesystem.os.chmod", error_chmod),
+              self.assertLogs(level=logging.ERROR) as logs):
+            fs.delete_directory_tree(folder_path, ignore_errors=True)
+
+        self.assertTrue(folder_path.is_dir())
+        self.assertEqual(
+            logs.output,
+            [f"ERROR:root:Could not delete {folder_path}: {error_message}"])
+        os.chmod(folder_path, stat.S_IWRITE, follow_symlinks=False)  # noqa: PTH101
+
+    def test_delete_directory_tree_error_with_ignore_errors_false_raises_exception(self) -> None:
+        """Test that delete_directory_tree(ignore_errors=False) raises an exception."""
+        folder_path = self.backup_path/"error_on_deletion.txt"
+        folder_path.mkdir()
+        read_only = stat.S_IRUSR | stat.S_IXUSR
+        os.chmod(folder_path, read_only, follow_symlinks=False)  # noqa: PTH101
+        error_message = "test error"
+
+        def error_chmod(*_: Any, **__: Any) -> Never:  # noqa: ANN401
+            raise RuntimeError(error_message)
+
+        with (patch("lib.filesystem.os.chmod", error_chmod),
+              self.assertRaises(RuntimeError) as error):
+            fs.delete_directory_tree(folder_path, ignore_errors=False)
+
+        self.assertTrue(folder_path.is_dir())
+        self.assertEqual(error.exception.args, (error_message,))
+        os.chmod(folder_path, stat.S_IWRITE, follow_symlinks=False)  # noqa: PTH101
