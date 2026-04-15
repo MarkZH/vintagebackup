@@ -6107,6 +6107,9 @@ class FileSystemTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertTrue(file_path.is_file())
         self.assertEqual(delete_error.exception.args, (error_message,))
 
+    @unittest.skipUnless(
+            platform.system() == "Windows",
+            "Non-Windows OSes can delete read-only folders.")
     def test_delete_directory_tree_error_with_ignore_errors_true_logs_error(self) -> None:
         """Test that delete_directory_tree(ignore_errors=True) generates a log message."""
         folder_path = self.backup_path/"error_on_deletion"
@@ -6128,6 +6131,9 @@ class FileSystemTests(TestCaseWithTemporaryFilesAndFolders):
             [f"ERROR:root:Could not delete {folder_path}: {error_message}"])
         os.chmod(folder_path, stat.S_IWRITE, follow_symlinks=False)  # noqa: PTH101
 
+    @unittest.skipUnless(
+            platform.system() == "Windows",
+            "Non-Windows OSes can delete read-only folders.")
     def test_delete_directory_tree_error_with_ignore_errors_false_raises_exception(self) -> None:
         """Test that delete_directory_tree(ignore_errors=False) raises an exception."""
         folder_path = self.backup_path/"error_on_deletion.txt"
