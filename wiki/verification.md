@@ -94,7 +94,7 @@ This is usually used to override options in a [configuration file](configuration
 
 #### `--verify-checksum`
 
-Recalculate checksums of a backup, compare them with the checksum file, and write the result into a file.
+Recalculate checksums of a backup, compare them with the checksum file, and write the files that changed (if any) into another text file.
 The file will be put into a directory named in the argument of this option.
 The user will be given a choice of which backups with a checksum file to verify from an on-screen menu, or according to `--oldest` or `--newest` (see below).
 
