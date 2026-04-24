@@ -242,7 +242,8 @@ the hard links to previous backups will be recreated to preserve the space savin
 is needed when deciding how many backups should be moved."""))
 
     only_one_action_group.add_argument("--verify-only", metavar="RESULT_DIR", help=format_help(
-"""Verify the latest backup by comparing it against the original files. The result of the
+"""Verify the latest backup by comparing it against the original files. Unlike --verify, this
+verification is done without first creating a backup. The result of the
 comparison will be placed in the folder RESULT_DIR. The result is three files: a list of files that
 match, a list of files that do not match, and a list of files that caused errors during the
 comparison. The --backup-folder argument is required. If a filter file was used
@@ -344,6 +345,15 @@ to a file stored in the base folder of the backup."""))
         "checksum",
         ("Be sure to specify --oldest or --newest so the program doesn't get stuck waiting for a "
          "menu choice."))
+
+    backup_group.add_argument("--verify", metavar="RESULT_DIR", help=format_help(
+"""Verify the newly created backup by comparing it against the original files. The result of the
+comparison will be placed in the folder RESULT_DIR. The result is three files: a list of files that
+match, a list of files that do not match, and a list of files that caused errors during the
+comparison."""))
+
+    add_no_option(backup_group, "verify")
+    add_periodic_option(backup_group, "verify")
 
     deletion_group = user_input.add_argument_group("Backup Deletion", description=format_help(
 """Automatically delete old backups according to various criteria. Multiple deletion options can be
