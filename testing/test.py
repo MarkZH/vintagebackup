@@ -2684,7 +2684,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
                     exit_code = main_assert_no_error_log([
                         "--user-folder", str(self.user_path),
                         "--backup-folder", str(self.backup_path),
-                        "--verify", verification_folder],
+                        "--verify-only", verification_folder],
                         self)
                     self.assertEqual(exit_code, 0, method)
 
@@ -5035,14 +5035,14 @@ Log: {os.devnull}
         """Test that config files for non-backup actions can be scripted."""
         command_line = [
             "--generate-config", str(self.config_path),
-            "--verify", str(self.user_path),
+            "--verify-only", str(self.user_path),
             "--user-folder", str(self.user_path),
             "--backup-folder", str(self.backup_path)]
 
         self.assert_config_file_creation(command_line)
 
         expected_config_data = (
-f"""Verify: {self.user_path}
+f"""Verify only: {self.user_path}
 User folder: {self.user_path}
 Backup folder: {self.backup_path}
 Log: {os.devnull}

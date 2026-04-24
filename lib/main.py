@@ -110,7 +110,7 @@ def main(argv: list[str], *, testing: bool) -> int:
             else choose_recovery_target_from_backups if args.list
             else start_finding_missing_files if args.find_missing
             else start_move_backups if args.move_backup
-            else start_verify_backup if args.verify
+            else start_verify_backup if args.verify_only
             else start_verify_checksum if args.verify_checksum
             else start_backup_restore if args.restore
             else start_backup_purge if args.purge

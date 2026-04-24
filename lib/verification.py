@@ -86,7 +86,7 @@ def start_verify_backup(args: argparse.Namespace) -> None:
     """
     backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
     filter_file = fs.path_or_none(args.filter)
-    result_folder = fs.absolute_path(args.verify)
+    result_folder = fs.absolute_path(args.verify_only)
     print_run_title(args, "Verifying last backup")
     verify_last_backup(result_folder, backup_folder, filter_file)
 
