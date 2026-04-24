@@ -112,3 +112,8 @@ Instead of showing a menu of backups with checksums, verify the oldest backup wi
 #### `--newest`
 
 Instead of showing a menu of backups with checksums, verify the newest backup with a checksum file.
+
+#### `--verify-checksum-before-deletion`
+
+If a backup that is about to be deleted has a checksum file, this option causes it to be verified as with `--verify-checksum` before deletion.
+The argument of this option is the directory where the result files should be written.
