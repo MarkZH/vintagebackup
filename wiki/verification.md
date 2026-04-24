@@ -2,6 +2,10 @@
 
 There are two ways to check whether backups are being created and stored correctly: verification and checksumming.
 
+The purpose of verification is to ensure that files are correctly copied from the user's directory to the backup directory.
+
+The purpose of checksumming is to ensure that files on the backup media do not change during storage.
+
 ## Verification
 
 The integrity of the last backup can be checked to verify that backups are running successfully.
