@@ -16,10 +16,39 @@ The verification process will generate three files (all prefixed with the date a
 
 ### Required options
 
+There are two ways to run a verification: as a standalone process and right after a backup is made.
+
 #### `--verify`
 
-This option starts the verification process.
+This option starts the verification process right after a backup is completed.
 The parameter to this option specifies the folder where the result files list above should be placed.
+
+#### `--verify-only`
+
+This option starts the verification process right without first creating a new backup.
+The parameter to this option specifies the folder where the result files list above should be placed.
+
+### `--verify-every`
+
+Verify the just created backup (as if by `--verify`) if verification hasn't been run in the timespan given in the argument.
+The argument has the same format as [`--delete-after`](delete.md#--delete-after).
+So, for example
+```
+python vintagebackup.py --user-folder C:\Users\Alice --backup-folder E:\backups --verify-every 2m
+```
+will verify the latest backup if it has not been done in two months.
+The date of the last verification will be found by reading the `backup.source.txt` file in the base backup directory--`E:\backups` in the above example.
+
+#### `--verify-start`
+
+Specify a date (YYYY-MM-DD) on which to start periodically verifying backups.
+Before the date, no verifcation is performed after a backup.
+After the date, whether a verification is performed is controlled by [`--verify-every`](#--verify-every).
+
+### `--no-verify`
+
+Do not verify backup files, even if another option like `--verify` or `--verify-every` is present.
+This is usually used to override options in a [configuration file](configuration_file.md).
 
 #### `--backup-folder`, `-b`
 
