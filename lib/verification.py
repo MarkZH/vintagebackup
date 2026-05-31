@@ -88,7 +88,7 @@ def last_verification(backup_location: Path) -> datetime.datetime | None:
         datetime: The timestamp of the most recent backup with verification files.
     """
     for backup in reversed(util.all_backups(backup_location)):
-        verification_file = fs.find_unique_path(backup/"matching files.txt")
+        verification_file = fs.find_unique_path(backup/verification_file_name)
         if verification_file:
             return util.backup_datetime(backup)
 
@@ -120,6 +120,7 @@ def start_verify_backup(args: argparse.Namespace) -> None:
 hash_function = "sha3_256"
 checksum_file_name = "checksums.sha3"
 verify_checksum_file_name = "checksum_verification.txt"
+verification_file_name = "matching files.txt"
 
 
 def create_checksum_for_last_backup(backup_folder: Path) -> None:
