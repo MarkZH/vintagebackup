@@ -6072,6 +6072,32 @@ f"""Missing user files found in {self.backup_path}:
             missing_file_data = missing_file.read_text(encoding="utf8")
             self.assertEqual(expected_missing_file_contents, missing_file_data)
 
+    def test_backup_search_lines_printed_in_correct_format(self) -> None:
+        """Test that the log lines printed while search backups are correctly formatted."""
+        for backup_count in (12, 109, 1080):
+            self.reset_backup_folder()
+            backup_info.record_user_location(self.user_path, self.backup_path)
+            create_old_daily_backups(self.backup_path, backup_count)
+
+            with self.assertLogs(level=logging.INFO) as logs:
+                find_missing.find_missing_files(self.backup_path, None, self.user_path)
+
+            count = 0
+            prefix = "INFO:root:"
+            all_backups = util.all_backups(self.backup_path)
+            backup_count = len(all_backups)
+            width = len(str(backup_count))
+            for line in logs.output:
+                if line.startswith(f"{prefix}["):
+                    count += 1
+                    backup = all_backups[count - 1]
+                    expected_line = f"{prefix}[{count:>{width}}/{backup_count}] {backup.name}"
+                    self.assertEqual(expected_line, line)
+                else:
+                    print(line)
+
+            self.assertEqual(count, len(all_backups))
+
 
 class FileSystemTests(TestCaseWithTemporaryFilesAndFolders):
     """Tests for filesystem functions not tested elsewhere."""
