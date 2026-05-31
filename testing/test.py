@@ -6093,8 +6093,6 @@ f"""Missing user files found in {self.backup_path}:
                     backup = all_backups[count - 1]
                     expected_line = f"{prefix}[{count:>{width}}/{backup_count}] {backup.name}"
                     self.assertEqual(expected_line, line)
-                else:
-                    print(line)
 
             self.assertEqual(count, len(all_backups))
 
