@@ -109,11 +109,7 @@ def start_verify_backup(args: argparse.Namespace) -> None:
 
     filter_file = fs.path_or_none(args.filter)
 
-    result_folder_arg = args.verify_only or args.verify
-    result_folder = (
-        fs.absolute_path(result_folder_arg) if result_folder_arg
-        else util.find_previous_backup(backup_folder))
-
+    result_folder = fs.path_or_none(args.verify_only) or util.find_previous_backup(backup_folder)
     if not result_folder:
         return
 

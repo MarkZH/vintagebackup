@@ -2724,6 +2724,42 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             actual_verify_file = fake_verify_file.with_suffix(f".1{fake_verify_file.suffix}")
             self.assertTrue(actual_verify_file.is_file(follow_symlinks=False))
 
+    def test_verification_after_backup_places_files_in_dated_backup_folder(self) -> None:
+        """Test that --verify places verification files in the newly created backup folder."""
+        create_user_data(self.user_path)
+        exit_code = main_assert_no_error_log([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "--verify"],
+            self)
+        self.assertEqual(exit_code, 0)
+
+        newest_backup = util.find_previous_backup(self.backup_path)
+        self.assertIsNotNone(newest_backup)
+        newest_backup = cast(Path, newest_backup)
+        expected_files = {"matching files.txt", "mismatching files.txt", "error files.txt"}
+        backedup_files = backup_set.Backup_Set(self.user_path, None)
+        matching_path_set: set[Path] = set()
+        for directory, file_names in backedup_files:
+            matching_path_set.update(directory/file_name for file_name in file_names)
+        mismatching_path_set: set[Path] = set()
+        error_path_set: set[Path] = set()
+        for file_name in expected_files:
+            path_set = (
+                matching_path_set if file_name.startswith("matching ")
+                else mismatching_path_set if file_name.startswith("mismatching ")
+                else error_path_set)
+
+            with (newest_backup/file_name).open(encoding="utf8") as verify_file:
+                first_line = verify_file.readline()
+                first_line_format = "Comparison: (.*) <---> (.*)\n"
+                matches = cast(re.Match[str], re.match(first_line_format, first_line))
+                user_folder, backup_folder = matches.groups()
+                self.assertTrue(self.user_path.samefile(user_folder))
+                self.assertTrue(newest_backup.samefile(backup_folder))
+                files_from_verify = read_paths_file(verify_file)
+                self.assertEqual(files_from_verify, path_set)
+
     def test_verification_with_no_backups_raises_error(self) -> None:
         """Test that verification raises an error when there are no backups."""
         with self.assertRaises(CommandLineError) as error:

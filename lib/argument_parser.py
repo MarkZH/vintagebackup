@@ -346,11 +346,11 @@ to a file stored in the base folder of the backup."""))
         ("Be sure to specify --oldest or --newest so the program doesn't get stuck waiting for a "
          "menu choice."))
 
-    backup_group.add_argument("--verify", metavar="RESULT_DIR", help=format_help(
+    backup_group.add_argument("--verify", action="store_true", help=format_help(
 """Verify the newly created backup by comparing it against the original files. The result of the
-comparison will be placed in the folder RESULT_DIR. The result is three files: a list of files that
-match, a list of files that do not match, and a list of files that caused errors during the
-comparison."""))
+comparison will be placed in the base folder of the newest backup. The result is three files: a list
+of files that match, a list of files that do not match, and a list of files that caused errors
+during the comparison."""))
 
     add_no_option(backup_group, "verify")
     add_periodic_option(backup_group, "verify")
