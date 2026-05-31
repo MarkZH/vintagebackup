@@ -49,11 +49,9 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
     logger.info("Verifying backup in %s by comparing against %s ...", backup_folder, user_folder)
 
     result_folder.mkdir(parents=True, exist_ok=True)
-    matching_file_name = fs.unique_path_name(result_folder/verification_file_name)
-    mismatch_name = "mis" + verification_file_name
-    mismatching_file_name = fs.unique_path_name(result_folder/mismatch_name)
-    error_name = verification_file_name.replace("matching", "error", 1)
-    error_file_name = fs.unique_path_name(result_folder/error_name)
+    matching_file_name = fs.unique_path_name(result_folder/verify_matching_file_name)
+    mismatching_file_name = fs.unique_path_name(result_folder/verify_mismatch_file_name)
+    error_file_name = fs.unique_path_name(result_folder/verify_error_file_name)
 
     with (matching_file_name.open("w", encoding="utf8") as matching_file,
         mismatching_file_name.open("w", encoding="utf8") as mismatching_file,
@@ -90,7 +88,7 @@ def last_verification(backup_location: Path) -> datetime.datetime | None:
         datetime: The timestamp of the most recent backup with verification files.
     """
     for backup in reversed(util.all_backups(backup_location)):
-        verification_file = fs.find_unique_path(backup/verification_file_name)
+        verification_file = fs.find_unique_path(backup/verify_matching_file_name)
         if verification_file:
             return util.backup_datetime(backup)
 
@@ -122,7 +120,10 @@ def start_verify_backup(args: argparse.Namespace) -> None:
 hash_function = "sha3_256"
 checksum_file_name = "checksums.sha3"
 verify_checksum_file_name = "checksum_verification.txt"
-verification_file_name = "matching_files.txt"
+
+verify_matching_file_name = "matching_files.txt"
+verify_mismatch_file_name = "mis" + verify_matching_file_name
+verify_error_file_name = verify_matching_file_name.replace("matching", "error", 1)
 
 
 def create_checksum_for_last_backup(backup_folder: Path) -> None:

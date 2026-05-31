@@ -2689,12 +2689,15 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
                     self.assertEqual(exit_code, 0, method)
 
                 verify_files = {p.name for p in verification_location.iterdir()}
-                expected_files = {"matching_files.txt", "mismatching_files.txt", "error_files.txt"}
+                expected_files = {
+                    verify.verify_matching_file_name,
+                    verify.verify_mismatch_file_name,
+                    verify.verify_error_file_name}
                 self.assertEqual(verify_files, expected_files)
                 for file_name in verify_files:
                     path_set = (
-                        matching_path_set if file_name.startswith("matching_")
-                        else mismatching_path_set if file_name.startswith("mismatching_")
+                        matching_path_set if file_name == verify.verify_matching_file_name
+                        else mismatching_path_set if file_name == verify.verify_mismatch_file_name
                         else error_path_set)
 
                     with (verification_location/file_name).open(encoding="utf8") as verify_file:
@@ -2712,7 +2715,10 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
 
-        file_names = ("matching_files.txt", "mismatching_files.txt", "error_files.txt")
+        file_names = (
+            verify.verify_matching_file_name,
+            verify.verify_mismatch_file_name,
+            verify.verify_error_file_name)
         for file_name in file_names:
             (self.user_path/file_name).touch()
 
@@ -2737,7 +2743,10 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         newest_backup = util.find_previous_backup(self.backup_path)
         self.assertIsNotNone(newest_backup)
         newest_backup = cast(Path, newest_backup)
-        expected_files = {"matching_files.txt", "mismatching_files.txt", "error_files.txt"}
+        expected_files = {
+            verify.verify_matching_file_name,
+            verify.verify_mismatch_file_name,
+            verify.verify_error_file_name}
         backedup_files = backup_set.Backup_Set(self.user_path, None)
         matching_path_set: set[Path] = set()
         for directory, file_names in backedup_files:
@@ -2746,8 +2755,8 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         error_path_set: set[Path] = set()
         for file_name in expected_files:
             path_set = (
-                matching_path_set if file_name.startswith("matching_")
-                else mismatching_path_set if file_name.startswith("mismatching_")
+                matching_path_set if file_name == verify.verify_matching_file_name
+                else mismatching_path_set if file_name == verify.verify_mismatch_file_name
                 else error_path_set)
 
             with (newest_backup/file_name).open(encoding="utf8") as verify_file:
@@ -2868,7 +2877,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             "--verify-every", "1d",
             "-l", str(self.log_path)],
             testing=True)
-        self.assertIsNotNone((self.backup_path/verify.verification_file_name).is_file())
+        self.assertIsNotNone((self.backup_path/verify.verify_matching_file_name).is_file())
 
     def test_verification_created_after_enough_time_passes_without_a_verification(self) -> None:
         """Test that verification happens using --verify-every option after enough time passed."""
@@ -2885,9 +2894,9 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             self.assertEqual(exit_code, 0)
 
         backups = util.all_backups(self.backup_path)
-        checksum_exists = [(backup/verify.verification_file_name).is_file() for backup in backups]
+        verify_exists = [(backup/verify.verify_matching_file_name).is_file() for backup in backups]
         self.assertEqual(
-            checksum_exists,
+            verify_exists,
             [True, False, False, True, False, False, True, False, False])
 
     def test_verifify_start_starts_verification_on_correct_date(self) -> None:
@@ -2910,7 +2919,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             self.assertEqual(exit_code, 0)
 
         backups = util.all_backups(self.backup_path)
-        actually_verified = [(bak/verify.verification_file_name).exists() for bak in backups]
+        actually_verified = [(bak/verify.verify_matching_file_name).exists() for bak in backups]
         expected_verifications = [
             (t - verify_start).days % verify_interval.days == 0
             for t in backup_timestamps]
@@ -2936,7 +2945,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             self.assertEqual(exit_code, 0)
 
         backups = util.all_backups(self.backup_path)
-        actually_checksummed = [(bak/verify.verification_file_name).exists() for bak in backups]
+        actually_checksummed = [(bak/verify.verify_matching_file_name).exists() for bak in backups]
         expected_checksums = [day % verify_interval.days == 0 for day in range(backup_count)]
         self.assertEqual(actually_checksummed, expected_checksums)
 
@@ -2968,7 +2977,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             self.assertEqual(exit_code, 0)
 
         backups = util.all_backups(self.backup_path)
-        actually_checksummed = [(bak/verify.verification_file_name).exists() for bak in backups]
+        actually_checksummed = [(bak/verify.verify_matching_file_name).exists() for bak in backups]
         expected_checksums = [True] + [
             (t - verify_start).days % verify_interval.days == 0
             for t in backup_timestamps]
@@ -2994,7 +3003,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             "--verify-every", "1m",
             "-l", str(self.log_path)],
             testing=True)
-        self.assertFalse((util.all_backups(self.backup_path)[0]/verify.verification_file_name).exists())
+        self.assertFalse((util.all_backups(self.backup_path)[0]/verify.verify_matching_file_name).exists())
 
     def test_no_verify_overrides_verify(self) -> None:
         """Test that --no-verify cancels --verify."""
@@ -3006,7 +3015,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             "--verify",
             "-l", str(self.log_path)],
             testing=True)
-        self.assertFalse((util.all_backups(self.backup_path)[0]/verify.verification_file_name).exists())
+        self.assertFalse((util.all_backups(self.backup_path)[0]/verify.verify_matching_file_name).exists())
 
     def test_checksum_verification(self) -> None:
         """Test that checksums are written and read consistently."""
