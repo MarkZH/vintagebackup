@@ -35,7 +35,7 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
     """
     user_folder = backup_source(backup_folder)
     if not user_folder:
-        raise CommandLineError(f"No backups found in {backup_folder}") from None
+        raise CommandLineError(f"Could not find user data location from {backup_folder}") from None
 
     if not user_folder.is_dir():
         raise CommandLineError(f"Could not find user folder: {user_folder}")
