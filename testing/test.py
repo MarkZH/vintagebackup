@@ -2762,6 +2762,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_verification_with_no_backups_raises_error(self) -> None:
         """Test that verification raises an error when there are no backups."""
+        backup_info.record_user_location(self.user_path, self.backup_path)
         with self.assertRaises(CommandLineError) as error:
             verify.verify_last_backup(self.user_path, self.backup_path, None)
         self.assertTrue(error.exception.args[0].startswith("No backups found in "))
@@ -2788,6 +2789,224 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         with self.assertRaises(CommandLineError) as error:
             verify.verify_last_backup(self.user_path, self.backup_path, None)
         self.assertTrue(error.exception.args[0].startswith("No backups found in "))
+
+    def test_no_verification_date_is_found_if_no_verification_performed(self) -> None:
+        """Test that no verification date is found if no verifying occurred."""
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+        self.assertIsNone(verify.last_verification(self.backup_path))
+
+    def test_verification_with_no_backups_is_error(self) -> None:
+        """Test that calling verify_last_backup() with no backups is an error."""
+        backup_info.record_user_location(self.user_path, self.backup_path)
+        with self.assertRaises(CommandLineError) as error:
+            verify.verify_last_backup(self.user_path, self.backup_path, None)
+        self.assertTrue(error.exception.args[0].startswith("No backups"))
+
+    def test_verification_date_is_found_if_verification_performed(self) -> None:
+        """Test that a verification date can be found if verifying occurred."""
+        create_user_data(self.user_path)
+        exit_code = main.main([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "--verify",
+            "--log", str(self.log_path)],
+            testing=True)
+        self.assertEqual(exit_code, 0)
+        last_verify_date = verify.last_verification(self.backup_path)
+        self.assertIsNotNone(last_verify_date)
+        last_verify_date = cast(datetime.datetime, last_verify_date)
+        backup_with_verification = util.find_previous_backup(self.backup_path)
+        self.assertIsNotNone(backup_with_verification)
+        backup_with_verification = cast(Path, backup_with_verification)
+        backup_date = util.backup_datetime(backup_with_verification)
+        self.assertEqual(backup_date, last_verify_date)
+
+    def test_verify_date_found_among_backups_with_no_verifications(self) -> None:
+        """Test that verification date is found."""
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+        exit_code = main.main([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "--verify",
+            "--log", str(self.log_path)],
+            testing=True)
+        self.assertEqual(exit_code, 0)
+        default_backup(self.user_path, self.backup_path)
+        backups = util.all_backups(self.backup_path)
+        self.assertEqual(len(backups), 3)
+        verify_date = verify.last_verification(self.backup_path)
+        backup_with_checksum = backups[1]
+        self.assertEqual(verify_date, util.backup_datetime(backup_with_checksum))
+
+    def test_last_verification_finds_most_recent_verification(self) -> None:
+        """Test that last_verification() finds most recent backup with verification."""
+        create_user_data(self.user_path)
+        for _ in range(2):
+            with patch("lib.backup.datetime", Now_Mock()):
+                exit_code = main.main([
+                    "-u", str(self.user_path),
+                    "-b", str(self.backup_path),
+                    "--verify",
+                    "--log", str(self.log_path)],
+                    testing=True)
+            self.assertEqual(exit_code, 0)
+
+        last_verification_date = verify.last_verification(self.backup_path)
+        last_backup = util.find_previous_backup(self.backup_path)
+        self.assertIsNotNone(last_backup)
+        last_backup = cast(Path, last_backup)
+        self.assertEqual(last_verification_date, util.backup_datetime(last_backup))
+
+    def test_verify_every_creates_verification_when_no_prior_verifications(self) -> None:
+        """Test that a verification is performed when there are not prior verifications."""
+        create_user_data(self.user_path)
+        main.main([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "--verify-every", "1d",
+            "-l", str(self.log_path)],
+            testing=True)
+        self.assertIsNotNone((self.backup_path/verify.verification_file_name).is_file())
+
+    def test_verification_created_after_enough_time_passes_without_a_verification(self) -> None:
+        """Test that verification happens using --verify-every option after enough time passed."""
+        create_user_data(self.user_path)
+        for timestamp in datetime_range(datetime.datetime.now(), datetime.timedelta(days=1), 9):
+            with (patch("lib.backup.datetime", Now_Mock(timestamp)),
+                  patch("lib.backup_utilities.datetime", Now_Mock(timestamp))):
+                exit_code = main.main([
+                    "-u", str(self.user_path),
+                    "-b", str(self.backup_path),
+                    "--verify-every", "3d",
+                    "-l", str(self.log_path)],
+                    testing=True)
+            self.assertEqual(exit_code, 0)
+
+        backups = util.all_backups(self.backup_path)
+        checksum_exists = [(backup/verify.verification_file_name).is_file() for backup in backups]
+        self.assertEqual(
+            checksum_exists,
+            [True, False, False, True, False, False, True, False, False])
+
+    def test_verifify_start_starts_verification_on_correct_date(self) -> None:
+        """Test that --verify-every starts verification on correct date."""
+        backup_start = datetime.datetime(2026, 4, 3, 19, 26, 0)
+        backup_interval = datetime.timedelta(days=1)
+        verify_start = backup_start + datetime.timedelta(days=3)
+        verify_interval = datetime.timedelta(days=14)
+        backup_count = 30
+        backup_timestamps = list(datetime_range(backup_start, backup_interval, backup_count))
+        create_user_data(self.user_path)
+        for timestamp in backup_timestamps:
+            with (patch("lib.backup.datetime", Now_Mock(timestamp)),
+                  patch("lib.backup_utilities.datetime", Now_Mock(timestamp))):
+                exit_code = main_no_log([
+                    "-u", str(self.user_path),
+                    "-b", str(self.backup_path),
+                    "--verify-every", f"{verify_interval.days}d",
+                    "--verify-start", verify_start.strftime("%Y-%m-%d")])
+            self.assertEqual(exit_code, 0)
+
+        backups = util.all_backups(self.backup_path)
+        actually_verified = [(bak/verify.verification_file_name).exists() for bak in backups]
+        expected_verifications = [
+            (t - verify_start).days % verify_interval.days == 0
+            for t in backup_timestamps]
+        self.assertEqual(actually_verified, expected_verifications)
+
+    def test_verify_start_with_early_date_has_no_effect(self) -> None:
+        """Test that --verify-every with date before backup does not affect timing."""
+        backup_start = datetime.datetime(2026, 4, 3, 19, 26, 0)
+        backup_interval = datetime.timedelta(days=1)
+        verify_start = backup_start - datetime.timedelta(days=3)
+        verify_interval = datetime.timedelta(days=7)
+        backup_count = 30
+        backup_timestamps = list(datetime_range(backup_start, backup_interval, backup_count))
+        create_user_data(self.user_path)
+        for timestamp in backup_timestamps:
+            with (patch("lib.backup.datetime", Now_Mock(timestamp)),
+                  patch("lib.backup_utilities.datetime", Now_Mock(timestamp))):
+                exit_code = main_no_log([
+                    "-u", str(self.user_path),
+                    "-b", str(self.backup_path),
+                    "--verify-every", f"{verify_interval.days}d",
+                    "--verify-start", verify_start.strftime("%Y-%m-%d")])
+            self.assertEqual(exit_code, 0)
+
+        backups = util.all_backups(self.backup_path)
+        actually_checksummed = [(bak/verify.verification_file_name).exists() for bak in backups]
+        expected_checksums = [day % verify_interval.days == 0 for day in range(backup_count)]
+        self.assertEqual(actually_checksummed, expected_checksums)
+
+    def test_verify_start_starts_verifying_on_correct_date_with_earlier_verifications(self) -> None:
+        """Test --verify-every starts verification on correct date with earlier verifications."""
+        backup_start = datetime.datetime(2026, 4, 3, 19, 26, 0)
+        backup_interval = datetime.timedelta(days=1)
+        verify_start = backup_start + datetime.timedelta(days=3)
+        verify_interval = datetime.timedelta(days=14)
+        backup_count = 30
+        backup_timestamps = list(datetime_range(backup_start, backup_interval, backup_count))
+        first_checksum_timestamp = backup_start - datetime.timedelta(hours=1)
+        create_user_data(self.user_path)
+        with patch("lib.backup.datetime", Now_Mock(first_checksum_timestamp)):
+            exit_code = main_no_log([
+                "-u", str(self.user_path),
+                "-b", str(self.backup_path),
+                "--verify"])
+        self.assertEqual(exit_code, 0)
+
+        for timestamp in backup_timestamps:
+            with (patch("lib.backup.datetime", Now_Mock(timestamp)),
+                  patch("lib.backup_utilities.datetime", Now_Mock(timestamp))):
+                exit_code = main_no_log([
+                    "-u", str(self.user_path),
+                    "-b", str(self.backup_path),
+                    "--verify-every", f"{verify_interval.days}d",
+                    "--verify-start", verify_start.strftime("%Y-%m-%d")])
+            self.assertEqual(exit_code, 0)
+
+        backups = util.all_backups(self.backup_path)
+        actually_checksummed = [(bak/verify.verification_file_name).exists() for bak in backups]
+        expected_checksums = [True] + [
+            (t - verify_start).days % verify_interval.days == 0
+            for t in backup_timestamps]
+        self.assertEqual(actually_checksummed, expected_checksums)
+
+    def test_no_verify_overrides_verify_every_on_command_line(self) -> None:
+        """Test that --no-verify cancels --verify-every in argument_parser."""
+        args = argparse.parse_command_line(["--verify-every", "1m", "--no-verify"])
+        self.assertFalse(
+            util.should_do_periodic_action(
+                args,
+                "verify",
+                self.backup_path,
+                verify.last_checksum))
+
+    def test_no_verify_overrides_verify_every(self) -> None:
+        """Test that --no-verify cancels --verify-every."""
+        create_user_data(self.user_path)
+        main.main([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "--no-verify",
+            "--verify-every", "1m",
+            "-l", str(self.log_path)],
+            testing=True)
+        self.assertFalse((util.all_backups(self.backup_path)[0]/verify.verification_file_name).exists())
+
+    def test_no_verify_overrides_verify(self) -> None:
+        """Test that --no-verify cancels --verify."""
+        create_user_data(self.user_path)
+        main.main([
+            "-u", str(self.user_path),
+            "-b", str(self.backup_path),
+            "--no-verify",
+            "--verify",
+            "-l", str(self.log_path)],
+            testing=True)
+        self.assertFalse((util.all_backups(self.backup_path)[0]/verify.verification_file_name).exists())
 
     def test_checksum_verification(self) -> None:
         """Test that checksums are written and read consistently."""
