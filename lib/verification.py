@@ -49,9 +49,11 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
     logger.info("Verifying backup in %s by comparing against %s ...", backup_folder, user_folder)
 
     result_folder.mkdir(parents=True, exist_ok=True)
-    matching_file_name = fs.unique_path_name(result_folder/"matching files.txt")
-    mismatching_file_name = fs.unique_path_name(result_folder/"mismatching files.txt")
-    error_file_name = fs.unique_path_name(result_folder/"error files.txt")
+    matching_file_name = fs.unique_path_name(result_folder/verification_file_name)
+    mismatch_name = "mis" + verification_file_name
+    mismatching_file_name = fs.unique_path_name(result_folder/mismatch_name)
+    error_name = verification_file_name.replace("matching", "error", 1)
+    error_file_name = fs.unique_path_name(result_folder/error_name)
 
     with (matching_file_name.open("w", encoding="utf8") as matching_file,
         mismatching_file_name.open("w", encoding="utf8") as mismatching_file,
