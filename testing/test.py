@@ -6085,7 +6085,7 @@ f"""Missing user files found in {self.backup_path}:
             count = 0
             prefix = "INFO:root:"
             all_backups = util.all_backups(self.backup_path)
-            backup_count = len(all_backups)
+            self.assertEqual(backup_count, len(all_backups))
             width = len(str(backup_count))
             for line in logs.output:
                 if line.startswith(f"{prefix}["):
