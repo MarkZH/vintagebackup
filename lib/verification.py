@@ -103,9 +103,8 @@ def start_verify_backup(args: argparse.Namespace) -> None:
         args: Parsed command line options
     """
     backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
-    if not (
-            should_do_periodic_action(args, "verify", backup_folder, last_verification)
-            or args.verify_only):
+    should_verify = should_do_periodic_action(args, "verify", backup_folder, last_verification)
+    if not (should_verify or args.verify_only):
         return
 
     filter_file = fs.path_or_none(args.filter)
