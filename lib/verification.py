@@ -122,7 +122,7 @@ def start_verify_backup(args: argparse.Namespace) -> None:
 hash_function = "sha3_256"
 checksum_file_name = "checksums.sha3"
 verify_checksum_file_name = "checksum_verification.txt"
-verification_file_name = "matching files.txt"
+verification_file_name = "matching_files.txt"
 
 
 def create_checksum_for_last_backup(backup_folder: Path) -> None:

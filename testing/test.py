@@ -2689,12 +2689,12 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
                     self.assertEqual(exit_code, 0, method)
 
                 verify_files = {p.name for p in verification_location.iterdir()}
-                expected_files = {"matching files.txt", "mismatching files.txt", "error files.txt"}
+                expected_files = {"matching_files.txt", "mismatching_files.txt", "error_files.txt"}
                 self.assertEqual(verify_files, expected_files)
                 for file_name in verify_files:
                     path_set = (
-                        matching_path_set if file_name.startswith("matching ")
-                        else mismatching_path_set if file_name.startswith("mismatching ")
+                        matching_path_set if file_name.startswith("matching_")
+                        else mismatching_path_set if file_name.startswith("mismatching_")
                         else error_path_set)
 
                     with (verification_location/file_name).open(encoding="utf8") as verify_file:
@@ -2712,7 +2712,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
 
-        file_names = ("matching files.txt", "mismatching files.txt", "error files.txt")
+        file_names = ("matching_files.txt", "mismatching_files.txt", "error_files.txt")
         for file_name in file_names:
             (self.user_path/file_name).touch()
 
@@ -2737,7 +2737,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         newest_backup = util.find_previous_backup(self.backup_path)
         self.assertIsNotNone(newest_backup)
         newest_backup = cast(Path, newest_backup)
-        expected_files = {"matching files.txt", "mismatching files.txt", "error files.txt"}
+        expected_files = {"matching_files.txt", "mismatching_files.txt", "error_files.txt"}
         backedup_files = backup_set.Backup_Set(self.user_path, None)
         matching_path_set: set[Path] = set()
         for directory, file_names in backedup_files:
@@ -2746,8 +2746,8 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         error_path_set: set[Path] = set()
         for file_name in expected_files:
             path_set = (
-                matching_path_set if file_name.startswith("matching ")
-                else mismatching_path_set if file_name.startswith("mismatching ")
+                matching_path_set if file_name.startswith("matching_")
+                else mismatching_path_set if file_name.startswith("mismatching_")
                 else error_path_set)
 
             with (newest_backup/file_name).open(encoding="utf8") as verify_file:
