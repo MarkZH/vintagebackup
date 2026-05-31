@@ -44,7 +44,10 @@ def find_missing_files(
         relative_directory = directory.relative_to(user_directory)
         user_files.update(relative_directory/name for name in file_names)
 
-    logger.info("Searching for missing files in backups: %s ...", backup_directory)
+    logger.info(
+        "Searching for files in %s that are no longer in %s ...",
+        backup_directory,
+        user_directory)
     last_seen: dict[Path, Path] = {}  # last_seen[user file] = backup path
     backup_count = len(backups)
     for index, backup in enumerate(backups, 1):
