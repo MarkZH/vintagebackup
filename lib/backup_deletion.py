@@ -205,7 +205,7 @@ def delete_too_frequent_backups(
     now = util.backup_datetime(last_backup)
 
     def old_enough(date_cutoff: datetime.datetime) -> Callable[[Path], bool]:
-        return lambda backup: util.backup_datetime(backup) < date_cutoff
+        return lambda backup: util.backup_datetime(backup).date() < date_cutoff.date()
 
     for period, period_word, time_span_str in (
             ("7d", "weekly", args.keep_weekly_after),
