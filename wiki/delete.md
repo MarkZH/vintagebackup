@@ -65,6 +65,19 @@ The parameter of these options is a time span to specify after what period to be
 The format is the same as the `--delete-after` option.
 If they are used together, the time span for `--keep-weekly-after` must be the shortest, followed by `--keep-monthly-after`, then `--keep-yearly-after`.
 
+#### A note about `--keep-monthly-after`
+
+Because months are not all the same length, the effects of `--keep-monthly-after` can be unexpected.
+
+For example, let's say you are creating daily backups and use the `--keep-monthly-after` option.
+If the oldest backup in a set is dated March 31, the next backup to be kept will be dated May 1.
+When Vintage Backup is calculating which backups to keep, it checks for the next backup with a date that is a month after March 31 while deleting all other backups in between.
+When it reaches April 30, it calculates that a month prior is March 30, which is before the oldest backup, and so deletes the April 30 backup.
+When it reaches May 1, it calculates that a month prior is April 1, which is after the oldest backup, and so keeps it.
+
+So, the time between backups retained by `--keep-monthly-after` will be *at least* a calendar month apart, give or take a few days.
+
+
 ## Other options
 
 These options modify the behavior of the deletion action in the previous section.
