@@ -22,7 +22,6 @@ import io
 from inspect import getsourcefile
 import hashlib
 from collections.abc import Iterable, Iterator
-from operator import itemgetter
 import copy
 import errno
 
@@ -215,15 +214,20 @@ def create_old_backup(backup_base_directory: Path, backup_timestamp: datetime.da
     backup_path.mkdir(parents=True)
 
 
-def create_old_daily_backups(backup_base_directory: Path, count: int) -> None:
+def create_old_daily_backups(
+        backup_base_directory: Path,
+        count: int,
+        now: datetime.datetime | None = None) -> None:
     """
     Create a set of empty daily backups.
 
     Arguments:
         backup_base_directory: The directory that will contain the backup folders.
         count: The number of backups to create. The oldest will be (count - 1) days old.
+        now: An alternate timestamp from which to calculate the timestamps of backups. If missing
+            or None, use datetime.datetime.now().
     """
-    first_backup = datetime.datetime.now() - datetime.timedelta(days=count)
+    first_backup = (now or datetime.datetime.now()) - datetime.timedelta(days=count)
     for backup_timestamp in datetime_range(first_backup, datetime.timedelta(days=1), count):
         create_old_backup(backup_base_directory, backup_timestamp)
 
@@ -2239,44 +2243,27 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_keep_monthly_after_only_retains_monthly_backups_after_time_span(self) -> None:
         """After the given time span, every backup is at least a calendar month apart."""
-        def days_in_month(year: int, month: int) -> int:
-            return dates.fix_end_of_month(year, month, 31).day
+        for today in datetime_range(datetime.datetime.now(), datetime.timedelta(days=1), 366):
+            self.reset_backup_folder()
+            create_old_daily_backups(self.backup_path, 36, today)
+            time_span_to_keep_all_backups = "1d"
+            backups = util.all_backups(self.backup_path)
+            first_backup_date = util.backup_datetime(backups[0]).date()
+            retained_date = first_backup_date
+            while dates.months_ago(retained_date, 1) < first_backup_date:
+                retained_date += datetime.timedelta(days=1)
 
-        create_old_daily_backups(self.backup_path, 33)
-        time_span_to_keep_all_backups = "1d"
-        backups = util.all_backups(self.backup_path)
-        first_backup_timestamp = util.backup_datetime(backups[0])
-        first_retained_index = days_in_month(
-            first_backup_timestamp.year,
-            first_backup_timestamp.month)
+            self.assertGreaterEqual(retained_date - first_backup_date, datetime.timedelta(days=28))
+            kept_backup, = (b for b in backups if util.backup_datetime(b).date() == retained_date)
+            expected_backups_remaining = [backups[0], kept_backup, backups[-2], backups[-1]]
 
-        while True:
-            first_retained_backup = backups[first_retained_index]
-            first_retained_timestamp = util.backup_datetime(first_retained_backup)
-            if first_retained_timestamp.month <= first_backup_timestamp.month + 1:
-                break
-
-            if first_retained_timestamp.day == 1:
-                break
-
-            first_retained_index -= 1
-
-        def unique(it: Iterable[Path]) -> Iterator[Path]:
-            return map(itemgetter(0), itertools.groupby(it))
-
-        expected_backups_remaining = list(unique([
-            backups[0],
-            backups[first_retained_index],
-            backups[-2],
-            backups[-1]]))
-
-        main_assert_no_error_log([
-            "--keep-monthly-after", time_span_to_keep_all_backups,
-            "--delete-only",
-            "--backup-folder", str(self.backup_path)],
-            self)
-        backups_remaining = util.all_backups(self.backup_path)
-        self.assertEqual(backups_remaining, expected_backups_remaining)
+            main_assert_no_error_log([
+                "--keep-monthly-after", time_span_to_keep_all_backups,
+                "--delete-only",
+                "--backup-folder", str(self.backup_path)],
+                self)
+            backups_remaining = util.all_backups(self.backup_path)
+            self.assertEqual(backups_remaining, expected_backups_remaining)
 
     def test_keep_yearly_after_only_retains_yearly_backups_after_time_span(self) -> None:
         """After the given time span, every backup is at least a calendar year apart."""
