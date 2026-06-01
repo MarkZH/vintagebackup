@@ -35,6 +35,11 @@ or
 Eventually, whatever media one uses to backup files, it will fill up with backed up data.
 Read the section on [deleting old backups](delete.md) to learn how to manage the storage space of the backup media by deleting old backups.
 
+### Backup verification
+
+The integrity of the data on the backup media can be checked after a backup or periodically through extra options.
+Read the section on [verifying backup data](verification.md) to learn about checking that data is properly backed up.
+
 ### `--hard-link-count`
 
 Specify how many times--on average--a file should be hard-linked in new backups before a new copy of the file is made.

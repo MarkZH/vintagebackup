@@ -35,7 +35,7 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
     """
     user_folder = backup_source(backup_folder)
     if not user_folder:
-        raise CommandLineError(f"No backups found in {backup_folder}") from None
+        raise CommandLineError(f"Could not find user data location from {backup_folder}") from None
 
     if not user_folder.is_dir():
         raise CommandLineError(f"Could not find user folder: {user_folder}")
@@ -49,9 +49,9 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
     logger.info("Verifying backup in %s by comparing against %s ...", backup_folder, user_folder)
 
     result_folder.mkdir(parents=True, exist_ok=True)
-    matching_file_name = fs.unique_path_name(result_folder/"matching files.txt")
-    mismatching_file_name = fs.unique_path_name(result_folder/"mismatching files.txt")
-    error_file_name = fs.unique_path_name(result_folder/"error files.txt")
+    matching_file_name = fs.unique_path_name(result_folder/verify_matching_file_name)
+    mismatching_file_name = fs.unique_path_name(result_folder/verify_mismatch_file_name)
+    error_file_name = fs.unique_path_name(result_folder/verify_error_file_name)
 
     with (matching_file_name.open("w", encoding="utf8") as matching_file,
         mismatching_file_name.open("w", encoding="utf8") as mismatching_file,
@@ -77,6 +77,24 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
             fs.write_directory(error_file, directory, errors)
 
 
+def last_verification(backup_location: Path) -> datetime.datetime | None:
+    """
+    Determine when the last backup verification occurred.
+
+    Arguments:
+        backup_location: Where all dated backups are stored.
+
+    Returns:
+        datetime: The timestamp of the most recent backup with verification files.
+    """
+    for backup in reversed(util.all_backups(backup_location)):
+        verification_file = fs.find_unique_path(backup/verify_matching_file_name)
+        if verification_file:
+            return util.backup_datetime(backup)
+
+    return None
+
+
 def start_verify_backup(args: argparse.Namespace) -> None:
     """
     Parse command line options for verifying backups.
@@ -85,8 +103,16 @@ def start_verify_backup(args: argparse.Namespace) -> None:
         args: Parsed command line options
     """
     backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
+    should_verify = should_do_periodic_action(args, "verify", backup_folder, last_verification)
+    if not (should_verify or args.verify_only):
+        return
+
     filter_file = fs.path_or_none(args.filter)
-    result_folder = fs.absolute_path(args.verify)
+
+    result_folder = fs.path_or_none(args.verify_only) or util.find_previous_backup(backup_folder)
+    if not result_folder:
+        return
+
     print_run_title(args, "Verifying last backup")
     verify_last_backup(result_folder, backup_folder, filter_file)
 
@@ -94,6 +120,10 @@ def start_verify_backup(args: argparse.Namespace) -> None:
 hash_function = "sha3_256"
 checksum_file_name = "checksums.sha3"
 verify_checksum_file_name = "checksum_verification.txt"
+
+verify_matching_file_name = "matching_files.txt"
+verify_mismatch_file_name = "mis" + verify_matching_file_name
+verify_error_file_name = verify_matching_file_name.replace("matching", "error", 1)
 
 
 def create_checksum_for_last_backup(backup_folder: Path) -> None:

@@ -9,17 +9,48 @@ The purpose of checksumming is to ensure that files on the backup media do not c
 ## Verification
 
 The integrity of the last backup can be checked to verify that backups are running successfully.
-The verification process will generate three files (all prefixed with the date and time of the start of the verification process in `YYYY-MM-DD HH-MM-SS` format):
-  1. `matching files.txt` - list of files that are in both the user folder and the backup and are identical.
-  2. `mismatching files.txt` - list of files that are in both the user folder and the backup folder but are different in content.
-  3. `error files.txt` - list of files that are in the user folder but could not be compared with files in the backup, usually because the file is not in the backup.
+The verification process will generate three files:
+  1. `matching_files.txt` - list of files that are in both the user folder and the backup and are identical.
+  2. `mismatching_files.txt` - list of files that are in both the user folder and the backup folder but are different in content.
+  3. `error_files.txt` - list of files that are in the user folder but could not be compared with files in the backup, usually because the file is not in the backup.
+
+If these files already exist in the result folder, the new files will have numbers affixed to their names so as to not overwrite existing files.
 
 ### Required options
 
+There are two ways to run a verification: as a standalone process and right after a backup is made.
+
 #### `--verify`
 
-This option starts the verification process.
+This option starts the verification process right after a backup is completed.
+The result files listed above will be placed in the newest dated backup folder.
+
+#### `--verify-only`
+
+This option starts the verification process right without first creating a new backup.
 The parameter to this option specifies the folder where the result files list above should be placed.
+
+### `--verify-every`
+
+Verify the just created backup (as if by `--verify`) if verification hasn't been run in the timespan given in the argument.
+The argument has the same format as [`--delete-after`](delete.md#--delete-after).
+So, for example
+```
+python vintagebackup.py --user-folder C:\Users\Alice --backup-folder E:\backups --verify-every 2m
+```
+will verify the latest backup if it has not been done in two months.
+The date of the last verification will be found by finding which backup has a file named `matching_files.txt`.
+
+#### `--verify-start`
+
+Specify a date (YYYY-MM-DD) on which to start periodically verifying backups.
+Before the date, no verifcation is performed after a backup.
+After the date, whether a verification is performed is controlled by [`--verify-every`](#--verify-every).
+
+### `--no-verify`
+
+Do not verify backup files, even if another option like `--verify` or `--verify-every` is present.
+This is usually used to override options in a [configuration file](configuration_file.md).
 
 #### `--backup-folder`, `-b`
 
