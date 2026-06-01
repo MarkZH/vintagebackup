@@ -21,7 +21,7 @@ There are two ways to run a verification: as a standalone process and right afte
 #### `--verify`
 
 This option starts the verification process right after a backup is completed.
-The parameter to this option specifies the folder where the result files list above should be placed.
+The result files listed above will be placed in the newest dated backup folder.
 
 #### `--verify-only`
 
