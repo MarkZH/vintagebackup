@@ -2243,27 +2243,33 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_keep_monthly_after_only_retains_monthly_backups_after_time_span(self) -> None:
         """After the given time span, every backup is at least a calendar month apart."""
-        for today in datetime_range(datetime.datetime.now(), datetime.timedelta(days=1), 366):
-            self.reset_backup_folder()
-            create_old_daily_backups(self.backup_path, 36, today)
-            time_span_to_keep_all_backups = "1d"
-            backups = util.all_backups(self.backup_path)
-            first_backup_date = util.backup_datetime(backups[0]).date()
-            retained_date = first_backup_date
-            while dates.months_ago(retained_date, 1) < first_backup_date:
-                retained_date += datetime.timedelta(days=1)
+        for year in (2023, 2024):  # (not leap year, leap year)
+            january_1 = datetime.datetime(year, 1, 1)
+            today = january_1
+            for today in datetime_range(january_1, datetime.timedelta(days=1), 366):
+                self.reset_backup_folder()
+                create_old_daily_backups(self.backup_path, 36, today)
+                time_span_to_keep_all_backups = "1d"
+                backups = util.all_backups(self.backup_path)
+                first_backup_date = util.backup_datetime(backups[0]).date()
+                retained_date = first_backup_date
+                while dates.months_ago(retained_date, 1) < first_backup_date:
+                    retained_date += datetime.timedelta(days=1)
 
-            self.assertGreaterEqual(retained_date - first_backup_date, datetime.timedelta(days=28))
-            kept_backup, = (b for b in backups if util.backup_datetime(b).date() == retained_date)
-            expected_backups_remaining = [backups[0], kept_backup, backups[-2], backups[-1]]
+                shortest_month = datetime.timedelta(days=28)
+                self.assertGreaterEqual(retained_date - first_backup_date, shortest_month)
+                timestamp = util.backup_datetime
+                kept_backup, = (b for b in backups if timestamp(b).date() == retained_date)
+                expected_backups_remaining = [backups[0], kept_backup, backups[-2], backups[-1]]
 
-            main_assert_no_error_log([
-                "--keep-monthly-after", time_span_to_keep_all_backups,
-                "--delete-only",
-                "--backup-folder", str(self.backup_path)],
-                self)
-            backups_remaining = util.all_backups(self.backup_path)
-            self.assertEqual(backups_remaining, expected_backups_remaining)
+                main_assert_no_error_log([
+                    "--keep-monthly-after", time_span_to_keep_all_backups,
+                    "--delete-only",
+                    "--backup-folder", str(self.backup_path)],
+                    self)
+                backups_remaining = util.all_backups(self.backup_path)
+                self.assertEqual(backups_remaining, expected_backups_remaining)
+            self.assertGreaterEqual(today, datetime.datetime(year, 12, 31))
 
     def test_keep_yearly_after_only_retains_yearly_backups_after_time_span(self) -> None:
         """After the given time span, every backup is at least a calendar year apart."""
