@@ -217,9 +217,7 @@ def delete_too_frequent_backups(
 
         date_cutoff = parse_time_span_to_timepoint(time_span_str, now)
         backups = list(filter(old_enough(date_cutoff), util.all_backups(backup_folder)))
-        while len(backups) > 1:
-            if deletion_count >= max_deletions:
-                return
+        while len(backups) > 1 and deletion_count < max_deletions:
             standard = backups[0]
             next_backup = backups[1]
             next_timestamp = util.backup_datetime(next_backup)
