@@ -65,6 +65,16 @@ def months_ago(now: datetime.datetime | datetime.date, month_count: int) -> date
 
     Returns:
         date: A valid date that is the same day of the month a given number of months back.
+
+    >>> date = datetime.date(2026, 5, 31)
+    >>> months_ago(date, 1)
+    datetime.date(2026, 4, 30)
+
+    >>> months_ago(date, 2)
+    datetime.date(2026, 3, 31)
+
+    >>> months_ago(date, 3)
+    datetime.date(2026, 2, 28)
     """
     new_month = now.month - (month_count % 12)
     new_year = now.year - (month_count // 12)
