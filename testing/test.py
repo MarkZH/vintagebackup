@@ -2339,9 +2339,9 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
     def test_keep_x_after_respects_maximum_deletions(self) -> None:
         """Make sure all --keep-x-after options respect --max-deletions."""
         max_deletions = 50
+        starting_backup_count = 100
         for option in ("weekly", "monthly", "yearly"):
-            create_old_daily_backups(self.backup_path, 100)
-            starting_backup_count = len(util.all_backups(self.backup_path))
+            create_old_daily_backups(self.backup_path, starting_backup_count)
             main_assert_no_error_log([
                 "--backup-folder", str(self.backup_path),
                 f"--keep-{option}-after", "1d",
@@ -2349,7 +2349,28 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
                 "--max-deletions", str(max_deletions)],
                 self)
             retained_backup_count = len(util.all_backups(self.backup_path))
-            self.assertEqual(starting_backup_count - retained_backup_count, 50)
+            actual_deletions = starting_backup_count - retained_backup_count
+            self.assertEqual(actual_deletions, max_deletions)
+            self.reset_backup_folder()
+
+    def test_keep_x_after_with_backup_respects_maximum_deletions(self) -> None:
+        """Make sure all --keep-x-after options respect --max-deletions."""
+        create_user_data(self.user_path)
+        max_deletions = 50
+        for option in ("weekly", "monthly", "yearly"):
+            starting_backup_count = 100
+            create_old_daily_backups(self.backup_path, starting_backup_count)
+            starting_backup_count = len(util.all_backups(self.backup_path))
+            main_assert_no_error_log([
+                "--user-folder", str(self.user_path),
+                "--backup-folder", str(self.backup_path),
+                f"--keep-{option}-after", "1d",
+                "--max-deletions", str(max_deletions)],
+                self)
+            starting_backup_count += 1  # for the new backup created above
+            retained_backup_count = len(util.all_backups(self.backup_path))
+            actual_deletions = starting_backup_count - retained_backup_count
+            self.assertEqual(actual_deletions, max_deletions)
             self.reset_backup_folder()
 
     @unittest.skipUnless(platform.system() == "Windows", "OSError.winerror only valid on Windows.")
