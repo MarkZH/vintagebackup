@@ -76,10 +76,11 @@ def months_ago(now: datetime.datetime | datetime.date, month_count: int) -> date
     >>> months_ago(date, 3)
     datetime.date(2026, 2, 28)
     """
-    new_month = now.month - (month_count % 12)
-    new_year = now.year - (month_count // 12)
+    months_in_year = 12
+    new_month = now.month - (month_count % months_in_year)
+    new_year = now.year - (month_count // months_in_year)
     if new_month < 1:
-        new_month += 12
+        new_month += months_in_year
         new_year -= 1
     return fix_end_of_month(new_year, new_month, now.day)
 
