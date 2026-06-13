@@ -273,6 +273,9 @@ def delete_old_backups(args: argparse.Namespace) -> None:
     Arguments:
         args: Parsed command line
 
+    Note: The argument `args.max_deletions` is reduced by the number of deletions to make sure that
+        option is respected if multiple rounds of backup deletions are required.
+
     Raises:
         CommandLineError: If --delete-only is used and there are no backups at --backup-folder.
     """
@@ -295,3 +298,9 @@ def delete_old_backups(args: argparse.Namespace) -> None:
             backup_folder, args.free_up, verify_checksum_result_folder, min_backups_remaining)
         delete_backups_older_than(
             backup_folder, args.delete_after, verify_checksum_result_folder, min_backups_remaining)
+
+        if args.max_deletions:
+            backup_count_after = len(util.all_backups(backup_folder))
+            backups_deleted = backup_count - backup_count_after
+            deletions_remaining = int(args.max_deletions) - backups_deleted
+            args.max_deletions = str(max(deletions_remaining, 0))
