@@ -68,14 +68,20 @@ If they are used together, the time span for `--keep-weekly-after` must be the s
 #### A note about `--keep-monthly-after`
 
 Because months are not all the same length, the effects of `--keep-monthly-after` can be unexpected.
+If the oldest backup has a date near then end of the month, then the monthly retained backups afterwards may have different dates depending on the lengths of months afterwards.
 
 For example, let's say you are creating daily backups and use the `--keep-monthly-after` option.
-If the oldest backup in a set is dated March 31, the next backup to be kept will be dated May 1.
-When Vintage Backup is calculating which backups to keep, it checks for the next backup with a date that is a month after March 31 while deleting all other backups in between.
-When it reaches April 30, it calculates that a month prior is March 30, which is before the oldest backup, and so deletes the April 30 backup.
-When it reaches May 1, it calculates that a month prior is April 1, which is after the oldest backup, and so keeps it.
+If the oldest backup in a set is dated October 31, 2026, the subsequent retained backups will be:
 
-So, the time between backups retained by `--keep-monthly-after` will be *at least* a calendar month apart, give or take a few days.
+- 2026-10-31
+- 2026-11-30
+- 2026-12-30
+- 2027-01-30
+- 2027-02-28
+- 2027-03-28
+
+All retained backups will be on the 28th day from then on.
+The date of a retained backup changes when a shorter month is encountered.
 
 
 ## Other options

@@ -76,11 +76,92 @@ def months_ago(now: datetime.datetime | datetime.date, month_count: int) -> date
     >>> months_ago(date, 3)
     datetime.date(2026, 2, 28)
     """
-    new_month = now.month - (month_count % 12)
-    new_year = now.year - (month_count // 12)
+    months_in_year = 12
+    new_month = now.month - (month_count % months_in_year)
+    new_year = now.year - (month_count // months_in_year)
     if new_month < 1:
-        new_month += 12
+        new_month += months_in_year
         new_year -= 1
+    return fix_end_of_month(new_year, new_month, now.day)
+
+
+def parse_time_span_to_future_timepoint(
+        time_span: str,
+        now: datetime.datetime | None = None) -> datetime.datetime:
+    """
+    Parse a string representing a time span into a datetime representing a date that far ahead.
+
+    For example, if time_span is "6m", the result is a date six calendar months ahead.
+
+    Arguments:
+        time_span: A string consisting of a positive integer followed by a single letter: "d"
+            for days, "w" for weeks, "m" for calendar months, and "y" for calendar years.
+        now: The point from which to calculate the past point. If None, use
+            datetime.datetime.now().
+
+    Returns:
+        datetime: A datetime in the future.
+
+    Raises:
+        CommandLineError: If time_span cannot be parsed.
+    """
+    time_span = "".join(time_span.lower().split())
+    try:
+        number = int(time_span[:-1])
+    except ValueError:
+        raise CommandLineError(
+            f"Invalid number in time span (must be a whole number): {time_span}") from None
+
+    if number < 1:
+        raise CommandLineError(f"Invalid number in time span (must be positive): {time_span}")
+
+    letter = time_span[-1]
+    now = now or datetime.datetime.now()
+    match letter:
+        case "d":
+            return now + datetime.timedelta(days=number)
+        case "w":
+            return now + datetime.timedelta(weeks=number)
+        case "m":
+            new_date = months_ahead(now, number)
+            return datetime.datetime.combine(new_date, now.time())
+        case "y":
+            new_date = fix_end_of_month(now.year + number, now.month, now.day)
+            return datetime.datetime.combine(new_date, now.time())
+        case _:
+            raise CommandLineError(f"Invalid time (valid units: {list("dwmy")}): {time_span}")
+
+
+def months_ahead(now: datetime.datetime | datetime.date, month_count: int) -> datetime.date:
+    """
+    Return a date that is a number of calendar months ahead.
+
+    The day of the month is not changed unless necessary to produce a valid date
+    (see fix_end_of_month()).
+
+    Arguments:
+        now: The date or datetime from which to calculate.
+        month_count: How many months to go forward.
+
+    Returns:
+        date: A valid date that is the same day of the month a given number of months forward.
+
+    >>> date = datetime.date(2026, 1, 31)
+    >>> months_ahead(date, 1)
+    datetime.date(2026, 2, 28)
+
+    >>> months_ahead(date, 2)
+    datetime.date(2026, 3, 31)
+
+    >>> months_ahead(date, 3)
+    datetime.date(2026, 4, 30)
+    """
+    months_in_year = 12
+    new_month = now.month + (month_count % months_in_year)
+    new_year = now.year + (month_count // months_in_year)
+    if new_month > months_in_year:
+        new_month -= months_in_year
+        new_year += 1
     return fix_end_of_month(new_year, new_month, now.day)
 
 
