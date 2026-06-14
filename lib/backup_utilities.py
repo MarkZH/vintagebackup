@@ -6,7 +6,7 @@ import argparse
 from collections.abc import Callable
 
 from lib.filesystem import is_real_directory
-from lib.datetime_calculations import parse_time_span_to_timepoint
+from lib.datetime_calculations import past_timepoint
 
 
 backup_date_format = "%Y-%m-%d %H-%M-%S"
@@ -97,5 +97,5 @@ def should_do_periodic_action(
     if not previous_action_date:
         return True
 
-    required_action_date = parse_time_span_to_timepoint(time_span, now)
+    required_action_date = past_timepoint(time_span, now)
     return previous_action_date <= required_action_date

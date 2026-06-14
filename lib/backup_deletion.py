@@ -93,7 +93,7 @@ def delete_backups_older_than(
     if not last_backup:
         return
     now = util.backup_datetime(last_backup)
-    timestamp_to_keep = dates.parse_time_span_to_timepoint(time_span, now)
+    timestamp_to_keep = dates.past_timepoint(time_span, now)
     first_deletion_message = (
         f"Deleting backups prior to {timestamp_to_keep.strftime('%Y-%m-%d %H:%M:%S')}.")
 
@@ -215,7 +215,7 @@ def delete_too_frequent_backups(
         if time_span_str is None:
             continue
 
-        date_cutoff = dates.parse_time_span_to_timepoint(time_span_str, now)
+        date_cutoff = dates.past_timepoint(time_span_str, now)
         backups = list(filter(old_enough(date_cutoff), util.all_backups(backup_folder)))
         while len(backups) > 1 and deletion_count < max_deletions:
             standard = backups[0]
@@ -256,7 +256,7 @@ def check_time_span_parameters(args: argparse.Namespace) -> None:
         if time_span_str is None:
             continue
 
-        date_cutoff = dates.parse_time_span_to_timepoint(time_span_str, now)
+        date_cutoff = dates.past_timepoint(time_span_str, now)
         if last_date_cutoff and date_cutoff >= last_date_cutoff:
             raise CommandLineError(
                 f"The {period_word} time span ({time_span_str}) is not longer than "

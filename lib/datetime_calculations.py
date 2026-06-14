@@ -5,9 +5,7 @@ import datetime
 from lib.exceptions import CommandLineError
 
 
-def parse_time_span_to_timepoint(
-        time_span: str,
-        now: datetime.datetime | None = None) -> datetime.datetime:
+def past_timepoint(time_span: str, now: datetime.datetime | None = None) -> datetime.datetime:
     """
     Parse a string representing a time span into a datetime representing a date that long ago.
 

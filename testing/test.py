@@ -2550,7 +2550,7 @@ class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
     def test_move_age_backups_moves_only_backups_within_given_timespan(self) -> None:
         """Test that moving backups based on a time span works."""
         create_old_monthly_backups(self.backup_path, 25)
-        six_months_ago = dates.parse_time_span_to_timepoint("6m")
+        six_months_ago = dates.past_timepoint("6m")
         backups_to_move = moving.backups_since(six_months_ago, self.backup_path)
         self.assertEqual(len(backups_to_move), 6)
         self.assertEqual(moving.last_n_backups(6, self.backup_path), backups_to_move)
@@ -4855,78 +4855,78 @@ class ParseTimeSpanTests(unittest.TestCase):
     def test_parse_timespan_with_no_numeric_part_is_an_error(self) -> None:
         """Test that the lack of a number in the argument is an error."""
         with self.assertRaises(CommandLineError):
-            dates.parse_time_span_to_timepoint("y")
+            dates.past_timepoint("y")
 
     def test_parse_timespan_with_no_time_unit_part_is_an_error(self) -> None:
         """Test that the lack of a unit in the argument is an error."""
         with self.assertRaises(CommandLineError):
-            dates.parse_time_span_to_timepoint("100")
+            dates.past_timepoint("100")
 
     def test_parse_timespan_with_small_or_negative_number_is_an_error(self) -> None:
         """Test that the lack of a unit in the argument is an error."""
         with self.assertRaises(CommandLineError):
-            dates.parse_time_span_to_timepoint("0.5d")
+            dates.past_timepoint("0.5d")
 
         with self.assertRaises(CommandLineError):
-            dates.parse_time_span_to_timepoint("-2y")
+            dates.past_timepoint("-2y")
 
     def test_parse_timespan_with_invalid_time_unit_is_an_error(self) -> None:
         """Test that an unknown time unit raise an exception."""
         with self.assertRaises(CommandLineError):
-            dates.parse_time_span_to_timepoint("3u")
+            dates.past_timepoint("3u")
 
     def test_parse_timespan_correctly_calculates_days_ago(self) -> None:
         """Test that arguments of the form "Nd" for some number N gives the correct results."""
         for days in range(1, 10):
             now = datetime.datetime.now()
-            then = dates.parse_time_span_to_timepoint(f"{days}d", now)
+            then = dates.past_timepoint(f"{days}d", now)
             self.assertEqual(now - then, datetime.timedelta(days=days))
 
     def test_parse_timespan_correctly_calculates_weeks_ago(self) -> None:
         """Test that arguments of the form "Nw" for some number N gives the correct results."""
         for weeks in range(1, 10):
             now = datetime.datetime.now()
-            then = dates.parse_time_span_to_timepoint(f"{weeks}w", now)
+            then = dates.past_timepoint(f"{weeks}w", now)
             self.assertEqual(now - then, datetime.timedelta(weeks=weeks))
 
     def test_parse_timespan_correctly_calculates_months_ago(self) -> None:
         """Test that arguments of the form "Nm" for some number N gives the correct results."""
         now = datetime.datetime(2024, 3, 31, 12, 0, 0)
         expected_then_1 = datetime.datetime(2024, 2, 29, 12, 0, 0)
-        then_1 = dates.parse_time_span_to_timepoint("1m", now)
+        then_1 = dates.past_timepoint("1m", now)
         self.assertEqual(then_1, expected_then_1)
 
         expected_then_2 = datetime.datetime(2024, 1, 31, 12, 0, 0)
-        then_2 = dates.parse_time_span_to_timepoint("2m", now)
+        then_2 = dates.past_timepoint("2m", now)
         self.assertEqual(then_2, expected_then_2)
 
     def test_parse_timespan_correctly_calculates_years_ago(self) -> None:
         """Test that arguments of the form "Ny" for some number N gives the correct results."""
         now_1 = datetime.datetime(2024, 2, 29, 12, 0, 0)
         expected_then_1 = datetime.datetime(2023, 2, 28, 12, 0, 0)
-        then_1 = dates.parse_time_span_to_timepoint("1y", now_1)
+        then_1 = dates.past_timepoint("1y", now_1)
         self.assertEqual(then_1, expected_then_1)
 
         now_2 = datetime.datetime(2025, 1, 31, 12, 0, 0)
         expected_then_2 = datetime.datetime(2023, 1, 31, 12, 0, 0)
-        then_2 = dates.parse_time_span_to_timepoint("2y", now_2)
+        then_2 = dates.past_timepoint("2y", now_2)
         self.assertEqual(then_2, expected_then_2)
 
     def test_parse_timespan_is_case_insensitive(self) -> None:
         """Test that upper and lowercase units are both valid in parse_time_span_to_time_point."""
         now = datetime.datetime.now()
         for unit in "dwmy":
-            lower_result = dates.parse_time_span_to_timepoint(f"1{unit}", now)
-            upper_result = dates.parse_time_span_to_timepoint(f"1{unit.upper()}", now)
+            lower_result = dates.past_timepoint(f"1{unit}", now)
+            upper_result = dates.past_timepoint(f"1{unit.upper()}", now)
             self.assertEqual(lower_result, upper_result)
 
     def test_parse_timespan_is_space_insensitive(self) -> None:
         """Test that whitespace does not affect results in parse_time_span_to_time_point."""
         now = datetime.datetime.now()
         for unit in "dwmy":
-            result = dates.parse_time_span_to_timepoint(f"1{unit}", now)
-            space_result = dates.parse_time_span_to_timepoint(f"1 {unit}", now)
-            tab_result = dates.parse_time_span_to_timepoint(f"1\t{unit}", now)
+            result = dates.past_timepoint(f"1{unit}", now)
+            space_result = dates.past_timepoint(f"1 {unit}", now)
+            tab_result = dates.past_timepoint(f"1\t{unit}", now)
             self.assertEqual(result, space_result)
             self.assertEqual(result, tab_result)
 
