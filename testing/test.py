@@ -6003,13 +6003,13 @@ class MonthsAheadTests(unittest.TestCase):
 
     def test_end_of_month_date_results_in_end_of_month_date(self) -> None:
         """An end-of-month date result in an end-of-month date if the result is a shorter month."""
-        date = datetime.date(2023, 3, 31)
+        date = datetime.date(2023, 1, 31)
         calculated_date = dates.months_ahead(date, 1)
-        expected_date = datetime.date(2023, 4, 30)
+        expected_date = datetime.date(2023, 2, 28)
         self.assertEqual(expected_date, calculated_date)
 
-        date = datetime.date(2024, 3, 31)
-        calculated_date = dates.months_ago(date, 1)
+        date = datetime.date(2024, 1, 31)
+        calculated_date = dates.months_ahead(date, 1)
         expected_date = datetime.date(2024, 2, 29)
         self.assertEqual(expected_date, calculated_date)
 
