@@ -83,9 +83,7 @@ def months_ago(now: datetime.datetime | datetime.date, month_count: int) -> date
     return fix_end_of_month(new_year, new_month, now.day)
 
 
-def parse_time_span_to_future_timepoint(
-        time_span: str,
-        now: datetime.datetime | None = None) -> datetime.datetime:
+def future_timepoint(time_span: str, now: datetime.datetime | None = None) -> datetime.datetime:
     """
     Parse a string representing a time span into a datetime representing a date that far ahead.
 
