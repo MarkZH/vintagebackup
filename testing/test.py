@@ -1924,14 +1924,15 @@ class DiskUsageMock:
         Create a mock hard drive with the given amount of free space.
 
         Arguments:
-            path: A path in the test storage media from which the initial used space will be read
+            path: A path in the test storage media from which the initial used space will be read.
+                This path will act as the base path of the mock disk.
             initial_free_space: An initial amount of free space in bytes for the test storage
 
         The total storage space of the mock disk will be the used space of the path plus the initial
         free space
         """
-        self.original_disk_usage = copy.copy(shutil.disk_usage)
-        initial_used = self.original_disk_usage(path).used
+        self.base_path = fs.absolute_path(path)
+        initial_used = self.used_space(self.base_path)
         self.total = initial_used + initial_free_space
 
     def __call__(self, path: Path | str) -> Mock_Usage_Result:
@@ -1939,13 +1940,43 @@ class DiskUsageMock:
         Create a result as from shutil.disk_usage().
 
         Arguments:
-            path: The existing path for which the storage media that contains it will be queried.
+            path: The existing path for which the disk that contains it will be queried.
 
         Returns:
             storage_stats: Storage amounts (total, used, free).
         """
-        used = self.original_disk_usage(path).used
+        used = self.used_space(path)
         return self.Mock_Usage_Result(self.total, used, self.total - used)
+
+    def used_space(self, path: Path | str) -> int:
+        """
+        Calculate space used within the base folder.
+
+        Arguments:
+            path: A path within the disk to query the used space within the directory.
+
+        Returns:
+            int: The number of bytes used within top-level folder used in the __init__() method of
+                this class.
+
+        Raises:
+            ValueError: If the path argument is not a subpath of the __init__() path argument.
+        """
+        path = fs.absolute_path(path)
+        if not path.is_relative_to(self.base_path):
+            raise ValueError(f"{path} is not a subdirectory of {self.base_path}")
+
+        total_used = 0
+        for directory, _, file_names in self.base_path.walk():
+            for file_name in file_names:
+                file_path = directory/file_name
+                total_used += file_path.stat(follow_symlinks=False).st_size
+
+        return total_used
+
+    def total_size(self) -> int:
+        """Returns the total size of this mock drive."""
+        return self.total
 
 
 class MockCopy2:
@@ -2043,6 +2074,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
                         "--free-up", goal_space_str],
                         self)
                 self.assertEqual(exit_code, 0, method)
+                backups_after_deletion += 1  # to include the new backup
             else:
                 raise NotImplementedError(f"Delete backup test not implemented for {method}")
             backups_left = len(util.all_backups(self.backup_path))
@@ -2334,9 +2366,9 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
     def test_keep_x_after_respects_maximum_deletions(self) -> None:
         """Make sure all --keep-x-after options respect --max-deletions."""
         max_deletions = 50
+        starting_backup_count = 100
         for option in ("weekly", "monthly", "yearly"):
-            create_old_daily_backups(self.backup_path, 100)
-            starting_backup_count = len(util.all_backups(self.backup_path))
+            create_old_daily_backups(self.backup_path, starting_backup_count)
             main_assert_no_error_log([
                 "--backup-folder", str(self.backup_path),
                 f"--keep-{option}-after", "1d",
@@ -2344,7 +2376,28 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
                 "--max-deletions", str(max_deletions)],
                 self)
             retained_backup_count = len(util.all_backups(self.backup_path))
-            self.assertEqual(starting_backup_count - retained_backup_count, 50)
+            actual_deletions = starting_backup_count - retained_backup_count
+            self.assertEqual(actual_deletions, max_deletions)
+            self.reset_backup_folder()
+
+    def test_keep_x_after_with_backup_respects_maximum_deletions(self) -> None:
+        """Make sure all --keep-x-after options respect --max-deletions."""
+        create_user_data(self.user_path)
+        max_deletions = 50
+        for option in ("weekly", "monthly", "yearly"):
+            starting_backup_count = 100
+            create_old_daily_backups(self.backup_path, starting_backup_count)
+            starting_backup_count = len(util.all_backups(self.backup_path))
+            main_assert_no_error_log([
+                "--user-folder", str(self.user_path),
+                "--backup-folder", str(self.backup_path),
+                f"--keep-{option}-after", "1d",
+                "--max-deletions", str(max_deletions)],
+                self)
+            starting_backup_count += 1  # for the new backup created above
+            retained_backup_count = len(util.all_backups(self.backup_path))
+            actual_deletions = starting_backup_count - retained_backup_count
+            self.assertEqual(actual_deletions, max_deletions)
             self.reset_backup_folder()
 
     @unittest.skipUnless(platform.system() == "Windows", "OSError.winerror only valid on Windows.")
@@ -2410,11 +2463,11 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
     def test_error_raised_when_no_backups_to_delete_and_no_space(self) -> None:
         """If space runs out during a backup and there are no backups to delete, raise error."""
         create_user_data(self.user_path)
-        mock_storage = DiskUsageMock(self.backup_path, 10_000)
+        mock_storage = DiskUsageMock(self.backup_path, 100)
         args = argparse.parse_command_line([
             "-u", str(self.user_path),
             "-b", str(self.backup_path),
-            "--free-up", "1000000"])
+            "--free-up", str(mock_storage.total_size())])
         with (patch("lib.backup.shutil.disk_usage", mock_storage),
               patch("lib.backup.shutil.copy2", MockCopy2()),
               self.assertRaises(CommandLineError) as error):
@@ -2426,12 +2479,12 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
     def test_error_raised_when_one_backup_left_and_no_space(self) -> None:
         """If space runs out during a backup and there is only one backup, raise error."""
         create_user_data(self.user_path)
+        mock_storage = DiskUsageMock(self.backup_path, 100)
         create_old_monthly_backups(self.backup_path, 1)
-        mock_storage = DiskUsageMock(self.backup_path, 10_000)
         args = argparse.parse_command_line([
             "-u", str(self.user_path),
             "-b", str(self.backup_path),
-            "--free-up", "1000000"])
+            "--free-up", str(mock_storage.total_size())])
         with (patch("lib.backup.shutil.disk_usage", mock_storage),
               patch("lib.backup.shutil.copy2", MockCopy2()),
               self.assertRaises(CommandLineError) as error):
@@ -3343,7 +3396,8 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             checksum_verify_file = verify.verify_backup_checksum(backup_folder, self.user_path)
         self.assertEqual(
             checksum_verify_logs.output,
-            [f"WARNING:root:File missing in backup: {missing_path.relative_to(backup_folder)}",
+            [f"WARNING:root:Could not create checksum for missing file: {missing_path}",
+             f"WARNING:root:File missing in backup: {missing_path.relative_to(backup_folder)}",
              f"WARNING:root:Writing changed files to {checksum_verify_file} ..."])
         self.assertIsNotNone(checksum_verify_file)
         checksum_verify_file = cast(Path, checksum_verify_file)
@@ -3353,7 +3407,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(verify_data[0], f"Verifying checksums of {backup_folder}")
         relative_path, _, new_checksum = verify_data[1].rsplit(" ", maxsplit=2)
         self.assertEqual(backup_folder/relative_path, missing_path)
-        self.assertEqual("-", new_checksum)
+        self.assertEqual(verify.file_not_found_checksum, new_checksum)
 
     def test_verifying_checksum_creates_non_existent_result_directory(self) -> None:
         """Test that checksum verification creates a non-existent result folder."""
@@ -3653,6 +3707,12 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
                 "-b", str(self.backup_path)])
 
         self.assertEqual(exit_code, 0)
+
+    def test_error_checksums_are_invalid_checksum_values(self) -> None:
+        """Test that values returned when checksums fail are not values returned by hexdigest()."""
+        for error_value in (verify.read_error_checksum, verify.file_not_found_checksum):
+            difference = set(error_value) - set(string.hexdigits)
+            self.assertNotEqual(difference, set())
 
 
 class ConfigurationFileTests(TestCaseWithTemporaryFilesAndFolders):
