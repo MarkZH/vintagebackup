@@ -3369,7 +3369,8 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
             checksum_verify_file = verify.verify_backup_checksum(backup_folder, self.user_path)
         self.assertEqual(
             checksum_verify_logs.output,
-            [f"WARNING:root:File missing in backup: {missing_path.relative_to(backup_folder)}",
+            [f"WARNING:root:Could not create checksum for missing file: {missing_path}",
+             f"WARNING:root:File missing in backup: {missing_path.relative_to(backup_folder)}",
              f"WARNING:root:Writing changed files to {checksum_verify_file} ..."])
         self.assertIsNotNone(checksum_verify_file)
         checksum_verify_file = cast(Path, checksum_verify_file)
@@ -3379,7 +3380,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(verify_data[0], f"Verifying checksums of {backup_folder}")
         relative_path, _, new_checksum = verify_data[1].rsplit(" ", maxsplit=2)
         self.assertEqual(backup_folder/relative_path, missing_path)
-        self.assertEqual("-", new_checksum)
+        self.assertEqual(verify.file_not_found_checksum, new_checksum)
 
     def test_verifying_checksum_creates_non_existent_result_directory(self) -> None:
         """Test that checksum verification creates a non-existent result folder."""
@@ -3679,6 +3680,12 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
                 "-b", str(self.backup_path)])
 
         self.assertEqual(exit_code, 0)
+
+    def test_error_checksums_are_invalid_checksum_values(self) -> None:
+        """Test that values returned when checksums fail are not values returned by hexdigest()."""
+        for error_value in (verify.read_error_checksum, verify.file_not_found_checksum):
+            difference = set(error_value) - set(string.hexdigits)
+            self.assertNotEqual(difference, set())
 
 
 class ConfigurationFileTests(TestCaseWithTemporaryFilesAndFolders):

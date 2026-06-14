@@ -120,6 +120,8 @@ def start_verify_backup(args: argparse.Namespace) -> None:
 hash_function = "sha3_256"
 checksum_file_name = "checksums.sha3"
 verify_checksum_file_name = "checksum_verification.txt"
+file_not_found_checksum = "missing"
+read_error_checksum = "unreadable"
 
 verify_matching_file_name = "matching_files.txt"
 verify_mismatch_file_name = "mis" + verify_matching_file_name
@@ -182,8 +184,16 @@ def get_file_checksum(path: Path) -> str:
     Returns:
         hex_string: A hexadecimal string calculated from the hash of the file data.
     """
-    with path.open("rb") as file:
-        return hashlib.file_digest(file, hash_function).hexdigest()
+    try:
+        with path.open("rb") as file:
+            return hashlib.file_digest(file, hash_function).hexdigest()
+    except FileNotFoundError:
+        logger.warning("Could not create checksum for missing file: %s", path)
+        return file_not_found_checksum
+    except Exception:
+        logger.warning("Could not create checksum for file: %s", path)
+        logger.exception("Checksum error:")
+        return read_error_checksum
 
 
 def start_checksum(args: argparse.Namespace) -> None:
@@ -244,14 +254,13 @@ def verify_backup_checksum(backup_folder: Path, result_directory: Path) -> Path 
                 continue
             relative_path, checksum = line.rsplit(" ", maxsplit=1)
             backup_path = backup_folder/relative_path
-            try:
-                current_checksum = get_file_checksum(backup_path)
-            except FileNotFoundError:
-                current_checksum = "-"
+            current_checksum = get_file_checksum(backup_path)
 
-            if current_checksum != checksum:
-                problem = "missing" if current_checksum == "-" else "changed"
-                logger.warning("File %s in backup: %s", problem, relative_path)
+            if current_checksum in (read_error_checksum, file_not_found_checksum):
+                logger.warning("File %s in backup: %s", current_checksum, relative_path)
+                write_count += temp.write(f"{relative_path} {checksum} {current_checksum}\n")
+            elif current_checksum != checksum:
+                logger.warning("File changed in backup: %s", relative_path)
                 write_count += temp.write(f"{relative_path} {checksum} {current_checksum}\n")
 
         checksum_verify_path = None
