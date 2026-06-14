@@ -1924,7 +1924,8 @@ class DiskUsageMock:
         Create a mock hard drive with the given amount of free space.
 
         Arguments:
-            path: A path in the test storage media from which the initial used space will be read
+            path: A path in the test storage media from which the initial used space will be read.
+                This path will act as the base path of the mock disk.
             initial_free_space: An initial amount of free space in bytes for the test storage
 
         The total storage space of the mock disk will be the used space of the path plus the initial
@@ -1939,7 +1940,7 @@ class DiskUsageMock:
         Create a result as from shutil.disk_usage().
 
         Arguments:
-            path: The existing path for which the storage media that contains it will be queried.
+            path: The existing path for which the disk that contains it will be queried.
 
         Returns:
             storage_stats: Storage amounts (total, used, free).
@@ -1952,7 +1953,7 @@ class DiskUsageMock:
         Calculate space used within the base folder.
 
         Arguments:
-            path: The path to query the used space within the directory.
+            path: A path within the disk to query the used space within the directory.
 
         Returns:
             int: The number of bytes used within top-level folder used in the __init__() method of
