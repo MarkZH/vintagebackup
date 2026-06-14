@@ -9,7 +9,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 import lib.backup_utilities as util
-from lib.datetime_calculations import parse_time_span_to_timepoint
+import lib.datetime_calculations as dates
 from lib.exceptions import CommandLineError
 import lib.filesystem as fs
 from lib.verification import verify_backup_checksum
@@ -93,7 +93,7 @@ def delete_backups_older_than(
     if not last_backup:
         return
     now = util.backup_datetime(last_backup)
-    timestamp_to_keep = parse_time_span_to_timepoint(time_span, now)
+    timestamp_to_keep = dates.past_timepoint(time_span, now)
     first_deletion_message = (
         f"Deleting backups prior to {timestamp_to_keep.strftime('%Y-%m-%d %H:%M:%S')}.")
 
@@ -215,14 +215,14 @@ def delete_too_frequent_backups(
         if time_span_str is None:
             continue
 
-        date_cutoff = parse_time_span_to_timepoint(time_span_str, now)
+        date_cutoff = dates.past_timepoint(time_span_str, now)
         backups = list(filter(old_enough(date_cutoff), util.all_backups(backup_folder)))
         while len(backups) > 1 and deletion_count < max_deletions:
             standard = backups[0]
             next_backup = backups[1]
-            next_timestamp = util.backup_datetime(next_backup)
-            earliest_standard_timestamp = parse_time_span_to_timepoint(period, next_timestamp)
-            if util.backup_datetime(standard).date() > earliest_standard_timestamp.date():
+            standard_timestamp = util.backup_datetime(standard)
+            earliest_next_backup = dates.future_timepoint(period, standard_timestamp)
+            if util.backup_datetime(next_backup).date() < earliest_next_backup.date():
                 logger.info("Deleting non-%s backup: %s", period_word, next_backup)
                 deletion_count += 1
                 delete_single_backup(next_backup, verify_checksum_result_folder)
@@ -254,7 +254,7 @@ def check_time_span_parameters(args: argparse.Namespace) -> None:
         if time_span_str is None:
             continue
 
-        date_cutoff = parse_time_span_to_timepoint(time_span_str, now)
+        date_cutoff = dates.past_timepoint(time_span_str, now)
         if last_date_cutoff and date_cutoff >= last_date_cutoff:
             raise CommandLineError(
                 f"The {period_word} time span ({time_span_str}) is not longer than "

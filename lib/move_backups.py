@@ -12,7 +12,7 @@ import lib.backup_info as info
 from lib.backup_lock import Backup_Lock
 from lib.backup_utilities import all_backups, backup_datetime
 from lib.console import plural_noun, print_run_title
-from lib.datetime_calculations import parse_time_span_to_timepoint
+from lib.datetime_calculations import past_timepoint
 from lib.exceptions import CommandLineError
 from lib.filesystem import absolute_path, get_existing_path
 
@@ -132,7 +132,7 @@ def choose_backups_to_move(args: argparse.Namespace, old_backup_location: Path) 
     if args.move_count:
         backups_to_move = last_n_backups(args.move_count, old_backup_location)
     elif args.move_age:
-        oldest_backup_date = parse_time_span_to_timepoint(args.move_age)
+        oldest_backup_date = past_timepoint(args.move_age)
         backups_to_move = backups_since(oldest_backup_date, old_backup_location)
     elif args.move_since:
         oldest_backup_date = datetime.datetime.strptime(args.move_since, "%Y-%m-%d")
