@@ -408,6 +408,7 @@ def create_new_backup(
 
     new_backup_path = backup_location/backup_name(timestamp)
     staging_backup_path = backup_staging_folder(backup_location)
+    logger.info("")
     if staging_backup_path.exists():
         logger.info("There is a staging folder leftover from previous incomplete backup.")
         logger.info("Deleting %s ...", staging_backup_path)
@@ -696,7 +697,6 @@ def start_backup(args: argparse.Namespace) -> None:
             copy_probability=copy_probability(args),
             timestamp=None)
 
-        logger.info("")
         log_backup_size(args.free_up, backup_space_taken)
 
 
@@ -717,6 +717,7 @@ def log_backup_size(free_up_parameter: str | None, backup_space_taken: int) -> N
     free_up_warning_percent = 90
     is_warning = free_up_percent >= free_up_warning_percent
     log_destination = logger.warning if is_warning else logger.info
+    logger.info("")
     log_destination(f"Backup space used: {fs.byte_units(backup_space_taken)}{free_up_text}")
     if is_warning:
         logger.warning("Consider increasing the size of the --free-up parameter.")

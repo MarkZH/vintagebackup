@@ -38,6 +38,7 @@ def find_missing_files(
     if not user_directory:
         raise CommandLineError(f"Could not find source of backup for {backup_directory}")
 
+    logger.info("")
     logger.info("Creating list of user files in %s ...", user_directory)
     user_files: set[Path] = set()
     for directory, file_names in Backup_Set(user_directory, filter_file):

@@ -1636,7 +1636,7 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         new_file.touch()
         with self.assertLogs(level=logging.INFO) as logs, patch("lib.console.input", lambda _: "1"):
             recovery.recover_path(new_file, self.backup_path, search=False)
-        self.assertEqual(logs.output, [f"INFO:root:No backups found for {new_file}"])
+        self.assertEqual(logs.output, ["INFO:root:", f"INFO:root:No backups found for {new_file}"])
 
     def test_choose_target_from_backups_finds_all_user_files_in_backup(self) -> None:
         """The function choose_target_from_backups() can find all user files after backups."""
@@ -3341,6 +3341,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertIsNone(checksum_verify_file)
         self.assertEqual(
             logs.output, [
+                "INFO:root:",
                 f"INFO:root:Verifying checksums of {backup_folder} ...",
                 f"INFO:root:No changed files found in {backup_folder}"])
 
@@ -4394,10 +4395,10 @@ class PurgeTests(TestCaseWithTemporaryFilesAndFolders):
         non_existent_file = self.user_path/"does_not_exist.txt"
         with self.assertLogs(level=logging.INFO) as logs:
             purge.purge_path(non_existent_file, self.backup_path)
-        self.assertEqual(len(logs.output), 1)
+        self.assertEqual(len(logs.output), 2)
         self.assertEqual(
-            logs.output[0],
-            f"INFO:root:Could not find any backed up copies of {non_existent_file}")
+            logs.output,
+            ["INFO:root:", f"INFO:root:Could not find any backed up copies of {non_existent_file}"])
 
     def test_file_purge_with_prompt_only_deletes_files(self) -> None:
         """Test that a purging a non-existent file only deletes files in backups."""
@@ -5117,14 +5118,14 @@ class BackupSpaceWarningTests(unittest.TestCase):
         """Test backup space taken reported if no --free-up parameter."""
         with self.assertLogs(level=logging.INFO) as logs:
             bak.log_backup_size(None, 1)
-        self.assertEqual(logs.output, ["INFO:root:Backup space used: 1.000 B"])
+        self.assertEqual(logs.output, ["INFO:root:", "INFO:root:Backup space used: 1.000 B"])
 
     def test_backup_space_logged_when_backup_smaller_than_free_up_parameter(self) -> None:
         """Test space taken reported if backup's size is smaller than --free-up parameter."""
         with self.assertLogs(level=logging.INFO) as logs:
             bak.log_backup_size("10", 2)
         space_message = "INFO:root:Backup space used: 2.000 B (20% of --free-up)"
-        self.assertEqual(logs.output, [space_message])
+        self.assertEqual(logs.output, ["INFO:root:", space_message])
 
     def test_warning_if_backup_space_close_to_free_up_parameter(self) -> None:
         """Test warning logged if space taken by backup is close to --free-up parameter."""
@@ -5836,8 +5837,7 @@ class RunTitleTests(TestCaseWithTemporaryFilesAndFolders):
             "",
             "=====================",
             " " + title,
-            "=====================",
-            ""]
+            "====================="]
         log_prefix = "INFO:root:"
         expected_logs = [f"{log_prefix}{line}" for line in expected_log_text]
 
@@ -5854,8 +5854,7 @@ class RunTitleTests(TestCaseWithTemporaryFilesAndFolders):
             "",
             "======================",
             " " + title,
-            "======================",
-            ""]
+            "======================"]
         log_prefix = "INFO:root:"
         expected_logs = [f"{log_prefix}{line}" for line in expected_log_text]
 
@@ -5875,8 +5874,7 @@ class RunTitleTests(TestCaseWithTemporaryFilesAndFolders):
             " " + title,
             "=====================",
             "",
-            f"Reading configuration from file: {self.config_path}",
-            ""]
+            f"Reading configuration from file: {self.config_path}"]
         log_prefix = "INFO:root:"
         expected_logs = [f"{log_prefix}{line}" for line in expected_log_text]
 

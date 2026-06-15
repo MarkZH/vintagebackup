@@ -223,6 +223,8 @@ def delete_too_frequent_backups(
             standard_timestamp = util.backup_datetime(standard)
             earliest_next_backup = dates.future_timepoint(period, standard_timestamp)
             if util.backup_datetime(next_backup).date() < earliest_next_backup.date():
+                if deletion_count == 0:
+                    logger.info("")
                 logger.info("Deleting non-%s backup: %s", period_word, next_backup)
                 deletion_count += 1
                 delete_single_backup(next_backup, verify_checksum_result_folder)

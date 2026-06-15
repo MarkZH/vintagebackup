@@ -32,6 +32,7 @@ def move_backups(
         backups_to_move: A list of dated backups to move
     """
     move_count = len(backups_to_move)
+    logger.info("")
     logger.info("Moving %s", plural_noun(move_count, "backup"))
     logger.info("from %s", old_backup_location)
     logger.info("to   %s", new_backup_location)

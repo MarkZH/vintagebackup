@@ -116,6 +116,7 @@ def start_backup_restore(args: argparse.Namespace) -> None:
     print_run_title(args, "Restoring user data from backup")
 
     required_response = "yes"
+    logger.info("")
     logger.info(
         "This will overwrite all files in %s and subfolders with files in %s.",
         destination,

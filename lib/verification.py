@@ -45,6 +45,7 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
     if not last_backup_folder:
         raise CommandLineError(f"No backups found in {backup_folder}.")
 
+    logger.info("")
     logger.info("Filter file: %s", filter_file)
     logger.info("Verifying backup in %s by comparing against %s ...", backup_folder, user_folder)
 
@@ -245,6 +246,7 @@ def verify_backup_checksum(backup_folder: Path, result_directory: Path) -> Path 
 
     with (checksum_path.open(encoding="utf8") as checksum_file,
           tempfile.TemporaryFile("w+", encoding="utf8") as temp):
+        logger.info("")
         logger.info("Verifying checksums of %s ...", backup_folder)
         temp.write(f"Verifying checksums of {backup_folder}\n")
         write_count = 0

@@ -81,8 +81,7 @@ def print_run_title(command_line_args: argparse.Namespace, action_title: str) ->
     logger.info(divider)
     logger.info(" %s", action_title)
     logger.info(divider)
-    logger.info("")
 
     if command_line_args.config:
-        logger.info("Reading configuration from file: %s", absolute_path(command_line_args.config))
         logger.info("")
+        logger.info("Reading configuration from file: %s", absolute_path(command_line_args.config))

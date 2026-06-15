@@ -53,6 +53,7 @@ def purge_path(purge_target: Path, backup_folder: Path) -> None:
     backup_list = all_backups(backup_folder)
     potential_deletions = (backup/relative_purge_target for backup in backup_list)
     paths_to_delete = list(filter(lambda p: p.exists(follow_symlinks=False), potential_deletions))
+    logger.info("")
     if not paths_to_delete:
         logger.info("Could not find any backed up copies of %s", purge_target)
         return

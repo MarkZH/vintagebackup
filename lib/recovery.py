@@ -113,6 +113,7 @@ def recover_path(recovery_path: Path, backup_location: Path, *, search: bool) ->
             inode = path.stat(follow_symlinks=False).st_ino
             unique_backups.setdefault(inode, path)
 
+    logger.info("")
     if not unique_backups:
         logger.info("No backups found for %s", recovery_path)
         return
@@ -299,6 +300,7 @@ def choose_target_path_from_backups(args: argparse.Namespace) -> Path | None:
     backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
     search_directory = fs.absolute_path(args.list or args.purge_list)
     print_run_title(args, f"Listing files and directories for {operation}")
+    logger.info("")
     logger.info("Searching for everything backed up from %s ...", search_directory)
     return search_backups(
         search_directory,
