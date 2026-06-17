@@ -93,7 +93,7 @@ These options modify the behavior of the deletion action in the previous section
 Limit the number of backup deletions per program run.
 Since deleting backups with lots of hard links can take a substantial amount of time, this option limits the number of deletions.
 
-The option `--max-deletions 5` will delete no more than 5 of the oldest backups per program run.
+The option `--max-deletions 5` will delete no more than 5 backups per program run.
 
 The value of the parameter must be a positive whole number.
 
