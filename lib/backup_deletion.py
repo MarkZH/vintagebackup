@@ -120,6 +120,8 @@ def delete_single_backup(backup: Path, verify_checksum_result_folder: Path | Non
     if verify_checksum_result_folder:
         with contextlib.suppress(FileNotFoundError):
             verify_backup_checksum(backup, verify_checksum_result_folder)
+            logger.info("")
+            logger.info("Continuing deletion of backup: %s", backup)
 
     fs.delete_directory_tree(backup, ignore_errors=True)
     try:
