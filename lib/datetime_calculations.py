@@ -168,7 +168,7 @@ def fix_end_of_month(year: int, month: int, day: int) -> datetime.date:
     Arguments:
         year: Year
         month: Month
-        day: Day, which is possible after the actual last day of the month
+        day: Day, which is possibly after the actual last day of the month
 
     Returns:
         date: The closest date to the input that is in the same month.
