@@ -2088,11 +2088,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         create_old_monthly_backups(self.backup_path, backups_created)
         file_size = 10_000_000
         create_large_files(self.backup_path, file_size)
-        backups_after_deletion = 10
-        size_of_deleted_backups = (backups_created - backups_after_deletion)*file_size
-        after_backup_space = shutil.disk_usage(self.backup_path).free
-        goal_space = after_backup_space + size_of_deleted_backups - file_size/2
-        goal_space_str = f"{goal_space}B"
+        goal_space_str = f"{shutil.disk_usage(self.backup_path).total}B"
         maximum_deletions = 5
         expected_backups_count = backups_created - maximum_deletions
         with self.assertLogs(level=logging.INFO) as log_check:
@@ -2104,8 +2100,8 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertIn(
             "INFO:root:Stopped after reaching maximum number of deletions.",
             log_check.output)
-        all_backups_after_deletion = util.all_backups(self.backup_path)
-        self.assertEqual(len(all_backups_after_deletion), expected_backups_count)
+        backup_count = len(util.all_backups(self.backup_path))
+        self.assertEqual(backup_count, expected_backups_count)
 
     def test_delete_after_deletes_all_backups_prior_to_given_date(self) -> None:
         """Test that backups older than a given date can be deleted with --delete-after."""
