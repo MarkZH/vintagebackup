@@ -50,7 +50,6 @@ def move_backups(
 
         backup_source_file = info.get_backup_info_file(new_backup_location)
         backup_source_file.unlink()
-        logger.info("---------------------")
 
     original_backup_source = info.backup_source(old_backup_location)
     if original_backup_source:

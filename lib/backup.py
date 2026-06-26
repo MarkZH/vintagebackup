@@ -408,8 +408,8 @@ def create_new_backup(
 
     new_backup_path = backup_location/backup_name(timestamp)
     staging_backup_path = backup_staging_folder(backup_location)
-    logger.info("")
     if staging_backup_path.exists():
+        logger.info("")
         logger.info("There is a staging folder leftover from previous incomplete backup.")
         logger.info("Deleting %s ...", staging_backup_path)
         fs.delete_directory_tree(staging_backup_path)
@@ -417,6 +417,7 @@ def create_new_backup(
     backup_info.confirm_user_location_is_unchanged(user_data_location, backup_location)
     backup_info.record_user_location(user_data_location, backup_location)
 
+    logger.info("")
     if is_backup_move:
         logger.info("Original backup  : %s", user_data_location)
         logger.info("Temporary backup : %s", new_backup_path)
@@ -624,6 +625,7 @@ def copy_probability_from_hard_link_count(hard_link_count: str) -> float:
         raise CommandLineError(
             f"Hard link count must be a positive whole number. Got: {hard_link_count}")
 
+    logger.info("")
     logger.info("Maximum average hard link count = %d", average_hard_link_count)
     return 1/(average_hard_link_count + 1)
 
@@ -743,6 +745,10 @@ def parse_probability(probability_str: str) -> float:
         raise CommandLineError(
             "Value of --copy-probability must be between 0.0 and 1.0 "
             f"(or 0% and 100%): {probability_str}")
+
+    logger.info("")
+    logger.info("Probability of copying unchanged file = %d%%", probability*100)
+
     return probability
 
 
