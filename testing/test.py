@@ -4208,10 +4208,36 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
             error_log.output,
             ["ERROR:root:Hard link count must be a positive whole number. Got: 0"])
 
+    def test_hard_link_count_must_be_positive_integer(self) -> None:
+        """Test that only positive integer values are valid for --hard-link-count."""
+        for good_value in ["1", "5", "10"]:
+            with self.assertLogs(level=logging.INFO) as logs:
+                expected_value = 1/(float(good_value) + 1.0)
+                self.assertEqual(
+                    expected_value,
+                    bak.copy_probability_from_hard_link_count(good_value))
+
+            prefix = "INFO:root:"
+            expected_value = float(good_value)*100
+            expected_logs = [prefix, f"{prefix}Maximum average hard link count = {good_value}"]
+            self.assertEqual(logs.output, expected_logs)
+
+        for bad_value in ["-1", "0", "1.5"]:
+            with self.assertRaises(CommandLineError):
+                bak.copy_probability_from_hard_link_count(bad_value)
+
     def test_copy_probability_decimal_must_be_between_zero_and_one(self) -> None:
         """Test that only values from 0.0 to 1.0 are valid for --copy-probability."""
         for good_value in ["0.0", "0.5", "1.0"]:
-            self.assertEqual(float(good_value), bak.parse_probability(good_value))
+            with self.assertLogs(level=logging.INFO) as logs:
+                self.assertEqual(float(good_value), bak.parse_probability(good_value))
+
+            prefix = "INFO:root:"
+            expected_value = float(good_value)*100
+            expected_logs = [
+                prefix,
+                f"{prefix}Probability of copying unchanged file = {int(expected_value)}%"]
+            self.assertEqual(logs.output, expected_logs)
 
         for bad_value in ["-1.0", "1.5"]:
             with self.assertRaises(CommandLineError):
