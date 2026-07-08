@@ -6637,3 +6637,46 @@ class FileSystemTests(TestCaseWithTemporaryFilesAndFolders):
         base_file.write_text(file_size*"B")
         total_size = 4*file_size
         self.assertEqual(fs.folder_size(self.user_path), total_size)
+
+    def test_unique_size_of_empty_folder_is_zero(self) -> None:
+        """Test that an empty folder has zero size."""
+        self.assertEqual(fs.unique_folder_size(self.user_path), 0)
+
+    def test_unique_size_of_folder_with_one_file_is_size_of_file(self) -> None:
+        """Test that the size of a folder with one file is the size of that file."""
+        file_size = 10_000_000
+        create_large_files(self.user_path, file_size)
+        self.assertEqual(fs.unique_folder_size(self.user_path), file_size)
+
+    def test_unique_size_of_folder_with_subfolders_is_size_of_all_files_in_tree(self) -> None:
+        """Test that all files in a directory tree get summed to find total size."""
+        for num in range(3):
+            (self.user_path/str(num)).mkdir()
+
+        file_size = 5_000_000
+        create_large_files(self.user_path, file_size)
+        base_file = self.user_path/"base_file.txt"
+        base_file.write_text(file_size*"B")
+        total_size = 4*file_size
+        self.assertEqual(fs.unique_folder_size(self.user_path), total_size)
+
+    def test_unique_size_of_folder_with_all_files_hardlinked_is_zero(self) -> None:
+        """Test that the unique size of a folder with all files hardlinked is zero."""
+        create_user_data(self.user_path)
+        for _ in range(2):
+            default_backup(self.user_path, self.backup_path)
+
+        backups = util.all_backups(self.backup_path)
+        for backup in backups:
+            self.assertEqual(fs.unique_folder_size(backup), 0)
+
+    def test_unique_size_of_folder_with_nearly_all_files_hardlinked_is_zero(self) -> None:
+        """Test that the unique size of a folder one unique file is the size of the unique file."""
+        create_user_data(self.user_path)
+        for _ in range(2):
+            default_backup(self.user_path, self.backup_path)
+
+        backups = util.all_backups(self.backup_path)
+        file_size = 50
+        (backups[0]/"unique.txt").write_text(file_size*"L")
+        self.assertEqual(fs.unique_folder_size(backups[0]), file_size)
