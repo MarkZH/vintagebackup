@@ -1966,13 +1966,7 @@ class DiskUsageMock:
         if not path.is_relative_to(self.base_path):
             raise ValueError(f"{path} is not a subdirectory of {self.base_path}")
 
-        total_used = 0
-        for directory, _, file_names in self.base_path.walk():
-            for file_name in file_names:
-                file_path = directory/file_name
-                total_used += file_path.stat(follow_symlinks=False).st_size
-
-        return total_used
+        return fs.folder_size(self.base_path)
 
     def total_size(self) -> int:
         """Returns the total size of this mock drive."""
@@ -6621,3 +6615,25 @@ class FileSystemTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertTrue(folder_path.is_dir())
         self.assertEqual(error.exception.args, (error_message,))
         os.chmod(folder_path, stat.S_IWRITE, follow_symlinks=False)  # noqa: PTH101
+
+    def test_size_of_empty_folder_is_zero(self) -> None:
+        """Test that an empty folder has zero size."""
+        self.assertEqual(fs.folder_size(self.user_path), 0)
+
+    def test_size_of_folder_with_one_file_is_size_of_file(self) -> None:
+        """Test that the size of a folder with one file is the size of that file."""
+        file_size = 10_000_000
+        create_large_files(self.user_path, file_size)
+        self.assertEqual(fs.folder_size(self.user_path), file_size)
+
+    def test_size_of_folder_with_subfolders_and_files_is_size_of_all_files_in_tree(self) -> None:
+        """Test that all files in a directory tree get summed to find total size."""
+        for num in range(3):
+            (self.user_path/str(num)).mkdir()
+
+        file_size = 5_000_000
+        create_large_files(self.user_path, file_size)
+        base_file = self.user_path/"base_file.txt"
+        base_file.write_text(file_size*"B")
+        total_size = 4*file_size
+        self.assertEqual(fs.folder_size(self.user_path), total_size)

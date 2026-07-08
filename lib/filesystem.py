@@ -295,3 +295,22 @@ def classify_path(path: Path) -> str:
         else "Folder" if path.is_dir()
         else "File" if path.is_file()
         else "Unknown")
+
+
+def folder_size(directory: Path) -> int:
+    """
+    Calculate the total size of all files in a directory tree.
+
+    Arguments:
+        directory: A folder whose contents will be measured for size
+
+    Returns:
+        int: The total size of all files in the directory tree.
+    """
+    total_size = 0
+    for folder, _, file_names in directory.walk():
+        for file_name in file_names:
+            path = folder/file_name
+            total_size += path.stat(follow_symlinks=False).st_size
+
+    return total_size
