@@ -2498,6 +2498,48 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
               self.assertRaises(OutOfSpaceError)):
             main.default_action(args)
 
+    def test_free_up_auto_does_nothing_when_enough_space_for_backup(self) -> None:
+        """Test that --free-up auto does nothing when there is sufficient space for a backup."""
+        create_user_data(self.user_path)
+        data_size = fs.folder_size(self.user_path)
+        backup_count = 4
+        mock_storage = DiskUsageMock(self.backup_path, (backup_count + 1)*data_size)
+        for _ in range(backup_count):
+            with (patch("lib.backup.shutil.disk_usage", mock_storage),
+                  patch("lib.backup_deletion.shutil.disk_usage", mock_storage),
+                  patch("lib.backup.datetime", Now_Mock())):
+                main_assert_no_error_log([
+                    "-u", str(self.user_path),
+                    "-b", str(self.backup_path),
+                    "--force-copy",
+                    "--free-up", "auto"],
+                    self)
+
+        all_backups = util.all_backups(self.backup_path)
+        self.assertEqual(len(all_backups), backup_count)
+
+    def test_free_up_auto_deletes_old_backups_when_not_enough_space_for_backup(self) -> None:
+        """Test that --free-up auto deletes old backups to make room for new ones."""
+        create_user_data(self.user_path)
+        data_size = fs.folder_size(self.user_path)
+        backup_count = 5
+        backup_storage_count = 3
+        storage_space = int((backup_storage_count + 0.5)*data_size)
+        mock_storage = DiskUsageMock(self.backup_path, storage_space)
+        for _ in range(backup_count):
+            with (patch("lib.backup.shutil.disk_usage", mock_storage),
+                  patch("lib.backup_deletion.shutil.disk_usage", mock_storage),
+                  patch("lib.backup.shutil.copy2", MockCopy2()),
+                  patch("lib.backup.datetime", Now_Mock())):
+                main_no_log([
+                    "-u", str(self.user_path),
+                    "-b", str(self.backup_path),
+                    "--force-copy",
+                    "--free-up", "auto"])
+
+        all_backups = util.all_backups(self.backup_path)
+        self.assertEqual(len(all_backups), backup_storage_count)
+
 
 class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
     """Test moving backup sets to a different location."""
