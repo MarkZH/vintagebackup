@@ -134,6 +134,28 @@ def delete_single_backup(backup: Path, verify_checksum_result_folder: Path | Non
     logger.info("Free space: %s", fs.byte_units(shutil.disk_usage(backup.parent.parent).free))
 
 
+def delete_oldest_backup(backup_location: Path, verify_checksum_result_folder: Path | None) -> None:
+    """
+    Delete the oldest backup at the specified location.
+
+    Arguments:
+        backup_location: The base directory holding all dated backups.
+        verify_checksum_result_folder: If the checksum of the backup is being verified prior to
+            deletion, put the verification result files in this folder.
+
+    Raises:
+        CommandLineError: If there are no backups to delete or one remaining backup.
+    """
+    backups = util.all_backups(backup_location)
+    if not backups:
+        raise CommandLineError("No backups to delete.")
+
+    if len(backups) == 1:
+        raise CommandLineError("Last remaining backup will not be deleted.")
+
+    delete_single_backup(backups[0], verify_checksum_result_folder)
+
+
 def delete_backups(
         backup_folder: Path,
         min_backups_remaining: int,

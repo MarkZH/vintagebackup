@@ -6,14 +6,14 @@ import shutil
 
 from lib.argument_parser import parse_command_line, print_help, print_usage, toggle_is_set
 from lib.automation import generate_windows_scripts
-from lib.backup import start_backup, print_backup_storage_stats, backup_staging_folder
-from lib.backup_deletion import delete_old_backups
+from lib.backup import start_backup, print_backup_storage_stats
+from lib.backup_deletion import delete_old_backups, delete_oldest_backup
 from lib.backup_set import preview_filter
 from lib.backup_utilities import all_backups
 from lib.configuration import generate_config
 from lib.console import print_run_title
 import lib.exceptions as exc
-from lib.filesystem import absolute_path, parse_storage_space, unique_folder_size
+from lib.filesystem import absolute_path, parse_storage_space, path_or_none
 from lib.logs import setup_initial_null_logger, setup_log_file
 from lib.move_backups import start_move_backups
 from lib.purge import choose_purge_target_from_backups, start_backup_purge
@@ -71,10 +71,10 @@ def backup_cycle(args: argparse.Namespace) -> None:
             free_space = shutil.disk_usage(backup_location).free
 
             if auto_free_up:
-                staging_space = unique_folder_size(backup_staging_folder(backup_location))
-                if not staging_space:
-                    staging_space = free_space or 1000
-                args.free_up = str(free_space + staging_space)
+                backup_folder = absolute_path(args.backup_folder)
+                verify_checksum_result_folder = path_or_none(args.verify_checksum_before_deletion)
+                delete_oldest_backup(backup_folder, verify_checksum_result_folder)
+                continue
 
             free_up_space = parse_storage_space(args.free_up)
             if free_up_space < free_space:
