@@ -63,19 +63,18 @@ def backup_cycle(args: argparse.Namespace) -> None:
             start_backup(args)
             break
         except exc.OutOfSpaceError as error:
-            if not args.free_up:
-                raise
-
-            logger.warning("Could not complete backup. %s", error)
-            backup_location = absolute_path(args.backup_folder)
-            free_space = shutil.disk_usage(backup_location).free
-
             if auto_free_up:
                 backup_folder = absolute_path(args.backup_folder)
                 verify_checksum_result_folder = path_or_none(args.verify_checksum_before_deletion)
                 delete_oldest_backup(backup_folder, verify_checksum_result_folder)
                 continue
 
+            if not args.free_up:
+                raise
+
+            logger.warning("Could not complete backup. %s", error)
+            backup_location = absolute_path(args.backup_folder)
+            free_space = shutil.disk_usage(backup_location).free
             free_up_space = parse_storage_space(args.free_up)
             if free_up_space < free_space:
                 raise exc.CommandLineError(
