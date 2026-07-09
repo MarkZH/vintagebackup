@@ -114,8 +114,8 @@ def delete_single_backup(backup: Path, verify_checksum_result_folder: Path | Non
 
     Arguments:
         backup: Path to single backup that will be deleted
-        verify_checksum_result_folder: Whether to verify the backups checksum--if any--before
-            deleting it
+        verify_checksum_result_folder: If the checksum of the backup is being verified prior to
+            deletion, put the verification result files in this folder.
     """
     if verify_checksum_result_folder:
         with contextlib.suppress(FileNotFoundError):
