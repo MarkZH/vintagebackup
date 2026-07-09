@@ -73,9 +73,9 @@ def backup_cycle(args: argparse.Namespace) -> None:
                 raise
 
             logger.warning("Could not complete backup. %s", error)
+            free_up_space = parse_storage_space(args.free_up)
             backup_location = absolute_path(args.backup_folder)
             free_space = shutil.disk_usage(backup_location).free
-            free_up_space = parse_storage_space(args.free_up)
             if free_up_space < free_space:
                 raise exc.CommandLineError(
                     "Cannot free up enough space to complete backup. "
