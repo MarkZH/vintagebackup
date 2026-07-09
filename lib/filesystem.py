@@ -307,10 +307,11 @@ def folder_size(directory: Path) -> int:
     Returns:
         int: The total size of all files in the directory tree.
     """
-    total_size = 0
+    inode_sizes: dict[int, int] = {}  # inode --> size of file
     for folder, _, file_names in directory.walk():
         for file_name in file_names:
             path = folder/file_name
-            total_size += path.stat(follow_symlinks=False).st_size
+            stat = path.stat(follow_symlinks=False)
+            inode_sizes[stat.st_ino] = stat.st_size
 
-    return total_size
+    return sum(inode_sizes.values())

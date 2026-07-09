@@ -6681,3 +6681,15 @@ class FileSystemTests(TestCaseWithTemporaryFilesAndFolders):
         base_file.write_text(file_size*"B")
         total_size = 4*file_size
         self.assertEqual(fs.folder_size(self.user_path), total_size)
+
+    def test_size_of_folder_tree_with_hard_links_does_not_double_count(self) -> None:
+        """Test that the sizes of files that are hardlinked together are not double-counted."""
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+        single_backup_size = fs.folder_size(self.backup_path)
+
+        # All new files at backup location are hardlinked to first backup.
+        default_backup(self.user_path, self.backup_path)
+        all_backups_size = fs.folder_size(self.backup_path)
+
+        self.assertEqual(single_backup_size, all_backups_size)
