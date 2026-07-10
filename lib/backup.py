@@ -713,6 +713,8 @@ def log_backup_size(free_up_parameter: str | None, backup_space_taken: int) -> N
         free_up_parameter: The value given to the --free-up command line option
         backup_space_taken: The space taken by the most recent backup
     """
+    if free_up_parameter == "auto":
+        free_up_parameter = ""
     free_up = fs.parse_storage_space(free_up_parameter or "0")
     free_up_percent = math.ceil(100*backup_space_taken/free_up) if free_up else 0
     free_up_text = f" ({free_up_percent}% of --free-up)" if free_up else ""

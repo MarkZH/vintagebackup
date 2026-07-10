@@ -53,9 +53,6 @@ def backup_cycle(args: argparse.Namespace) -> None:
         CommandLineError: If the backup storage media runs out of space and --free-up cannot delete
             enough old backups to make room
     """
-    auto_free_up = (args.free_up == "auto")
-    if auto_free_up:
-        args.free_up = ""
     delete_oldest = False
 
     while True:
@@ -65,7 +62,7 @@ def backup_cycle(args: argparse.Namespace) -> None:
             start_backup(args)
             break
         except exc.OutOfSpaceError as error:
-            if auto_free_up:
+            if args.free_up == "auto":
                 delete_oldest = True
                 continue
 

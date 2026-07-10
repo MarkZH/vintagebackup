@@ -41,7 +41,7 @@ def delete_oldest_backups_for_space(
     Raises:
         CommandLineError: If the --free-up parameter is larger than the entire backup storage media.
     """
-    if not space_requirement:
+    if not space_requirement or space_requirement == "auto":
         return
 
     total_storage = shutil.disk_usage(backup_location).total
