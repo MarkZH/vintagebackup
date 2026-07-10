@@ -292,12 +292,14 @@ def check_time_span_parameters(args: argparse.Namespace) -> None:
         last_time_span_str = time_span_str
 
 
-def delete_old_backups(args: argparse.Namespace) -> None:
+def delete_old_backups(args: argparse.Namespace, *, delete_oldest: bool = False) -> None:
     """
     Delete the oldest backups by various criteria in the command line options.
 
     Arguments:
         args: Parsed command line
+        delete_oldest: Whether to delete the oldest backup first. The argument --max-deletions is
+            still respected.
 
     Note: The argument `args.max_deletions` is reduced by the number of deletions to make sure that
         option is respected if multiple rounds of backup deletions are required.
@@ -318,10 +320,16 @@ def delete_old_backups(args: argparse.Namespace) -> None:
         verify_checksum_result_folder = fs.path_or_none(args.verify_checksum_before_deletion)
         max_deletions = int(args.max_deletions or backup_count)
         min_backups_remaining = max(backup_count - max_deletions, 1)
+
+        if delete_oldest and backup_count > min_backups_remaining:
+            delete_oldest_backup(backup_folder, verify_checksum_result_folder)
+
         delete_too_frequent_backups(
             backup_folder, args, min_backups_remaining, verify_checksum_result_folder)
+
         delete_oldest_backups_for_space(
             backup_folder, args.free_up, verify_checksum_result_folder, min_backups_remaining)
+
         delete_backups_older_than(
             backup_folder, args.delete_after, verify_checksum_result_folder, min_backups_remaining)
 
