@@ -478,7 +478,7 @@ class TestCaseWithTemporaryFilesAndFolders(unittest.TestCase):
         self.backup_path = Path(tempfile.mkdtemp())
 
     def reset_user_folder(self) -> None:
-        """Delete backup directory and create a new empty one."""
+        """Delete user directory and create a new empty one."""
         fs.delete_directory_tree(self.user_path)
         self.make_new_user_folder()
 
