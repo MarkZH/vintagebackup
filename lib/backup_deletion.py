@@ -134,12 +134,17 @@ def delete_single_backup(backup: Path, verify_checksum_result_folder: Path | Non
     logger.info("Free space: %s", fs.byte_units(shutil.disk_usage(backup.parent.parent).free))
 
 
-def delete_oldest_backup(backup_location: Path, verify_checksum_result_folder: Path | None) -> None:
+def delete_oldest_backup(
+        backup_location: Path,
+        min_backups_remaining: int,
+        verify_checksum_result_folder: Path | None) -> None:
     """
     Delete the oldest backup at the specified location.
 
     Arguments:
         backup_location: The base directory holding all dated backups.
+        min_backups_remaining: The minimum number of backups that should remain after deletion
+            operations.
         verify_checksum_result_folder: If the checksum of the backup is being verified prior to
             deletion, put the verification result files in this folder.
 
@@ -152,6 +157,9 @@ def delete_oldest_backup(backup_location: Path, verify_checksum_result_folder: P
 
     if len(backups) == 1:
         raise CommandLineError("Last remaining backup will not be deleted.")
+
+    if len(backups) <= min_backups_remaining:
+        raise CommandLineError("Reached maximum number of backup deletions this session.")
 
     delete_single_backup(backups[0], verify_checksum_result_folder)
 
@@ -321,8 +329,9 @@ def delete_old_backups(args: argparse.Namespace, *, delete_oldest: bool = False)
         max_deletions = int(args.max_deletions or backup_count)
         min_backups_remaining = max(backup_count - max_deletions, 1)
 
-        if delete_oldest and backup_count > min_backups_remaining:
-            delete_oldest_backup(backup_folder, verify_checksum_result_folder)
+        if delete_oldest:
+            delete_oldest_backup(
+                backup_folder, min_backups_remaining, verify_checksum_result_folder)
 
         delete_too_frequent_backups(
             backup_folder, args, min_backups_remaining, verify_checksum_result_folder)
