@@ -2542,6 +2542,25 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         all_backups = util.all_backups(self.backup_path)
         self.assertEqual(len(all_backups), backup_storage_count)
 
+    def test_free_up_auto_raises_error_if_backup_cannot_be_deleted(self) -> None:
+        """Test that an exception is raised if --free-up auto fails to delete a backup."""
+        create_user_data(self.user_path)
+        data_size = fs.folder_size(self.user_path)
+        mock_storage = DiskUsageMock(self.backup_path, int(1.5*data_size))
+        default_backup(self.user_path, self.backup_path)
+        with (patch("lib.backup.shutil.disk_usage", mock_storage),
+              patch("lib.backup.shutil.copy2", MockCopy2()),
+              patch("lib.backup_deletion.shutil.disk_usage", mock_storage),
+              self.assertLogs(level=logging.ERROR) as logs):
+            exit_code = main_no_log([
+                "-u", str(self.user_path),
+                "-b", str(self.backup_path),
+                "--force-copy",
+                "--free-up", "auto"])
+
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(logs.output, ["ERROR:root:Last remaining backup will not be deleted."])
+
 
 class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
     """Test moving backup sets to a different location."""
