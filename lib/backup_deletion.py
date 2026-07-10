@@ -161,7 +161,9 @@ def delete_oldest_backup(
     if len(backups) <= min_backups_remaining:
         raise CommandLineError("Reached maximum number of backup deletions this session.")
 
-    delete_single_backup(backups[0], verify_checksum_result_folder)
+    oldest_backup = backups[0]
+    logger.info("Deleting oldest backup: %s", oldest_backup)
+    delete_single_backup(oldest_backup, verify_checksum_result_folder)
 
 
 def delete_backups(
