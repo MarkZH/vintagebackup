@@ -720,7 +720,7 @@ def log_backup_size(free_up_parameter: str | None, backup_space_taken: int) -> N
     is_warning = free_up_percent >= free_up_warning_percent
     log_destination = logger.warning if is_warning else logger.info
     logger.info("")
-    log_destination(f"Backup space used: {fs.byte_units(backup_space_taken)}{free_up_text}")
+    log_destination("Backup space used: %s%s", fs.byte_units(backup_space_taken), free_up_text)
     if is_warning:
         logger.warning("Consider increasing the size of the --free-up parameter.")
 
