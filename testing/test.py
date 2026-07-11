@@ -2561,6 +2561,64 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(exit_code, 1)
         self.assertEqual(logs.output, ["ERROR:root:Last remaining backup will not be deleted."])
 
+    def test_delete_oldest_backup_deletes_oldest_backup(self) -> None:
+        """Test that delete_oldest_backup() deletes only the oldest backup."""
+        create_old_daily_backups(self.backup_path, 10)
+        backups = util.all_backups(self.backup_path)
+        expected_backups = backups[1:]
+        deletion.delete_oldest_backup(self.backup_path, 0, None)
+        remaining_backups = util.all_backups(self.backup_path)
+        self.assertEqual(expected_backups, remaining_backups)
+
+    def test_delete_oldest_backup_raises_exception_if_no_backups(self) -> None:
+        """Test delete_oldest_backup() raises an exception if there are no backups to delete."""
+        with self.assertRaises(CommandLineError) as error:
+            deletion.delete_oldest_backup(self.backup_path, 0, None)
+        self.assertEqual(error.exception.args, ("No backups to delete.",))
+
+    def test_delete_oldest_backup_raises_exception_if_only_one_backup(self) -> None:
+        """Test delete_oldest_backup() raises an exception if there is one backup left."""
+        create_old_monthly_backups(self.backup_path, 1)
+        with self.assertRaises(CommandLineError) as error:
+            deletion.delete_oldest_backup(self.backup_path, 0, None)
+        self.assertEqual(error.exception.args, ("Last remaining backup will not be deleted.",))
+
+    def test_delete_oldest_backup_raises_exception_if_max_deletions_reached(self) -> None:
+        """Test delete_oldest_backup() raises an exception if there is one backup left."""
+        backup_count = 10
+        create_old_monthly_backups(self.backup_path, backup_count)
+        with self.assertRaises(CommandLineError) as error:
+            deletion.delete_oldest_backup(self.backup_path, backup_count, None)
+        self.assertEqual(
+            error.exception.args,
+            ("Reached maximum number of backup deletions this session.",))
+
+    def test_delete_oldest_backup_verifies_checksum(self) -> None:
+        """Test that delete_oldest_backup() verifies a checksum file if one exists."""
+        create_user_data(self.user_path)
+        with patch("lib.backup.datetime", Now_Mock()):
+            exit_code = main_no_log([
+                "-u", str(self.user_path),
+                "-b", str(self.backup_path),
+                "--checksum"])
+        self.assertEqual(exit_code, 0)
+
+        oldest_backup, = util.all_backups(self.backup_path)
+        checksum_file = oldest_backup/verify.checksum_file_name
+        self.assertTrue(checksum_file.exists())
+
+        changed_file = oldest_backup/"root_file.txt"
+        self.assertTrue(changed_file.exists())
+        changed_file.write_text("corrupted", encoding="utf8")
+
+        default_backup(self.user_path, self.backup_path)
+        deletion.delete_oldest_backup(self.backup_path, 0, self.user_path)
+
+        checksum_verify_file = self.user_path/verify.verify_checksum_file_name
+        self.assertTrue(checksum_verify_file.exists())
+        _, line, _ = checksum_verify_file.read_text(encoding="utf8").split("\n")
+        self.assertTrue(line.startswith(str(changed_file.relative_to(oldest_backup))))
+
 
 class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
     """Test moving backup sets to a different location."""
