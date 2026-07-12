@@ -14,6 +14,7 @@ Backup deletions after a backup ensure that most of the time the next backup can
 Specify how much disk space should be kept free at the backup location.
 If there is less space before or after a backup, old backups will be deleted until this amount of space is free.
 This parameter can be just a number, a number with a byte unit, or the word `auto`.
+
 For example,
 
 `--free-up "10 GB"`
@@ -33,7 +34,7 @@ If the parameter is
 
 then old backups are only deleted when the backup location cannot complete a backup due to running out of space.
 This option maximizes the use of space at the backup location.
-However, this can increase the amount of time a backup takes to complete since multiple attempts may be required to create a backup if a lot of new data has been added to the user's folder.
+However, this can increase the amount of time a backup takes to complete since multiple deletions may be required to create enough space to make a new a backup.
 
 If the backup storage media runs out of space during a backup and this parameter is used, then
 1. The backup process will abort,
