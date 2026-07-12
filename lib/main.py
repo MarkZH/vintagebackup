@@ -58,11 +58,15 @@ def backup_cycle(args: argparse.Namespace) -> None:
     while True:
         try:
             delete_old_backups(args, delete_oldest=delete_oldest)
+            if delete_oldest:
+                logger.info("")
+                logger.info("Restarting backup")
             delete_oldest = False
             start_backup(args)
             break
         except exc.OutOfSpaceError as error:
             if args.free_up == "auto":
+                logger.info("Not enough space to complete backup.")
                 delete_oldest = True
                 continue
 

@@ -221,6 +221,11 @@ def parse_storage_space(space_requirement: str) -> float:
         raise CommandLineError(f"Invalid storage space value: {space_requirement}") from None
 
 
+def log_free_space(path: Path) -> None:
+    """Log the amount of free space at a location."""
+    logger.info("Free space: %s", byte_units(shutil.disk_usage(path).free))
+
+
 def write_directory(output: TextIO, directory: Path, file_names: list[str]) -> None:
     """
     Write the full path of a directory followed by a list of files it contains.

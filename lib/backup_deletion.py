@@ -131,7 +131,7 @@ def delete_single_backup(backup: Path, verify_checksum_result_folder: Path | Non
     except OSError:
         pass
 
-    logger.info("Free space: %s", fs.byte_units(shutil.disk_usage(backup.parent.parent).free))
+    fs.log_free_space(backup.parent.parent)
 
 
 def delete_oldest_backup(
@@ -162,6 +162,7 @@ def delete_oldest_backup(
         raise CommandLineError("Reached maximum number of backup deletions this session.")
 
     oldest_backup = backups[0]
+    logger.info("")
     logger.info("Deleting oldest backup: %s", oldest_backup)
     delete_single_backup(oldest_backup, verify_checksum_result_folder)
 
