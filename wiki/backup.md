@@ -104,6 +104,19 @@ Copy every file regardless of whether the file has changed since the last backup
 
 This option is overridden by `--no-force-copy`.
 
+### `--force-copy-every`
+
+This activates [`--force-copy`](#--force-copy) periodically.
+The period between backups where file contents are compared is specified in the same manner as [`--delete-after`](delete.md#--delete-after).
+
+This option is overridden by `--no-force-copy`
+
+### `--force-copy-start`
+
+If the [`--force-copy-every`](#--force-copy-every) option is used, the `--force-copy-start` option specifies a date (YYYY-MM-DD) to start periodically performing copy-only backups.
+Before the date specified, files will be hardlinked according to [`--hard-link-count`](#--hard-link-count) or [`--copy-probability`](#--copy-probability).
+After the date specified, whether backups are copy-only is controlled by [`--force-copy-every`](#--force-copy-every).
+
 ### `--copy-probability`
 
 Specify the probability that an unchanged file will be copied instead of hard-linked.
