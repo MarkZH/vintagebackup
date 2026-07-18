@@ -8,7 +8,7 @@ if sys.version_info < minimum_python_version:
     print(f"Vintage Backup requires Python {'.'.join(map(str, minimum_python_version))} or later.")
     sys.exit(1)
 
-from lib.main import main  # noqa: E402
+from lib.main import main  # ruff:ignore[module-import-not-at-top-of-file]
 
 if __name__ == "__main__":
     try:

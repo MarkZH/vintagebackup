@@ -47,8 +47,8 @@ from lib.exceptions import CommandLineError, ConcurrencyError, OutOfSpaceError
 from lib import find_missing
 
 
-def load_tests(loader, tests, ignore):  # type: ignore[no-untyped-def] # noqa: ANN001 ANN201 ARG001
-    """Load doctests for running with unittest."""  # noqa: DOC201
+def load_tests(loader, tests, ignore):  # type: ignore[no-untyped-def] # ruff:ignore[missing-type-function-argument, missing-return-type-undocumented-public-function, unused-function-argument]
+    """Load doctests for running with unittest."""  # ruff:ignore[docstring-missing-returns]
     for module in (fs, dates, config, console):
         tests.addTests(doctest.DocTestSuite(module))
     return tests
@@ -136,7 +136,7 @@ class Now_Mock:
             """Return the mocked value of now."""
             return self.timestamp
 
-        def __getattr__(self, name: str) -> Any:  # noqa: ANN401
+        def __getattr__(self, name: str) -> Any:  # ruff:ignore[any-type]
             """Return the usual datetime functions and methods when now() is not called."""
             if name == "strptime":
                 return datetime.datetime.strptime
@@ -6548,7 +6548,7 @@ class FileSystemTests(TestCaseWithTemporaryFilesAndFolders):
         file_path.touch()
         error_message = "test error"
 
-        def error(_: Any) -> Never:  # noqa: ANN401
+        def error(_: Any) -> Never:  # ruff:ignore[any-type]
             raise RuntimeError(error_message)
 
         with (patch("lib.filesystem.Path.unlink", error),
@@ -6566,7 +6566,7 @@ class FileSystemTests(TestCaseWithTemporaryFilesAndFolders):
         file_path.touch()
         error_message = "test error"
 
-        def error(_: Any) -> Never:  # noqa: ANN401
+        def error(_: Any) -> Never:  # ruff:ignore[any-type]
             raise RuntimeError(error_message)
 
         with (patch("lib.filesystem.Path.unlink", error),
@@ -6584,10 +6584,10 @@ class FileSystemTests(TestCaseWithTemporaryFilesAndFolders):
         folder_path = self.backup_path/"error_on_deletion"
         folder_path.mkdir()
         read_only = stat.S_IRUSR | stat.S_IXUSR
-        os.chmod(folder_path, read_only, follow_symlinks=False)  # noqa: PTH101
+        os.chmod(folder_path, read_only, follow_symlinks=False)  # ruff:ignore[os-chmod]
         error_message = "test error"
 
-        def error_chmod(*_: Any, **__: Any) -> Never:  # noqa: ANN401
+        def error_chmod(*_: Any, **__: Any) -> Never:  # ruff:ignore[any-type]
             raise RuntimeError(error_message)
 
         with (patch("lib.filesystem.os.chmod", error_chmod),
@@ -6598,7 +6598,7 @@ class FileSystemTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertEqual(
             logs.output,
             [f"ERROR:root:Could not delete {folder_path}: {error_message}"])
-        os.chmod(folder_path, stat.S_IWRITE, follow_symlinks=False)  # noqa: PTH101
+        os.chmod(folder_path, stat.S_IWRITE, follow_symlinks=False)  # ruff:ignore[os-chmod]
 
     @unittest.skipUnless(
             platform.system() == "Windows",
@@ -6608,10 +6608,10 @@ class FileSystemTests(TestCaseWithTemporaryFilesAndFolders):
         folder_path = self.backup_path/"error_on_deletion.txt"
         folder_path.mkdir()
         read_only = stat.S_IRUSR | stat.S_IXUSR
-        os.chmod(folder_path, read_only, follow_symlinks=False)  # noqa: PTH101
+        os.chmod(folder_path, read_only, follow_symlinks=False)  # ruff:ignore[os-chmod]
         error_message = "test error"
 
-        def error_chmod(*_: Any, **__: Any) -> Never:  # noqa: ANN401
+        def error_chmod(*_: Any, **__: Any) -> Never:  # ruff:ignore[any-type]
             raise RuntimeError(error_message)
 
         with (patch("lib.filesystem.os.chmod", error_chmod),
@@ -6620,4 +6620,4 @@ class FileSystemTests(TestCaseWithTemporaryFilesAndFolders):
 
         self.assertTrue(folder_path.is_dir())
         self.assertEqual(error.exception.args, (error_message,))
-        os.chmod(folder_path, stat.S_IWRITE, follow_symlinks=False)  # noqa: PTH101
+        os.chmod(folder_path, stat.S_IWRITE, follow_symlinks=False)  # ruff:ignore[os-chmod]

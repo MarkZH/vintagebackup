@@ -5,38 +5,38 @@ line-length = 100
 preview = true
 select = ["ALL"]
 ignore = [
-    "BLE001", # Do not catch blind exception: Exception
-    "CPY001", # Missing copyright notice at top of file
-    "D203", # Require blank line after class declaration before docstring
-    "D212", # Start multiline docstring on same line as triple-quote
+    "blind-except", # Do not catch blind exception: Exception
+    "missing-copyright-notice",
+    "incorrect-blank-line-before-class", # Require blank line after class declaration before docstring
+    "multi-line-summary-first-line", # Start multiline docstring on same line as triple-quote
     "DTZ", # datetime without timezone
-    "E226", # Missing whitespace around arithmetic operator
-    "EM101", # Exception must not use a string literal, assign to variable first
-    "EM102", # Exception must not use an f-string literal, assign to variable first
-    "I001", # Import block is un-sorted or un-formatted
-    "INP001", # File is part of an implicit namespace package. Add an `__init__.py`.
-    "N801", # Class name should be CapWords
-    "PLR0904", # Too many public methods
-    "PLR0911", # Too many return statements
-    "PLR0913", # Too many arguments in function definition
-    "PLR0914", # Too many local variables
-    "PLR0915", # Too many statements
-    "PLR0917", # Too many positional arguments
-    "PLR6201", # Use a set literal when testing for membership
-    "PLW0717", # Try clause contains too many statements
-    "PT009", # Use assert instead of unittest.assertIn
-    "PT027", # Use pytest.raises instead of assertRaises
-    "RET505", # Unnecessary else after return statement
-    "RET506", # Unnecessary else after raise statement
-    "RET507", # Unnecessary else after continue statement
-    "S311", # Standard pseudo-random generators are not suitable for cryptographic purposes
-    "T201", # print() found
-    "TC003", # Move standard library import into a type-checking block
-    "TC006", # Add quotes to type expression in typing.cast()
-    "TRY003", # No string arguments in custom exceptions
-    "TRY300", # Move return to else block
-    "TRY400", # logger.exception() instead of logger.error()
-    "UP036", # Version block is outdated for minimum Python version
+    "missing-whitespace-around-arithmetic-operator",
+    "raw-string-in-exception",
+    "f-string-in-exception",
+    "unsorted-imports",
+    "implicit-namespace-package", # File is part of an implicit namespace package. Add an `__init__.py`.
+    "invalid-class-name", # Class name should be CapWords
+    "too-many-public-methods",
+    "too-many-return-statements",
+    "too-many-arguments",
+    "too-many-locals",
+    "too-many-statements",
+    "too-many-positional-arguments",
+    "literal-membership", # Use a set literal when testing for membership
+    "too-many-statements-in-try-clause",
+    "pytest-unittest-assertion",
+    "pytest-unittest-raises-assertion",
+    "superfluous-else-return",
+    "superfluous-else-raise",
+    "superfluous-else-continue",
+    "suspicious-non-cryptographic-random-usage",
+    "print",
+    "typing-only-standard-library-import",
+    "runtime-cast-value", # Add quotes to type expression in typing.cast()
+    "raise-vanilla-args", # No string arguments in custom exceptions
+    "try-consider-else", # Move return to else block
+    "error-instead-of-exception", # logger.exception() instead of logger.error()
+    "outdated-version-block", # Version block is outdated for minimum Python version
 ]
 
 [lint.mccabe]
