@@ -139,7 +139,7 @@ def delete_directory_tree(directory: Path, *, ignore_errors: bool = False) -> No
         Copied from https://docs.python.org/3/library/shutil.html#rmtree-example
         """
         try:
-            os.chmod(path, stat.S_IWRITE, follow_symlinks=False)  # noqa: PTH101
+            os.chmod(path, stat.S_IWRITE, follow_symlinks=False)  # ruff:ignore[os-chmod]
             func(path)
         except Exception as error:
             if ignore_errors:
@@ -276,7 +276,7 @@ def absolute_path(path: Path | str) -> Path:
     Returns:
         path: An absolute version of the path.
     """
-    return Path(os.path.abspath(path))  # noqa: PTH100
+    return Path(os.path.abspath(path))  # ruff:ignore[os-path-abspath]
 
 
 def path_listing(listing: Iterable[tuple[Path, list[str]]], output: TextIO) -> None:
