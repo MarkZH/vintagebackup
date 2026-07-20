@@ -367,7 +367,10 @@ The argument should be a bare number or a number followed by letters that
 indicate a unit in bytes. The number will be interpreted as a number
 of bytes. Case does not matter, so all of the following specify
 15 megabytes: 15MB, 15Mb, 15mB, 15mb, 15M, and 15m. Old backups
-will be deleted until at least that much space is free."""))
+will be deleted until at least that much space is free.
+
+Alternatively, this argument can be "auto". This will cause Vintage Backup to delete old backups
+only when creating a new backup fails due to the backup media to running out of space."""))
 
     deletion_group.add_argument("--delete-after", metavar="TIME", help=format_help(
 """After a successful backup, delete backups if they are older than the time span in the argument.

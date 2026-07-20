@@ -1966,13 +1966,7 @@ class DiskUsageMock:
         if not path.is_relative_to(self.base_path):
             raise ValueError(f"{path} is not a subdirectory of {self.base_path}")
 
-        total_used = 0
-        for directory, _, file_names in self.base_path.walk():
-            for file_name in file_names:
-                file_path = directory/file_name
-                total_used += file_path.stat(follow_symlinks=False).st_size
-
-        return total_used
+        return fs.folder_size(self.base_path)
 
     def total_size(self) -> int:
         """Returns the total size of this mock drive."""
@@ -2503,6 +2497,127 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
               patch("lib.backup.shutil.copy2", MockCopy2()),
               self.assertRaises(OutOfSpaceError)):
             main.default_action(args)
+
+    def test_free_up_auto_does_nothing_when_enough_space_for_backup(self) -> None:
+        """Test that --free-up auto does nothing when there is sufficient space for a backup."""
+        create_user_data(self.user_path)
+        data_size = fs.folder_size(self.user_path)
+        backup_count = 4
+        mock_storage = DiskUsageMock(self.backup_path, (backup_count + 1)*data_size)
+        for _ in range(backup_count):
+            with (patch("lib.backup.shutil.disk_usage", mock_storage),
+                  patch("lib.backup_deletion.shutil.disk_usage", mock_storage),
+                  patch("lib.backup.datetime", Now_Mock())):
+                main_assert_no_error_log([
+                    "-u", str(self.user_path),
+                    "-b", str(self.backup_path),
+                    "--force-copy",
+                    "--free-up", "auto"],
+                    self)
+
+        all_backups = util.all_backups(self.backup_path)
+        self.assertEqual(len(all_backups), backup_count)
+
+    def test_free_up_auto_deletes_old_backups_when_not_enough_space_for_backup(self) -> None:
+        """Test that --free-up auto deletes old backups to make room for new ones."""
+        create_user_data(self.user_path)
+        data_size = fs.folder_size(self.user_path)
+        backup_count = 5
+        backup_storage_count = 3
+        storage_space = int((backup_storage_count + 0.5)*data_size)
+        mock_storage = DiskUsageMock(self.backup_path, storage_space)
+        for _ in range(backup_count):
+            with (patch("lib.backup.shutil.disk_usage", mock_storage),
+                  patch("lib.backup_deletion.shutil.disk_usage", mock_storage),
+                  patch("lib.backup.shutil.copy2", MockCopy2()),
+                  patch("lib.backup.datetime", Now_Mock())):
+                exit_code = main_no_log([
+                    "-u", str(self.user_path),
+                    "-b", str(self.backup_path),
+                    "--force-copy",
+                    "--free-up", "auto"])
+
+            self.assertEqual(exit_code, 0)
+
+        all_backups = util.all_backups(self.backup_path)
+        self.assertEqual(len(all_backups), backup_storage_count)
+
+    def test_free_up_auto_raises_error_if_backup_cannot_be_deleted(self) -> None:
+        """Test that an exception is raised if --free-up auto fails to delete a backup."""
+        create_user_data(self.user_path)
+        data_size = fs.folder_size(self.user_path)
+        mock_storage = DiskUsageMock(self.backup_path, int(1.5*data_size))
+        default_backup(self.user_path, self.backup_path)
+        with (patch("lib.backup.shutil.disk_usage", mock_storage),
+              patch("lib.backup.shutil.copy2", MockCopy2()),
+              patch("lib.backup_deletion.shutil.disk_usage", mock_storage),
+              self.assertLogs(level=logging.ERROR) as logs):
+            exit_code = main_no_log([
+                "-u", str(self.user_path),
+                "-b", str(self.backup_path),
+                "--force-copy",
+                "--free-up", "auto"])
+
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(logs.output, ["ERROR:root:Last remaining backup will not be deleted."])
+
+    def test_delete_oldest_backup_deletes_oldest_backup(self) -> None:
+        """Test that delete_oldest_backup() deletes only the oldest backup."""
+        create_old_daily_backups(self.backup_path, 10)
+        backups = util.all_backups(self.backup_path)
+        expected_backups = backups[1:]
+        deletion.delete_oldest_backup(self.backup_path, 0, None)
+        remaining_backups = util.all_backups(self.backup_path)
+        self.assertEqual(expected_backups, remaining_backups)
+
+    def test_delete_oldest_backup_raises_exception_if_no_backups(self) -> None:
+        """Test delete_oldest_backup() raises an exception if there are no backups to delete."""
+        with self.assertRaises(CommandLineError) as error:
+            deletion.delete_oldest_backup(self.backup_path, 0, None)
+        self.assertEqual(error.exception.args, ("No backups to delete.",))
+
+    def test_delete_oldest_backup_raises_exception_if_only_one_backup(self) -> None:
+        """Test delete_oldest_backup() raises an exception if there is one backup left."""
+        create_old_monthly_backups(self.backup_path, 1)
+        with self.assertRaises(CommandLineError) as error:
+            deletion.delete_oldest_backup(self.backup_path, 0, None)
+        self.assertEqual(error.exception.args, ("Last remaining backup will not be deleted.",))
+
+    def test_delete_oldest_backup_raises_exception_if_max_deletions_reached(self) -> None:
+        """Test delete_oldest_backup() raises an exception if there is one backup left."""
+        backup_count = 10
+        create_old_monthly_backups(self.backup_path, backup_count)
+        with self.assertRaises(CommandLineError) as error:
+            deletion.delete_oldest_backup(self.backup_path, backup_count, None)
+        self.assertEqual(
+            error.exception.args,
+            ("Reached maximum number of backup deletions this session.",))
+
+    def test_delete_oldest_backup_verifies_checksum(self) -> None:
+        """Test that delete_oldest_backup() verifies a checksum file if one exists."""
+        create_user_data(self.user_path)
+        with patch("lib.backup.datetime", Now_Mock()):
+            exit_code = main_no_log([
+                "-u", str(self.user_path),
+                "-b", str(self.backup_path),
+                "--checksum"])
+        self.assertEqual(exit_code, 0)
+
+        oldest_backup, = util.all_backups(self.backup_path)
+        checksum_file = oldest_backup/verify.checksum_file_name
+        self.assertTrue(checksum_file.exists())
+
+        changed_file = oldest_backup/"root_file.txt"
+        self.assertTrue(changed_file.exists())
+        changed_file.write_text("corrupted", encoding="utf8")
+
+        default_backup(self.user_path, self.backup_path)
+        deletion.delete_oldest_backup(self.backup_path, 0, self.user_path)
+
+        checksum_verify_file = self.user_path/verify.verify_checksum_file_name
+        self.assertTrue(checksum_verify_file.exists())
+        _, line, _ = checksum_verify_file.read_text(encoding="utf8").split("\n")
+        self.assertTrue(line.startswith(str(changed_file.relative_to(oldest_backup))))
 
 
 class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
@@ -6621,3 +6736,37 @@ class FileSystemTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertTrue(folder_path.is_dir())
         self.assertEqual(error.exception.args, (error_message,))
         os.chmod(folder_path, stat.S_IWRITE, follow_symlinks=False)  # ruff:ignore[os-chmod]
+
+    def test_size_of_empty_folder_is_zero(self) -> None:
+        """Test that an empty folder has zero size."""
+        self.assertEqual(fs.folder_size(self.user_path), 0)
+
+    def test_size_of_folder_with_one_file_is_size_of_file(self) -> None:
+        """Test that the size of a folder with one file is the size of that file."""
+        file_size = 10_000_000
+        create_large_files(self.user_path, file_size)
+        self.assertEqual(fs.folder_size(self.user_path), file_size)
+
+    def test_size_of_folder_with_subfolders_and_files_is_size_of_all_files_in_tree(self) -> None:
+        """Test that all files in a directory tree get summed to find total size."""
+        for num in range(3):
+            (self.user_path/str(num)).mkdir()
+
+        file_size = 5_000_000
+        create_large_files(self.user_path, file_size)
+        base_file = self.user_path/"base_file.txt"
+        base_file.write_text(file_size*"B")
+        total_size = 4*file_size
+        self.assertEqual(fs.folder_size(self.user_path), total_size)
+
+    def test_size_of_folder_tree_with_hard_links_does_not_double_count(self) -> None:
+        """Test that the sizes of files that are hardlinked together are not double-counted."""
+        create_user_data(self.user_path)
+        default_backup(self.user_path, self.backup_path)
+        single_backup_size = fs.folder_size(self.backup_path)
+
+        # All new files at backup location are hardlinked to first backup.
+        default_backup(self.user_path, self.backup_path)
+        all_backups_size = fs.folder_size(self.backup_path)
+
+        self.assertEqual(single_backup_size, all_backups_size)

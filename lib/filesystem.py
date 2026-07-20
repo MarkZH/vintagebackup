@@ -221,6 +221,11 @@ def parse_storage_space(space_requirement: str) -> float:
         raise CommandLineError(f"Invalid storage space value: {space_requirement}") from None
 
 
+def log_free_space(path: Path) -> None:
+    """Log the amount of free space at a location."""
+    logger.info("Free space: %s", byte_units(shutil.disk_usage(path).free))
+
+
 def write_directory(output: TextIO, directory: Path, file_names: list[str]) -> None:
     """
     Write the full path of a directory followed by a list of files it contains.
@@ -295,3 +300,23 @@ def classify_path(path: Path) -> str:
         else "Folder" if path.is_dir()
         else "File" if path.is_file()
         else "Unknown")
+
+
+def folder_size(directory: Path) -> int:
+    """
+    Calculate the total size of all files in a directory tree.
+
+    Arguments:
+        directory: A folder whose contents will be measured for size
+
+    Returns:
+        int: The total size of all files in the directory tree.
+    """
+    inode_sizes: dict[int, int] = {}  # inode --> size of file
+    for folder, _, file_names in directory.walk():
+        for file_name in file_names:
+            path = folder/file_name
+            stat = path.stat(follow_symlinks=False)
+            inode_sizes[stat.st_ino] = stat.st_size
+
+    return sum(inode_sizes.values())

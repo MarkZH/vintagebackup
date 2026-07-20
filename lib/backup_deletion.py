@@ -41,7 +41,7 @@ def delete_oldest_backups_for_space(
     Raises:
         CommandLineError: If the --free-up parameter is larger than the entire backup storage media.
     """
-    if not space_requirement:
+    if not space_requirement or space_requirement == "auto":
         return
 
     total_storage = shutil.disk_usage(backup_location).total
@@ -131,7 +131,40 @@ def delete_single_backup(backup: Path, verify_checksum_result_folder: Path | Non
     except OSError:
         pass
 
-    logger.info("Free space: %s", fs.byte_units(shutil.disk_usage(backup.parent.parent).free))
+    fs.log_free_space(backup.parent.parent)
+
+
+def delete_oldest_backup(
+        backup_location: Path,
+        min_backups_remaining: int,
+        verify_checksum_result_folder: Path | None) -> None:
+    """
+    Delete the oldest backup at the specified location.
+
+    Arguments:
+        backup_location: The base directory holding all dated backups.
+        min_backups_remaining: The minimum number of backups that should remain after deletion
+            operations.
+        verify_checksum_result_folder: If the checksum of the backup is being verified prior to
+            deletion, put the verification result files in this folder.
+
+    Raises:
+        CommandLineError: If there are no backups to delete or one remaining backup.
+    """
+    backups = util.all_backups(backup_location)
+    if not backups:
+        raise CommandLineError("No backups to delete.")
+
+    if len(backups) == 1:
+        raise CommandLineError("Last remaining backup will not be deleted.")
+
+    if len(backups) <= min_backups_remaining:
+        raise CommandLineError("Reached maximum number of backup deletions this session.")
+
+    oldest_backup = backups[0]
+    logger.info("")
+    logger.info("Deleting oldest backup: %s", oldest_backup)
+    delete_single_backup(oldest_backup, verify_checksum_result_folder)
 
 
 def delete_backups(
@@ -270,12 +303,14 @@ def check_time_span_parameters(args: argparse.Namespace) -> None:
         last_time_span_str = time_span_str
 
 
-def delete_old_backups(args: argparse.Namespace) -> None:
+def delete_old_backups(args: argparse.Namespace, *, delete_oldest: bool = False) -> None:
     """
     Delete the oldest backups by various criteria in the command line options.
 
     Arguments:
         args: Parsed command line
+        delete_oldest: Whether to delete the oldest backup first. The argument --max-deletions is
+            still respected.
 
     Note: The argument `args.max_deletions` is reduced by the number of deletions to make sure that
         option is respected if multiple rounds of backup deletions are required.
@@ -296,10 +331,17 @@ def delete_old_backups(args: argparse.Namespace) -> None:
         verify_checksum_result_folder = fs.path_or_none(args.verify_checksum_before_deletion)
         max_deletions = int(args.max_deletions or backup_count)
         min_backups_remaining = max(backup_count - max_deletions, 1)
+
+        if delete_oldest:
+            delete_oldest_backup(
+                backup_folder, min_backups_remaining, verify_checksum_result_folder)
+
         delete_too_frequent_backups(
             backup_folder, args, min_backups_remaining, verify_checksum_result_folder)
+
         delete_oldest_backups_for_space(
             backup_folder, args.free_up, verify_checksum_result_folder, min_backups_remaining)
+
         delete_backups_older_than(
             backup_folder, args.delete_after, verify_checksum_result_folder, min_backups_remaining)
 
