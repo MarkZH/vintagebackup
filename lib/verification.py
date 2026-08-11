@@ -47,7 +47,7 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
 
     logger.info("")
     logger.info("Filter file: %s", filter_file)
-    logger.info("Verifying backup in %s by comparing against %s ...", backup_folder, user_folder)
+    logger.info("Verifying backup %s by comparing against %s ...", last_backup_folder, user_folder)
 
     result_folder.mkdir(parents=True, exist_ok=True)
     matching_file_name = fs.unique_path_name(result_folder/verify_matching_file_name)
