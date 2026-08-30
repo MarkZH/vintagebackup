@@ -123,12 +123,9 @@ def choose_backups_to_move(args: argparse.Namespace, old_backup_location: Path) 
 
     Returns:
         list: A selection of backups to move to a new location.
-
-    Raises:
-        AssertionError: Debugging assertion that ensures all ways of choosing backups to move are
-            handled
     """
     confirm_choice_made(args, "move_count", "move_age", "move_since")
+    backups_to_move: list[Path] = []
     if args.move_count:
         backups_to_move = last_n_backups(args.move_count, old_backup_location)
     elif args.move_age:
@@ -137,7 +134,5 @@ def choose_backups_to_move(args: argparse.Namespace, old_backup_location: Path) 
     elif args.move_since:
         oldest_backup_date = datetime.datetime.strptime(args.move_since, "%Y-%m-%d")
         backups_to_move = backups_since(oldest_backup_date, old_backup_location)
-    else:
-        raise AssertionError("Should never reach here.")
 
     return backups_to_move
