@@ -336,11 +336,14 @@ def delete_old_backups(args: argparse.Namespace, *, delete_oldest: bool = False)
             delete_oldest_backup(
                 backup_folder, min_backups_remaining, verify_checksum_result_folder)
 
-        delete_too_frequent_backups(
-            backup_folder, args, min_backups_remaining, verify_checksum_result_folder)
-
         delete_oldest_backups_for_space(
             backup_folder, args.free_up, verify_checksum_result_folder, min_backups_remaining)
+
+        keep_minimum = int(args.keep_minimum or 0)
+        min_backups_remaining = max(min_backups_remaining, keep_minimum)
+
+        delete_too_frequent_backups(
+            backup_folder, args, min_backups_remaining, verify_checksum_result_folder)
 
         delete_backups_older_than(
             backup_folder, args.delete_after, verify_checksum_result_folder, min_backups_remaining)

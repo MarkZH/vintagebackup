@@ -2619,6 +2619,68 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         _, line, _ = checksum_verify_file.read_text(encoding="utf8").split("\n")
         self.assertTrue(line.startswith(str(changed_file.relative_to(oldest_backup))))
 
+    def test_keep_minimum_prevents_deletions_with_too_few_backups(self) -> None:
+        """Use of --keep-minimum N prevents backup deletion with up to N backups."""
+        min_backups = 30
+        create_old_daily_backups(self.backup_path, min_backups)
+        backups = util.all_backups(self.backup_path)
+        for days in range(1, 29):
+            exit_code = main_assert_no_error_log([
+                "--delete-only",
+                "--backup-folder", str(self.backup_path),
+                "--delete-after", f"{days}d",
+                "--keep-minimum", str(min_backups)],
+                self)
+            self.assertEqual(exit_code, 0)
+
+            backups_after = util.all_backups(self.backup_path)
+            self.assertEqual(backups, backups_after)
+
+    def test_keep_minimum_keeps_a_minimum_backup_count(self) -> None:
+        """Use of --keep-minimum N keeps a minimum of N backups."""
+        min_backups = 20
+        starting_backups = 30
+        attempted_backup_deletions = 25
+        delete_after_arg = f"{starting_backups - attempted_backup_deletions}d"
+
+        create_old_daily_backups(self.backup_path, starting_backups)
+        backups = util.all_backups(self.backup_path)
+        expected_backups = backups[-min_backups:]
+        exit_code = main_assert_no_error_log([
+            "--delete-only",
+            "--backup-folder", str(self.backup_path),
+            "--delete-after", delete_after_arg,
+            "--keep-minimum", str(min_backups)],
+            self)
+        self.assertEqual(exit_code, 0)
+
+        backups_after = util.all_backups(self.backup_path)
+        self.assertEqual(expected_backups, backups_after)
+
+    def test_keep_minimum_allows_deletions_for_space(self) -> None:
+        """Use of --keep-minimum does not prevent deletion of backups for space."""
+        create_user_data(self.user_path)
+        user_data_size = fs.folder_size(self.user_path)
+        expected_backups_remaining = 5
+        disk_size = int((expected_backups_remaining + 0.5)*user_data_size)
+        mock_storage = DiskUsageMock(self.backup_path, disk_size)
+        too_many_backups = 2*expected_backups_remaining
+        for _ in range(too_many_backups):
+            with (patch("lib.backup.shutil.disk_usage", mock_storage),
+                  patch("lib.backup_deletion.shutil.disk_usage", mock_storage),
+                  patch("lib.backup.shutil.copy2", MockCopy2()),
+                  patch("lib.backup.datetime", Now_Mock())):
+                exit_code = main_no_log([
+                    "-u", str(self.user_path),
+                    "-b", str(self.backup_path),
+                    "--force-copy",
+                    "--keep-minimum", str(too_many_backups),
+                    "--free-up", "auto"])
+                self.assertEqual(exit_code, 0)
+
+        backups = util.all_backups(self.backup_path)
+        self.assertEqual(len(backups), expected_backups_remaining)
+
 
 class MoveBackupsTests(TestCaseWithTemporaryFilesAndFolders):
     """Test moving backup sets to a different location."""
