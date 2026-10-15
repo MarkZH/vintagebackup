@@ -389,6 +389,9 @@ the Time Span Format section below."""
     deletion_group.add_argument("--max-deletions", help=format_help(
 """Specify the maximum number of deletions per program run."""))
 
+    deletion_group.add_argument("--keep-minimum", metavar="COUNT", help=format_help(
+"""As long as there is storage space, keep a minimum of COUNT backups."""))
+
     deletion_group.add_argument(
         "--verify-checksum-before-deletion", metavar="RESULT_DIR", help=format_help(
 """If a backup with a checksum is about to be automatically deleted, verify the checksum first. The
