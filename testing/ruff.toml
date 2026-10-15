@@ -37,6 +37,7 @@ ignore = [
     "try-consider-else", # Move return to else block
     "error-instead-of-exception", # logger.exception() instead of logger.error()
     "outdated-version-block", # Version block is outdated for minimum Python version
+    "unconventional-import-alias"
 ]
 
 [lint.mccabe]
