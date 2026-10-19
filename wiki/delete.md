@@ -106,6 +106,15 @@ The option `--max-deletions 5` will delete no more than 5 backups per program ru
 
 The value of the parameter must be a positive whole number.
 
+### `--keep-minimum`
+
+Do not allow deletions by `--delete-after`, `--keep-weekly-after`, `--keep-monthly-after`, or `--keep-yearly-after` until enough backups have been created.
+Deleting old backups with `--free-up` is unaffected due to the need for storage space.
+
+This can be useful for preventing the deletion of a large number of backups if Vintage Backup does not run for a long time--perhaps because the computer was off.
+For example, if backups are run daily with `--keep-monthly-after 30d` and the computer is off for 30 days, then all backups except the most recent will be deleted the next time Vintage Backup runs.
+Using `--keep-minimum 30` will stop backup deletions when there are 30 or fewer backups.
+
 ### `--delete-only`
 
 Only delete old backups. Do not create a backup.
