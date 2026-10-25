@@ -10,13 +10,11 @@ import tempfile
 import shutil
 
 import lib.backup_utilities as util
-from lib.backup_info import backup_source
+import lib.backup_info as info
 from lib.backup_set import Backup_Set
-from lib.console import print_run_title
-from lib.exceptions import CommandLineError
-import lib.filesystem as fs
 from lib import console
-from lib.backup_utilities import should_do_periodic_action
+import lib.exceptions as exc
+import lib.filesystem as fs
 
 logger = logging.getLogger()
 
@@ -33,17 +31,18 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
     Raises:
         CommandLineError: If the backup folder contains no backups
     """
-    user_folder = backup_source(backup_folder)
+    user_folder = info.backup_source(backup_folder)
     if not user_folder:
-        raise CommandLineError(f"Could not find user data location from {backup_folder}") from None
+        raise exc.CommandLineError(
+            f"Could not find user data location from {backup_folder}") from None
 
     if not user_folder.is_dir():
-        raise CommandLineError(f"Could not find user folder: {user_folder}")
+        raise exc.CommandLineError(f"Could not find user folder: {user_folder}")
 
     last_backup_folder = util.find_previous_backup(backup_folder)
 
     if not last_backup_folder:
-        raise CommandLineError(f"No backups found in {backup_folder}.")
+        raise exc.CommandLineError(f"No backups found in {backup_folder}.")
 
     logger.info("")
     logger.info("Filter file: %s", filter_file)
@@ -104,7 +103,7 @@ def start_verify_backup(args: argparse.Namespace) -> None:
         args: Parsed command line options
     """
     backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
-    should_verify = should_do_periodic_action(args, "verify", backup_folder, last_verification)
+    should_verify = util.should_do_periodic_action(args, "verify", backup_folder, last_verification)
     if not (should_verify or args.verify_only):
         return
 
@@ -114,7 +113,7 @@ def start_verify_backup(args: argparse.Namespace) -> None:
     if not result_folder:
         return
 
-    print_run_title(args, "Verifying last backup")
+    console.print_run_title(args, "Verifying last backup")
     verify_last_backup(result_folder, backup_folder, filter_file)
 
 
@@ -141,7 +140,7 @@ def create_checksum_for_last_backup(backup_folder: Path) -> None:
     """
     last_backup = util.find_previous_backup(backup_folder)
     if not last_backup:
-        raise CommandLineError(f"Could not find backup in {backup_folder}")
+        raise exc.CommandLineError(f"Could not find backup in {backup_folder}")
 
     create_checksum_for_folder(last_backup)
 
@@ -205,7 +204,7 @@ def start_checksum(args: argparse.Namespace) -> None:
         args: Parsed command line options
     """
     backup_folder = fs.absolute_path(args.backup_folder)
-    if should_do_periodic_action(args, "checksum", backup_folder, last_checksum):
+    if util.should_do_periodic_action(args, "checksum", backup_folder, last_checksum):
         create_checksum_for_last_backup(backup_folder)
 
 
@@ -290,14 +289,14 @@ def start_verify_checksum(args: argparse.Namespace) -> None:
         CommandLineError: If there are no backups with checksum files
     """
     result_folder = fs.absolute_path(args.verify_checksum)
-    print_run_title(args, "Verify backup checksum")
+    console.print_run_title(args, "Verify backup checksum")
     backup_folder = fs.absolute_path(args.backup_folder)
     checksummed_backups = [
         backup for backup in util.all_backups(backup_folder)
         if fs.find_unique_path(backup/checksum_file_name)]
 
     if not checksummed_backups:
-        raise CommandLineError(f"No backups with checksums found in {backup_folder}")
+        raise exc.CommandLineError(f"No backups with checksums found in {backup_folder}")
 
     if args.oldest:
         target = checksummed_backups[0]

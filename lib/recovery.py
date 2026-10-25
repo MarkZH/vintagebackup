@@ -7,10 +7,10 @@ import enum
 from pathlib import Path
 from typing import cast
 
-from lib.backup_utilities import all_backups
-from lib.backup_info import backup_source
-from lib.console import cancel_key, choose_from_menu, print_run_title
-from lib.exceptions import CommandLineError
+import lib.backup_utilities as util
+import lib.backup_info as info
+from lib import console
+import lib.exceptions as exc
 import lib.filesystem as fs
 
 logger = logging.getLogger()
@@ -40,7 +40,7 @@ def search_backups(
             or None if no backed up files are found in the search_directory.
     """
     target_relative_path = directory_relative_to_backup(search_directory, backup_folder)
-    user_folder = backup_source(backup_folder)
+    user_folder = info.backup_source(backup_folder)
     user_folder = cast(Path, user_folder)
 
     def include(relative_path: Path) -> bool:
@@ -50,7 +50,7 @@ def search_backups(
             return True
 
     all_paths: set[tuple[str, str]] = set()
-    for backup in all_backups(backup_folder):
+    for backup in util.all_backups(backup_folder):
         backup_search_directory = backup/target_relative_path
         try:
             all_paths.update(
@@ -65,7 +65,7 @@ def search_backups(
 
     menu_list = sorted(all_paths)
     menu_choices = [f"{name} ({path_type})" for (name, path_type) in menu_list]
-    choice = choose_from_menu(menu_choices, f"Which path for {operation}")
+    choice = console.choose_from_menu(menu_choices, f"Which path for {operation}")
 
     return search_directory/menu_list[choice][0]
 
@@ -85,7 +85,7 @@ def directory_relative_to_backup(user_directory: Path, backup_folder: Path) -> P
         CommandLineError: If the search_directory is not a directory
     """
     if not fs.is_real_directory(user_directory):
-        raise CommandLineError(f"The given search path is not a directory: {user_directory}")
+        raise exc.CommandLineError(f"The given search path is not a directory: {user_directory}")
 
     return path_relative_to_backups(user_directory, backup_folder)
 
@@ -107,7 +107,7 @@ def recover_path(recovery_path: Path, backup_location: Path, *, search: bool) ->
     """
     recovery_relative_path = path_relative_to_backups(recovery_path, backup_location)
     unique_backups: dict[int, Path] = {}
-    for backup in all_backups(backup_location):
+    for backup in util.all_backups(backup_location):
         path = backup/recovery_relative_path
         if path.exists(follow_symlinks=False):
             inode = path.stat(follow_symlinks=False).st_ino
@@ -143,7 +143,7 @@ def recover_from_menu(
         backup_date = backup_copy.relative_to(backup_location).parts[1]
         path_type = fs.classify_path(backup_copy)
         menu_choices.append(f"{backup_date} ({path_type})")
-    choice = choose_from_menu(menu_choices, "Version to recover")
+    choice = console.choose_from_menu(menu_choices, "Version to recover")
     chosen_path = backup_choices[choice]
     recover_path_to_original_location(chosen_path, recovery_path)
 
@@ -234,7 +234,7 @@ def prompt_for_binary_choice(backup_choices: list[Path]) -> Binary_Response:
             "Is the data [C]orrect, or do you want the [O]lder version?"
             if special_case else
             "Is the data [C]orrect, or do you want an [O]lder or [N]ewer version?")
-    print(f"Press {cancel_key()} to quit early.")
+    print(f"Press {console.cancel_key()} to quit early.")
     prompt = f"{question} [{'/'.join(valid_choices)}]: "
     while True:
         response = input(prompt)
@@ -262,14 +262,14 @@ def path_relative_to_backups(user_path: Path, backup_location: Path) -> Path:
     Raises:
         CommandLineError: If there are no backups or the user_path is not in the user's data
     """
-    user_data_location = backup_source(backup_location)
+    user_data_location = info.backup_source(backup_location)
     if not user_data_location:
-        raise CommandLineError(f"No backups found at {backup_location}") from None
+        raise exc.CommandLineError(f"No backups found at {backup_location}") from None
 
     try:
         return user_path.relative_to(user_data_location)
     except ValueError:
-        raise CommandLineError(
+        raise exc.CommandLineError(
             f"{user_path} is not contained in the backup set "
             f"{backup_location}, which contains {user_data_location}.") from None
 
@@ -282,7 +282,7 @@ def start_recovery_from_backup(args: argparse.Namespace) -> None:
         args: Parsed command line options
     """
     backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
-    print_run_title(args, "Recovering from backups")
+    console.print_run_title(args, "Recovering from backups")
     recover_path(fs.absolute_path(args.recover), backup_folder, search=args.search)
 
 
@@ -299,7 +299,7 @@ def choose_target_path_from_backups(args: argparse.Namespace) -> Path | None:
     operation = "recovery" if args.list else "purging"
     backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
     search_directory = fs.absolute_path(args.list or args.purge_list)
-    print_run_title(args, f"Listing files and directories for {operation}")
+    console.print_run_title(args, f"Listing files and directories for {operation}")
     logger.info("")
     logger.info("Searching for everything backed up from %s ...", search_directory)
     return search_backups(

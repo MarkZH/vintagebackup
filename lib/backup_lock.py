@@ -3,7 +3,7 @@
 import os
 from pathlib import Path
 
-from lib.exceptions import ConcurrencyError
+import lib.exceptions as exc
 
 
 class Backup_Lock:
@@ -42,7 +42,7 @@ class Backup_Lock:
             except FileNotFoundError:
                 continue
 
-            raise ConcurrencyError(
+            raise exc.ConcurrencyError(
                 f"Vintage Backup is already running {other_operation} on "
                 f"{self.lock_file_path.parent} (PID {other_pid})")
 

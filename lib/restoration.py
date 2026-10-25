@@ -5,12 +5,12 @@ import shutil
 import argparse
 from pathlib import Path
 
-from lib.argument_parser import confirm_choice_made
-from lib.backup_utilities import all_backups, find_previous_backup
-from lib.backup_info import backup_source
-from lib.console import cancel_key, choose_from_menu, print_run_title
-from lib.exceptions import CommandLineError
-from lib.filesystem import absolute_path, delete_path, get_existing_path
+import lib.argument_parser as argparser
+import lib.backup_utilities as util
+import lib.backup_info as info
+from lib import console
+import lib.exceptions as exc
+import lib.filesystem as fs
 
 logger = logging.getLogger()
 
@@ -25,12 +25,12 @@ def choose_backup(backup_folder: Path) -> Path | None:
     Returns:
         A path to a dated backup folder, if there are any to choose from.
     """
-    backup_choices = all_backups(backup_folder)
+    backup_choices = util.all_backups(backup_folder)
     if not backup_choices:
         return None
 
     menu_choices = [str(backup.relative_to(backup_folder)) for backup in backup_choices]
-    return backup_choices[choose_from_menu(menu_choices, "Backup to restore")]
+    return backup_choices[console.choose_from_menu(menu_choices, "Backup to restore")]
 
 
 def restore_backup(
@@ -50,7 +50,7 @@ def restore_backup(
             backup.
     """
     root_backup_folder = dated_backup_folder.parent.parent
-    user_folder = backup_source(root_backup_folder)
+    user_folder = info.backup_source(root_backup_folder)
     if user_folder:
         logger.info("Original data from  : %s", user_folder)
     logger.info("Restoring from      : %s", dated_backup_folder)
@@ -85,7 +85,7 @@ def restore_backup(
             for new_name in user_paths - backed_up_paths:
                 new_path = current_user_folder/new_name
                 logger.debug("Deleting extra item %s", new_path)
-                delete_path(new_path, ignore_errors=True)
+                fs.delete_path(new_path, ignore_errors=True)
 
 
 def start_backup_restore(args: argparse.Namespace) -> None:
@@ -98,22 +98,22 @@ def start_backup_restore(args: argparse.Namespace) -> None:
     Raises:
         CommandLineError: If no --destination argument is provided or no backups were found
     """
-    backup_folder = get_existing_path(args.backup_folder, "backup folder")
+    backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
     if not args.destination:
-        raise CommandLineError("The --destination argument is required for restoring backups.")
-    destination = absolute_path(args.destination)
-    confirm_choice_made(args, "delete_extra", "keep_extra")
+        raise exc.CommandLineError("The --destination argument is required for restoring backups.")
+    destination = fs.absolute_path(args.destination)
+    argparser.confirm_choice_made(args, "delete_extra", "keep_extra")
     delete_extra_files = bool(args.delete_extra)
 
-    confirm_choice_made(args, "last_backup", "choose_backup")
+    argparser.confirm_choice_made(args, "last_backup", "choose_backup")
     restore_source = (
-        find_previous_backup(backup_folder) if args.last_backup
+        util.find_previous_backup(backup_folder) if args.last_backup
         else choose_backup(backup_folder))
 
     if not restore_source:
-        raise CommandLineError(f"No backups found in {backup_folder}")
+        raise exc.CommandLineError(f"No backups found in {backup_folder}")
 
-    print_run_title(args, "Restoring user data from backup")
+    console.print_run_title(args, "Restoring user data from backup")
 
     required_response = "yes"
     logger.info("")
@@ -128,7 +128,7 @@ def start_backup_restore(args: argparse.Namespace) -> None:
 
     response = input(
         f'Do you want to continue? Type "{required_response}" to proceed '
-        f'or press {cancel_key()} to cancel: ')
+        f'or press {console.cancel_key()} to cancel: ')
 
     if response.strip().lower() == required_response:
         restore_backup(restore_source, destination, delete_extra_files=delete_extra_files)

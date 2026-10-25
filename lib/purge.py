@@ -5,11 +5,11 @@ import logging
 from collections import Counter
 from pathlib import Path
 
-from lib.backup import backup_staging_folder
-from lib.backup_utilities import all_backups, find_previous_backup
-from lib.console import choose_from_menu, plural_noun, print_run_title
+import lib.backup as bak
+import lib.backup_utilities as util
+from lib import console
 import lib.filesystem as fs
-from lib import recovery
+import lib.recovery as recover
 
 logger = logging.getLogger()
 
@@ -22,7 +22,7 @@ def choose_purge_target_from_backups(args: argparse.Namespace) -> None:
         args: Parsed command line options
     """
     backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
-    chosen_purge_path = recovery.choose_target_path_from_backups(args)
+    chosen_purge_path = recover.choose_target_path_from_backups(args)
     if chosen_purge_path:
         purge_path(chosen_purge_path, backup_folder)
 
@@ -36,7 +36,7 @@ def start_backup_purge(args: argparse.Namespace) -> None:
     """
     backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
     purge_target = fs.absolute_path(args.purge)
-    print_run_title(args, "Purging from backups")
+    console.print_run_title(args, "Purging from backups")
     purge_path(purge_target, backup_folder)
 
 
@@ -48,9 +48,9 @@ def purge_path(purge_target: Path, backup_folder: Path) -> None:
         purge_target: The file or folder in the user's data that should be deleted from all backups
         backup_folder: The folder containing all dated backups
     """
-    relative_purge_target = recovery.path_relative_to_backups(purge_target, backup_folder)
+    relative_purge_target = recover.path_relative_to_backups(purge_target, backup_folder)
 
-    backup_list = all_backups(backup_folder)
+    backup_list = util.all_backups(backup_folder)
     potential_deletions = (backup/relative_purge_target for backup in backup_list)
     paths_to_delete = list(filter(lambda p: p.exists(follow_symlinks=False), potential_deletions))
     logger.info("")
@@ -62,7 +62,8 @@ def purge_path(purge_target: Path, backup_folder: Path) -> None:
     types_to_delete = choose_types_to_delete(paths_to_delete, path_type_counts)
 
     type_choice_data = [(path_type_counts[path_type], path_type) for path_type in types_to_delete]
-    type_list = [f"{plural_noun(count, path_type)}" for count, path_type in type_choice_data]
+    type_list = [
+        f"{console.plural_noun(count, path_type)}" for count, path_type in type_choice_data]
     logger.info("Path to be purged from backups: %s", purge_target)
     prompt = f"The following items will be deleted: {", ".join(type_list)}.\nProceed? [y/n] "
     confirmation = input(prompt)
@@ -75,8 +76,8 @@ def purge_path(purge_target: Path, backup_folder: Path) -> None:
             logger.info("Deleting %s %s ...", path_type, path)
             fs.delete_path(path, ignore_errors=True)
 
-    last_backup = find_previous_backup(backup_folder)
-    if backup_list[-1] != last_backup or backup_staging_folder(backup_folder).exists():
+    last_backup = util.find_previous_backup(backup_folder)
+    if backup_list[-1] != last_backup or bak.backup_staging_folder(backup_folder).exists():
         logger.warning(
             "A backup to %s ran during purging. You may want to rerun the "
             "purge after the backup completes.",
@@ -110,6 +111,6 @@ def choose_types_to_delete(
         all_choice = f"All ({len(paths_to_delete)} items)"
         menu_choices.append(all_choice)
         prompt = "Multiple types of paths were found. Which one should be deleted?\nChoice"
-        choice = choose_from_menu(menu_choices, prompt)
+        choice = console.choose_from_menu(menu_choices, prompt)
         type_choices = sorted(path_type_counts.keys())
         return type_choices if menu_choices[choice] == all_choice else [type_choices[choice]]

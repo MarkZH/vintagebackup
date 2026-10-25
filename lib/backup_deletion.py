@@ -10,9 +10,9 @@ from pathlib import Path
 
 import lib.backup_utilities as util
 import lib.datetime_calculations as dates
-from lib.exceptions import CommandLineError
+import lib.exceptions as exc
 import lib.filesystem as fs
-from lib.verification import verify_backup_checksum
+import lib.verification as verify
 from lib.backup_lock import Backup_Lock
 
 logger = logging.getLogger()
@@ -48,7 +48,7 @@ def delete_oldest_backups_for_space(
     free_storage_required = fs.parse_storage_space(space_requirement)
 
     if free_storage_required > total_storage:
-        raise CommandLineError(
+        raise exc.CommandLineError(
             f"Cannot free more storage ({fs.byte_units(free_storage_required)})"
             f" than exists at {backup_location} ({fs.byte_units(total_storage)})")
 
@@ -119,7 +119,7 @@ def delete_single_backup(backup: Path, verify_checksum_result_folder: Path | Non
     """
     if verify_checksum_result_folder:
         with contextlib.suppress(FileNotFoundError):
-            verify_backup_checksum(backup, verify_checksum_result_folder)
+            verify.verify_backup_checksum(backup, verify_checksum_result_folder)
             logger.info("")
             logger.info("Continuing deletion of backup: %s", backup)
 
@@ -153,13 +153,13 @@ def delete_oldest_backup(
     """
     backups = util.all_backups(backup_location)
     if not backups:
-        raise CommandLineError("No backups to delete.")
+        raise exc.CommandLineError("No backups to delete.")
 
     if len(backups) == 1:
-        raise CommandLineError("Last remaining backup will not be deleted.")
+        raise exc.CommandLineError("Last remaining backup will not be deleted.")
 
     if len(backups) <= min_backups_remaining:
-        raise CommandLineError("Reached maximum number of backup deletions this session.")
+        raise exc.CommandLineError("Reached maximum number of backup deletions this session.")
 
     oldest_backup = backups[0]
     logger.info("")
@@ -293,7 +293,7 @@ def check_time_span_parameters(args: argparse.Namespace) -> None:
 
         date_cutoff = dates.past_timepoint(time_span_str, now)
         if last_date_cutoff and date_cutoff >= last_date_cutoff:
-            raise CommandLineError(
+            raise exc.CommandLineError(
                 f"The {period_word} time span ({time_span_str}) is not longer than "
                 f"the {last_period_word} time span ({last_time_span_str}). "
                 "Less frequent backup specs must have longer time spans.")
@@ -320,7 +320,7 @@ def delete_old_backups(args: argparse.Namespace, *, delete_oldest: bool = False)
     """
     try:
         backup_folder = fs.get_existing_path(args.backup_folder, "backup folder")
-    except CommandLineError:
+    except exc.CommandLineError:
         if args.delete_only:
             raise
         else:

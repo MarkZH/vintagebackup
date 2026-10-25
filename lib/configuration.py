@@ -6,8 +6,8 @@ import argparse
 from pathlib import Path
 from typing import Any
 
-from lib.exceptions import CommandLineError
-from lib.filesystem import absolute_path, unique_path_name
+import lib.exceptions as exc
+import lib.filesystem as fs
 
 logger = logging.getLogger()
 
@@ -36,7 +36,7 @@ def generate_config(args: argparse.Namespace) -> Path:
         arguments.append((option, value))
 
     arguments = [(arg, val) for arg, val in arguments if arg not in no_arguments]
-    config_path = unique_path_name(absolute_path(args.generate_config))
+    config_path = fs.unique_path_name(fs.absolute_path(args.generate_config))
     with config_path.open("w", encoding="utf8") as config_file:
         for option, value in arguments:
             parameter = option.replace("_", " ").capitalize()
@@ -44,7 +44,7 @@ def generate_config(args: argparse.Namespace) -> Path:
             is_path = option in {"user_folder", "backup_folder", "filter", "destination"}
             is_non_null_log = option == "log" and value_string != os.devnull
             if is_path or is_non_null_log:
-                value_string = str(absolute_path(value_string))
+                value_string = str(fs.absolute_path(value_string))
             needs_quotes = (value_string.strip() != value_string)
             parameter_value = f'"{value_string}"' if needs_quotes else value_string
             config_file.write(f"{parameter}: {parameter_value}".strip() + "\n")
@@ -78,7 +78,7 @@ def read_configuation_file(config_file: Path) -> list[str]:
 
                 parameter = "-".join(parameter_raw.lower().split())
                 if parameter == "config":
-                    raise CommandLineError(
+                    raise exc.CommandLineError(
                         "The parameter `config` is not allowed within a configuration file.")
                 arguments.append(f"--{parameter}")
 
@@ -87,7 +87,7 @@ def read_configuation_file(config_file: Path) -> list[str]:
                     arguments.append(value)
             return arguments
     except FileNotFoundError:
-        raise CommandLineError(f"Configuation file does not exist: {config_file}") from None
+        raise exc.CommandLineError(f"Configuation file does not exist: {config_file}") from None
 
 
 def remove_quotes(s: str) -> str:

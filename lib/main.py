@@ -4,26 +4,26 @@ import argparse
 import logging
 import shutil
 
-from lib.argument_parser import parse_command_line, print_help, print_usage, toggle_is_set
-from lib.automation import generate_windows_scripts
-from lib.backup import start_backup, print_backup_storage_stats
-from lib.backup_deletion import delete_old_backups
+import lib.argument_parser as argparser
+import lib.automation as auto
+import lib.backup as bak
+import lib.backup_deletion as delete
 from lib.backup_set import preview_filter
-from lib.backup_utilities import all_backups
-from lib.configuration import generate_config
-from lib.console import print_run_title
+import lib.backup_utilities as util
+import lib.configuration as config
+from lib import console
 import lib.exceptions as exc
-from lib.filesystem import absolute_path, parse_storage_space
-from lib.logs import setup_initial_null_logger, setup_log_file
-from lib.move_backups import start_move_backups
-from lib.purge import choose_purge_target_from_backups, start_backup_purge
-from lib.recovery import choose_recovery_target_from_backups, start_recovery_from_backup
-from lib.find_missing import start_finding_missing_files
-from lib.restoration import start_backup_restore
-from lib.verification import start_verify_backup, start_checksum, start_verify_checksum
+import lib.filesystem as fs
+from lib import logs
+import lib.move_backups as move
+from lib import purge
+import lib.recovery as recover
+import lib.find_missing as missing
+import lib.restoration as restore
+import lib.verification as verify
 
 logger = logging.getLogger()
-setup_initial_null_logger()
+logs.setup_initial_null_logger()
 
 
 def default_action(args: argparse.Namespace) -> None:
@@ -33,12 +33,12 @@ def default_action(args: argparse.Namespace) -> None:
     Arguments:
         args: Parsed command line options
     """
-    print_run_title(args, "Starting new backup")
+    console.print_run_title(args, "Starting new backup")
     backup_cycle(args)
-    delete_old_backups(args)
-    start_verify_backup(args)
-    start_checksum(args)
-    print_backup_storage_stats(absolute_path(args.backup_folder))
+    delete.delete_old_backups(args)
+    verify.start_verify_backup(args)
+    verify.start_checksum(args)
+    bak.print_backup_storage_stats(fs.absolute_path(args.backup_folder))
 
 
 def backup_cycle(args: argparse.Namespace) -> None:
@@ -57,12 +57,12 @@ def backup_cycle(args: argparse.Namespace) -> None:
 
     while True:
         try:
-            delete_old_backups(args, delete_oldest=delete_oldest)
+            delete.delete_old_backups(args, delete_oldest=delete_oldest)
             if delete_oldest:
                 logger.info("")
                 logger.info("Restarting backup")
             delete_oldest = False
-            start_backup(args)
+            bak.start_backup(args)
             break
         except exc.OutOfSpaceError as error:
             if args.free_up == "auto":
@@ -74,15 +74,15 @@ def backup_cycle(args: argparse.Namespace) -> None:
                 raise
 
             logger.warning("Could not complete backup. %s", error)
-            free_up_space = parse_storage_space(args.free_up)
-            backup_location = absolute_path(args.backup_folder)
+            free_up_space = fs.parse_storage_space(args.free_up)
+            backup_location = fs.absolute_path(args.backup_folder)
             free_space = shutil.disk_usage(backup_location).free
             if free_up_space < free_space:
                 raise exc.CommandLineError(
                     "Cannot free up enough space to complete backup. "
                     f"Increase value of --free-up. Currently: {args.free_up}") from None
 
-            backup_count = len(all_backups(backup_location))
+            backup_count = len(util.all_backups(backup_location))
             if backup_count == 1:
                 raise exc.CommandLineError(
                     f"Cannot free up enough space at {backup_location} to complete backup "
@@ -106,28 +106,28 @@ def main(argv: list[str], *, testing: bool) -> int:
         int: Exit code: 0 for success, 1 for failure.
     """
     try:
-        args = parse_command_line(argv)
+        args = argparser.parse_command_line(argv)
         if args.help:
-            print_help()
+            argparser.print_help()
             return 0
 
-        debug_output = toggle_is_set(args, "debug")
-        setup_log_file(args.log, args.error_log, args.backup_folder, debug=debug_output)
+        debug_output = argparser.toggle_is_set(args, "debug")
+        logs.setup_log_file(args.log, args.error_log, args.backup_folder, debug=debug_output)
         logger.debug(args)
 
         action = (
-            generate_config if args.generate_config
-            else generate_windows_scripts if args.generate_windows_scripts
-            else start_recovery_from_backup if args.recover
-            else choose_recovery_target_from_backups if args.list
-            else start_finding_missing_files if args.find_missing
-            else start_move_backups if args.move_backup
-            else start_verify_backup if args.verify_only
-            else start_verify_checksum if args.verify_checksum
-            else start_backup_restore if args.restore
-            else start_backup_purge if args.purge
-            else choose_purge_target_from_backups if args.purge_list
-            else delete_old_backups if args.delete_only
+            config.generate_config if args.generate_config
+            else auto.generate_windows_scripts if args.generate_windows_scripts
+            else recover.start_recovery_from_backup if args.recover
+            else recover.choose_recovery_target_from_backups if args.list
+            else missing.start_finding_missing_files if args.find_missing
+            else move.start_move_backups if args.move_backup
+            else verify.start_verify_backup if args.verify_only
+            else verify.start_verify_checksum if args.verify_checksum
+            else restore.start_backup_restore if args.restore
+            else purge.start_backup_purge if args.purge
+            else purge.choose_purge_target_from_backups if args.purge_list
+            else delete.delete_old_backups if args.delete_only
             else preview_filter if args.preview_filter is not None
             else preview_filter if args.preview_filter_exclusions is not None
             else default_action)
@@ -135,7 +135,7 @@ def main(argv: list[str], *, testing: bool) -> int:
         return 0
     except exc.CommandLineError as error:
         if not testing:
-            print_usage()
+            argparser.print_usage()
         logger.error(error)
     except (exc.ConcurrencyError, exc.OutOfSpaceError, exc.FilterFileError) as error:
         logger.error(error)
