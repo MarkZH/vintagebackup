@@ -8,13 +8,13 @@ if sys.version_info < minimum_python_version:
     print(f"Vintage Backup requires Python {'.'.join(map(str, minimum_python_version))} or later.")
     sys.exit(1)
 
-from lib.main import main  # ruff:ignore[module-import-not-at-top-of-file]
+from lib import main  # ruff:ignore[module-import-not-at-top-of-file]
 
 if __name__ == "__main__":
     try:
         logger = logging.getLogger()
         logger.setLevel(logging.INFO)
         logger.addHandler(logging.StreamHandler(sys.stdout))
-        sys.exit(main(sys.argv, testing=False))
+        sys.exit(main.main(sys.argv, testing=False))
     except KeyboardInterrupt:
         sys.exit(1)

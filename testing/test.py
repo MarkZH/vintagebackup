@@ -43,7 +43,7 @@ import lib.verification as verify
 import lib.configuration as config
 import lib.backup_lock as lock
 from lib import console
-from lib.exceptions import CommandLineError, ConcurrencyError, OutOfSpaceError
+import lib.exceptions as exc
 from lib import find_missing
 
 
@@ -842,7 +842,7 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
             default_backup(other_user_path, self.backup_path)
 
             create_user_data(self.user_path)
-            with self.assertRaises(CommandLineError):
+            with self.assertRaises(exc.CommandLineError):
                 default_backup(self.user_path, self.backup_path)
 
     def test_warn_when_backup_is_larger_than_free_up(self) -> None:
@@ -927,7 +927,7 @@ class BackupTests(TestCaseWithTemporaryFilesAndFolders):
         """Check that error is raised when attempted to change the source of a backup set."""
         with tempfile.TemporaryDirectory() as other_user_folder:
             other_user_path = Path(other_user_folder)
-            with self.assertRaises(CommandLineError) as error:
+            with self.assertRaises(exc.CommandLineError) as error:
                 default_backup(self.user_path, self.backup_path)
                 default_backup(other_user_path, self.backup_path)
 
@@ -1681,7 +1681,7 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
             "--backup-folder", str(self.backup_path),
             "--list", str(bad_directory)]
         args = argparse.parse_command_line(arguments)
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             recovery.choose_target_path_from_backups(args)
         self.assertEqual(
             error.exception.args[0],
@@ -1697,7 +1697,7 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
             "--backup-folder", str(self.backup_path),
             "--list", str(bad_directory)]
         args = argparse.parse_command_line(arguments)
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             recovery.choose_target_path_from_backups(args)
         self.assertEqual(
             error.exception.args[0],
@@ -1765,7 +1765,7 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
         bad_directory = self.user_path/"does-not-exist"
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             recovery.search_backups(
                 bad_directory,
                 self.backup_path,
@@ -1781,7 +1781,7 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
         default_backup(self.user_path, self.backup_path)
         bad_directory = self.user_path/"does-not-exist"
         bad_directory.touch()
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             recovery.search_backups(
                 bad_directory,
                 self.backup_path,
@@ -1857,7 +1857,7 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
             "--backup-folder", str(self.backup_path),
             "--list", str(bad_directory)]
         args = argparse.parse_command_line(arguments)
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             recovery.choose_recovery_target_from_backups(args)
         self.assertEqual(
             error.exception.args[0],
@@ -1873,7 +1873,7 @@ class RecoveryTests(TestCaseWithTemporaryFilesAndFolders):
             "--backup-folder", str(self.backup_path),
             "--list", str(bad_directory)]
         args = argparse.parse_command_line(arguments)
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             recovery.choose_recovery_target_from_backups(args)
         self.assertEqual(
             error.exception.args[0],
@@ -2210,7 +2210,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         """Test that error is thrown when trying to free too much space."""
         max_space = shutil.disk_usage(self.backup_path).total
         too_much_space = 2*max_space
-        with self.assertRaises(CommandLineError):
+        with self.assertRaises(exc.CommandLineError):
             deletion.delete_oldest_backups_for_space(self.backup_path, f"{too_much_space}B", None)
 
     def test_deleting_last_backup_in_year_folder_deletes_year_folder(self) -> None:
@@ -2305,7 +2305,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_incorrect_keep_x_after_parameters_raise_exceptions(self) -> None:
         """Test that less frequent backup retention specs having smaller time spans is an error."""
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             args = [
                 "--keep-weekly-after", "2m",
                 "--keep-monthly-after", "1m",
@@ -2318,7 +2318,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
                 "Less frequent backup specs must have longer time spans.")
         self.assertEqual(error.exception.args, (error_message,))
 
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             args = [
                 "--keep-weekly-after", "100d",
                 "--keep-yearly-after", "2m",
@@ -2331,7 +2331,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
                 "Less frequent backup specs must have longer time spans.")
         self.assertEqual(error.exception.args, (error_message,))
 
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             args = [
                 "--keep-monthly-after", "60w",
                 "--keep-yearly-after", "1y",
@@ -2442,7 +2442,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             "--free-up", str(file_size//10)])
         with (patch("lib.backup.shutil.disk_usage", mock_storage),
               patch("lib.backup.shutil.copy2", MockCopy2()),
-              self.assertRaises(CommandLineError) as error):
+              self.assertRaises(exc.CommandLineError) as error):
             main.default_action(args)
 
         error_message = (
@@ -2460,7 +2460,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             "--free-up", str(mock_storage.total_size())])
         with (patch("lib.backup.shutil.disk_usage", mock_storage),
               patch("lib.backup.shutil.copy2", MockCopy2()),
-              self.assertRaises(CommandLineError) as error):
+              self.assertRaises(exc.CommandLineError) as error):
             main.default_action(args)
 
         error_message = f"There is not enough space at {self.backup_path} to create a backup."
@@ -2477,7 +2477,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             "--free-up", str(mock_storage.total_size())])
         with (patch("lib.backup.shutil.disk_usage", mock_storage),
               patch("lib.backup.shutil.copy2", MockCopy2()),
-              self.assertRaises(CommandLineError) as error):
+              self.assertRaises(exc.CommandLineError) as error):
             main.default_action(args)
 
         error_message = (
@@ -2495,7 +2495,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
             "-b", str(self.backup_path)])
         with (patch("lib.backup.shutil.disk_usage", mock_storage),
               patch("lib.backup.shutil.copy2", MockCopy2()),
-              self.assertRaises(OutOfSpaceError)):
+              self.assertRaises(exc.OutOfSpaceError)):
             main.default_action(args)
 
     def test_free_up_auto_does_nothing_when_enough_space_for_backup(self) -> None:
@@ -2572,14 +2572,14 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_delete_oldest_backup_raises_exception_if_no_backups(self) -> None:
         """Test delete_oldest_backup() raises an exception if there are no backups to delete."""
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             deletion.delete_oldest_backup(self.backup_path, 0, None)
         self.assertEqual(error.exception.args, ("No backups to delete.",))
 
     def test_delete_oldest_backup_raises_exception_if_only_one_backup(self) -> None:
         """Test delete_oldest_backup() raises an exception if there is one backup left."""
         create_old_monthly_backups(self.backup_path, 1)
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             deletion.delete_oldest_backup(self.backup_path, 0, None)
         self.assertEqual(error.exception.args, ("Last remaining backup will not be deleted.",))
 
@@ -2587,7 +2587,7 @@ class DeleteBackupTests(TestCaseWithTemporaryFilesAndFolders):
         """Test delete_oldest_backup() raises an exception if there is one backup left."""
         backup_count = 10
         create_old_monthly_backups(self.backup_path, backup_count)
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             deletion.delete_oldest_backup(self.backup_path, backup_count, None)
         self.assertEqual(
             error.exception.args,
@@ -2986,7 +2986,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
     def test_verification_with_no_backups_raises_error(self) -> None:
         """Test that verification raises an error when there are no backups."""
         backup_info.record_user_location(self.user_path, self.backup_path)
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             verify.verify_last_backup(self.user_path, self.backup_path, None)
         self.assertTrue(error.exception.args[0].startswith("No backups found in "))
 
@@ -2996,7 +2996,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         default_backup(self.user_path, self.backup_path)
 
         self.reset_user_folder()
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             verify.verify_last_backup(self.user_path, self.backup_path, None)
         self.assertTrue(error.exception.args[0].startswith("Could not find user folder: "))
 
@@ -3009,7 +3009,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
         self.assertIsNotNone(last_backup)
         last_backup = cast(Path, last_backup)
         fs.delete_directory_tree(last_backup)
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             verify.verify_last_backup(self.user_path, self.backup_path, None)
         self.assertTrue(error.exception.args[0].startswith("No backups found in "))
 
@@ -3022,7 +3022,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
     def test_verification_with_no_backups_is_error(self) -> None:
         """Test that calling verify_last_backup() with no backups is an error."""
         backup_info.record_user_location(self.user_path, self.backup_path)
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             verify.verify_last_backup(self.user_path, self.backup_path, None)
         self.assertTrue(error.exception.args[0].startswith("No backups"))
 
@@ -3288,7 +3288,7 @@ class VerificationTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_checksum_with_no_backups_is_error(self) -> None:
         """Test that calling create_checksum_for_last_backup() with no backups is an error."""
-        with self.assertRaises(CommandLineError):
+        with self.assertRaises(exc.CommandLineError):
             verify.create_checksum_for_last_backup(self.backup_path)
 
     def test_checksum_date_is_found_if_checksum_performed(self) -> None:
@@ -4000,7 +4000,7 @@ checksum:
     def test_recursive_config_files_are_not_allowed(self) -> None:
         """Test that putting a config parameter in a configuration file raises an exception."""
         self.config_path.write_text("config: config_file_2.txt", encoding="utf8")
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             config.read_configuation_file(Path(self.config_path))
         self.assertEqual(
             error.exception.args,
@@ -4008,7 +4008,7 @@ checksum:
 
     def test_missing_config_file_error(self) -> None:
         """Test that a missing configuration file raises a CommandLineError."""
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             config.read_configuation_file(self.config_path)
         self.assertEqual(
             error.exception.args,
@@ -4280,7 +4280,7 @@ class RestorationTests(TestCaseWithTemporaryFilesAndFolders):
             "--destination", str(self.user_path),
             "--choose-backup",
             "--delete-extra"])
-        with self.assertRaises(CommandLineError):
+        with self.assertRaises(exc.CommandLineError):
             restoration.start_backup_restore(args)
 
     def test_choose_backup_with_no_previous_backups_returns_none(self) -> None:
@@ -4322,7 +4322,7 @@ class BackupLockTests(TestCaseWithTemporaryFilesAndFolders):
                 force_copy=False)
             self.assertNotEqual(exit_code, 0)
 
-            with self.assertRaises(ConcurrencyError):
+            with self.assertRaises(exc.ConcurrencyError):
                 options = argparse.argument_parser()
                 args = options.parse_args([
                     "--user-folder", str(self.user_path),
@@ -4400,7 +4400,7 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
             self.assertEqual(logs.output, expected_logs)
 
         for bad_value in ["-1", "0", "1.5"]:
-            with self.assertRaises(CommandLineError):
+            with self.assertRaises(exc.CommandLineError):
                 bak.copy_probability_from_hard_link_count(bad_value)
 
     def test_copy_probability_decimal_must_be_between_zero_and_one(self) -> None:
@@ -4417,7 +4417,7 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
             self.assertEqual(logs.output, expected_logs)
 
         for bad_value in ["-1.0", "1.5"]:
-            with self.assertRaises(CommandLineError):
+            with self.assertRaises(exc.CommandLineError):
                 bak.parse_probability(bad_value)
 
     def test_copy_probability_percent_must_be_between_zero_and_one_hundred(self) -> None:
@@ -4427,7 +4427,7 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
             self.assertEqual(decimal, bak.parse_probability(good_value))
 
         for bad_value in ["-100%", "150%"]:
-            with self.assertRaises(CommandLineError):
+            with self.assertRaises(exc.CommandLineError):
                 bak.parse_probability(bad_value)
 
     def test_copy_probability_zero_hard_links_all_files(self) -> None:
@@ -4508,7 +4508,7 @@ class CopyProbabilityTests(TestCaseWithTemporaryFilesAndFolders):
     def test_copy_probability_with_non_positive_argument_is_an_error(self) -> None:
         """Any argument to --hard-link-count that is not a positive integer raises an exception."""
         for bad_arg in ("-1", "0", "z"):
-            with self.assertRaises(CommandLineError):
+            with self.assertRaises(exc.CommandLineError):
                 bak.copy_probability_from_hard_link_count(bad_arg)
 
     def test_copy_probability_returns_one_over_n_plus_one_for_n_hard_links(self) -> None:
@@ -4973,12 +4973,12 @@ class ParseStorageTests(unittest.TestCase):
 
     def test_parse_storage_space_argument_with_no_numbers_is_an_error(self) -> None:
         """Test that sending non-numeric text to parse_strorage_space() is an error."""
-        with self.assertRaises(CommandLineError):
+        with self.assertRaises(exc.CommandLineError):
             fs.parse_storage_space("abcdefg")
 
     def test_parse_storage_space_argument_with_invalid_unit_is_an_error(self) -> None:
         """Test that an invalid unit raises an exception in parse_storage_space."""
-        with self.assertRaises(CommandLineError):
+        with self.assertRaises(exc.CommandLineError):
             fs.parse_storage_space("123 AB")
 
     def test_parse_storage_space_and_byte_units_are_inverses(self) -> None:
@@ -4990,7 +4990,7 @@ class ParseStorageTests(unittest.TestCase):
 
     def test_parse_storage_space_with_empty_string_is_an_error(self) -> None:
         """Test that an empty string causes a CommandLineError in parse_storage_space."""
-        with self.assertRaises(CommandLineError):
+        with self.assertRaises(exc.CommandLineError):
             fs.parse_storage_space("")
 
     def test_number_part_of_byte_units_result_is_less_than_one_thousand(self) -> None:
@@ -5114,25 +5114,25 @@ class ParseTimeSpanTests(unittest.TestCase):
 
     def test_parse_past_timespan_with_no_numeric_part_is_an_error(self) -> None:
         """Test that the lack of a number in the argument is an error."""
-        with self.assertRaises(CommandLineError):
+        with self.assertRaises(exc.CommandLineError):
             dates.past_timepoint("y")
 
     def test_parse_past_timespan_with_no_time_unit_part_is_an_error(self) -> None:
         """Test that the lack of a unit in the argument is an error."""
-        with self.assertRaises(CommandLineError):
+        with self.assertRaises(exc.CommandLineError):
             dates.past_timepoint("100")
 
     def test_parse_past_timespan_with_small_or_negative_number_is_an_error(self) -> None:
         """Test that the lack of a unit in the argument is an error."""
-        with self.assertRaises(CommandLineError):
+        with self.assertRaises(exc.CommandLineError):
             dates.past_timepoint("0.5d")
 
-        with self.assertRaises(CommandLineError):
+        with self.assertRaises(exc.CommandLineError):
             dates.past_timepoint("-2y")
 
     def test_parse_past_timespan_with_invalid_time_unit_is_an_error(self) -> None:
         """Test that an unknown time unit raise an exception."""
-        with self.assertRaises(CommandLineError):
+        with self.assertRaises(exc.CommandLineError):
             dates.past_timepoint("3u")
 
     def test_parse_past_timespan_correctly_calculates_days_ago(self) -> None:
@@ -5192,25 +5192,25 @@ class ParseTimeSpanTests(unittest.TestCase):
 
     def test_parse_future_timespan_with_no_numeric_part_is_an_error(self) -> None:
         """Test that the lack of a number in the argument is an error."""
-        with self.assertRaises(CommandLineError):
+        with self.assertRaises(exc.CommandLineError):
             dates.future_timepoint("y")
 
     def test_parse_future_timespan_with_no_time_unit_part_is_an_error(self) -> None:
         """Test that the lack of a unit in the argument is an error."""
-        with self.assertRaises(CommandLineError):
+        with self.assertRaises(exc.CommandLineError):
             dates.future_timepoint("100")
 
     def test_parse_future_timespan_with_small_or_negative_number_is_an_error(self) -> None:
         """Test that the lack of a unit in the argument is an error."""
-        with self.assertRaises(CommandLineError):
+        with self.assertRaises(exc.CommandLineError):
             dates.future_timepoint("0.5d")
 
-        with self.assertRaises(CommandLineError):
+        with self.assertRaises(exc.CommandLineError):
             dates.future_timepoint("-2y")
 
     def test_parse_future_timespan_with_invalid_time_unit_is_an_error(self) -> None:
         """Test that an unknown time unit raise an exception."""
-        with self.assertRaises(CommandLineError):
+        with self.assertRaises(exc.CommandLineError):
             dates.future_timepoint("3u")
 
     def test_parse_future_timespan_correctly_calculates_days_ago(self) -> None:
@@ -5407,7 +5407,7 @@ class ConfirmChoiceMadeTests(unittest.TestCase):
 
     def test_zero_choices_is_an_error(self) -> None:
         """Test that choosing none of a required set is an error."""
-        with self.assertRaises(CommandLineError):
+        with self.assertRaises(exc.CommandLineError):
             argparse.confirm_choice_made(self.args, "no_argument_1", "no_argument_2")
 
     def test_one_choice_is_not_an_error(self) -> None:
@@ -5416,7 +5416,7 @@ class ConfirmChoiceMadeTests(unittest.TestCase):
 
     def test_two_choices_is_an_error(self) -> None:
         """Test that picking two choices when one is required is an error."""
-        with self.assertRaises(CommandLineError):
+        with self.assertRaises(exc.CommandLineError):
             argparse.confirm_choice_made(self.args, "user_folder", "backup_folder")
 
 
@@ -5451,7 +5451,7 @@ class ConfirmUserLocationIsUnchangedTests(TestCaseWithTemporaryFilesAndFolders):
             copy_probability=0.0,
             timestamp=None)
 
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             backup_info.confirm_user_location_is_unchanged(self.backup_path, self.backup_path)
 
         self.assertIn("different user folder", error.exception.args[0])
@@ -6118,7 +6118,7 @@ class ValidPathsTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_non_existent_user_folder_raises_exception(self) -> None:
         """A missing user folder raises a CommandLineError."""
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             bak.check_paths_for_validity(
                 self.user_path/"non-existent",
                 self.backup_path,
@@ -6127,7 +6127,7 @@ class ValidPathsTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_user_folder_is_file_raises_exception(self) -> None:
         """A user folder that's actually a file raises a CommandLineError."""
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             user_file = self.user_path/"a_file.txt"
             user_file.touch()
             bak.check_paths_for_validity(user_file, self.backup_path, None)
@@ -6135,7 +6135,7 @@ class ValidPathsTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_backup_folder_is_file_raises_exception(self) -> None:
         """A backup folder that's actually a file raises a CommandLineError."""
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             backup_file = self.backup_path/"a_file.txt"
             backup_file.touch()
             bak.check_paths_for_validity(self.user_path, backup_file, None)
@@ -6143,13 +6143,13 @@ class ValidPathsTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_backup_folder_inside_user_folder_raises_exception(self) -> None:
         """Backing up a user folder to a location inside that folder raises a CommandLineError."""
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             bak.check_paths_for_validity(self.user_path, self.user_path/"backup", None)
         self.assertIn("Backup destination cannot be inside user's folder:", error.exception.args[0])
 
     def test_non_existent_filter_path_raises_exception(self) -> None:
         """Specifying a filter path that doesn't exist raises a CommandLineError."""
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             bak.check_paths_for_validity(self.user_path, self.backup_path, self.filter_path)
         self.assertIn("Filter file not found", error.exception.args[0])
 
@@ -6346,7 +6346,7 @@ class FolderNavigationTests(TestCaseWithTemporaryFilesAndFolders):
 
     def test_path_relative_to_backups_fails_when_no_backups(self) -> None:
         """If there are no backups, then path_relative_to_backups() fails."""
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             recovery.path_relative_to_backups(self.user_path/"test.txt", self.backup_path)
         self.assertTrue(error.exception.args[0].startswith("No backups found at "))
 
@@ -6355,7 +6355,7 @@ class FolderNavigationTests(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
 
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             recovery.path_relative_to_backups(self.user_path.parent/"file.txt", self.backup_path)
         self.assertIn(" is not contained in the backup set ", error.exception.args[0])
 
@@ -6375,7 +6375,7 @@ class FolderNavigationTests(TestCaseWithTemporaryFilesAndFolders):
         create_user_data(self.user_path)
         default_backup(self.user_path, self.backup_path)
 
-        with self.assertRaises(CommandLineError) as error:
+        with self.assertRaises(exc.CommandLineError) as error:
             recovery.directory_relative_to_backup(self.user_path/"root_file.txt", self.backup_path)
         self.assertTrue(
             error.exception.args[0].startswith("The given search path is not a directory: "))

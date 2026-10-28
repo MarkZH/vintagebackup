@@ -6,15 +6,15 @@ import argparse
 from pathlib import Path
 import math
 
-from lib.argument_parser import confirm_choice_made
-from lib.backup import create_new_backup
-import lib.backup_info as info
+import lib.argument_parser as argparser
+import lib.backup as bak
+from lib import backup_info
 from lib.backup_lock import Backup_Lock
-from lib.backup_utilities import all_backups, backup_datetime
-from lib.console import plural_noun, print_run_title
-from lib.datetime_calculations import past_timepoint
-from lib.exceptions import CommandLineError
-from lib.filesystem import absolute_path, get_existing_path
+import lib.backup_utilities as util
+from lib import console
+import lib.datetime_calculations as dates
+import lib.exceptions as exc
+import lib.filesystem as fs
 
 logger = logging.getLogger()
 
@@ -33,12 +33,12 @@ def move_backups(
     """
     move_count = len(backups_to_move)
     logger.info("")
-    logger.info("Moving %s", plural_noun(move_count, "backup"))
+    logger.info("Moving %s", console.plural_noun(move_count, "backup"))
     logger.info("from %s", old_backup_location)
     logger.info("to   %s", new_backup_location)
 
     for backup in backups_to_move:
-        create_new_backup(
+        bak.create_new_backup(
             backup,
             new_backup_location,
             filter_file=None,
@@ -46,20 +46,20 @@ def move_backups(
             force_copy=False,
             copy_probability=0.0,
             is_backup_move=True,
-            timestamp=backup_datetime(backup))
+            timestamp=util.backup_datetime(backup))
 
-        backup_source_file = info.get_backup_info_file(new_backup_location)
+        backup_source_file = backup_info.get_backup_info_file(new_backup_location)
         backup_source_file.unlink()
 
-    original_backup_source = info.backup_source(old_backup_location)
+    original_backup_source = backup_info.backup_source(old_backup_location)
     if original_backup_source:
-        info.record_user_location(original_backup_source, new_backup_location)
+        backup_info.record_user_location(original_backup_source, new_backup_location)
     else:
         logger.warning("Could not find source of user data in %s", old_backup_location)
 
-    old_log_file = info.backup_log_file(old_backup_location)
+    old_log_file = backup_info.backup_log_file(old_backup_location)
     if old_log_file:
-        info.record_backup_log_file(old_log_file, new_backup_location)
+        backup_info.record_backup_log_file(old_log_file, new_backup_location)
 
 
 def last_n_backups(n: str | int, backup_location: Path) -> list[Path]:
@@ -77,13 +77,13 @@ def last_n_backups(n: str | int, backup_location: Path) -> list[Path]:
     Raises:
         CommandLineError: If n is not a positive whole number or "all"
     """
-    backups = all_backups(backup_location)
+    backups = util.all_backups(backup_location)
     if str(n).lower() == "all":
         return backups
 
     count = int(n)
     if count < 1 or count != math.ceil(float(n)):
-        raise CommandLineError(f"Value must be a positive whole number: {n}")
+        raise exc.CommandLineError(f"Value must be a positive whole number: {n}")
 
     return backups[-count:]
 
@@ -92,9 +92,9 @@ def backups_since(oldest_backup_date: datetime.datetime, backup_location: Path) 
     """Return a list of the backups created since a given date."""
 
     def recent_enough(backup_folder: Path) -> bool:
-        return backup_datetime(backup_folder) >= oldest_backup_date
+        return util.backup_datetime(backup_folder) >= oldest_backup_date
 
-    return list(filter(recent_enough, all_backups(backup_location)))
+    return list(filter(recent_enough, util.all_backups(backup_location)))
 
 
 def start_move_backups(args: argparse.Namespace) -> None:
@@ -104,12 +104,12 @@ def start_move_backups(args: argparse.Namespace) -> None:
     Arguments:
         args: Parsed command line options
     """
-    old_backup_location = get_existing_path(args.backup_folder, "current backup location")
-    new_backup_location = absolute_path(args.move_backup)
+    old_backup_location = fs.get_existing_path(args.backup_folder, "current backup location")
+    new_backup_location = fs.absolute_path(args.move_backup)
     backups_to_move = choose_backups_to_move(args, old_backup_location)
     new_backup_location.mkdir(parents=True, exist_ok=True)
     with Backup_Lock(new_backup_location, "backup move"):
-        print_run_title(args, "Moving backups")
+        console.print_run_title(args, "Moving backups")
         move_backups(old_backup_location, new_backup_location, backups_to_move)
 
 
@@ -124,12 +124,12 @@ def choose_backups_to_move(args: argparse.Namespace, old_backup_location: Path) 
     Returns:
         list: A selection of backups to move to a new location.
     """
-    confirm_choice_made(args, "move_count", "move_age", "move_since")
+    argparser.confirm_choice_made(args, "move_count", "move_age", "move_since")
     backups_to_move: list[Path] = []
     if args.move_count:
         backups_to_move = last_n_backups(args.move_count, old_backup_location)
     elif args.move_age:
-        oldest_backup_date = past_timepoint(args.move_age)
+        oldest_backup_date = dates.past_timepoint(args.move_age)
         backups_to_move = backups_since(oldest_backup_date, old_backup_location)
     elif args.move_since:
         oldest_backup_date = datetime.datetime.strptime(args.move_since, "%Y-%m-%d")

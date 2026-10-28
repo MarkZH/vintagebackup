@@ -4,7 +4,7 @@ import logging
 import platform
 import argparse
 
-from lib.filesystem import absolute_path
+import lib.filesystem as fs
 
 logger = logging.getLogger()
 
@@ -84,4 +84,6 @@ def print_run_title(command_line_args: argparse.Namespace, action_title: str) ->
 
     if command_line_args.config:
         logger.info("")
-        logger.info("Reading configuration from file: %s", absolute_path(command_line_args.config))
+        logger.info(
+            "Reading configuration from file: %s",
+            fs.absolute_path(command_line_args.config))

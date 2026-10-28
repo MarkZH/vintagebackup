@@ -8,9 +8,9 @@ import textwrap
 from pathlib import Path
 from typing import TextIO
 
-from lib.configuration import read_configuation_file
-from lib.exceptions import CommandLineError
-from lib.filesystem import default_log_file_name
+import lib.configuration as config
+import lib.exceptions as exc
+import lib.filesystem as fs
 
 
 def format_paragraphs(lines: str, line_length: int) -> str:
@@ -142,7 +142,7 @@ def confirm_choice_made(args: argparse.Namespace, *options: str) -> None:
             message = message.replace(comma, " or ")
         else:
             message = f"{comma}or ".join(message.rsplit(comma, maxsplit=1))
-        raise CommandLineError(message)
+        raise exc.CommandLineError(message)
 
 
 def argument_parser() -> argparse.ArgumentParser:
@@ -501,7 +501,7 @@ See below for the configuration file format."""))
         "-l", "--log",
         help=format_help(
 f"""Where to log the activity of this program. The default is
-{default_log_file_name.name} in the user's home folder. If no
+{fs.default_log_file_name.name} in the user's home folder. If no
 log file is desired, use the file name {os.devnull}."""))
 
     other_group.add_argument("--error-log", help=format_help(
@@ -609,7 +609,7 @@ def parse_command_line(argv: list[str]) -> argparse.Namespace:
     user_input = argument_parser()
     command_line_args = user_input.parse_args(command_line_options)
     if command_line_args.config:
-        file_options = read_configuation_file(Path(command_line_args.config))
+        file_options = config.read_configuation_file(Path(command_line_args.config))
         return user_input.parse_args(file_options + command_line_options)
     else:
         return command_line_args
