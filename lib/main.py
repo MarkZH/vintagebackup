@@ -5,7 +5,7 @@ import logging
 import shutil
 
 import lib.argument_parser as argparser
-import lib.automation as auto
+import lib.automation as automate
 import lib.backup as bak
 import lib.backup_deletion as delete
 from lib.backup_set import preview_filter
@@ -117,7 +117,7 @@ def main(argv: list[str], *, testing: bool) -> int:
 
         action = (
             config.generate_config if args.generate_config
-            else auto.generate_windows_scripts if args.generate_windows_scripts
+            else automate.generate_windows_scripts if args.generate_windows_scripts
             else recover.start_recovery_from_backup if args.recover
             else recover.choose_recovery_target_from_backups if args.list
             else missing.start_finding_missing_files if args.find_missing
