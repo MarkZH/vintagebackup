@@ -3,7 +3,7 @@
 import logging
 import os
 
-import lib.backup_info as info
+from lib import backup_info
 import lib.filesystem as fs
 
 
@@ -36,10 +36,10 @@ def setup_log_file(
     """
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG if debug else logging.INFO)
-    log_file_path = info.primary_log_path(log_file_name, backup_folder)
+    log_file_path = backup_info.primary_log_path(log_file_name, backup_folder)
 
     if backup_folder and log_file_path:
-        info.record_backup_log_file(log_file_path, fs.absolute_path(backup_folder))
+        backup_info.record_backup_log_file(log_file_path, fs.absolute_path(backup_folder))
 
     log_format = "%(asctime)s %(levelname)s    %(message)s"
     if log_file_path:

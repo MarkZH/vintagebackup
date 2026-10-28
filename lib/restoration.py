@@ -7,7 +7,7 @@ from pathlib import Path
 
 import lib.argument_parser as argparser
 import lib.backup_utilities as util
-import lib.backup_info as info
+from lib import backup_info
 from lib import console
 import lib.exceptions as exc
 import lib.filesystem as fs
@@ -50,7 +50,7 @@ def restore_backup(
             backup.
     """
     root_backup_folder = dated_backup_folder.parent.parent
-    user_folder = info.backup_source(root_backup_folder)
+    user_folder = backup_info.backup_source(root_backup_folder)
     if user_folder:
         logger.info("Original data from  : %s", user_folder)
     logger.info("Restoring from      : %s", dated_backup_folder)

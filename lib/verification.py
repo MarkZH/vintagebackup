@@ -10,7 +10,7 @@ import tempfile
 import shutil
 
 import lib.backup_utilities as util
-import lib.backup_info as info
+from lib import backup_info
 from lib.backup_set import Backup_Set
 from lib import console
 import lib.exceptions as exc
@@ -31,7 +31,7 @@ def verify_last_backup(result_folder: Path, backup_folder: Path, filter_file: Pa
     Raises:
         CommandLineError: If the backup folder contains no backups
     """
-    user_folder = info.backup_source(backup_folder)
+    user_folder = backup_info.backup_source(backup_folder)
     if not user_folder:
         raise exc.CommandLineError(
             f"Could not find user data location from {backup_folder}") from None

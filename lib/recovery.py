@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import cast
 
 import lib.backup_utilities as util
-import lib.backup_info as info
+from lib import backup_info
 from lib import console
 import lib.exceptions as exc
 import lib.filesystem as fs
@@ -40,7 +40,7 @@ def search_backups(
             or None if no backed up files are found in the search_directory.
     """
     target_relative_path = directory_relative_to_backup(search_directory, backup_folder)
-    user_folder = info.backup_source(backup_folder)
+    user_folder = backup_info.backup_source(backup_folder)
     user_folder = cast(Path, user_folder)
 
     def include(relative_path: Path) -> bool:
@@ -262,7 +262,7 @@ def path_relative_to_backups(user_path: Path, backup_location: Path) -> Path:
     Raises:
         CommandLineError: If there are no backups or the user_path is not in the user's data
     """
-    user_data_location = info.backup_source(backup_location)
+    user_data_location = backup_info.backup_source(backup_location)
     if not user_data_location:
         raise exc.CommandLineError(f"No backups found at {backup_location}") from None
 

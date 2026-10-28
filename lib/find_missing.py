@@ -4,7 +4,7 @@ import argparse
 from pathlib import Path
 import logging
 
-import lib.backup_info as info
+from lib import backup_info
 from lib.backup_set import Backup_Set
 import lib.exceptions as exc
 import lib.backup_utilities as util
@@ -34,7 +34,7 @@ def find_missing_files(
     if not backups:
         raise exc.CommandLineError(f"No backups found in {backup_directory}")
 
-    user_directory = info.backup_source(backup_directory)
+    user_directory = backup_info.backup_source(backup_directory)
     if not user_directory:
         raise exc.CommandLineError(f"Could not find source of backup for {backup_directory}")
 
