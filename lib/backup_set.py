@@ -7,8 +7,8 @@ from collections.abc import Iterator
 from pathlib import Path
 from itertools import filterfalse
 
-from lib.filesystem import get_existing_path, path_listing, path_or_none
-from lib.exceptions import FilterFileError
+import lib.filesystem as fs
+import lib.exceptions as exc
 
 logger = logging.getLogger()
 
@@ -51,7 +51,7 @@ class Backup_Set:
                 sign = line[0]
 
                 if sign not in "-+#":
-                    raise FilterFileError(
+                    raise exc.FilterFileError(
                         f"Line #{line_number} ({line}): The first symbol "
                         "of each line in the filter file must be -, +, or #.")
 
@@ -60,7 +60,7 @@ class Backup_Set:
 
                 pattern = user_folder/line[1:].strip()
                 if not pattern.is_relative_to(user_folder):
-                    raise FilterFileError(
+                    raise exc.FilterFileError(
                         f"Line #{line_number} ({line}): Filter looks at paths outside user folder.")
 
                 logger.debug("Filter added: %s --> %s %s", line, sign, pattern)
@@ -129,13 +129,13 @@ def preview_filter(args: argparse.Namespace) -> None:
     Arguments:
         args: Parsed command line
     """
-    user_folder = get_existing_path(args.user_folder, "user folder")
-    filter_file = path_or_none(args.filter)
-    output_file = path_or_none(args.preview_filter or args.preview_filter_exclusions)
+    user_folder = fs.get_existing_path(args.user_folder, "user folder")
+    filter_file = fs.path_or_none(args.filter)
+    output_file = fs.path_or_none(args.preview_filter or args.preview_filter_exclusions)
     get_exclusions = args.preview_filter_exclusions is not None
     backup_set = Backup_Set(user_folder, filter_file, get_excluded=get_exclusions)
     if output_file:
         with output_file.open("w", encoding="utf8") as output:
-            path_listing(backup_set, output)
+            fs.path_listing(backup_set, output)
     else:
-        path_listing(backup_set, sys.stdout)
+        fs.path_listing(backup_set, sys.stdout)

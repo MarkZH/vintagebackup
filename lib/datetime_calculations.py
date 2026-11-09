@@ -2,7 +2,7 @@
 
 import datetime
 
-from lib.exceptions import CommandLineError
+import lib.exceptions as exc
 
 
 def past_timepoint(time_span: str, now: datetime.datetime | None = None) -> datetime.datetime:
@@ -27,11 +27,11 @@ def past_timepoint(time_span: str, now: datetime.datetime | None = None) -> date
     try:
         number = int(time_span[:-1])
     except ValueError:
-        raise CommandLineError(
+        raise exc.CommandLineError(
             f"Invalid number in time span (must be a whole number): {time_span}") from None
 
     if number < 1:
-        raise CommandLineError(f"Invalid number in time span (must be positive): {time_span}")
+        raise exc.CommandLineError(f"Invalid number in time span (must be positive): {time_span}")
 
     letter = time_span[-1]
     now = now or datetime.datetime.now()
@@ -47,7 +47,7 @@ def past_timepoint(time_span: str, now: datetime.datetime | None = None) -> date
             new_date = fix_end_of_month(now.year - number, now.month, now.day)
             return datetime.datetime.combine(new_date, now.time())
         case _:
-            raise CommandLineError(f"Invalid time (valid units: {list("dwmy")}): {time_span}")
+            raise exc.CommandLineError(f"Invalid time (valid units: {list("dwmy")}): {time_span}")
 
 
 def months_ago(now: datetime.datetime | datetime.date, month_count: int) -> datetime.date:
@@ -105,11 +105,11 @@ def future_timepoint(time_span: str, now: datetime.datetime | None = None) -> da
     try:
         number = int(time_span[:-1])
     except ValueError:
-        raise CommandLineError(
+        raise exc.CommandLineError(
             f"Invalid number in time span (must be a whole number): {time_span}") from None
 
     if number < 1:
-        raise CommandLineError(f"Invalid number in time span (must be positive): {time_span}")
+        raise exc.CommandLineError(f"Invalid number in time span (must be positive): {time_span}")
 
     letter = time_span[-1]
     now = now or datetime.datetime.now()
@@ -125,7 +125,7 @@ def future_timepoint(time_span: str, now: datetime.datetime | None = None) -> da
             new_date = fix_end_of_month(now.year + number, now.month, now.day)
             return datetime.datetime.combine(new_date, now.time())
         case _:
-            raise CommandLineError(f"Invalid time (valid units: {list("dwmy")}): {time_span}")
+            raise exc.CommandLineError(f"Invalid time (valid units: {list("dwmy")}): {time_span}")
 
 
 def months_ahead(now: datetime.datetime | datetime.date, month_count: int) -> datetime.date:

@@ -19,7 +19,7 @@ import lib.backup_utilities as util
 from lib import backup_info
 from lib.backup_lock import Backup_Lock
 from lib.backup_set import Backup_Set
-from lib.exceptions import CommandLineError, OutOfSpaceError
+import lib.exceptions as exc
 import lib.filesystem as fs
 
 logger = logging.getLogger()
@@ -329,7 +329,7 @@ def copy_files_to_backup(
             logger.debug("Copied %s to %s", user_file, new_backup_file)
         except Exception as error:
             if isinstance(error, OSError) and error.errno == errno.ENOSPC:
-                raise OutOfSpaceError(
+                raise exc.OutOfSpaceError(
                     f"No space to copy {user_file} to {new_backup_directory}.") from error
 
             logger.warning("Could not copy %s (%s)", user_file, error)
@@ -354,7 +354,7 @@ def create_backup_directory(new_backup_directory: Path) -> None:
         new_backup_directory.mkdir(parents=True)
     except OSError as error:
         if error.errno == errno.ENOSPC:
-            raise OutOfSpaceError(
+            raise exc.OutOfSpaceError(
                 f"Could not create {new_backup_directory} due to lack of space.") from error
         else:
             raise
@@ -546,19 +546,19 @@ def check_paths_for_validity(
         - filter_file is specified and it's not a file
     """
     if not user_data_location.is_dir():
-        raise CommandLineError(f"The user folder path is not a folder: {user_data_location}")
+        raise exc.CommandLineError(f"The user folder path is not a folder: {user_data_location}")
 
     if backup_location.exists() and not backup_location.is_dir():
-        raise CommandLineError(f"Backup location exists but is not a folder: {backup_location}")
+        raise exc.CommandLineError(f"Backup location exists but is not a folder: {backup_location}")
 
     if backup_location.is_relative_to(user_data_location):
-        raise CommandLineError(
+        raise exc.CommandLineError(
             "Backup destination cannot be inside user's folder:"
             f" User data: {user_data_location}"
             f"; Backup location: {backup_location}")
 
     if filter_file and not filter_file.is_file():
-        raise CommandLineError(f"Filter file not found: {filter_file}")
+        raise exc.CommandLineError(f"Filter file not found: {filter_file}")
 
 
 def print_backup_storage_stats(backup_location: Path) -> None:
@@ -620,10 +620,11 @@ def copy_probability_from_hard_link_count(hard_link_count: str) -> float:
     try:
         average_hard_link_count = int(hard_link_count)
     except ValueError:
-        raise CommandLineError(f"Invalid value for hard link count: {hard_link_count}") from None
+        raise exc.CommandLineError(
+            f"Invalid value for hard link count: {hard_link_count}") from None
 
     if average_hard_link_count < 1:
-        raise CommandLineError(
+        raise exc.CommandLineError(
             f"Hard link count must be a positive whole number. Got: {hard_link_count}")
 
     logger.info("")
@@ -672,7 +673,7 @@ def start_backup(args: argparse.Namespace) -> None:
     user_folder = fs.get_existing_path(args.user_folder, "user's folder")
 
     if not args.backup_folder:
-        raise CommandLineError("Backup folder not specified.")
+        raise exc.CommandLineError("Backup folder not specified.")
 
     backup_folder = fs.absolute_path(args.backup_folder)
     backup_folder.mkdir(parents=True, exist_ok=True)
@@ -745,7 +746,7 @@ def parse_probability(probability_str: str) -> float:
     number = float(probability_str.rstrip("%"))
     probability = number/divisor
     if probability < 0.0 or probability > 1.0:
-        raise CommandLineError(
+        raise exc.CommandLineError(
             "Value of --copy-probability must be between 0.0 and 1.0 "
             f"(or 0% and 100%): {probability_str}")
 

@@ -6,9 +6,9 @@ import os
 from pathlib import Path
 from typing import TypedDict, Literal
 
-from lib.exceptions import CommandLineError
-from lib.filesystem import absolute_path, default_log_file_name
-from lib.backup_utilities import backup_date_format
+import lib.exceptions as exc
+import lib.filesystem as fs
+import lib.backup_utilities as util
 
 logger = logging.getLogger()
 
@@ -35,7 +35,7 @@ def record_user_location(user_location: Path, backup_location: Path) -> None:
         backup_location: The folder containing all dated backups
     """
     backup_info = read_backup_information(backup_location)
-    backup_info["Source"] = absolute_path(user_location)
+    backup_info["Source"] = fs.absolute_path(user_location)
     write_backup_information(backup_location, backup_info)
 
 
@@ -71,10 +71,10 @@ def confirm_user_location_is_unchanged(user_data_location: Path, backup_location
         return
 
     if not recorded_user_folder.samefile(user_data_location):
-        raise CommandLineError(
+        raise exc.CommandLineError(
             "Previous backup stored a different user folder."
-            f" Previously: {absolute_path(recorded_user_folder)};"
-            f" Now: {absolute_path(user_data_location)}")
+            f" Previously: {fs.absolute_path(recorded_user_folder)};"
+            f" Now: {fs.absolute_path(user_data_location)}")
 
 
 class Backup_Info(TypedDict):
@@ -120,10 +120,10 @@ def read_backup_information(backup_folder: Path) -> Backup_Info:
                 key, value_string = line.split(": ", maxsplit=1)
                 key = backup_info_key(key)
                 if key in ("Compare_Timestamp", "Force_Copy_Timestamp"):
-                    timestamp = datetime.datetime.strptime(value_string, backup_date_format)
+                    timestamp = datetime.datetime.strptime(value_string, util.backup_date_format)
                     extracted_info[key] = timestamp
                 else:
-                    path = absolute_path(value_string)
+                    path = fs.absolute_path(value_string)
                     extracted_info[key] = path
         return extracted_info
     except FileNotFoundError:
@@ -180,7 +180,7 @@ def write_backup_information(backup_folder: Path, backup_info: Backup_Info) -> N
                 timestamp = backup_info[key]
                 if timestamp:
                     logger.debug("Writing %s : %s to %s", key, timestamp, info_file)
-                    info.write(f"{key}: {timestamp.strftime(backup_date_format)}\n")
+                    info.write(f"{key}: {timestamp.strftime(util.backup_date_format)}\n")
             else:
                 path = backup_info[key]
                 if path:
@@ -213,11 +213,11 @@ def primary_log_path(log_file_name: str | None, backup_folder: str | None) -> Pa
         path: The path to the log file to use for this run of Vintage Backup, if any.
     """
     if log_file_name:
-        return absolute_path(log_file_name) if log_file_name != os.devnull else None
+        return fs.absolute_path(log_file_name) if log_file_name != os.devnull else None
     elif backup_folder:
-        backup_path = absolute_path(backup_folder)
+        backup_path = fs.absolute_path(backup_folder)
         log_file_path = backup_log_file(backup_path)
-        return log_file_path or default_log_file_name
+        return log_file_path or fs.default_log_file_name
     else:
         return None
 
@@ -231,7 +231,7 @@ def record_backup_log_file(log_file_path: Path, backup_path: Path) -> None:
         backup_path: Folder containing all dated backups
     """
     backup_info = read_backup_information(backup_path)
-    backup_info["Log"] = absolute_path(log_file_path)
+    backup_info["Log"] = fs.absolute_path(log_file_path)
     write_backup_information(backup_path, backup_info)
 
 

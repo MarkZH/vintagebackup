@@ -4,12 +4,12 @@ import argparse
 from pathlib import Path
 import logging
 
-from lib.backup_info import backup_source
+from lib import backup_info
 from lib.backup_set import Backup_Set
-from lib.exceptions import CommandLineError
-from lib.backup_utilities import all_backups
-from lib.console import print_run_title
-from lib.filesystem import unique_path_name, path_or_none, absolute_path
+import lib.exceptions as exc
+import lib.backup_utilities as util
+from lib import console
+import lib.filesystem as fs
 
 logger = logging.getLogger()
 
@@ -30,13 +30,13 @@ def find_missing_files(
         CommandLineError: If there are not backups or the original location of the user's data
             cannot be found
     """
-    backups = all_backups(backup_directory)
+    backups = util.all_backups(backup_directory)
     if not backups:
-        raise CommandLineError(f"No backups found in {backup_directory}")
+        raise exc.CommandLineError(f"No backups found in {backup_directory}")
 
-    user_directory = backup_source(backup_directory)
+    user_directory = backup_info.backup_source(backup_directory)
     if not user_directory:
-        raise CommandLineError(f"Could not find source of backup for {backup_directory}")
+        raise exc.CommandLineError(f"Could not find source of backup for {backup_directory}")
 
     logger.info("")
     logger.info("Creating list of user files in %s ...", user_directory)
@@ -68,7 +68,7 @@ def find_missing_files(
         user_directory,
         backup_directory)
     result_directory.mkdir(parents=True, exist_ok=True)
-    result_file = unique_path_name(result_directory/"missing_files.txt")
+    result_file = fs.unique_path_name(result_directory/"missing_files.txt")
     logger.warning("Copying list to %s", result_file)
     current_directory: Path | None = None
 
@@ -92,8 +92,8 @@ def start_finding_missing_files(args: argparse.Namespace) -> None:
     Arguments:
         args: Parsed command line
     """
-    print_run_title(args, "Finding missing files")
+    console.print_run_title(args, "Finding missing files")
     find_missing_files(
-        absolute_path(args.backup_folder),
-        path_or_none(args.filter),
-        absolute_path(args.find_missing))
+        fs.absolute_path(args.backup_folder),
+        fs.path_or_none(args.filter),
+        fs.absolute_path(args.find_missing))

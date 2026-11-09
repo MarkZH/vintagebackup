@@ -5,8 +5,8 @@ from pathlib import Path
 import argparse
 from collections.abc import Callable
 
-from lib.filesystem import is_real_directory
-from lib.datetime_calculations import past_timepoint
+import lib.filesystem as fs
+import lib.datetime_calculations as dates
 
 
 backup_date_format = "%Y-%m-%d %H-%M-%S"
@@ -32,12 +32,12 @@ def all_backups(backup_location: Path) -> list[Path]:
         try:
             year = datetime.datetime.strptime(date_folder.parent.name, "%Y").year
             date = datetime.datetime.strptime(date_folder.name, backup_date_format)
-            return year == date.year and is_real_directory(date_folder)
+            return year == date.year and fs.is_real_directory(date_folder)
         except ValueError:
             return False
 
     all_backup_list: list[Path] = []
-    for year_folder in filter(is_real_directory, backup_location.iterdir()):
+    for year_folder in filter(fs.is_real_directory, backup_location.iterdir()):
         all_backup_list.extend(filter(is_valid_directory, year_folder.iterdir()))
 
     return sorted(all_backup_list)
@@ -97,5 +97,5 @@ def should_do_periodic_action(
     if not previous_action_date:
         return True
 
-    required_action_date = past_timepoint(time_span, now)
+    required_action_date = dates.past_timepoint(time_span, now)
     return previous_action_date <= required_action_date

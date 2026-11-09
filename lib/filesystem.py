@@ -9,7 +9,7 @@ from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import TextIO
 
-from lib.exceptions import CommandLineError
+import lib.exceptions as exc
 
 logger = logging.getLogger()
 
@@ -218,7 +218,7 @@ def parse_storage_space(space_requirement: str) -> float:
         multiplier: int = 1000**storage_prefixes.index(prefix)
         return float(number)*multiplier
     except (ValueError, IndexError):
-        raise CommandLineError(f"Invalid storage space value: {space_requirement}") from None
+        raise exc.CommandLineError(f"Invalid storage space value: {space_requirement}") from None
 
 
 def log_free_space(path: Path) -> None:
@@ -255,11 +255,11 @@ def get_existing_path(path: str | None, folder_type: str) -> Path:
         CommandLineError: If the path is None or does does not exist.
     """
     if not path:
-        raise CommandLineError(f"{folder_type.capitalize()} not specified.")
+        raise exc.CommandLineError(f"{folder_type.capitalize()} not specified.")
 
     abs_path = absolute_path(path)
     if not abs_path.exists(follow_symlinks=False):
-        raise CommandLineError(f"Could not find {folder_type.lower()}: {path}") from None
+        raise exc.CommandLineError(f"Could not find {folder_type.lower()}: {path}") from None
 
     return abs_path
 
