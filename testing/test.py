@@ -47,7 +47,7 @@ import lib.exceptions as exc
 from lib import find_missing
 
 
-def load_tests(loader, tests, ignore):  # type: ignore[no-untyped-def] # ruff:ignore[missing-type-function-argument, missing-return-type-undocumented-public-function, unused-function-argument]
+def load_tests(loader, tests, ignore):  # type: ignore[no-untyped-def] # ruff:ignore[missing-type-function-argument, missing-return-type-public-function, unused-function-argument]
     """Load doctests for running with unittest."""  # ruff:ignore[docstring-missing-returns]
     for module in (fs, dates, config, console):
         tests.addTests(doctest.DocTestSuite(module))
